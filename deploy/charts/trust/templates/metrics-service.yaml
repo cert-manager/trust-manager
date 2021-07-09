@@ -1,0 +1,18 @@
+{{- if .Values.app.metrics.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cert-manager-trust.name" . }}-metrics
+  labels:
+    app: {{ include "cert-manager-trust.name" . }}
+{{ include "cert-manager-trust.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.app.metrics.service.type }}
+  ports:
+    - port: {{ .Values.app.metrics.port }}
+      targetPort: {{ .Values.app.metrics.port }}
+      protocol: TCP
+      name: metrics
+  selector:
+    app: {{ include "cert-manager-trust.name" . }}
+{{- end }}

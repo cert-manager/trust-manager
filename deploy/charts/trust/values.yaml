@@ -1,0 +1,63 @@
+# -- Number of replicas of istio-csr to run.
+replicaCount: 1
+
+image:
+  # -- Target image repository.
+  repository: quay.io/jetstack/cert-manager-trust
+  # -- Target image version tag.
+  tag: v0.2.0
+  # -- Kubernetes imagePullPolicy on Deployment.
+  pullPolicy: IfNotPresent
+
+app:
+  # -- Verbosity of istio-csr logging.
+  logLevel: 1 # 1-5
+
+  metrics:
+    # -- Port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'.
+    port: 9402
+    # -- Service to expose metrics endpoint.
+    service:
+      # -- Create a Service resource to expose metrics endpoint.
+      enabled: true
+      # -- Service type to expose metrics.
+      type: ClusterIP
+      # -- ServiceMonitor resource for this Service.
+      servicemonitor:
+        enabled: false
+        prometheusInstance: default
+        interval: 10s
+        scrapeTimeout: 5s
+        labels: {}
+
+  readinessProbe:
+    # -- Container port to expose istio-csr HTTP readiness probe on default network interface.
+    port: 6060
+    # -- Path to expose istio-csr HTTP readiness probe on default network interface.
+    path: "/readyz"
+
+  trust:
+    # -- Namespace used as trust source.
+    namespace: cert-manager
+
+  webhook:
+    # -- Host that the webhook listens on.
+    host: 0.0.0.0
+    # -- Port that the webhook listens on.
+    port: 6443
+    # -- Timeout of webhook HTTP request.
+    timeoutSeconds: 5
+    # -- Type of Kubernetes Service used by the Webhook
+    service:
+      type: ClusterIP
+
+
+resources: {}
+  # -- Kubernetes pod resource limits for istio-csr.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # -- Kubernetes pod memory resource requests for istio-csr.
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi

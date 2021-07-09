@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cert-manager-trust.name" . }}
+  labels:
+{{ include "cert-manager-trust.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "cert-manager-trust.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "cert-manager-trust.name" . }}
+    spec:
+      serviceAccountName: {{ include "cert-manager-trust.name" . }}
+      containers:
+      - name: {{ include "cert-manager-trust.name" . }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.app.webhook.port }}
+        - containerPort: {{ .Values.app.metrics.port }}
+        readinessProbe:
+          httpGet:
+            port: {{ .Values.app.readinessProbe.port }}
+            path: {{ .Values.app.readinessProbe.path }}
+          initialDelaySeconds: 3
+          periodSeconds: 7
+        command: ["cert-manager-trust"]
+        args:
+          - "--log-level={{.Values.app.logLevel}}"
+          - "--metrics-port={{.Values.app.metrics.port}}"
+          - "--readiness-probe-port={{.Values.app.readinessProbe.port}}"
+          - "--readiness-probe-path={{.Values.app.readinessProbe.path}}"
+
+            # trust
+          - "--trust-namespace={{.Values.app.trust.namespace}}"
+
+            # webhook
+          - "--webhook-host={{.Values.app.webhook.host}}"
+          - "--webhook-port={{.Values.app.webhook.port}}"
+          - "--webhook-certificate-dir=/tls"
+
+
+        volumeMounts:
+        - mountPath: /tls
+          name: tls
+          readOnly: true
+
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+
+      volumes:
+      - name: tls
+        secret:
+          defaultMode: 420
+          secretName: {{ include "cert-manager-trust.name" . }}-tls
+

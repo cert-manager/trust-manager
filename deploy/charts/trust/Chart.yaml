@@ -1,0 +1,16 @@
+apiVersion: v1
+
+name: cert-manager-trust
+type: application
+description: A Helm chart for cert-manager-trust
+
+home: https://github.com/cert-manager/trust
+maintainers:
+- name: joshvanl
+  email: joshua.vanleeuwen@jetstack.io
+  url: https://cert-manager.io
+sources:
+- https://github.com/cert-manager/trust
+
+appVersion: v0.1.0
+version: v0.1.0

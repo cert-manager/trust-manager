@@ -1,0 +1,26 @@
+{{- if and .Values.app.metrics.service.enabled .Values.app.metrics.service.servicemonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "cert-manager-trust.name" . }}
+  labels:
+    app: {{ include "cert-manager-trust.name" . }}
+{{ include "cert-manager-trust.labels" . | indent 4 }}
+    prometheus: {{ .Values.app.metrics.service.servicemonitor.prometheusInstance }}
+{{- if .Values.app.metrics.service.servicemonitor.labels }}
+{{ toYaml .Values.app.metrics.service.servicemonitor.labels | indent 4}}
+{{- end }}
+spec:
+  jobLabel: {{ include "cert-manager-trust.name" . }}
+  selector:
+    matchLabels:
+      app: {{ include "cert-manager-trust.name" . }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+  - targetPort: {{ .Values.app.metrics.port }}
+    path: "/metrics"
+    interval: {{ .Values.app.metrics.service.servicemonitor.interval }}
+    scrapeTimeout: {{ .Values.app.metrics.service.servicemonitor.scrapeTimeout }}
+{{- end }}

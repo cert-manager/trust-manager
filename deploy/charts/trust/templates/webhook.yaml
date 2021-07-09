@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cert-manager-trust.name" . }}
+  labels:
+    app: {{ include "cert-manager-trust.name" . }}
+{{ include "cert-manager-trust.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.app.webhook.service.type }}
+  ports:
+    - port: 443
+      targetPort: {{ .Values.app.webhook.port }}
+{{- if .Values.app.webhook.service.nodePort }}
+      nodePort: {{ .Values.app.webhook.service.nodePort }}
+{{- end }}
+      protocol: TCP
+      name: webhook
+  selector:
+    app: {{ include "cert-manager-trust.name" . }}
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ include "cert-manager-trust.name" . }}
+  labels:
+    app: {{ include "cert-manager-trust.name" . }}
+{{ include "cert-manager-trust.labels" . | indent 4 }}
+  annotations:
+    cert-manager.io/inject-ca-from: "{{ .Release.Namespace }}/{{ include "cert-manager-trust.name" . }}"
+
+webhooks:
+  - name: trust.cert-manager.io
+    namespaceSelector:
+      matchExpressions:
+      - key: "cert-manager.io/disable-validation"
+        operator: "NotIn"
+        values:
+        - "true"
+      - key: "name"
+        operator: "NotIn"
+        values:
+        - {{ .Release.Namespace }}
+    rules:
+      - apiGroups:
+          - "trust.cert-manager.io"
+        apiVersions:
+          - "*"
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - "*/*"
+    admissionReviewVersions: ["v1alpha1"]
+    timeoutSeconds: {{ .Values.app.webhook.timeoutSeconds }}
+    failurePolicy: Fail
+    sideEffects: None
+    clientConfig:
+      service:
+        name: {{ include "cert-manager-trust.name" . }}
+        namespace: {{ .Release.Namespace | quote }}
+        path: /validate
