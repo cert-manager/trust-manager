@@ -99,6 +99,7 @@ func (o *Options) addFlags(cmd *cobra.Command) {
 
 	o.addAppFlags(nfs.FlagSet("App"))
 	o.addBundleFlags(nfs.FlagSet("Bundle"))
+	o.addWebhookFlags(nfs.FlagSet("Webhook"))
 	o.kubeConfigFlags = genericclioptions.NewConfigFlags(true)
 	o.kubeConfigFlags.AddFlags(nfs.FlagSet("Kubernetes"))
 
