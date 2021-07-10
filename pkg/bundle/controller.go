@@ -86,7 +86,7 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 
 				return requests
 			},
-		), builder.OnlyMetadata, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		), builder.OnlyMetadata).
 
 		// Watch ConfigMaps in trust Namespace. Only cache metadata.
 		// Reconcile Bundles who reference a modified source ConfigMap.
@@ -117,7 +117,7 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 
 				return requests
 			},
-		), builder.OnlyMetadata, builder.WithPredicates(predicate.GenerationChangedPredicate{}, predicate.NewPredicateFuncs(func(obj client.Object) bool {
+		), builder.OnlyMetadata, builder.WithPredicates(predicate.NewPredicateFuncs(func(obj client.Object) bool {
 			// Only process ConfigMaps in the trust Namespace.
 			return obj.GetNamespace() == b.Namespace
 		}))).
@@ -149,7 +149,7 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 
 				return requests
 			},
-		), builder.OnlyMetadata, builder.WithPredicates(predicate.GenerationChangedPredicate{}, predicate.NewPredicateFuncs(func(obj client.Object) bool {
+		), builder.OnlyMetadata, builder.WithPredicates(predicate.NewPredicateFuncs(func(obj client.Object) bool {
 			// Only process Secrets in the trust Namespace.
 			return obj.GetNamespace() == b.Namespace
 		}))).
