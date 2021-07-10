@@ -23,6 +23,9 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Target",type="string",JSONPath=".spec.target.configMap.key",description="Bundle Target Key"
+// +kubebuilder:printcolumn:name="Synced",type="string",JSONPath=".status.condition.status",description="Bundle has been synced"
+// +kubebuilder:printcolumn:name="Reason",type="string",JSONPath=".status.condition.reason",description="Reason Bundle has Synced status"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
 
@@ -96,14 +99,11 @@ type BundleStatus struct {
 	Target *BundleTarget `json:"target"`
 
 	// +optional
-	Conditions []BundleCondition `json:"conditions,omitempty"`
+	Condition BundleCondition `json:"condition,omitempty"`
 }
 
 // TODO
 type BundleCondition struct {
-	// Type of the condition, known values are (`Ready`, `Issuing`).
-	Type BundleConditionType `json:"type"`
-
 	// Status of the condition, one of ('True', 'False', 'Unknown').
 	Status corev1.ConditionStatus `json:"status"`
 
@@ -131,16 +131,3 @@ type BundleCondition struct {
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
-
-// BundleConditionType represents an Bundle condition value.
-type BundleConditionType string
-
-const (
-	// BundleConditionReady indicates that a certificate is ready for use.
-	// This is defined as:
-	// - The target secret exists
-	// - The target secret contains a certificate that has not expired
-	// - The target secret contains a private key valid for the certificate
-	// - The commonName and dnsNames attributes match those specified on the Bundle
-	BundleConditionReady BundleConditionType = "Ready"
-)

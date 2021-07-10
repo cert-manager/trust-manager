@@ -168,13 +168,7 @@ func (in *BundleStatus) DeepCopyInto(out *BundleStatus) {
 		*out = new(BundleTarget)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.Conditions != nil {
-		in, out := &in.Conditions, &out.Conditions
-		*out = make([]BundleCondition, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
-	}
+	in.Condition.DeepCopyInto(&out.Condition)
 	return
 }
 
