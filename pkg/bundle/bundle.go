@@ -138,8 +138,10 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		return ctrl.Result{}, fmt.Errorf("failed to build bundle source: %w", err)
 	}
 
+	var needsUpdate bool
 	for _, namespace := range namespaceList.Items {
-		if err := b.syncTarget(ctx, log, namespace.Name, &bundle, data); err != nil {
+		synced, err := b.syncTarget(ctx, log, namespace.Name, &bundle, data)
+		if err != nil {
 			log.Error(err, "failed sync bundle to target namespace")
 			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncTargetFailed", "Failed to sync target in Namespace %q: %s", namespace.Name, err)
 
@@ -150,6 +152,10 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 			})
 
 			return ctrl.Result{Requeue: true}, b.client.Status().Update(ctx, &bundle)
+		}
+
+		if synced {
+			needsUpdate = true
 		}
 	}
 
@@ -162,8 +168,16 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		Message: "Successfully synced Bundle to all namespaces",
 	})
 
-	bundle.Status.Target = &bundle.Spec.Target
-	return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
+	if bundle.Status.Target == nil || *bundle.Status.Target != bundle.Spec.Target {
+		bundle.Status.Target = &bundle.Spec.Target
+		needsUpdate = true
+	}
+
+	if needsUpdate {
+		return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
+	}
+
+	return ctrl.Result{}, nil
 }
 
 func (b *bundle) mustBundleList(ctx context.Context) *trustapi.BundleList {

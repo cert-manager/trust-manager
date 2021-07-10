@@ -100,11 +100,11 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.ObjectKeySelect
 	return string(data), nil
 }
 
-func (b *bundle) syncTarget(ctx context.Context, log logr.Logger, namespace string, bundle *trustapi.Bundle, data string) error {
+func (b *bundle) syncTarget(ctx context.Context, log logr.Logger, namespace string, bundle *trustapi.Bundle, data string) (bool, error) {
 	target := bundle.Spec.Target
 
 	if target.ConfigMap == nil {
-		return errors.New("target not defined")
+		return false, errors.New("target not defined")
 	}
 
 	var configMap corev1.ConfigMap
@@ -126,11 +126,11 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger, namespace stri
 			},
 		}
 
-		return b.client.Create(ctx, &configMap)
+		return true, b.client.Create(ctx, &configMap)
 	}
 
 	if err != nil {
-		return fmt.Errorf("failed to get configmap %s/%s: %w", namespace, bundle.Name, err)
+		return false, fmt.Errorf("failed to get configmap %s/%s: %w", namespace, bundle.Name, err)
 	}
 
 	var needsUpdate bool
@@ -151,14 +151,14 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger, namespace stri
 	}
 
 	if !needsUpdate {
-		return nil
+		return false, nil
 	}
 
 	if err := b.client.Update(ctx, &configMap); err != nil {
-		return fmt.Errorf("failed to update configmap %s/%s with bundle: %w", namespace, bundle.Name, err)
+		return true, fmt.Errorf("failed to update configmap %s/%s with bundle: %w", namespace, bundle.Name, err)
 	}
 
 	log.V(2).Info("synced bundle to namespace", "namespace", namespace)
 
-	return nil
+	return true, nil
 }
