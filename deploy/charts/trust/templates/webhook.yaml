@@ -18,7 +18,7 @@ spec:
   selector:
     app: {{ include "cert-manager-trust.name" . }}
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: {{ include "cert-manager-trust.name" . }}
@@ -30,16 +30,6 @@ metadata:
 
 webhooks:
   - name: trust.cert-manager.io
-    namespaceSelector:
-      matchExpressions:
-      - key: "cert-manager.io/disable-validation"
-        operator: "NotIn"
-        values:
-        - "true"
-      - key: "name"
-        operator: "NotIn"
-        values:
-        - {{ .Release.Namespace }}
     rules:
       - apiGroups:
           - "trust.cert-manager.io"
@@ -50,7 +40,7 @@ webhooks:
           - UPDATE
         resources:
           - "*/*"
-    admissionReviewVersions: ["v1alpha1"]
+    admissionReviewVersions: ["v1"]
     timeoutSeconds: {{ .Values.app.webhook.timeoutSeconds }}
     failurePolicy: Fail
     sideEffects: None

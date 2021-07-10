@@ -6,6 +6,17 @@ metadata:
   name: {{ include "cert-manager-trust.name" . }}
 rules:
 - apiGroups:
+  - "trust.cert-manager.io"
+  resources:
+  - "bundles"
+  verbs: ["get", "list", "watch"]
+- apiGroups:
+  - "trust.cert-manager.io"
+  resources:
+  - "bundles/status"
+  verbs: ["update"]
+
+- apiGroups:
   - ""
   resources:
   - "configmaps"
@@ -14,4 +25,17 @@ rules:
   - ""
   resources:
   - "namespaces"
+  verbs: ["get", "list", "watch"]
+
+- apiGroups:
+  - ""
+  resources:
+  - "events"
+  verbs: ["create", "patch"]
+
+# TODO:
+- apiGroups:
+  - ""
+  resources:
+  - "secrets"
   verbs: ["get", "list", "watch"]

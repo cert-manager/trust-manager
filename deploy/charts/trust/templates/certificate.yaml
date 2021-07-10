@@ -19,5 +19,4 @@ spec:
   secretName: {{ include "cert-manager-trust.name" . }}-tls
   revisionHistoryLimit: 1
   issuerRef:
-    kind: Issuer
-    name: selfsigned-issuer
+    name: {{ include "cert-manager-trust.name" . }}

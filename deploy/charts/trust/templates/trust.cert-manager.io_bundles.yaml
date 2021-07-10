@@ -14,7 +14,20 @@ spec:
     singular: bundle
   scope: Cluster
   versions:
-    - name: v1alpha1
+    - additionalPrinterColumns:
+        - description: Bundle Target Key
+          jsonPath: .spec.target.configMap.key
+          name: Target
+          type: string
+        - description: Bundle has been synced
+          jsonPath: .status.condition.status
+          name: Synced
+          type: string
+        - description: Reason Bundle has Synced status
+          jsonPath: .status.condition.reason
+          name: Reason
+          type: string
+      name: v1alpha1
       schema:
         openAPIV3Schema:
           type: object
@@ -88,35 +101,29 @@ spec:
               required:
                 - target
               properties:
-                conditions:
-                  type: array
-                  items:
-                    description: TODO
-                    type: object
-                    required:
-                      - status
-                      - type
-                    properties:
-                      lastTransitionTime:
-                        description: LastTransitionTime is the timestamp corresponding to the last status change of this condition.
-                        type: string
-                        format: date-time
-                      message:
-                        description: Message is a human readable description of the details of the last transition, complementing reason.
-                        type: string
-                      observedGeneration:
-                        description: If set, this represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.condition[x].observedGeneration is 9, the condition is out of date with respect to the current state of the Bundle. TODO
-                        type: integer
-                        format: int64
-                      reason:
-                        description: Reason is a brief machine readable explanation for the condition's last transition.
-                        type: string
-                      status:
-                        description: Status of the condition, one of ('True', 'False', 'Unknown').
-                        type: string
-                      type:
-                        description: Type of the condition, known values are (`Ready`, `Issuing`).
-                        type: string
+                condition:
+                  description: TODO
+                  type: object
+                  required:
+                    - status
+                  properties:
+                    lastTransitionTime:
+                      description: LastTransitionTime is the timestamp corresponding to the last status change of this condition.
+                      type: string
+                      format: date-time
+                    message:
+                      description: Message is a human readable description of the details of the last transition, complementing reason.
+                      type: string
+                    observedGeneration:
+                      description: If set, this represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.condition[x].observedGeneration is 9, the condition is out of date with respect to the current state of the Bundle. TODO
+                      type: integer
+                      format: int64
+                    reason:
+                      description: Reason is a brief machine readable explanation for the condition's last transition.
+                      type: string
+                    status:
+                      description: Status of the condition, one of ('True', 'False', 'Unknown').
+                      type: string
                 target:
                   description: TODO
                   type: object

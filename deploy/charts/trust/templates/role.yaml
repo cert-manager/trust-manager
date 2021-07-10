@@ -23,6 +23,3 @@ rules:
   - "update"
   - "watch"
   - "list"
-- apiGroups: [""]
-  resources: ["events"]
-  verbs: ["create"]
