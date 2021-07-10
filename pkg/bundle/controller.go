@@ -22,10 +22,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -34,9 +36,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	trustapi "github.com/cert-manager/trust/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust/pkg/bundle/internal"
 )
-
-// TODO: find a way to only use listers for only configmaps we care about
 
 func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options) error {
 	b := &bundle{
@@ -46,8 +47,6 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 		clock:    clock.RealClock{},
 		Options:  opts,
 	}
-
-	// TODO: ensure that if owner reference is removed, this controller adds it back
 
 	// Only reconcile config maps that match the well known name
 	if err := ctrl.NewControllerManagedBy(mgr).
@@ -161,4 +160,8 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 	}
 
 	return nil
+}
+
+func NewCacheFunc(opts Options) cache.NewCacheFunc {
+	return internal.NewMultiScopedCache(opts.Namespace, []schema.GroupKind{{Kind: "Secret"}})
 }
