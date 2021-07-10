@@ -31,10 +31,11 @@ A Helm chart for cert-manager-trust
 | app.trust.namespace | string | `"cert-manager"` | Namespace used as trust source. |
 | app.webhook.host | string | `"0.0.0.0"` | Host that the webhook listens on. |
 | app.webhook.port | int | `6443` | Port that the webhook listens on. |
+| app.webhook.service | object | `{"type":"ClusterIP"}` | Type of Kubernetes Service used by the Webhook |
 | app.webhook.timeoutSeconds | int | `5` | Timeout of webhook HTTP request. |
 | image.pullPolicy | string | `"IfNotPresent"` | Kubernetes imagePullPolicy on Deployment. |
 | image.repository | string | `"quay.io/jetstack/cert-manager-trust"` | Target image repository. |
-| image.tag | string | `"v0.2.0"` | Target image version tag. |
+| image.tag | string | `"v0.0.1"` | Target image version tag. |
 | replicaCount | int | `1` | Number of replicas of istio-csr to run. |
 | resources | object | `{}` |  |
 
