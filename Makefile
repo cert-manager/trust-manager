@@ -46,7 +46,7 @@ verify: test build ## tests and builds trust
 .PHONY: image
 image: ## build docker image
 	GOARCH=$(ARCH) GOOS=linux CGO_ENABLED=0 go build -o ./bin/cert-manager-trust-linux ./cmd/.
-	docker build -t gcr.io/jetstack/cert-manager-trust:v0.0.1 .
+	docker build -t quay.io/jetstack/cert-manager-trust:v0.0.1 .
 
 .PHONY: clean
 clean: ## clean up created files
