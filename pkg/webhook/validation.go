@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"github.com/go-logr/logr"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
@@ -38,13 +39,20 @@ type validator struct {
 
 	lister  client.Reader
 	decoder *admission.Decoder
+
+	lock sync.RWMutex
 }
 
 func (v *validator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	log := v.log.WithValues("name", req.Name)
+	log.V(2).Info("received validation request")
 
 	var bundle trustapi.Bundle
+
+	v.lock.RLock()
 	err := v.decoder.Decode(req, &bundle)
+	v.lock.RUnlock()
+
 	if err != nil {
 		log.Error(err, "failed to decode Bundle")
 		return admission.Errored(http.StatusBadRequest, err)
@@ -120,30 +128,42 @@ func (v *validator) Handle(ctx context.Context, req admission.Request) admission
 		}
 
 		for _, existingBundle := range existingBundleList.Items {
+			if existingBundle.Name == bundle.Name {
+				continue
+			}
+
 			if apiequality.Semantic.DeepEqual(bundle.Spec.Target, existingBundle.Spec.Target) {
 				el = append(el, field.Invalid(path.Child("target", "configMap"), configMap, fmt.Sprintf("cannot use the same target as another Bundle %q", existingBundle.Name)))
 			}
 		}
 	}
 
-	// Ensure only 1 condition of each type may exist at once
-	path = field.NewPath("status", "conditions")
-	existingConditionTypes := make(map[trustapi.BundleConditionType]struct{})
-	for i, condition := range bundle.Status.Conditions {
-		if _, ok := existingConditionTypes[condition.Type]; ok {
-			el = append(el, field.Invalid(path.Child(strconv.Itoa(i)), condition, fmt.Sprintf("only a single condition of type %s may be present", condition.Type)))
-		}
-		existingConditionTypes[condition.Type] = struct{}{}
-	}
-
 	if err := el.ToAggregate(); err != nil {
+		log.V(2).Info("denied request", "reason", el.ToAggregate().Error())
 		return admission.Denied(el.ToAggregate().Error())
 	}
 
+	log.V(2).Info("allowed request")
 	return admission.Allowed("Bundle validated")
 }
 
 func (v *validator) InjectDecoder(d *admission.Decoder) error {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
 	v.decoder = d
 	return nil
+}
+
+// check is used by the shared readiness manager to expose whether the server
+// is ready.
+func (v *validator) check(_ *http.Request) error {
+	v.lock.RLock()
+	defer v.lock.RUnlock()
+
+	if v.decoder != nil {
+		return nil
+	}
+
+	return errors.New("not ready")
 }
