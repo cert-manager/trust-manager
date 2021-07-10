@@ -54,6 +54,7 @@ type bundle struct {
 
 func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := b.Log.WithValues("bundle", req.NamespacedName.Name)
+	log.V(2).Info("syncing bundle")
 
 	var bundle trustapi.Bundle
 	err := b.client.Get(ctx, req.NamespacedName, &bundle)
@@ -113,17 +114,20 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 
 			log.V(2).Info("deleted old target key", "old_target", bundle.Status.Target, "namespace", namespace.Name)
 		}
+
+		bundle.Status.Target = &bundle.Spec.Target
+		return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
 	}
 
 	data, err := b.buildSourceBundle(ctx, &bundle)
 	if errors.As(err, &notFoundError{}) {
 		log.Error(err, "bundle source was not found")
 		b.setBundleCondition(&bundle, trustapi.BundleCondition{
-			Type:    trustapi.BundleConditionReady,
 			Status:  corev1.ConditionFalse,
 			Reason:  "SourceNotFound",
 			Message: "Bundle source was not found: " + err.Error(),
 		})
+
 		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SourceNotFound", "Bundle source was not found: %s", err)
 		return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
 	}
@@ -140,7 +144,6 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncTargetFailed", "Failed to sync target in Namespace %q: %s", namespace.Name, err)
 
 			b.setBundleCondition(&bundle, trustapi.BundleCondition{
-				Type:    trustapi.BundleConditionReady,
 				Status:  corev1.ConditionFalse,
 				Reason:  "SyncTargetFailed",
 				Message: fmt.Sprintf("Failed to sync bundle to namespace %q: %s", namespace.Name, err),
@@ -154,14 +157,12 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", "Successfully synced Bundle to all namespaces")
 
 	b.setBundleCondition(&bundle, trustapi.BundleCondition{
-		Type:    trustapi.BundleConditionReady,
 		Status:  corev1.ConditionTrue,
 		Reason:  "Synced",
 		Message: "Successfully synced Bundle to all namespaces",
 	})
 
 	bundle.Status.Target = &bundle.Spec.Target
-
 	return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
 }
 

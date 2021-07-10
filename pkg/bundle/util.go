@@ -27,21 +27,10 @@ func (b *bundle) setBundleCondition(bundle *trustapi.Bundle, condition trustapi.
 	condition.LastTransitionTime = &metav1.Time{b.clock.Now()}
 	condition.ObservedGeneration = bundle.Generation
 
-	var existingConditions []trustapi.BundleCondition
-	for _, existingCondition := range bundle.Status.Conditions {
-
-		// Append existing conditions which do not match the type
-		if existingCondition.Type != condition.Type {
-			existingConditions = append(existingConditions, existingCondition)
-			continue
-		}
-
-		// If the status is the same, don't modify the last transaction time
-		if existingCondition.Status == condition.Status {
-			condition.LastTransitionTime = existingCondition.LastTransitionTime
-		}
+	// If the status is the same, don't modify the last transaction time
+	if bundle.Status.Condition.Status == condition.Status {
+		condition.LastTransitionTime = bundle.Status.Condition.LastTransitionTime
 	}
 
-	// Set the bundle conditions
-	bundle.Status.Conditions = existingConditions
+	bundle.Status.Condition = condition
 }

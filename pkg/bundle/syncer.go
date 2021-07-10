@@ -143,9 +143,11 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger, namespace stri
 
 	// Match, return do nothing
 	if cmdata, ok := configMap.Data[target.ConfigMap.Key]; !ok || cmdata != data {
+		if configMap.Data == nil {
+			configMap.Data = make(map[string]string)
+		}
 		configMap.Data[target.ConfigMap.Key] = data
 		needsUpdate = true
-		return nil
 	}
 
 	if !needsUpdate {
