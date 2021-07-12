@@ -57,7 +57,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	log.V(2).Info("syncing bundle")
 
 	var bundle trustapi.Bundle
-	err := b.client.Get(ctx, req.NamespacedName, &bundle)
+	err := b.lister.Get(ctx, req.NamespacedName, &bundle)
 	if apierrors.IsNotFound(err) {
 		log.V(2).Info("bundle no longer exists, ignoring")
 		return ctrl.Result{}, nil
