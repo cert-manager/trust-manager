@@ -107,9 +107,10 @@ func (v *validator) Handle(ctx context.Context, req admission.Request) admission
 	}
 
 	if target := bundle.Spec.Target.ConfigMap; target != nil {
+		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
 			if source.ConfigMap != nil && source.ConfigMap.Name == bundle.Name && source.ConfigMap.Key == target.Key {
-				el = append(el, field.Forbidden(path.Child(fmt.Sprintf("sources[%d]", i), source.ConfigMap.Name, source.ConfigMap.Key), "cannot define the same source as target"))
+				el = append(el, field.Forbidden(path.Child(fmt.Sprintf("[%d]", i), source.ConfigMap.Name, source.ConfigMap.Key), "cannot define the same source as target"))
 			}
 		}
 	}
