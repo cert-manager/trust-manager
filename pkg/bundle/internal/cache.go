@@ -27,10 +27,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ cache.Cache = &MultiScopedCache{}
+var _ cache.Cache = &multiScopedCache{}
 
 // TODO
-type MultiScopedCache struct {
+type multiScopedCache struct {
 	namespacedCache cache.Cache
 	clusterCache    cache.Cache
 
@@ -47,7 +47,7 @@ func NewMultiScopedCache(namespace string, namespacedInformers []schema.GroupKin
 		if err != nil {
 			return nil, err
 		}
-		return &MultiScopedCache{
+		return &multiScopedCache{
 			namespacedCache:     namespacedCache,
 			clusterCache:        clusterCache,
 			namespacedInformers: namespacedInformers,
@@ -56,17 +56,17 @@ func NewMultiScopedCache(namespace string, namespacedInformers []schema.GroupKin
 }
 
 // TODO
-func (b *MultiScopedCache) GetInformer(ctx context.Context, obj client.Object) (cache.Informer, error) {
+func (b *multiScopedCache) GetInformer(ctx context.Context, obj client.Object) (cache.Informer, error) {
 	return b.cacheFromGVK(obj.GetObjectKind().GroupVersionKind()).GetInformer(ctx, obj)
 }
 
 // TODO
-func (b *MultiScopedCache) GetInformerForKind(ctx context.Context, gvk schema.GroupVersionKind) (cache.Informer, error) {
+func (b *multiScopedCache) GetInformerForKind(ctx context.Context, gvk schema.GroupVersionKind) (cache.Informer, error) {
 	return b.cacheFromGVK(gvk).GetInformerForKind(ctx, gvk)
 }
 
 // TODO
-func (b *MultiScopedCache) Start(ctx context.Context) error {
+func (b *multiScopedCache) Start(ctx context.Context) error {
 	var (
 		errs []error
 		lock sync.Mutex
@@ -92,7 +92,7 @@ func (b *MultiScopedCache) Start(ctx context.Context) error {
 }
 
 // TODO
-func (b *MultiScopedCache) WaitForCacheSync(ctx context.Context) bool {
+func (b *multiScopedCache) WaitForCacheSync(ctx context.Context) bool {
 	for _, c := range []cache.Cache{b.namespacedCache, b.clusterCache} {
 		if !c.WaitForCacheSync(ctx) {
 			return false
@@ -102,22 +102,22 @@ func (b *MultiScopedCache) WaitForCacheSync(ctx context.Context) bool {
 }
 
 // TODO
-func (b *MultiScopedCache) IndexField(ctx context.Context, obj client.Object, field string, extractValue client.IndexerFunc) error {
+func (b *multiScopedCache) IndexField(ctx context.Context, obj client.Object, field string, extractValue client.IndexerFunc) error {
 	return b.cacheFromGVK(obj.GetObjectKind().GroupVersionKind()).IndexField(ctx, obj, field, extractValue)
 }
 
 // TODO
-func (b *MultiScopedCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+func (b *multiScopedCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
 	return b.cacheFromGVK(obj.GetObjectKind().GroupVersionKind()).Get(ctx, key, obj)
 }
 
 // TODO
-func (b *MultiScopedCache) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+func (b *multiScopedCache) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
 	return b.cacheFromGVK(list.GetObjectKind().GroupVersionKind()).List(ctx, list, opts...)
 }
 
 // TODO
-func (b *MultiScopedCache) cacheFromGVK(gvk schema.GroupVersionKind) cache.Cache {
+func (b *multiScopedCache) cacheFromGVK(gvk schema.GroupVersionKind) cache.Cache {
 	for _, namespacedInformer := range b.namespacedInformers {
 		if namespacedInformer.Group == gvk.Group && namespacedInformer.Kind == gvk.Kind {
 			return b.namespacedCache
