@@ -29,14 +29,28 @@ import (
 
 var _ cache.Cache = &multiScopedCache{}
 
-// TODO
+// multiScopedCache is a controller-runtime cache.Cache that provides informers
+// for different scope levels for different resource types, regardless of the
+// scope of the resource itself.
+// This allows for watching one set of Namespaced resources within a particular
+// namespace, whilst the other Namespaced resources in all namespaces.
+// It wraps both the default and multi-namespaced controller-runtime Cache.
 type multiScopedCache struct {
-	namespacedCache cache.Cache
-	clusterCache    cache.Cache
-
+	// namespacedInformers is the set of resource types that should only be
+	// watched in the namespace pool.
 	namespacedInformers []schema.GroupKind
+	// namespacedCache watches resources only in a particular namespace.
+	namespacedCache cache.Cache
+
+	// clusterCache watches resources in all namespaces.
+	clusterCache cache.Cache
 }
 
+// NewMultiScopedCache returns a controller-runtime NewCacheFunc that returns a
+// cache that allows watching some resources at the cluster level, whilst other
+// resources in the given namespace. namespacedInformers is the set of resource
+// types which should only be watched in the given namespace.
+// namespacedInformers expects Namespaced resource types.
 func NewMultiScopedCache(namespace string, namespacedInformers []schema.GroupKind) cache.NewCacheFunc {
 	return func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
 		namespacedCache, err := cache.MultiNamespacedCacheBuilder([]string{namespace})(config, opts)
@@ -55,17 +69,19 @@ func NewMultiScopedCache(namespace string, namespacedInformers []schema.GroupKin
 	}
 }
 
-// TODO
+// GetInformer returns the underlying cache's GetInformer based on resource type.
 func (b *multiScopedCache) GetInformer(ctx context.Context, obj client.Object) (cache.Informer, error) {
 	return b.cacheFromGVK(obj.GetObjectKind().GroupVersionKind()).GetInformer(ctx, obj)
 }
 
-// TODO
+// GetInformerForKind returns the underlying cache's GetInformerForKind based
+// on resource type.
 func (b *multiScopedCache) GetInformerForKind(ctx context.Context, gvk schema.GroupVersionKind) (cache.Informer, error) {
 	return b.cacheFromGVK(gvk).GetInformerForKind(ctx, gvk)
 }
 
-// TODO
+// Start starts both the cluster and namespaced caches. Returned is an
+// aggregated error from both caches.
 func (b *multiScopedCache) Start(ctx context.Context) error {
 	var (
 		errs []error
@@ -91,7 +107,8 @@ func (b *multiScopedCache) Start(ctx context.Context) error {
 	return utilerrors.NewAggregate(errs)
 }
 
-// TODO
+// WaitForCacheSync will wait for both cluster and namespaced caches to sync.
+// Returns false if either cache fails to sync.
 func (b *multiScopedCache) WaitForCacheSync(ctx context.Context) bool {
 	for _, c := range []cache.Cache{b.namespacedCache, b.clusterCache} {
 		if !c.WaitForCacheSync(ctx) {
@@ -101,22 +118,23 @@ func (b *multiScopedCache) WaitForCacheSync(ctx context.Context) bool {
 	return true
 }
 
-// TODO
+// IndexField returns the underlying cache's IndexField based on resource type.
 func (b *multiScopedCache) IndexField(ctx context.Context, obj client.Object, field string, extractValue client.IndexerFunc) error {
 	return b.cacheFromGVK(obj.GetObjectKind().GroupVersionKind()).IndexField(ctx, obj, field, extractValue)
 }
 
-// TODO
+// Get returns the underlying cache's Get based on resource type.
 func (b *multiScopedCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
 	return b.cacheFromGVK(obj.GetObjectKind().GroupVersionKind()).Get(ctx, key, obj)
 }
 
-// TODO
+// List returns the underlying cache's List based on resource type.
 func (b *multiScopedCache) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
 	return b.cacheFromGVK(list.GetObjectKind().GroupVersionKind()).List(ctx, list, opts...)
 }
 
-// TODO
+// cacheFromGVK returns either the cluster or namespaced cache, based on the
+// resource type given.
 func (b *multiScopedCache) cacheFromGVK(gvk schema.GroupVersionKind) cache.Cache {
 	for _, namespacedInformer := range b.namespacedInformers {
 		if namespacedInformer.Group == gvk.Group && namespacedInformer.Kind == gvk.Kind {
