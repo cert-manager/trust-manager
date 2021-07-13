@@ -25,7 +25,7 @@ all: test build image ## runs test, build and image
 
 .PHONY: test
 test: generate lint ## test trust
-	go test -race -v ./...
+	go test -v ./... -args -ginkgo.v
 
 .PHONY: test
 lint:
