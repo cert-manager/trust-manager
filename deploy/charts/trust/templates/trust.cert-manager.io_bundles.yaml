@@ -43,99 +43,101 @@ spec:
             metadata:
               type: object
             spec:
-              description: TODO
+              description: Desired state of the Bundle resource.
               type: object
               required:
                 - sources
                 - target
               properties:
                 sources:
-                  description: TODO
+                  description: Sources is a set of references to data whose data will sync to the target.
                   type: array
                   items:
-                    description: TODO
+                    description: BundleSource is the set of sources whose data will be appended and synced to the BundleTarget in all Namespaces.
                     type: object
                     properties:
                       configMap:
-                        description: TODO
+                        description: ConfigMap is a reference to a ConfigMap's `data` key, in the trust Namespace.
                         type: object
                         required:
                           - name
                         properties:
                           key:
-                            description: The key of the entry in the Secret resource's `data` field to be used. TODO
+                            description: Key is the key of the entry in the object's `data` field to be used.
                             type: string
                           name:
-                            description: The name of the Secret resource being referred to. TODO
+                            description: Name is the name of the source object in the trust Namespace.
                             type: string
                       inLine:
+                        description: InLine is a simple string to append as the source data.
                         type: string
                       secret:
-                        description: TODO
+                        description: Secret is a reference to a Secrets's `data` key, in the trust Namespace.
                         type: object
                         required:
                           - name
                         properties:
                           key:
-                            description: The key of the entry in the Secret resource's `data` field to be used. TODO
+                            description: Key is the key of the entry in the object's `data` field to be used.
                             type: string
                           name:
-                            description: The name of the Secret resource being referred to. TODO
+                            description: Name is the name of the source object in the trust Namespace.
                             type: string
                 target:
-                  description: TODO
+                  description: Target is the target location in all namespaces to sync source data to.
                   type: object
-                  required:
-                    - configMap
                   properties:
                     configMap:
-                      description: TODO
+                      description: ConfigMap is the target ConfigMap in all Namespaces that all Bundle source data will be synced to.
                       type: object
                       properties:
                         key:
-                          description: The key of the entry in the Secret resource's `data` field to be used. TODO
+                          description: Key is the key of the entry in the object's `data` field to be used.
                           type: string
             status:
-              description: TODO
+              description: Status of the Bundle. This is set and managed automatically.
               type: object
-              required:
-                - target
               properties:
-                condition:
-                  description: TODO
-                  type: object
-                  required:
-                    - status
-                  properties:
-                    lastTransitionTime:
-                      description: LastTransitionTime is the timestamp corresponding to the last status change of this condition.
-                      type: string
-                      format: date-time
-                    message:
-                      description: Message is a human readable description of the details of the last transition, complementing reason.
-                      type: string
-                    observedGeneration:
-                      description: If set, this represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.condition[x].observedGeneration is 9, the condition is out of date with respect to the current state of the Bundle. TODO
-                      type: integer
-                      format: int64
-                    reason:
-                      description: Reason is a brief machine readable explanation for the condition's last transition.
-                      type: string
-                    status:
-                      description: Status of the condition, one of ('True', 'False', 'Unknown').
-                      type: string
+                conditions:
+                  description: List of status conditions to indicate the status of the Bundle. Known condition types are `Bundle`.
+                  type: array
+                  items:
+                    description: BundleCondition contains condition information for a Bundle.
+                    type: object
+                    required:
+                      - status
+                      - type
+                    properties:
+                      lastTransitionTime:
+                        description: LastTransitionTime is the timestamp corresponding to the last status change of this condition.
+                        type: string
+                        format: date-time
+                      message:
+                        description: Message is a human readable description of the details of the last transition, complementing reason.
+                        type: string
+                      observedGeneration:
+                        description: If set, this represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.condition[x].observedGeneration is 9, the condition is out of date with respect to the current state of the Bundle.
+                        type: integer
+                        format: int64
+                      reason:
+                        description: Reason is a brief machine readable explanation for the condition's last transition.
+                        type: string
+                      status:
+                        description: Status of the condition, one of ('True', 'False', 'Unknown').
+                        type: string
+                      type:
+                        description: Type of the condition, known values are (`Synced`).
+                        type: string
                 target:
-                  description: TODO
+                  description: Target is the current Target that the Bundle is attempting or has completed syncing the source data to.
                   type: object
-                  required:
-                    - configMap
                   properties:
                     configMap:
-                      description: TODO
+                      description: ConfigMap is the target ConfigMap in all Namespaces that all Bundle source data will be synced to.
                       type: object
                       properties:
                         key:
-                          description: The key of the entry in the Secret resource's `data` field to be used. TODO
+                          description: Key is the key of the entry in the object's `data` field to be used.
                           type: string
       served: true
       storage: true

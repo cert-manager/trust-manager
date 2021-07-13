@@ -33,10 +33,10 @@ type Bundle struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// TODO
+	// Desired state of the Bundle resource.
 	Spec BundleSpec `json:"spec"`
 
-	// TODO
+	// Status of the Bundle. This is set and managed automatically.
 	// +optional
 	Status BundleStatus `json:"status"`
 }
@@ -52,58 +52,75 @@ type BundleList struct {
 
 // TODO
 type BundleSpec struct {
-	// TODO
+	// Sources is a set of references to data whose data will sync to the target.
 	Sources []BundleSource `json:"sources"`
 
-	// TODO
+	// Target is the target location in all namespaces to sync source data to.
 	Target BundleTarget `json:"target"`
 }
 
-// TODO
+// BundleSource is the set of sources whose data will be appended and synced to
+// the BundleTarget in all Namespaces.
 type BundleSource struct {
+	// ConfigMap is a reference to a ConfigMap's `data` key, in the trust
+	// Namespace.
 	// +optional
-	ConfigMap *ObjectKeySelector `json:"configMap,omitempty"`
+	ConfigMap *SourceObjectKeySelector `json:"configMap,omitempty"`
 
+	// Secret is a reference to a Secrets's `data` key, in the trust
+	// Namespace.
 	// +optional
-	Secret *ObjectKeySelector `json:"secret,omitempty"`
+	Secret *SourceObjectKeySelector `json:"secret,omitempty"`
 
+	// InLine is a simple string to append as the source data.
 	// +optional
 	InLine *string `json:"inLine,omitempty"`
 }
 
-// TODO
+// BundleTarget is the target resource that the Bundle will sync all source
+// data to.
 type BundleTarget struct {
-	// TODO
-	ConfigMap *LocalKeySelector `json:"configMap"`
+	// ConfigMap is the target ConfigMap in all Namespaces that all Bundle source
+	// data will be synced to.
+	ConfigMap *KeySelector `json:"configMap,omitempty"`
 }
 
-// TODO
-type ObjectKeySelector struct {
-	// The name of the Secret resource being referred to.
-	// TODO
+// SourceObjectKeySelector is a reference to a source object and its `data` key
+// in the trust Namespace.
+type SourceObjectKeySelector struct {
+	// Name is the name of the source object in the trust Namespace.
 	Name string `json:"name"`
 
-	// The key of the entry in the Secret resource's `data` field to be used.
-	// TODO
-	LocalKeySelector `json:",inline"`
+	// KeySelector is the key of the entry in the objects' `data` field to be
+	// referenced.
+	KeySelector `json:",inline"`
 }
 
-// TODO
-type LocalKeySelector struct {
-	// The key of the entry in the Secret resource's `data` field to be used.
-	// TODO
+// KeySelector is a reference to a key for some map data object.
+type KeySelector struct {
+	// Key is the key of the entry in the object's `data` field to be used.
+	// +optional
 	Key string `json:"key,omitempty"`
 }
 
+// BundleStatus defines the observed state of the Bundle.
 type BundleStatus struct {
+	// Target is the current Target that the Bundle is attempting or has
+	// completed syncing the source data to.
+	// +optional
 	Target *BundleTarget `json:"target"`
 
+	// List of status conditions to indicate the status of the Bundle.
+	// Known condition types are `Bundle`.
 	// +optional
-	Condition BundleCondition `json:"condition,omitempty"`
+	Conditions []BundleCondition `json:"conditions,omitempty"`
 }
 
-// TODO
+// BundleCondition contains condition information for a Bundle.
 type BundleCondition struct {
+	// Type of the condition, known values are (`Synced`).
+	Type BundleConditionType `json:"type"`
+
 	// Status of the condition, one of ('True', 'False', 'Unknown').
 	Status corev1.ConditionStatus `json:"status"`
 
@@ -127,7 +144,15 @@ type BundleCondition struct {
 	// For instance, if .metadata.generation is currently 12, but the
 	// .status.condition[x].observedGeneration is 9, the condition is out of date
 	// with respect to the current state of the Bundle.
-	// TODO
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
+
+// BundleConditionType represents a Bundle condition value.
+type BundleConditionType string
+
+const (
+	// BundleConditionSynced indicates that the Bundle has successfully synced
+	// all source bundle data to the Bundle target in all Namespaces.
+	BundleConditionSynced BundleConditionType = "Synced"
+)
