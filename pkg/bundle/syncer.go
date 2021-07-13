@@ -60,7 +60,7 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 		data = append(data, strings.TrimSpace(sourceData))
 	}
 
-	return strings.Join(data, "\n"), nil
+	return strings.Join(data, "\n") + "\n", nil
 }
 
 func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.ObjectKeySelector) (string, error) {
@@ -158,7 +158,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger, namespace stri
 		return true, fmt.Errorf("failed to update configmap %s/%s with bundle: %w", namespace, bundle.Name, err)
 	}
 
-	log.V(2).Info("synced bundle to namespace", "namespace", namespace)
+	log.V(2).Info("synced bundle to namespace")
 
 	return true, nil
 }

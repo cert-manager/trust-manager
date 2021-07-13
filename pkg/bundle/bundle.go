@@ -140,6 +140,13 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 
 	var needsUpdate bool
 	for _, namespace := range namespaceList.Items {
+		log = log.WithValues("namespace", namespace.Name)
+
+		if namespace.Status.Phase == corev1.NamespaceTerminating {
+			log.V(2).WithValues("phase", corev1.NamespaceTerminating).Info("skipping sync for namespace as it is terminating")
+			continue
+		}
+
 		synced, err := b.syncTarget(ctx, log, namespace.Name, &bundle, data)
 		if err != nil {
 			log.Error(err, "failed sync bundle to target namespace")
@@ -159,21 +166,20 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		}
 	}
 
-	log.Info("successfully synced bundle")
-	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", "Successfully synced Bundle to all namespaces")
-
-	b.setBundleCondition(&bundle, trustapi.BundleCondition{
-		Status:  corev1.ConditionTrue,
-		Reason:  "Synced",
-		Message: "Successfully synced Bundle to all namespaces",
-	})
-
 	if bundle.Status.Target == nil || *bundle.Status.Target != bundle.Spec.Target {
 		bundle.Status.Target = &bundle.Spec.Target
 		needsUpdate = true
 	}
 
+	log.Info("successfully synced bundle")
+
 	if needsUpdate {
+		b.setBundleCondition(&bundle, trustapi.BundleCondition{
+			Status:  corev1.ConditionTrue,
+			Reason:  "Synced",
+			Message: "Successfully synced Bundle to all namespaces",
+		})
+		b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", "Successfully synced Bundle to all namespaces")
 		return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
 	}
 
