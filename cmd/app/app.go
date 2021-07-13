@@ -20,9 +20,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
 	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -50,14 +48,6 @@ func NewCommand() *cobra.Command {
 				return err
 			}
 
-			intscheme := runtime.NewScheme()
-			if err := scheme.AddToScheme(intscheme); err != nil {
-				return fmt.Errorf("failed to add k8s.io scheme: %s", err)
-			}
-			if err := trustapi.AddToScheme(intscheme); err != nil {
-				return fmt.Errorf("failed to add trust.cert-manager.io scheme: %s", err)
-			}
-
 			cl, err := kubernetes.NewForConfig(opts.RestConfig)
 			if err != nil {
 				return fmt.Errorf("error creating kubernetes client: %s", err.Error())
@@ -69,7 +59,7 @@ func NewCommand() *cobra.Command {
 			eventBroadcaster.StartRecordingToSink(&clientv1.EventSinkImpl{Interface: cl.CoreV1().Events("")})
 
 			mgr, err := ctrl.NewManager(opts.RestConfig, ctrl.Options{
-				Scheme: intscheme,
+				Scheme: trustapi.GlobalScheme,
 				//
 				EventBroadcaster: eventBroadcaster,
 				//

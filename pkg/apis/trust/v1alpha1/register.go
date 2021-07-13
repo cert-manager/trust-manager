@@ -17,9 +17,12 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/cert-manager/trust/pkg/apis/trust"
 )
@@ -36,6 +39,8 @@ var (
 	SchemeBuilder      runtime.SchemeBuilder
 	localSchemeBuilder = &SchemeBuilder
 	AddToScheme        = localSchemeBuilder.AddToScheme
+
+	GlobalScheme *runtime.Scheme
 )
 
 func init() {
@@ -43,6 +48,14 @@ func init() {
 	// generated functions takes place in the generated files. The separation
 	// makes the code compile even when the generated files are missing.
 	localSchemeBuilder.Register(addKnownTypes)
+
+	GlobalScheme = runtime.NewScheme()
+	if err := scheme.AddToScheme(GlobalScheme); err != nil {
+		panic(fmt.Sprintf("failed to add k8s.io scheme: %s", err))
+	}
+	if err := AddToScheme(GlobalScheme); err != nil {
+		panic(fmt.Sprintf("failed to add trust.cert-manager.io scheme: %s", err))
+	}
 }
 
 // Adds the list of known types to api.Scheme.
