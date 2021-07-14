@@ -60,6 +60,7 @@ spec:
                         description: ConfigMap is a reference to a ConfigMap's `data` key, in the trust Namespace.
                         type: object
                         required:
+                          - key
                           - name
                         properties:
                           key:
@@ -75,6 +76,7 @@ spec:
                         description: Secret is a reference to a Secrets's `data` key, in the trust Namespace.
                         type: object
                         required:
+                          - key
                           - name
                         properties:
                           key:
@@ -90,6 +92,8 @@ spec:
                     configMap:
                       description: ConfigMap is the target ConfigMap in all Namespaces that all Bundle source data will be synced to.
                       type: object
+                      required:
+                        - key
                       properties:
                         key:
                           description: Key is the key of the entry in the object's `data` field to be used.
@@ -135,6 +139,8 @@ spec:
                     configMap:
                       description: ConfigMap is the target ConfigMap in all Namespaces that all Bundle source data will be synced to.
                       type: object
+                      required:
+                        - key
                       properties:
                         key:
                           description: Key is the key of the entry in the object's `data` field to be used.
