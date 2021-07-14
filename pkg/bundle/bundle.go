@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -35,23 +34,41 @@ import (
 	trustapi "github.com/cert-manager/trust/pkg/apis/trust/v1alpha1"
 )
 
+// Options hold options for the Bundle controller.
 type Options struct {
-	// TODO
-	Log       logr.Logger
+	// Log is the Bundle controller logger.
+	Log logr.Logger
+	// Namespace is the trust Namespace that source data can be referenced.
 	Namespace string
 }
 
-// TODO
+// bundle is a controller-runtime controller. Implements the actual controller
+// logic by reconciling over Bundles.
 type bundle struct {
-	client   client.Client
-	lister   client.Reader
+	// client is a Kubernetes client that makes calls to the API for every
+	// request.
+	// Should be used for updating, deleting, and when requesting data from
+	// resources who's informer only caches metadata.
+	client client.Client
+
+	// lister makes requests to the informer cache. Beware that resources who's
+	// informer only caches metadata, will not return underlying data of that
+	// resource. Use client instead.
+	lister client.Reader
+
+	// recorder is used for create Kubernetes Events for reconciled Bundles.
 	recorder record.EventRecorder
 
+	// clock returns time which can be overwritten for testing.
 	clock clock.Clock
 
+	// Options hold options for the Bundle controller.
 	Options
 }
 
+// Reconcile is the top level function for reconciling over synced Bundles.
+// Reconcile will be called whenever a Bundle event happens, or whenever any
+// related resource event to that bundle occurs.
 func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := b.Log.WithValues("bundle", req.NamespacedName.Name)
 	log.V(2).Info("syncing bundle")
@@ -115,11 +132,13 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 			log.V(2).Info("deleted old target key", "old_target", bundle.Status.Target, "namespace", namespace.Name)
 		}
 
+		// Return with update here, so targets are synced on the next Reconcile.
 		bundle.Status.Target = &bundle.Spec.Target
 		return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
 	}
 
 	data, err := b.buildSourceBundle(ctx, &bundle)
+	// If any source is not found, update the Bundle status to an unready state.
 	if errors.As(err, &notFoundError{}) {
 		log.Error(err, "bundle source was not found")
 		b.setBundleCondition(&bundle, trustapi.BundleCondition{
@@ -142,12 +161,13 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	for _, namespace := range namespaceList.Items {
 		log = log.WithValues("namespace", namespace.Name)
 
+		// Don't reconcile target for Namespaces that are being terminated.
 		if namespace.Status.Phase == corev1.NamespaceTerminating {
 			log.V(2).WithValues("phase", corev1.NamespaceTerminating).Info("skipping sync for namespace as it is terminating")
 			continue
 		}
 
-		synced, err := b.syncTarget(ctx, log, namespace.Name, &bundle, data)
+		synced, err := b.syncTarget(ctx, log, &bundle, namespace.Name, data)
 		if err != nil {
 			log.Error(err, "failed sync bundle to target namespace")
 			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncTargetFailed", "Failed to sync target in Namespace %q: %s", namespace.Name, err)
@@ -162,6 +182,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		}
 
 		if synced {
+			// We need to update if any target is synced.
 			needsUpdate = true
 		}
 	}
@@ -172,26 +193,17 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	}
 
 	log.Info("successfully synced bundle")
+	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", "Successfully synced Bundle to all namespaces")
 
-	if needsUpdate {
-		b.setBundleCondition(&bundle, trustapi.BundleCondition{
-			Status:  corev1.ConditionTrue,
-			Reason:  "Synced",
-			Message: "Successfully synced Bundle to all namespaces",
-		})
-		b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", "Successfully synced Bundle to all namespaces")
-		return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
+	if !needsUpdate {
+		return ctrl.Result{}, nil
 	}
 
-	return ctrl.Result{}, nil
-}
+	b.setBundleCondition(&bundle, trustapi.BundleCondition{
+		Status:  corev1.ConditionTrue,
+		Reason:  "Synced",
+		Message: "Successfully synced Bundle to all namespaces",
+	})
 
-func (b *bundle) mustBundleList(ctx context.Context) *trustapi.BundleList {
-	var bundleList trustapi.BundleList
-	if err := b.lister.List(ctx, &bundleList); err != nil {
-		b.Log.Error(err, "failed to list all Bundles, exiting error")
-		os.Exit(1)
-	}
-
-	return &bundleList
+	return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
 }

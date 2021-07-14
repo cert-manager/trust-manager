@@ -19,6 +19,7 @@ package bundle
 import (
 	"context"
 	"fmt"
+	"os"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -39,6 +40,11 @@ import (
 	"github.com/cert-manager/trust/pkg/bundle/internal"
 )
 
+// AddBundleController will register the Bundle controller with the
+// controller-runtime Manager.
+// The Bundle controller will reconcile Bundles on Bundle events, as well as
+// when any related resource event in the Bundle source and target.
+// The controller will only cache metadata for ConfigMaps and Secrets.
 func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options) error {
 	b := &bundle{
 		client:   mgr.GetClient(),
@@ -162,6 +168,20 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 	return nil
 }
 
+// mustBundleList will return a BundleList of all Bundles in the cluster. If an
+// error occurs, will exit error the program.
+func (b *bundle) mustBundleList(ctx context.Context) *trustapi.BundleList {
+	var bundleList trustapi.BundleList
+	if err := b.lister.List(ctx, &bundleList); err != nil {
+		b.Log.Error(err, "failed to list all Bundles, exiting error")
+		os.Exit(-1)
+	}
+
+	return &bundleList
+}
+
+// NewCacheFunc will return a multi-scoped controller-runtime NewCacheFunc
+// where Secret resources will only be watched within the trust Namespace.
 func NewCacheFunc(opts Options) cache.NewCacheFunc {
 	return internal.NewMultiScopedCache(opts.Namespace, []schema.GroupKind{{Kind: "Secret"}})
 }

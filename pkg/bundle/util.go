@@ -22,15 +22,30 @@ import (
 	trustapi "github.com/cert-manager/trust/pkg/apis/trust/v1alpha1"
 )
 
-// TODO
+// setBundleCondition updates the bundle with the given condition.
+// Will overwrite any existing condition of the same type.
+// ObservedGeneration of the condition will be set to the Generation of the
+// bundle object.
+// LastTransitionTime will not be updated if an existing condition of the same
+// Type and Status already exists.
 func (b *bundle) setBundleCondition(bundle *trustapi.Bundle, condition trustapi.BundleCondition) {
 	condition.LastTransitionTime = &metav1.Time{b.clock.Now()}
 	condition.ObservedGeneration = bundle.Generation
 
-	// If the status is the same, don't modify the last transaction time
-	if bundle.Status.Condition.Status == condition.Status {
-		condition.LastTransitionTime = bundle.Status.Condition.LastTransitionTime
+	var updatedConditions []trustapi.BundleCondition
+	for _, existingCondition := range bundle.Status.Conditions {
+		// Ignore any existing conditions which don't match the incoming type and
+		// add back to set.
+		if existingCondition.Type != condition.Type {
+			updatedConditions = append(updatedConditions, existingCondition)
+			continue
+		}
+
+		// If the status is the same, don't modify the last transaction time
+		if existingCondition.Status == condition.Status {
+			condition.LastTransitionTime = existingCondition.LastTransitionTime
+		}
 	}
 
-	bundle.Status.Condition = condition
+	bundle.Status.Conditions = append(updatedConditions, condition)
 }

@@ -33,6 +33,9 @@ import (
 
 type notFoundError struct{ error }
 
+// buildSourceBundle retrieves and appends all source bundle data for this
+// Bundle object.
+// Each source data has its space trimmed, and is appended by a new line character.
 func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle) (string, error) {
 	var data []string
 
@@ -60,10 +63,17 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 		data = append(data, strings.TrimSpace(sourceData))
 	}
 
+	// return early to prevent returning just newline
+	if len(data) == 0 {
+		return "", nil
+	}
+
 	return strings.Join(data, "\n") + "\n", nil
 }
 
-func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.ObjectKeySelector) (string, error) {
+// configMapBundle returns the data in the target ConfigMap within the trust
+// Namespace.
+func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObjectKeySelector) (string, error) {
 	var configMap corev1.ConfigMap
 	err := b.client.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &configMap)
 	if apierrors.IsNotFound(err) {
@@ -76,17 +86,19 @@ func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.ObjectKeySel
 
 	data, ok := configMap.Data[ref.Key]
 	if !ok {
-		return "", &notFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", b.Namespace, ref.Name, ref.Key)}
+		return "", notFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", b.Namespace, ref.Name, ref.Key)}
 	}
 
 	return data, nil
 }
 
-func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.ObjectKeySelector) (string, error) {
+// secretBundle returns the data in the target Secret within the trust
+// Namespace.
+func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKeySelector) (string, error) {
 	var secret corev1.Secret
 	err := b.client.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &secret)
 	if apierrors.IsNotFound(err) {
-		return "", &notFoundError{err}
+		return "", notFoundError{err}
 	}
 	if err != nil {
 		return "", fmt.Errorf("failed to get Secret %s/%s: %w", b.Namespace, ref.Name, err)
@@ -100,7 +112,13 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.ObjectKeySelect
 	return string(data), nil
 }
 
-func (b *bundle) syncTarget(ctx context.Context, log logr.Logger, namespace string, bundle *trustapi.Bundle, data string) (bool, error) {
+// syncTarget syncs the given data to the target ConfigMap in the given
+// namespace.
+// The name of the ConfigMap is the same as the Bundle.
+// Ensures the ConfigMap is owned by the given Bundle, and the data is up to
+// date.
+// Returns true if the ConfigMap has been created or was updated.
+func (b *bundle) syncTarget(ctx context.Context, log logr.Logger, bundle *trustapi.Bundle, namespace, data string) (bool, error) {
 	target := bundle.Spec.Target
 
 	if target.ConfigMap == nil {
@@ -108,10 +126,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger, namespace stri
 	}
 
 	var configMap corev1.ConfigMap
-	err := b.client.Get(ctx, client.ObjectKey{
-		Namespace: namespace,
-		Name:      bundle.Name,
-	}, &configMap)
+	err := b.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bundle.Name}, &configMap)
 
 	// If the ConfigMap doesn't exist yet, create it
 	if apierrors.IsNotFound(err) {
@@ -150,6 +165,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger, namespace stri
 		needsUpdate = true
 	}
 
+	// Exit early if no update is needed
 	if !needsUpdate {
 		return false, nil
 	}
