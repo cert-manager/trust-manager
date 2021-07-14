@@ -164,5 +164,6 @@ func bundleHasSynced(ctx context.Context, cl client.Client, name, expectedData s
 			return true
 		}
 	}
+
 	return false
 }

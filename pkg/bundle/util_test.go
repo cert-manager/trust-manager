@@ -28,11 +28,70 @@ import (
 	trustapi "github.com/cert-manager/trust/pkg/apis/trust/v1alpha1"
 )
 
+func Test_bundleHasCondition(t *testing.T) {
+	const bundleGeneration int64 = 2
+	var (
+		fixedTime = time.Date(2021, 01, 01, 01, 0, 0, 0, time.UTC)
+	)
+
+	tests := map[string]struct {
+		existingConditions []trustapi.BundleCondition
+		newCondition       trustapi.BundleCondition
+		expectHasCondition bool
+	}{
+		"no existing conditions returns no matching condition": {
+			existingConditions: []trustapi.BundleCondition{},
+			newCondition:       trustapi.BundleCondition{Reason: "A"},
+			expectHasCondition: false,
+		},
+		"an existing condition which doesn't match the current condition should return false": {
+			existingConditions: []trustapi.BundleCondition{{Reason: "B"}},
+			newCondition:       trustapi.BundleCondition{Reason: "A"},
+			expectHasCondition: false,
+		},
+		"an existing condition which shares the same condition but is an older generation should return false": {
+			existingConditions: []trustapi.BundleCondition{{Reason: "A", ObservedGeneration: bundleGeneration - 1}},
+			newCondition:       trustapi.BundleCondition{Reason: "A"},
+			expectHasCondition: false,
+		},
+		"an existing condition which shares the same condition and generation should return true": {
+			existingConditions: []trustapi.BundleCondition{{Reason: "A", ObservedGeneration: bundleGeneration}},
+			newCondition:       trustapi.BundleCondition{Reason: "A"},
+			expectHasCondition: true,
+		},
+		"an existing condition with a different LastTransitionTime should return true still": {
+			existingConditions: []trustapi.BundleCondition{{Reason: "A", ObservedGeneration: bundleGeneration, LastTransitionTime: &metav1.Time{fixedTime.Add(-time.Second)}}},
+			newCondition:       trustapi.BundleCondition{Reason: "A"},
+			expectHasCondition: true,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			bundle := &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: bundleGeneration,
+				},
+				Status: trustapi.BundleStatus{
+					Conditions: test.existingConditions,
+				},
+			}
+
+			hasCondition := bundleHasCondition(bundle, test.newCondition)
+			if hasCondition != test.expectHasCondition {
+				t.Errorf("unexpected has condition, exp=%t got=%t", test.expectHasCondition, hasCondition)
+			}
+		})
+	}
+}
+
 func Test_setBundleCondition(t *testing.T) {
 	const bundleGeneration int64 = 2
-	fixedTime := time.Date(2021, 01, 01, 01, 0, 0, 0, time.UTC)
-	fixedmetatime := &metav1.Time{fixedTime}
-	fixedclock := fakeclock.NewFakeClock(fixedTime)
+	var (
+		fixedTime     = time.Date(2021, 01, 01, 01, 0, 0, 0, time.UTC)
+		fixedmetatime = &metav1.Time{fixedTime}
+		fixedclock    = fakeclock.NewFakeClock(fixedTime)
+	)
 
 	tests := map[string]struct {
 		existingConditions []trustapi.BundleCondition
@@ -153,7 +212,6 @@ func Test_setBundleCondition(t *testing.T) {
 			}
 
 			b.setBundleCondition(bundle, test.newCondition)
-
 			if !apiequality.Semantic.DeepEqual(bundle.Status.Conditions, test.expectedConditions) {
 				t.Errorf("unexpected resulting conditions, exp=%v got=%v", test.expectedConditions, bundle.Status.Conditions)
 			}
