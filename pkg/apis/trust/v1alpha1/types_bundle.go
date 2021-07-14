@@ -51,7 +51,7 @@ type BundleList struct {
 	Items []Bundle `json:"items"`
 }
 
-// TODO
+// BundleSepc defines the desired state of a Bundle.
 type BundleSpec struct {
 	// Sources is a set of references to data whose data will sync to the target.
 	Sources []BundleSource `json:"sources"`

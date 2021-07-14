@@ -22,11 +22,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-// TODO
+// Options are options for running the wehook.
 type Options struct {
 	Log logr.Logger
 }
 
+// Register the webhook endpoints against the Manager.
 func Register(mgr manager.Manager, opts Options) {
 	opts.Log.Info("registering webhook endpoints")
 

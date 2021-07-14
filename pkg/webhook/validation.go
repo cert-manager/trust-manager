@@ -26,14 +26,16 @@ import (
 
 	"github.com/go-logr/logr"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	"github.com/cert-manager/trust/pkg/apis/trust"
 	trustapi "github.com/cert-manager/trust/pkg/apis/trust/v1alpha1"
 )
 
-// TODO
+// validator validates against trust.cert-manager.io resources.
 type validator struct {
 	log logr.Logger
 
@@ -43,29 +45,59 @@ type validator struct {
 	lock sync.RWMutex
 }
 
+// Handle is a Kubernetes validation webhook server handler. Returns an
+// admission response containing whether the request is allowed or not.
 func (v *validator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	log := v.log.WithValues("name", req.Name)
+	log := v.log.WithValues(req.Namespace, "name", req.Name)
 	log.V(2).Info("received validation request")
 
-	var bundle trustapi.Bundle
+	var (
+		el  field.ErrorList
+		err error
+	)
 
-	v.lock.RLock()
-	err := v.decoder.Decode(req, &bundle)
-	v.lock.RUnlock()
+	switch req.Kind {
+	case metav1.GroupVersionKind{Group: trust.GroupName, Version: "v1alpha1", Kind: "Bundle"}:
+		var bundle trustapi.Bundle
 
-	if err != nil {
-		log.Error(err, "failed to decode Bundle")
-		return admission.Errored(http.StatusBadRequest, err)
+		v.lock.RLock()
+		err := v.decoder.Decode(req, &bundle)
+		v.lock.RUnlock()
+
+		if err != nil {
+			log.Error(err, "failed to decode Bundle")
+			return admission.Errored(http.StatusBadRequest, err)
+		}
+
+		el, err = v.validateBundle(ctx, &bundle)
+
+	default:
+		return admission.Denied("validation request for unrecognised resource type")
 	}
 
+	if err != nil {
+		log.Error(err, "internal error occurred validating request")
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+
+	if err := el.ToAggregate(); err != nil {
+		v.log.V(2).Info("denied request", "reason", el.ToAggregate().Error())
+		return admission.Denied(el.ToAggregate().Error())
+	}
+
+	log.V(2).Info("allowed request")
+	return admission.Allowed("Bundle validated")
+}
+
+// validateBundle validates the incoming Bundle object and returns any
+// resulting error.
+func (v *validator) validateBundle(ctx context.Context, bundle *trustapi.Bundle) (field.ErrorList, error) {
 	var el field.ErrorList
 	path := field.NewPath("spec")
 
 	if len(bundle.Spec.Sources) == 0 {
-		el = append(el, field.Forbidden(path.Child("sources"), "must define at lease one source"))
+		el = append(el, field.Forbidden(path.Child("sources"), "must define at least one source"))
 	} else {
-		// TODO: move to openAPI validation
-
 		path := path.Child("sources")
 
 		for i, source := range bundle.Spec.Sources {
@@ -124,8 +156,7 @@ func (v *validator) Handle(ctx context.Context, req admission.Request) admission
 	if configMap := bundle.Spec.Target.ConfigMap; configMap != nil {
 		var existingBundleList trustapi.BundleList
 		if err := v.lister.List(ctx, &existingBundleList); err != nil {
-			log.Error(err, "failed to list existing Bundles")
-			return admission.Errored(http.StatusInternalServerError, errors.New("failed to list existing Bundle resources"))
+			return el, errors.New("failed to list existing Bundle resources")
 		}
 
 		for _, existingBundle := range existingBundleList.Items {
@@ -139,15 +170,21 @@ func (v *validator) Handle(ctx context.Context, req admission.Request) admission
 		}
 	}
 
-	if err := el.ToAggregate(); err != nil {
-		log.V(2).Info("denied request", "reason", el.ToAggregate().Error())
-		return admission.Denied(el.ToAggregate().Error())
+	path = field.NewPath("status")
+
+	conditionTypes := make(map[trustapi.BundleConditionType]struct{})
+	for i, condition := range bundle.Status.Conditions {
+		if _, ok := conditionTypes[condition.Type]; ok {
+			el = append(el, field.Invalid(path.Child("conditions", strconv.Itoa(i)), condition, "condition type already present on Bundle"))
+		}
+		conditionTypes[condition.Type] = struct{}{}
 	}
 
-	log.V(2).Info("allowed request")
-	return admission.Allowed("Bundle validated")
+	return el, nil
 }
 
+// InjectDecoder is used by the controller-runtime manager to inject an object
+// decoder to convert into know trust.cert-manager.io types.
 func (v *validator) InjectDecoder(d *admission.Decoder) error {
 	v.lock.Lock()
 	defer v.lock.Unlock()
