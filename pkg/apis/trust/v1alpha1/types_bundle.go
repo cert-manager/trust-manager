@@ -99,8 +99,7 @@ type SourceObjectKeySelector struct {
 // KeySelector is a reference to a key for some map data object.
 type KeySelector struct {
 	// Key is the key of the entry in the object's `data` field to be used.
-	// +optional
-	Key string `json:"key,omitempty"`
+	Key string `json:"key"`
 }
 
 // BundleStatus defines the observed state of the Bundle.
