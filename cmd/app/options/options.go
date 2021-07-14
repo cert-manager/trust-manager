@@ -33,7 +33,7 @@ import (
 	"github.com/cert-manager/trust/pkg/bundle"
 )
 
-// Options is a struct to hold options for cert-manager-istio-csr
+// Options is a struct to hold options for cert-manager-trust
 type Options struct {
 	logLevel        string
 	kubeConfigFlags *genericclioptions.ConfigFlags
@@ -61,22 +61,26 @@ type Options struct {
 	Bundle bundle.Options
 }
 
-// TODO
+// Webhook holds options specific to running the trust Webhook service.
 type Webhook struct {
 	Host    string
 	Port    int
 	CertDir string
 }
 
+// New constructs a new Options.
 func New() *Options {
 	return new(Options)
 }
 
+// Prepare adds Options flags to the CLI command.
 func (o *Options) Prepare(cmd *cobra.Command) *Options {
 	o.addFlags(cmd)
 	return o
 }
 
+// Complete will populate the remaining Options from the CLI flags. Must be run
+// before consuming Options.
 func (o *Options) Complete() error {
 	klog.InitFlags(nil)
 	log := klogr.New()
@@ -94,6 +98,7 @@ func (o *Options) Complete() error {
 	return nil
 }
 
+// addFlags add all Options flags to the given command.
 func (o *Options) addFlags(cmd *cobra.Command) {
 	var nfs cliflag.NamedFlagSets
 

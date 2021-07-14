@@ -32,10 +32,10 @@ import (
 )
 
 const (
-	helpOutput = "cert-manager istio agent for signing istio agent certificate signing requests through cert-manager"
+	helpOutput = "Operator for distributing bundles from a trust Namespace across a Kubernetes Cluster to be made available to all services"
 )
 
-// NewCommand will return a new command instance for the istio agent.
+// NewCommand will return a new command instance for the trust operator.
 func NewCommand() *cobra.Command {
 	opts := options.New()
 
@@ -59,27 +59,20 @@ func NewCommand() *cobra.Command {
 			eventBroadcaster.StartRecordingToSink(&clientv1.EventSinkImpl{Interface: cl.CoreV1().Events("")})
 
 			mgr, err := ctrl.NewManager(opts.RestConfig, ctrl.Options{
-				Scheme: trustapi.GlobalScheme,
-				//
-				EventBroadcaster: eventBroadcaster,
-				//
-				LeaderElection:          true,
-				LeaderElectionNamespace: opts.Bundle.Namespace,
-				//
-				NewCache: bundle.NewCacheFunc(opts.Bundle),
-				//
+				Scheme:                        trustapi.GlobalScheme,
+				EventBroadcaster:              eventBroadcaster,
+				LeaderElection:                true,
+				LeaderElectionNamespace:       opts.Bundle.Namespace,
+				NewCache:                      bundle.NewCacheFunc(opts.Bundle),
 				LeaderElectionID:              "cert-manager-trust",
 				LeaderElectionReleaseOnCancel: true,
-				//
-				ReadinessEndpointName:  opts.ReadyzPath,
-				HealthProbeBindAddress: fmt.Sprintf("0.0.0.0:%d", opts.ReadyzPort),
-				//
-				Port:    opts.Webhook.Port,
-				Host:    opts.Webhook.Host,
-				CertDir: opts.Webhook.CertDir,
-				//
-				MetricsBindAddress: fmt.Sprintf("0.0.0.0:%d", opts.MetricsPort),
-				Logger:             mlog,
+				ReadinessEndpointName:         opts.ReadyzPath,
+				HealthProbeBindAddress:        fmt.Sprintf("0.0.0.0:%d", opts.ReadyzPort),
+				Port:                          opts.Webhook.Port,
+				Host:                          opts.Webhook.Host,
+				CertDir:                       opts.Webhook.CertDir,
+				MetricsBindAddress:            fmt.Sprintf("0.0.0.0:%d", opts.MetricsPort),
+				Logger:                        mlog,
 			})
 			if err != nil {
 				return fmt.Errorf("failed to create manager: %w", err)
