@@ -124,7 +124,7 @@ var _ = Describe("Integration", func() {
 
 		Expect(cl.Get(ctx, client.ObjectKeyFromObject(testBundle), testBundle)).ToNot(HaveOccurred())
 		testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-			ConfigMap: &trustapi.ObjectKeySelector{Name: "new-bundle-source", LocalKeySelector: trustapi.LocalKeySelector{Key: "new-source-key"}},
+			ConfigMap: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", KeySelector: trustapi.KeySelector{Key: "new-source-key"}},
 		})
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
@@ -146,7 +146,7 @@ var _ = Describe("Integration", func() {
 
 		Expect(cl.Get(ctx, client.ObjectKeyFromObject(testBundle), testBundle)).ToNot(HaveOccurred())
 		testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-			Secret: &trustapi.ObjectKeySelector{Name: "new-bundle-source", LocalKeySelector: trustapi.LocalKeySelector{Key: "new-source-key"}},
+			Secret: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", KeySelector: trustapi.KeySelector{Key: "new-source-key"}},
 		})
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
@@ -226,7 +226,7 @@ var _ = Describe("Integration", func() {
 
 	It("should delete old targets and update to new ones when the Spec.Target is modified", func() {
 		testBundle.Spec.Target = trustapi.BundleTarget{
-			ConfigMap: &trustapi.LocalKeySelector{Key: "changed-target-key"},
+			ConfigMap: &trustapi.KeySelector{Key: "changed-target-key"},
 		}
 		Expect(cl.Update(ctx, testBundle)).ToNot(HaveOccurred())
 		Eventually(func() bool { return bundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\n") }, "5s", "100ms").Should(BeTrue())

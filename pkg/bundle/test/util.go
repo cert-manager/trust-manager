@@ -36,11 +36,11 @@ import (
 type testData struct {
 	sources struct {
 		configMap struct {
-			trustapi.LocalKeySelector
+			trustapi.SourceObjectKeySelector
 			data string
 		}
 		secret struct {
-			trustapi.LocalKeySelector
+			trustapi.SourceObjectKeySelector
 			data string
 		}
 		inLine struct {
@@ -48,7 +48,7 @@ type testData struct {
 		}
 	}
 
-	target trustapi.LocalKeySelector
+	target trustapi.KeySelector
 }
 
 // defaultTrustData returns a well-known set of default data for a test.
@@ -97,16 +97,16 @@ func newTestBundle(ctx context.Context, cl client.Client, opts bundle.Options, t
 		Spec: trustapi.BundleSpec{
 			Sources: []trustapi.BundleSource{
 				{
-					ConfigMap: &trustapi.ObjectKeySelector{
+					ConfigMap: &trustapi.SourceObjectKeySelector{
 						configMap.Name,
-						trustapi.LocalKeySelector{td.sources.configMap.Key},
+						trustapi.KeySelector{td.sources.configMap.Key},
 					},
 				},
 
 				{
-					Secret: &trustapi.ObjectKeySelector{
+					Secret: &trustapi.SourceObjectKeySelector{
 						secret.Name,
-						trustapi.LocalKeySelector{td.sources.secret.Key},
+						trustapi.KeySelector{td.sources.secret.Key},
 					},
 				},
 
@@ -159,5 +159,10 @@ func bundleHasSynced(ctx context.Context, cl client.Client, name, expectedData s
 		return false
 	}
 
-	return bundle.Status.Condition.Status == corev1.ConditionTrue && bundle.Generation == bundle.Status.Condition.ObservedGeneration
+	for _, condition := range bundle.Status.Conditions {
+		if condition.Status == corev1.ConditionTrue && bundle.Generation == condition.ObservedGeneration {
+			return true
+		}
+	}
+	return false
 }
