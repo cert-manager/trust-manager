@@ -85,8 +85,6 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		return ctrl.Result{}, fmt.Errorf("failed to get %q: %s", req.NamespacedName, err)
 	}
 
-	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Syncing", "Syncing bundle to all Namespaces")
-
 	var namespaceList corev1.NamespaceList
 	if err := b.lister.List(ctx, &namespaceList); err != nil {
 		log.Error(err, "failed to list namespaces")
@@ -142,6 +140,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	if errors.As(err, &notFoundError{}) {
 		log.Error(err, "bundle source was not found")
 		b.setBundleCondition(&bundle, trustapi.BundleCondition{
+			Type:    trustapi.BundleConditionSynced,
 			Status:  corev1.ConditionFalse,
 			Reason:  "SourceNotFound",
 			Message: "Bundle source was not found: " + err.Error(),
@@ -173,6 +172,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncTargetFailed", "Failed to sync target in Namespace %q: %s", namespace.Name, err)
 
 			b.setBundleCondition(&bundle, trustapi.BundleCondition{
+				Type:    trustapi.BundleConditionSynced,
 				Status:  corev1.ConditionFalse,
 				Reason:  "SyncTargetFailed",
 				Message: fmt.Sprintf("Failed to sync bundle to namespace %q: %s", namespace.Name, err),
@@ -187,23 +187,25 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		}
 	}
 
-	if bundle.Status.Target == nil || *bundle.Status.Target != bundle.Spec.Target {
+	if bundle.Status.Target == nil || !apiequality.Semantic.DeepEqual(*bundle.Status.Target, bundle.Spec.Target) {
 		bundle.Status.Target = &bundle.Spec.Target
 		needsUpdate = true
 	}
 
-	log.Info("successfully synced bundle")
-	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", "Successfully synced Bundle to all namespaces")
-
-	if !needsUpdate {
-		return ctrl.Result{}, nil
-	}
-
-	b.setBundleCondition(&bundle, trustapi.BundleCondition{
+	syncedCondition := trustapi.BundleCondition{
+		Type:    trustapi.BundleConditionSynced,
 		Status:  corev1.ConditionTrue,
 		Reason:  "Synced",
 		Message: "Successfully synced Bundle to all namespaces",
-	})
+	}
 
+	if !needsUpdate && bundleHasCondition(&bundle, syncedCondition) {
+		return ctrl.Result{}, nil
+	}
+
+	log.V(2).Info("successfully synced bundle")
+
+	b.setBundleCondition(&bundle, syncedCondition)
+	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", "Successfully synced Bundle to all namespaces")
 	return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
 }
