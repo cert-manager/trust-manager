@@ -17,7 +17,9 @@ limitations under the License.
 package app
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
@@ -77,6 +79,14 @@ func NewCommand() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to create manager: %w", err)
 			}
+
+			// Add readiness check that the manager's informers have been synced.
+			mgr.AddReadyzCheck("informers_synced", func(req *http.Request) error {
+				if mgr.GetCache().WaitForCacheSync(req.Context()) {
+					return nil
+				}
+				return errors.New("informers not synced")
+			})
 
 			ctx := ctrl.SetupSignalHandler()
 
