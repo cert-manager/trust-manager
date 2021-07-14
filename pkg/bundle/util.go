@@ -17,10 +17,32 @@ limitations under the License.
 package bundle
 
 import (
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	trustapi "github.com/cert-manager/trust/pkg/apis/trust/v1alpha1"
 )
+
+// bundleHasCondition returns true if the bundle has an exact matching
+// condition.
+// The given condition will have the ObservedGeneration set to the bundle
+// Generation.
+// The LastTransitionTime is ignored.
+func bundleHasCondition(bundle *trustapi.Bundle, condition trustapi.BundleCondition) bool {
+	// A condition does not match if the ObservedGeneration is not the same.
+	condition.ObservedGeneration = bundle.Generation
+
+	for _, existingCondition := range bundle.Status.Conditions {
+		// Ignore matching on LastTransitionTime since LastTransitionTime wouldn't
+		// change if the condition matches.
+		existingCondition.LastTransitionTime = nil
+		if apiequality.Semantic.DeepEqual(existingCondition, condition) {
+			return true
+		}
+	}
+
+	return false
+}
 
 // setBundleCondition updates the bundle with the given condition.
 // Will overwrite any existing condition of the same type.
