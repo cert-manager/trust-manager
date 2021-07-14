@@ -63,8 +63,8 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 		// These ConfigMaps will be Bundle Targets
 		Owns(new(corev1.ConfigMap), builder.OnlyMetadata).
 
-		// Watch all Namespaces. Only cache metadata. Reconcile all Bundles on a
-		// Namespace change.
+		// Watch all Namespaces. Cache whole Namespaces to include Phase Status.
+		// Reconcile all Bundles on a Namespace change.
 		Watches(&source.Kind{Type: new(corev1.Namespace)}, handler.EnqueueRequestsFromMapFunc(
 			func(obj client.Object) []reconcile.Request {
 				err := b.lister.Get(ctx, client.ObjectKeyFromObject(obj), obj)
@@ -92,7 +92,7 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 
 				return requests
 			},
-		), builder.OnlyMetadata).
+		)).
 
 		// Watch ConfigMaps in trust Namespace. Only cache metadata.
 		// Reconcile Bundles who reference a modified source ConfigMap.
