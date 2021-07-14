@@ -16,17 +16,21 @@ spec:
   versions:
     - additionalPrinterColumns:
         - description: Bundle Target Key
-          jsonPath: .spec.target.configMap.key
+          jsonPath: .status.target.configMap.key
           name: Target
           type: string
         - description: Bundle has been synced
-          jsonPath: .status.condition.status
+          jsonPath: .status.conditions[?(@.type == "Synced")].status
           name: Synced
           type: string
         - description: Reason Bundle has Synced status
-          jsonPath: .status.condition.reason
+          jsonPath: .status.conditions[?(@.type == "Synced")].reason
           name: Reason
           type: string
+        - description: Timestamp Bundle was created
+          jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
       name: v1alpha1
       schema:
         openAPIV3Schema:
