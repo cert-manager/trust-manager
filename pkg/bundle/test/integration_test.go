@@ -24,5 +24,5 @@ import (
 
 // Test_Integration runs the full suite of tests for the Bundle controller.
 func Test_Integration(t *testing.T) {
-	testenv.RunSuite(t, "integration-bundle")
+	testenv.RunSuite(t, "integration-bundle", "../../../_artifacts")
 }

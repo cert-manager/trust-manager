@@ -41,16 +41,15 @@ func init() {
 	wait.ForeverTestTimeout = time.Second * 60
 }
 
-func RunSuite(t *testing.T, suiteName string) {
+func RunSuite(t *testing.T, suiteName, artifactDir string) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
-	junitPath := "../../_artifacts"
-	if path := os.Getenv("ARTIFACTS"); path != "" {
-		junitPath = path
+	if path := os.Getenv("ARTIFACTS"); len(path) > 0 {
+		artifactDir = path
 	}
 
 	junitReporter := reporters.NewJUnitReporter(filepath.Join(
-		junitPath,
+		artifactDir,
 		fmt.Sprintf("junit-go-%s.xml", suiteName),
 	))
 
