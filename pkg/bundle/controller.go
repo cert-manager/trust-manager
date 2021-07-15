@@ -185,3 +185,9 @@ func (b *bundle) mustBundleList(ctx context.Context) *trustapi.BundleList {
 func NewCacheFunc(opts Options) cache.NewCacheFunc {
 	return internal.NewMultiScopedCache(opts.Namespace, []schema.GroupKind{{Kind: "Secret"}})
 }
+
+// ClientDisableCacheFor returns resources which should only be watched within
+// the Trust Namespace, and not at the cluster level.
+func ClientDisableCacheFor() []client.Object {
+	return []client.Object{new(corev1.Secret)}
+}
