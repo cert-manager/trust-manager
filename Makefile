@@ -13,34 +13,27 @@
 # limitations under the License.
 
 BINDIR ?= $(CURDIR)/bin
-ARCH   ?= amd64
+ARCH   ?= $(shell go env GOARCH)
+OS     ?= $(shell go env GOOS)
 
 HELM_VERSION ?= 3.6.3
-
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Linux)
-	OS := linux
-endif
-ifeq ($(UNAME_S),Darwin)
-	OS := darwin
-endif
 
 help:  ## display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n\nTargets:\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
 .PHONY: all
-all: test build image ## runs test, build and image
+all: depend generate test build image ## runs test, build and image
 
 .PHONY: test
-test: generate lint ## test trust
-	go test -v ./...
+test: lint ## test trust
+	KUBEBUILDER_ASSETS=$(BINDIR)/kubebuilder/bin go test -v ./pkg/... ./cmd/...
 
 .PHONY: test
 lint:
 	./hack/verify-boilerplate.sh
 
 .PHONY: build
-build: generate ## build trust
+build: ## build trust
 	mkdir -p $(BINDIR)
 	CGO_ENABLED=0 go build -o ./bin/cert-manager-trust ./cmd/.
 
@@ -49,7 +42,7 @@ generate: depend ## generate code
 	./hack/update-codegen.sh
 
 .PHONY: verify
-verify: test build ## tests and builds trust
+verify: depend test build ## tests and builds trust
 
 .PHONY: image
 image: ## build docker image
@@ -71,7 +64,7 @@ smoke: demo ## create cluster, deploy trust and run smoke tests
 	./hack/ci/run-smoke-test.sh
 
 .PHONY: depend
-depend: $(BINDIR)/deepcopy-gen $(BINDIR)/controller-gen $(BINDIR)/ginkgo  $(BINDIR)/kubectl $(BINDIR)/kind $(BINDIR)/helm
+depend: $(BINDIR)/deepcopy-gen $(BINDIR)/controller-gen $(BINDIR)/ginkgo $(BINDIR)/kubectl $(BINDIR)/kind $(BINDIR)/helm $(BINDIR)/kubebuilder/bin/kube-apiserver
 
 $(BINDIR)/deepcopy-gen:
 	mkdir -p $(BINDIR)
@@ -96,3 +89,8 @@ $(BINDIR)/helm:
 $(BINDIR)/kubectl:
 	curl -o ./bin/kubectl -LO "https://storage.googleapis.com/kubernetes-release/release/$(shell curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$(OS)/$(ARCH)/kubectl"
 	chmod +x ./bin/kubectl
+
+$(BINDIR)/kubebuilder/bin/kube-apiserver:
+	curl -sSLo $(BINDIR)/envtest-bins.tar.gz "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$(shell curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt | cut -c 2-)-$(OS)-$(ARCH).tar.gz"
+	mkdir -p $(BINDIR)/kubebuilder
+	tar -C $(BINDIR)/kubebuilder --strip-components=1 -zvxf $(BINDIR)/envtest-bins.tar.gz
