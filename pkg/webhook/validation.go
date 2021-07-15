@@ -51,12 +51,16 @@ func (v *validator) Handle(ctx context.Context, req admission.Request) admission
 	log := v.log.WithValues(req.Namespace, "name", req.Name)
 	log.V(2).Info("received validation request")
 
+	if req.RequestKind == nil {
+		return admission.Errored(http.StatusBadRequest, errors.New("no resource kind sent in request"))
+	}
+
 	var (
 		el  field.ErrorList
 		err error
 	)
 
-	switch req.Kind {
+	switch *req.RequestKind {
 	case metav1.GroupVersionKind{Group: trust.GroupName, Version: "v1alpha1", Kind: "Bundle"}:
 		var bundle trustapi.Bundle
 
@@ -72,7 +76,7 @@ func (v *validator) Handle(ctx context.Context, req admission.Request) admission
 		el, err = v.validateBundle(ctx, &bundle)
 
 	default:
-		return admission.Denied("validation request for unrecognised resource type")
+		return admission.Denied(fmt.Sprintf("validation request for unrecognised resource type: %s/%s %s", req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind))
 	}
 
 	if err != nil {
@@ -101,7 +105,7 @@ func (v *validator) validateBundle(ctx context.Context, bundle *trustapi.Bundle)
 		path := path.Child("sources")
 
 		for i, source := range bundle.Spec.Sources {
-			path := path.Child(strconv.Itoa(i))
+			path := path.Child("[" + strconv.Itoa(i) + "]")
 			unionCount := 0
 
 			if configMap := source.ConfigMap; configMap != nil {
@@ -142,7 +146,7 @@ func (v *validator) validateBundle(ctx context.Context, bundle *trustapi.Bundle)
 		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
 			if source.ConfigMap != nil && source.ConfigMap.Name == bundle.Name && source.ConfigMap.Key == target.Key {
-				el = append(el, field.Forbidden(path.Child(fmt.Sprintf("[%d]", i), source.ConfigMap.Name, source.ConfigMap.Key), "cannot define the same source as target"))
+				el = append(el, field.Forbidden(path.Child(fmt.Sprintf("[%d]", i), "configMap", source.ConfigMap.Name, source.ConfigMap.Key), "cannot define the same source as target"))
 			}
 		}
 	}
@@ -165,7 +169,7 @@ func (v *validator) validateBundle(ctx context.Context, bundle *trustapi.Bundle)
 			}
 
 			if apiequality.Semantic.DeepEqual(bundle.Spec.Target, existingBundle.Spec.Target) {
-				el = append(el, field.Invalid(path.Child("target", "configMap"), configMap, fmt.Sprintf("cannot use the same target as another Bundle %q", existingBundle.Name)))
+				el = append(el, field.Invalid(path.Child("target", "configMap", "key"), configMap.Key, fmt.Sprintf("cannot use the same target as another Bundle %q", existingBundle.Name)))
 			}
 		}
 	}
@@ -175,7 +179,7 @@ func (v *validator) validateBundle(ctx context.Context, bundle *trustapi.Bundle)
 	conditionTypes := make(map[trustapi.BundleConditionType]struct{})
 	for i, condition := range bundle.Status.Conditions {
 		if _, ok := conditionTypes[condition.Type]; ok {
-			el = append(el, field.Invalid(path.Child("conditions", strconv.Itoa(i)), condition, "condition type already present on Bundle"))
+			el = append(el, field.Invalid(path.Child("conditions", "["+strconv.Itoa(i)+"]"), condition, "condition type already present on Bundle"))
 		}
 		conditionTypes[condition.Type] = struct{}{}
 	}

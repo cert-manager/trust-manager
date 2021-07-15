@@ -87,11 +87,11 @@ var _ = Describe("Integration", func() {
 		By("Running Bundle controller")
 		go mgr.Start(ctx)
 
+		By("Waiting for Informers to Sync")
+		Expect(mgr.GetCache().WaitForCacheSync(ctx)).Should(BeTrue())
+
 		By("Waiting for Leader Election")
 		<-mgr.Elected()
-
-		By("Waiting for Informers to Sync")
-		//Expect(mgr.GetCache().WaitForCacheSync(ctx)).Should(BeTrue())
 
 		By("Creating Bundle for test")
 		testData = defaultTrustData()
