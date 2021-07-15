@@ -34,7 +34,7 @@ var _ cache.Cache = &multiScopedCache{}
 // scope of the resource itself.
 // This allows for watching one set of Namespaced resources within a particular
 // namespace, whilst the other Namespaced resources in all namespaces.
-// It wraps both the default and multi-namespaced controller-runtime Cache.
+// It wraps both the default and Namespaced controller-runtime Cache.
 type multiScopedCache struct {
 	// namespacedInformers is the set of resource types that should only be
 	// watched in the namespace pool.
@@ -53,7 +53,13 @@ type multiScopedCache struct {
 // namespacedInformers expects Namespaced resource types.
 func NewMultiScopedCache(namespace string, namespacedInformers []schema.GroupKind) cache.NewCacheFunc {
 	return func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
-		namespacedCache, err := cache.MultiNamespacedCacheBuilder([]string{namespace})(config, opts)
+		namespacedCache, err := cache.New(config, cache.Options{
+			Scheme:            opts.Scheme,
+			Mapper:            opts.Mapper,
+			Namespace:         namespace,
+			Resync:            opts.Resync,
+			SelectorsByObject: opts.SelectorsByObject,
+		})
 		if err != nil {
 			return nil, err
 		}
