@@ -17,15 +17,42 @@ limitations under the License.
 package test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo"
+	ginkgoconfig "github.com/onsi/ginkgo/config"
+	"github.com/onsi/ginkgo/reporters"
+	"github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
+
+func init() {
+	// Turn on verbose by default to get spec names
+	ginkgoconfig.DefaultReporterConfig.Verbose = true
+	// Turn on EmitSpecProgress to get spec progress (especially on interrupt)
+	ginkgoconfig.GinkgoConfig.EmitSpecProgress = true
+	// Randomize specs as well as suites
+	ginkgoconfig.GinkgoConfig.RandomizeAllSpecs = true
+
+	wait.ForeverTestTimeout = time.Second * 60
+}
 
 // Test_Integration runs the full suite of tests for the Bundle controller.
 func Test_Integration(t *testing.T) {
-	RegisterFailHandler(Fail)
-	suiteName := "Bundle Suite"
-	RunSpecs(t, suiteName)
+	gomega.RegisterFailHandler(ginkgo.Fail)
+
+	junitPath := "../../../_artifacts"
+	if path := os.Getenv("ARTIFACTS"); path != "" {
+		junitPath = path
+	}
+
+	junitReporter := reporters.NewJUnitReporter(filepath.Join(
+		junitPath,
+		"junit-go-integration-bundle.xml",
+	))
+
+	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Bundle Suite", []ginkgo.Reporter{junitReporter})
 }
