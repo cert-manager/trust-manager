@@ -15,7 +15,7 @@ not be known to cert-manager at all.
 
 trust ships with a single cluster scoped `Bundle` resource. A Bundle represents
 a set of data that should be distributed and made available across the cluster.
-There are no constraints on what data can distributed.
+There are no constraints on what data can be distributed.
 
 The Bundle gathers and appends trust data from a number of `sources` located in
 the trust namespace (where the trust controller is deployed), and syncs them to
@@ -64,7 +64,7 @@ First, install [cert-manager](https://cert-manager.io/docs/installation/) to the
 cluster, and then the trust operator. It is advised to run the trust operator in
 the `cert-manager` namespace.
 
-```yaml
+```bash
 $ helm repo add jetstack https://charts.jetstack.io --force-update
 $ helm upgrade -i -n cert-manager cert-manager jetstack/cert-manager --set installCRDs=true --wait --create-namespace
 $ helm upgrade -i -n cert-manager cert-manager-trust jetstack/cert-manager-trust --wait
@@ -94,11 +94,15 @@ spec:
     configMap:
       key: "target-key"
 EOF
+```
 
+```bash
 $ kubectl get bundle
 NAME             TARGET       SYNCED   REASON   AGE
 example-bundle   target-key   True     Synced   5s
+```
 
+```bash
 $ kubectl get cm -A --field-selector=metadata.name=example-bundle
 NAMESPACE            NAME             DATA   AGE
 cert-manager         example-bundle   1      2m18s
@@ -107,7 +111,9 @@ kube-node-lease      example-bundle   1      2m18s
 kube-public          example-bundle   1      2m18s
 kube-system          example-bundle   1      2m18s
 local-path-storage   example-bundle   1      2m18s
+```
 
+```bash
 $ kubectl get cm -n kube-system example-bundle -o jsonpath="{.data['target-key']}"
 123
 ABC
