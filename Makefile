@@ -15,7 +15,15 @@
 BINDIR ?= $(CURDIR)/bin
 ARCH   ?= amd64
 
-.PHONY: deploy
+HELM_VERSION ?= 3.6.3
+
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+	OS := linux
+endif
+ifeq ($(UNAME_S),Darwin)
+	OS := darwin
+endif
 
 help:  ## display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n\nTargets:\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -51,26 +59,19 @@ image: ## build docker image
 .PHONY: clean
 clean: ## clean up created files
 	rm -rf \
-		$(BINDIR)
-
-.PHONY: push_image
-push_image: image
-	docker push localhost:5000/cert-manager/trust:v0.0.1
-
-.PHONY: cluster
-cluster: ## create kind cluster with local registry
-	./hack/create-cluster.sh
-
-.PHONY: deploy
-deploy: ## deploy trust manifests
-	kubectl apply -f ./deploy/crds
-	kubectl apply -f ./deploy/yaml
+		$(BINDIR) \
+		_artifacts
 
 .PHONY: demo
-demo: all cluster push_image deploy ## create cluster and deploy trust with demo
+demo: depend ## create cluster and deploy trust
+	./hack/ci/create-cluster.sh
+
+.PHONY: smoke
+smoke: demo ## create cluster, deploy trust and run smoke tests
+	./hack/ci/run-smoke-test.sh
 
 .PHONY: depend
-depend: $(BINDIR)/deepcopy-gen $(BINDIR)/controller-gen
+depend: $(BINDIR)/deepcopy-gen $(BINDIR)/controller-gen $(BINDIR)/ginkgo  $(BINDIR)/kubectl $(BINDIR)/kind $(BINDIR)/helm
 
 $(BINDIR)/deepcopy-gen:
 	mkdir -p $(BINDIR)
@@ -79,3 +80,19 @@ $(BINDIR)/deepcopy-gen:
 $(BINDIR)/controller-gen:
 	mkdir -p $(BINDIR)
 	go build -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
+
+$(BINDIR)/ginkgo:
+	go build -o $(BINDIR)/ginkgo github.com/onsi/ginkgo/ginkgo
+
+$(BINDIR)/kind:
+	go build -o $(BINDIR)/kind sigs.k8s.io/kind
+
+$(BINDIR)/helm:
+	curl -o $(BINDIR)/helm.tar.gz -LO "https://get.helm.sh/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz"
+	tar -C $(BINDIR) -xzf $(BINDIR)/helm.tar.gz
+	cp $(BINDIR)/$(OS)-$(ARCH)/helm $(BINDIR)/helm
+	rm -r $(BINDIR)/$(OS)-$(ARCH) $(BINDIR)/helm.tar.gz
+
+$(BINDIR)/kubectl:
+	curl -o ./bin/kubectl -LO "https://storage.googleapis.com/kubernetes-release/release/$(shell curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$(OS)/$(ARCH)/kubectl"
+	chmod +x ./bin/kubectl
