@@ -19,10 +19,10 @@ package test
 import (
 	"testing"
 
-	"github.com/cert-manager/trust/test/ginkgo"
+	testenv "github.com/cert-manager/trust/test/env"
 )
 
 // Test_Integration runs the full suite of tests for the Bundle controller.
 func Test_Integration(t *testing.T) {
-	ginkgo.RunSuite(t, "integration-bundle")
+	testenv.RunSuite(t, "integration-bundle")
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package test
+package env
 
 import (
 	"context"
@@ -31,41 +31,42 @@ import (
 	"github.com/cert-manager/trust/pkg/bundle"
 )
 
-// testData is used as a set of input data to a Bundle suite test. It
+// TestData is used as a set of input data to a Bundle suite test. It
 // represents a subset of the Bundle API spec.
-type testData struct {
-	sources struct {
-		configMap struct {
+type TestData struct {
+	Sources struct {
+		ConfigMap struct {
 			trustapi.SourceObjectKeySelector
-			data string
+			Data string
 		}
-		secret struct {
+		Secret struct {
 			trustapi.SourceObjectKeySelector
-			data string
+			Data string
 		}
-		inLine struct {
-			data string
+		InLine struct {
+			Data string
 		}
 	}
 
-	target trustapi.KeySelector
+	Target trustapi.KeySelector
 }
 
-// defaultTrustData returns a well-known set of default data for a test.
-func defaultTrustData() testData {
-	var td testData
-	td.sources.configMap.Key = "configMap-key"
-	td.sources.configMap.data = "A"
-	td.sources.secret.Key = "secret-key"
-	td.sources.secret.data = "B"
-	td.sources.inLine.data = "C"
-	td.target.Key = "target-key"
+// DefaultTrustData returns a well-known set of default data for a test.
+// Resulting Bundle will sync "A\nB\nC\n" to the Target "target-key".
+func DefaultTrustData() TestData {
+	var td TestData
+	td.Sources.ConfigMap.Key = "configMap-key"
+	td.Sources.ConfigMap.Data = "A"
+	td.Sources.Secret.Key = "secret-key"
+	td.Sources.Secret.Data = "B"
+	td.Sources.InLine.Data = "C"
+	td.Target.Key = "target-key"
 	return td
 }
 
 // newTestBundle creates a new Bundle in the API using the input test data.
 // Returns the create Bundle object.
-func newTestBundle(ctx context.Context, cl client.Client, opts bundle.Options, td testData) *trustapi.Bundle {
+func NewTestBundle(ctx context.Context, cl client.Client, opts bundle.Options, td TestData) *trustapi.Bundle {
 	By("creating trust Bundle")
 
 	configMap := corev1.ConfigMap{
@@ -74,7 +75,7 @@ func newTestBundle(ctx context.Context, cl client.Client, opts bundle.Options, t
 			Namespace:    opts.Namespace,
 		},
 		Data: map[string]string{
-			td.sources.configMap.Key: td.sources.configMap.data,
+			td.Sources.ConfigMap.Key: td.Sources.ConfigMap.Data,
 		},
 	}
 	Expect(cl.Create(ctx, &configMap)).NotTo(HaveOccurred())
@@ -85,37 +86,37 @@ func newTestBundle(ctx context.Context, cl client.Client, opts bundle.Options, t
 			Namespace:    opts.Namespace,
 		},
 		Data: map[string][]byte{
-			td.sources.secret.Key: []byte(td.sources.secret.data),
+			td.Sources.Secret.Key: []byte(td.Sources.Secret.Data),
 		},
 	}
 	Expect(cl.Create(ctx, &secret)).NotTo(HaveOccurred())
 
 	bundle := trustapi.Bundle{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "integration-bundle-",
+			GenerateName: "test-bundle-",
 		},
 		Spec: trustapi.BundleSpec{
 			Sources: []trustapi.BundleSource{
 				{
 					ConfigMap: &trustapi.SourceObjectKeySelector{
 						configMap.Name,
-						trustapi.KeySelector{td.sources.configMap.Key},
+						trustapi.KeySelector{td.Sources.ConfigMap.Key},
 					},
 				},
 
 				{
 					Secret: &trustapi.SourceObjectKeySelector{
 						secret.Name,
-						trustapi.KeySelector{td.sources.secret.Key},
+						trustapi.KeySelector{td.Sources.Secret.Key},
 					},
 				},
 
 				{
-					InLine: &td.sources.inLine.data,
+					InLine: &td.Sources.InLine.Data,
 				},
 			},
 			Target: trustapi.BundleTarget{
-				ConfigMap: &td.target,
+				ConfigMap: &td.Target,
 			},
 		},
 	}
@@ -124,13 +125,13 @@ func newTestBundle(ctx context.Context, cl client.Client, opts bundle.Options, t
 	return &bundle
 }
 
-// bundleHasSynced will return true if the given Bundle has synced the expected
+// BundleHasSynced will return true if the given Bundle has synced the expected
 // data to targets in all namespaces.
 // Skips Namespaces that are Terminating since targets are not synced there.
 // Ensures the Bundle status has been updated with the appropriate target.
 // Ensures the Bundle has the correct status condition with the same
 // ObservedGeneration as the current Generation.
-func bundleHasSynced(ctx context.Context, cl client.Client, name, expectedData string) bool {
+func BundleHasSynced(ctx context.Context, cl client.Client, name, expectedData string) bool {
 	var bundle trustapi.Bundle
 	Expect(cl.Get(ctx, client.ObjectKey{Name: name}, &bundle)).NotTo(HaveOccurred())
 
