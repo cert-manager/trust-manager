@@ -48,7 +48,7 @@ type validator struct {
 // Handle is a Kubernetes validation webhook server handler. Returns an
 // admission response containing whether the request is allowed or not.
 func (v *validator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	log := v.log.WithValues(req.Namespace, "name", req.Name)
+	log := v.log.WithValues("name", req.Name)
 	log.V(2).Info("received validation request")
 
 	if req.RequestKind == nil {
