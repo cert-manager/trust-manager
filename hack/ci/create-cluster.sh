@@ -8,13 +8,15 @@ KIND_BIN="${KIND_BIN:-$REPO_ROOT/bin/kind}"
 TRUST_TAG="${TRUST_TAG:-smoke}"
 TRUST_IMAGE="${TRUST_IMAGE:-quay.io/jetstack/cert-manager-trust:$TRUST_TAG}"
 
+echo ">> building docker image..."
+GOARCH=$(go env GOARCH) GOOS=linux CGO_ENABLED=0 go build -o $REPO_ROOT/bin/cert-manager-trust-linux $REPO_ROOT/cmd/.
+docker build -t $TRUST_IMAGE .
+
 echo ">> creating kind cluster..."
 $KIND_BIN delete cluster --name trust
 $KIND_BIN create cluster --name trust
 
-echo ">> building and loading docker image..."
-GOARCH=$(go env GOARCH) GOOS=linux CGO_ENABLED=0 go build -o $REPO_ROOT/bin/cert-manager-trust-linux $REPO_ROOT/cmd/.
-docker build -t $TRUST_IMAGE .
+echo ">> loading docker image..."
 $KIND_BIN load docker-image $TRUST_IMAGE --name trust
 
 echo ">> installing cert-manager..."
