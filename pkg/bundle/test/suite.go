@@ -36,6 +36,10 @@ import (
 	testenv "github.com/cert-manager/trust/test/env"
 )
 
+const (
+	eventuallyTimeout = "10s"
+)
+
 var _ = Describe("Integration", func() {
 	var (
 		ctx    context.Context
@@ -97,7 +101,7 @@ var _ = Describe("Integration", func() {
 		By("Creating Bundle for test")
 		testData = testenv.DefaultTrustData()
 		testBundle = testenv.NewTestBundle(ctx, cl, opts, testData)
-		Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\n") }, "5s", "100ms").Should(BeTrue())
+		Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		Expect(cl.Get(ctx, client.ObjectKeyFromObject(testBundle), testBundle)).ToNot(HaveOccurred())
 	})
 
@@ -130,7 +134,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
 		Context("should observe Bundle has synced the new 'D' value", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\nD\n") }, "5s", "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\nD\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -152,7 +156,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
 		Context("should observe Bundle has synced the new 'D' value", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\nD\n") }, "5s", "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\nD\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -162,7 +166,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
 		Context("should observe Bundle has synced the new 'D' value", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\nD\n") }, "5s", "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\nD\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -171,7 +175,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
 		Context("should observe Bundle has removed the old 'A' value", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "B\nC\n") }, "5s", "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "B\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -180,7 +184,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
 		Context("should observe Bundle has removed the old 'B' value", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nC\n") }, "5s", "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -189,7 +193,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
 		Context("should observe Bundle has removed the old 'C' value", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\n") }, "5s", "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -200,7 +204,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, &configMap)).NotTo(HaveOccurred())
 
 		Context("should observe Bundle has changed the value 'A' -> 'D'", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "D\nB\nC\n") }, "5s", "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "D\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -211,7 +215,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, &secret)).NotTo(HaveOccurred())
 
 		Context("should observe Bundle has changed the value 'B' -> 'D'", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nD\nC\n") }, "5s", "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nD\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -221,7 +225,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, testBundle)).ToNot(HaveOccurred())
 
 		Context("should observe Bundle has changed the value 'C' -> 'D'", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nD\n") }, "5s", "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nD\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -230,7 +234,7 @@ var _ = Describe("Integration", func() {
 			ConfigMap: &trustapi.KeySelector{Key: "changed-target-key"},
 		}
 		Expect(cl.Update(ctx, testBundle)).ToNot(HaveOccurred())
-		Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\n") }, "5s", "100ms").Should(BeTrue())
+		Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 
 		Context("should observe that all targets have changed the key written", func() {
 			var namespaceList corev1.NamespaceList
@@ -267,7 +271,7 @@ var _ = Describe("Integration", func() {
 					Controller:         pointer.Bool(true),
 					BlockOwnerDeletion: pointer.Bool(true),
 				})
-			}, "5s", "100ms").Should(BeTrue())
+			}, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -281,7 +285,7 @@ var _ = Describe("Integration", func() {
 			Eventually(func() bool {
 				Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
 				return apiequality.Semantic.DeepEqual(configMap.Data, map[string]string{testData.Target.Key: "A\nB\nC\n"})
-			}, "5s", "100ms").Should(BeTrue())
+			}, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 
 		Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
@@ -293,7 +297,7 @@ var _ = Describe("Integration", func() {
 				var configMap corev1.ConfigMap
 				Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
 				return apiequality.Semantic.DeepEqual(configMap.Data, map[string]string{testData.Target.Key: "A\nB\nC\n"})
-			}, "5s", "100ms").Should(BeTrue())
+			}, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 })
