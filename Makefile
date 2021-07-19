@@ -58,11 +58,11 @@ clean: ## clean up created files
 
 .PHONY: demo
 demo: depend ## create cluster and deploy trust
-	./hack/ci/create-cluster.sh
+	REPO_ROOT=$(pwd) ./hack/ci/create-cluster.sh
 
 .PHONY: smoke
 smoke: demo ## create cluster, deploy trust and run smoke tests
-	./hack/ci/run-smoke-test.sh
+	REPO_ROOT=$(pwd) ./hack/ci/run-smoke-test.sh
 
 .PHONY: depend
 depend: $(BINDIR)/deepcopy-gen $(BINDIR)/controller-gen $(BINDIR)/ginkgo $(BINDIR)/kubectl $(BINDIR)/kind $(BINDIR)/helm $(BINDIR)/kubebuilder/bin/kube-apiserver
