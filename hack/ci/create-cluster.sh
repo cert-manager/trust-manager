@@ -1,7 +1,7 @@
 #!/bin/sh
 set -o errexit
 
-REPO_ROOT=$(dirname "${BASH_SOURCE}")/../..
+REPO_ROOT="${REPO_ROOT:-$(dirname "${BASH_SOURCE}")/../..}"
 KUBECTL_BIN="${KUBECTL_BIN:-$REPO_ROOT/bin/kubectl}"
 HELM_BIN="${HELM_BIN:-$REPO_ROOT/bin/helm}"
 KIND_BIN="${KIND_BIN:-$REPO_ROOT/bin/kind}"
