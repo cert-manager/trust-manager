@@ -13,7 +13,7 @@ $KIND_BIN delete cluster --name trust
 $KIND_BIN create cluster --name trust
 
 echo ">> building and loading docker image..."
-GOARCH=$(ARCH) GOOS=linux CGO_ENABLED=0 go build -o $REPO_ROOT/bin/cert-manager-trust-linux $REPO_ROOT/cmd/.
+GOARCH=$(go env GOARCH) GOOS=linux CGO_ENABLED=0 go build -o $REPO_ROOT/bin/cert-manager-trust-linux $REPO_ROOT/cmd/.
 docker build -t $TRUST_IMAGE .
 $KIND_BIN load docker-image $TRUST_IMAGE --name trust
 
