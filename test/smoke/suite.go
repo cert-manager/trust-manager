@@ -32,6 +32,10 @@ import (
 	"github.com/cert-manager/trust/test/env"
 )
 
+const (
+	eventuallyTimeout = "10s"
+)
+
 var _ = Describe("Smoke", func() {
 	It("should create a bundle, sync to target, and then remove all when deleted", func() {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -51,7 +55,7 @@ var _ = Describe("Smoke", func() {
 		}, testData)
 
 		By("Ensuring the Bundle has Synced")
-		Eventually(func() bool { return env.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\n") }, "7s", "100ms").Should(BeTrue())
+		Eventually(func() bool { return env.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 
 		By("Ensuring targets update when a ConfigMap source is updated")
 		var configMap corev1.ConfigMap
@@ -59,7 +63,7 @@ var _ = Describe("Smoke", func() {
 		configMap.Data[testData.Sources.ConfigMap.Key] = "D"
 		Expect(cl.Update(ctx, &configMap)).NotTo(HaveOccurred())
 		Context("should observe Bundle has changed the value 'A' -> 'D'", func() {
-			Eventually(func() bool { return env.BundleHasSynced(ctx, cl, testBundle.Name, "D\nB\nC\n") }, "5s", "100ms").Should(BeTrue())
+			Eventually(func() bool { return env.BundleHasSynced(ctx, cl, testBundle.Name, "D\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 
 		By("Ensuring targets update when a Secret source is updated")
@@ -68,7 +72,7 @@ var _ = Describe("Smoke", func() {
 		secret.Data[testData.Sources.Secret.Key] = []byte("E")
 		Expect(cl.Update(ctx, &secret)).NotTo(HaveOccurred())
 		Context("should observe Bundle has changed the value 'B' -> 'E'", func() {
-			Eventually(func() bool { return env.BundleHasSynced(ctx, cl, testBundle.Name, "D\nE\nC\n") }, "5s", "100ms").Should(BeTrue())
+			Eventually(func() bool { return env.BundleHasSynced(ctx, cl, testBundle.Name, "D\nE\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 
 		By("Ensuring targets update when an InLine source is updated")
@@ -76,7 +80,7 @@ var _ = Describe("Smoke", func() {
 		testBundle.Spec.Sources[2].InLine = pointer.String("F")
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 		Context("should observe Bundle has changed the value 'C' -> 'F'", func() {
-			Eventually(func() bool { return env.BundleHasSynced(ctx, cl, testBundle.Name, "D\nE\nF\n") }, "5s", "100ms").Should(BeTrue())
+			Eventually(func() bool { return env.BundleHasSynced(ctx, cl, testBundle.Name, "D\nE\nF\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 
 		By("Deleting the Bundle created")
@@ -91,7 +95,7 @@ var _ = Describe("Smoke", func() {
 		for _, namespace := range namespaceList.Items {
 			Eventually(func() error {
 				return cl.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: testBundle.Name}, new(corev1.ConfigMap))
-			}, "5s", "100ms").ShouldNot(BeNil())
+			}, eventuallyTimeout, "100ms").ShouldNot(BeNil())
 		}
 	})
 })
