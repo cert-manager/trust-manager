@@ -15,7 +15,7 @@ docker build -t $TRUST_IMAGE .
 echo ">> creating kind cluster..."
 $KIND_BIN delete cluster --name trust
 cat <<EOF | $KIND_BIN create cluster --name trust --config=-
-apiVersion: kind.sigs.k8s.io/v1alpha3
+apiVersion: kind.x-k8s.io/v1alpha4
 kind: Cluster
 kubeadmConfigPatches:
   - |
