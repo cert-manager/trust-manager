@@ -12,11 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM gcr.io/distroless/static@sha256:aadea1b1f16af043a34491eec481d0132479382096ea34f608087b4bef3634be
-LABEL description="cert-manager operator for distributing trust bundles across a Kubernetes cluster"
+# Build the trust binary
+FROM docker.io/library/golang:1.17 as builder
 
+WORKDIR /workspace
+# Copy the Go Modules manifests
+COPY go.mod go.mod
+COPY go.sum go.sum
+
+# Copy the go source files
+COPY Makefile Makefile
+COPY cmd/ cmd/
+COPY pkg/ pkg/
+
+RUN go mod download
+
+# Build
+RUN make build
+
+# Use distroless as minimal base image to package the manager binary
+# Refer to https://github.com/GoogleContainerTools/distroless for more details
+FROM gcr.io/distroless/static@sha256:bca3c203cdb36f5914ab8568e4c25165643ea9b711b41a8a58b42c80a51ed609
+LABEL description="cert-manager trust is an operator for distributing trust bundles across a Kubernetes cluster"
+
+WORKDIR /
 USER 1001
-
-COPY ./bin/cert-manager-trust-linux /usr/bin/cert-manager-trust
+COPY --from=builder /workspace/bin/cert-manager-trust /usr/bin/cert-manager-trust
 
 ENTRYPOINT ["/usr/bin/cert-manager-trust"]

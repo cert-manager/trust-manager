@@ -18,6 +18,7 @@ OS     ?= $(shell go env GOOS)
 
 HELM_VERSION ?= 3.6.3
 KUBEBUILDER_TOOLS_VERISON ?= 1.21.2
+IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
 
 help:  ## display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n\nTargets:\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -45,10 +46,12 @@ generate: depend ## generate code
 .PHONY: verify
 verify: depend test build ## tests and builds trust
 
+# image will only build and store the image locally, targeted in OCI format.
+# To actually push an image to the public repo, replace the `--output` flag and
+# arguments to `--push`.
 .PHONY: image
-image: ## build docker image
-	GOARCH=$(ARCH) GOOS=linux CGO_ENABLED=0 go build -o ./bin/cert-manager-trust-linux ./cmd/.
-	docker build -t quay.io/jetstack/cert-manager-trust:v0.0.1 .
+image: ## build docker image targeting all supported platforms
+	docker buildx build --platform=$(IMAGE_PLATFORMS) -t quay.io/jetstack/cert-manager-trust:v0.1.0 --output type=local,dest=./bin/cert-manager-trust .
 
 .PHONY: clean
 clean: ## clean up created files
