@@ -5,7 +5,7 @@ image:
   # -- Target image repository.
   repository: quay.io/jetstack/cert-manager-trust
   # -- Target image version tag.
-  tag: v0.0.1
+  tag: v0.1.0
   # -- Kubernetes imagePullPolicy on Deployment.
   pullPolicy: IfNotPresent
 
