@@ -6,8 +6,8 @@ description: A Helm chart for cert-manager-trust
 
 home: https://github.com/cert-manager/trust
 maintainers:
-- name: joshvanl
-  email: joshua.vanleeuwen@jetstack.io
+- name: cert-manager-maintainers
+  email: cert-manager-maintainers@googlegroups.com
   url: https://cert-manager.io
 sources:
 - https://github.com/cert-manager/trust

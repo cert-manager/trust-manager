@@ -8,9 +8,9 @@ A Helm chart for cert-manager-trust
 
 ## Maintainers
 
-| Name | Email | Url |
-| ---- | ------ | --- |
-| joshvanl | joshua.vanleeuwen@jetstack.io | https://cert-manager.io |
+|           Name           |                   Email                   |          URL            |
+| ------------------------ | ----------------------------------------- | ----------------------- |
+| cert-manager maintainers | cert-manager-maintainers@googlegroups.com | https://cert-manager.io |
 
 ## Source Code
 
