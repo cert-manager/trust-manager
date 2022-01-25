@@ -28,7 +28,7 @@ $KIND_BIN load docker-image $TRUST_IMAGE --name trust
 
 echo ">> installing cert-manager..."
 $HELM_BIN repo add jetstack https://charts.jetstack.io --force-update
-$HELM_BIN upgrade -i --create-namespace -n cert-manager cert-manager jetstack/cert-manager --set installCRDs=true --wait
+$HELM_BIN upgrade -i --create-namespace -n cert-manager cert-manager jetstack/cert-manager --set installCRDs=true --wait --devel --version v1.7.0-beta.0
 
 echo ">> installing trust..."
 $HELM_BIN upgrade -i -n cert-manager cert-manager-trust $REPO_ROOT/deploy/charts/trust/. --set image.tag=$TRUST_TAG --set app.logLevel=2 --wait
