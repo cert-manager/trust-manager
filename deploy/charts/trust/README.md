@@ -36,6 +36,7 @@ A Helm chart for cert-manager-trust
 | image.pullPolicy | string | `"IfNotPresent"` | Kubernetes imagePullPolicy on Deployment. |
 | image.repository | string | `"quay.io/jetstack/cert-manager-trust"` | Target image repository. |
 | image.tag | string | `"v0.1.0"` | Target image version tag. |
+| imagePullSecrets | list | `[]` | For Private docker registries, authentication is needed. Registry secrets are applied to the service account |
 | replicaCount | int | `1` | Number of replicas of istio-csr to run. |
 | resources | object | `{}` |  |
 
