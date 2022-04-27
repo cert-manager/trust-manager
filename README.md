@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/jetstack/cert-manager/blob/master/logo/logo.png" width="250x" alt="cert-manager project logo" />
+  <img src="https://raw.githubusercontent.com/cert-manager/cert-manager/d7a3a3976785bd5717d9d06b115878feaf257597/logo/logo.png" height="241" width="250" alt="cert-manager project logo" />
 </p>
 <p align="center">
   <a href="https://godoc.org/github.com/cert-manager/trust"><img src="https://godoc.org/github.com/cert-manager/trust?status.svg" alt="cert-manager/trust godoc"></a>
@@ -10,8 +10,8 @@
 # trust
 
 trust is an operator for distributing trust bundles across a Kubernetes cluster.
-trust is designed to compliment
-[cert-manager](https://github.com/jetstack/cert-manager) by enabling services to
+trust is designed to complement
+[cert-manager](https://github.com/cert-manager/cert-manager) by enabling services to
 trust X.509 certificates signed by Issuers, as well as external CAs which may
 not be known to cert-manager at all.
 
