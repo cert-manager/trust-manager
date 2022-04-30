@@ -30,9 +30,13 @@ all: depend generate test build image ## runs test, build and image
 test: lint ## test trust
 	KUBEBUILDER_ASSETS=$(BINDIR)/kubebuilder/bin go test -v ./pkg/... ./cmd/...
 
-.PHONY: test
-lint:
+.PHONY: lint
+lint: vet
 	./hack/verify-boilerplate.sh
+
+.PHONY: vet
+vet:
+	go vet ./...
 
 .PHONY: build
 build: ## build trust
