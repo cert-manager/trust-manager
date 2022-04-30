@@ -51,7 +51,7 @@ func bundleHasCondition(bundle *trustapi.Bundle, condition trustapi.BundleCondit
 // LastTransitionTime will not be updated if an existing condition of the same
 // Type and Status already exists.
 func (b *bundle) setBundleCondition(bundle *trustapi.Bundle, condition trustapi.BundleCondition) {
-	condition.LastTransitionTime = &metav1.Time{b.clock.Now()}
+	condition.LastTransitionTime = &metav1.Time{Time: b.clock.Now()}
 	condition.ObservedGeneration = bundle.Generation
 
 	var updatedConditions []trustapi.BundleCondition

@@ -176,7 +176,7 @@ func Test_syncTarget(t *testing.T) {
 
 			needsUpdate, err := b.syncTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
-				Spec:       trustapi.BundleSpec{Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{key}}},
+				Spec:       trustapi.BundleSpec{Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: key}}},
 			}, namespace, data)
 			if err != nil {
 				t.Errorf("unexpected error: %s", err)
@@ -237,7 +237,7 @@ func Test_buildSourceBundle(t *testing.T) {
 		},
 		"if single ConfigMap source which doesn't exist, return notFoundError": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
-				{ConfigMap: &trustapi.SourceObjectKeySelector{"configmap", trustapi.KeySelector{"key"}}},
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
 			}}},
 			objects:          []runtime.Object{},
 			expData:          "",
@@ -246,7 +246,7 @@ func Test_buildSourceBundle(t *testing.T) {
 		},
 		"if single ConfigMap source whose key doesn't exist, return notFoundError": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
-				{ConfigMap: &trustapi.SourceObjectKeySelector{"configmap", trustapi.KeySelector{"key"}}},
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
 			}}},
 			objects:          []runtime.Object{&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "configmap"}}},
 			expData:          "",
@@ -255,7 +255,7 @@ func Test_buildSourceBundle(t *testing.T) {
 		},
 		"if single ConfigMap source, return data": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
-				{ConfigMap: &trustapi.SourceObjectKeySelector{"configmap", trustapi.KeySelector{"key"}}},
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
 			}}},
 			objects: []runtime.Object{&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
@@ -267,7 +267,7 @@ func Test_buildSourceBundle(t *testing.T) {
 		},
 		"if ConfigMap and InLine source, return appended data": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
-				{ConfigMap: &trustapi.SourceObjectKeySelector{"configmap", trustapi.KeySelector{"key"}}},
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
 				{InLine: pointer.String("\n\n\nC\n\nD\n\n\n")},
 			}}},
 			objects: []runtime.Object{&corev1.ConfigMap{
@@ -280,7 +280,7 @@ func Test_buildSourceBundle(t *testing.T) {
 		},
 		"if single Secret source exists which doesn't exist, should return not found error": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
-				{Secret: &trustapi.SourceObjectKeySelector{"secret", trustapi.KeySelector{"key"}}},
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", KeySelector: trustapi.KeySelector{Key: "key"}}},
 			}}},
 			objects:          []runtime.Object{},
 			expData:          "",
@@ -289,7 +289,7 @@ func Test_buildSourceBundle(t *testing.T) {
 		},
 		"if single Secret source whose key doesn't exist, return notFoundError": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
-				{Secret: &trustapi.SourceObjectKeySelector{"secret", trustapi.KeySelector{"key"}}},
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", KeySelector: trustapi.KeySelector{Key: "key"}}},
 			}}},
 			objects:          []runtime.Object{&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "secret"}}},
 			expData:          "",
@@ -298,7 +298,7 @@ func Test_buildSourceBundle(t *testing.T) {
 		},
 		"if single Secret source, return data": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
-				{Secret: &trustapi.SourceObjectKeySelector{"secret", trustapi.KeySelector{"key"}}},
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", KeySelector: trustapi.KeySelector{Key: "key"}}},
 			}}},
 			objects: []runtime.Object{&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
@@ -310,7 +310,7 @@ func Test_buildSourceBundle(t *testing.T) {
 		},
 		"if Secret and InLine source, return appended data": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
-				{Secret: &trustapi.SourceObjectKeySelector{"secret", trustapi.KeySelector{"key"}}},
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", KeySelector: trustapi.KeySelector{Key: "key"}}},
 				{InLine: pointer.String("\n\n\nC\n\nD\n\n\n")},
 			}}},
 			objects: []runtime.Object{&corev1.Secret{
@@ -323,9 +323,9 @@ func Test_buildSourceBundle(t *testing.T) {
 		},
 		"if Secret, ConfigmMap and InLine source, return appended data": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
-				{ConfigMap: &trustapi.SourceObjectKeySelector{"configmap", trustapi.KeySelector{"key"}}},
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
 				{InLine: pointer.String("\n\n\nC\n\nD\n\n\n")},
-				{Secret: &trustapi.SourceObjectKeySelector{"secret", trustapi.KeySelector{"key"}}},
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", KeySelector: trustapi.KeySelector{Key: "key"}}},
 			}}},
 			objects: []runtime.Object{
 				&corev1.ConfigMap{
@@ -343,8 +343,8 @@ func Test_buildSourceBundle(t *testing.T) {
 		},
 		"if source Secret exists, but not ConfigMap, return not found error": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
-				{ConfigMap: &trustapi.SourceObjectKeySelector{"configmap", trustapi.KeySelector{"key"}}},
-				{Secret: &trustapi.SourceObjectKeySelector{"secret", trustapi.KeySelector{"key"}}},
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", KeySelector: trustapi.KeySelector{Key: "key"}}},
 			}}},
 			objects: []runtime.Object{
 				&corev1.ConfigMap{
@@ -358,8 +358,8 @@ func Test_buildSourceBundle(t *testing.T) {
 		},
 		"if source ConfigMap exists, but not Secret, return not found error": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
-				{ConfigMap: &trustapi.SourceObjectKeySelector{"configmap", trustapi.KeySelector{"key"}}},
-				{Secret: &trustapi.SourceObjectKeySelector{"secret", trustapi.KeySelector{"key"}}},
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", KeySelector: trustapi.KeySelector{Key: "key"}}},
 			}}},
 			objects: []runtime.Object{
 				&corev1.Secret{

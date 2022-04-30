@@ -85,11 +85,11 @@ func Test_Reconcile(t *testing.T) {
 			},
 			Spec: trustapi.BundleSpec{
 				Sources: []trustapi.BundleSource{
-					{ConfigMap: &trustapi.SourceObjectKeySelector{sourceConfigMapName, trustapi.KeySelector{Key: sourceConfigMapKey}}},
-					{Secret: &trustapi.SourceObjectKeySelector{sourceSecretName, trustapi.KeySelector{Key: sourceSecretKey}}},
+					{ConfigMap: &trustapi.SourceObjectKeySelector{Name: sourceConfigMapName, KeySelector: trustapi.KeySelector{Key: sourceConfigMapKey}}},
+					{Secret: &trustapi.SourceObjectKeySelector{Name: sourceSecretName, KeySelector: trustapi.KeySelector{Key: sourceSecretKey}}},
 					{InLine: pointer.String("C")},
 				},
-				Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{targetKey}},
+				Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 			},
 		}
 
@@ -102,7 +102,7 @@ func Test_Reconcile(t *testing.T) {
 		}
 
 		fixedTime     = time.Date(2021, 01, 01, 01, 0, 0, 0, time.UTC)
-		fixedmetatime = &metav1.Time{fixedTime}
+		fixedmetatime = &metav1.Time{Time: fixedTime}
 		fixedclock    = fakeclock.NewFakeClock(fixedTime)
 	)
 
@@ -219,7 +219,7 @@ func Test_Reconcile(t *testing.T) {
 		"if Bundle Status Target doesn't match the Spec Target, delete old targets and update": {
 			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{&trustapi.KeySelector{"old-target"}}}),
+					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "old-target"}}}),
 				),
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
@@ -235,7 +235,7 @@ func Test_Reconcile(t *testing.T) {
 			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1001"),
-					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{&trustapi.KeySelector{targetKey}}}),
+					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}}}),
 				),
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
@@ -256,7 +256,7 @@ func Test_Reconcile(t *testing.T) {
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1001"),
 					gen.SetBundleStatus(trustapi.BundleStatus{
-						Target: &trustapi.BundleTarget{&trustapi.KeySelector{targetKey}},
+						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
@@ -301,7 +301,7 @@ func Test_Reconcile(t *testing.T) {
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1001"),
 					gen.SetBundleStatus(trustapi.BundleStatus{
-						Target: &trustapi.BundleTarget{&trustapi.KeySelector{targetKey}},
+						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
@@ -336,7 +336,7 @@ func Test_Reconcile(t *testing.T) {
 			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleStatus(trustapi.BundleStatus{
-						Target: &trustapi.BundleTarget{&trustapi.KeySelector{targetKey}},
+						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
@@ -368,7 +368,7 @@ func Test_Reconcile(t *testing.T) {
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1001"),
 					gen.SetBundleStatus(trustapi.BundleStatus{
-						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{targetKey}},
+						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
@@ -423,7 +423,7 @@ func Test_Reconcile(t *testing.T) {
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1001"),
 					gen.SetBundleStatus(trustapi.BundleStatus{
-						Target: &trustapi.BundleTarget{&trustapi.KeySelector{targetKey}},
+						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
@@ -458,7 +458,7 @@ func Test_Reconcile(t *testing.T) {
 			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleStatus(trustapi.BundleStatus{
-						Target: &trustapi.BundleTarget{&trustapi.KeySelector{targetKey}},
+						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
@@ -490,7 +490,7 @@ func Test_Reconcile(t *testing.T) {
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1000"),
 					gen.SetBundleStatus(trustapi.BundleStatus{
-						Target: &trustapi.BundleTarget{&trustapi.KeySelector{targetKey}},
+						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
