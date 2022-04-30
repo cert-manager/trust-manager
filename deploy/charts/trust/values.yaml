@@ -1,6 +1,9 @@
 # -- Number of replicas of istio-csr to run.
 replicaCount: 1
 
+# -- For Private docker registries, authentication is needed. Registry secrets are applied to the service account
+imagePullSecrets: []
+
 image:
   # -- Target image repository.
   repository: quay.io/jetstack/cert-manager-trust
