@@ -30,9 +30,13 @@ all: depend generate test build image ## runs test, build and image
 test: lint ## test trust
 	KUBEBUILDER_ASSETS=$(BINDIR)/kubebuilder/bin go test -v ./pkg/... ./cmd/...
 
-.PHONY: test
-lint:
+.PHONY: lint
+lint: depend helm-docs
 	./hack/verify-boilerplate.sh
+
+.PHONY: helm-docs
+helm-docs: # verify helm-docs
+	./hack/verify-helm-docs.sh
 
 .PHONY: build
 build: ## build trust
@@ -68,7 +72,7 @@ smoke: demo ## create cluster, deploy trust and run smoke tests
 	REPO_ROOT=$(shell pwd) ./hack/ci/run-smoke-test.sh
 
 .PHONY: depend
-depend: $(BINDIR)/deepcopy-gen $(BINDIR)/controller-gen $(BINDIR)/ginkgo $(BINDIR)/kubectl $(BINDIR)/kind $(BINDIR)/helm $(BINDIR)/kubebuilder/bin/kube-apiserver
+depend: $(BINDIR)/deepcopy-gen $(BINDIR)/controller-gen $(BINDIR)/ginkgo $(BINDIR)/kubectl $(BINDIR)/kind $(BINDIR)/helm $(BINDIR)/kubebuilder/bin/kube-apiserver $(BINDIR)/helm-docs
 
 $(BINDIR)/deepcopy-gen:
 	mkdir -p $(BINDIR)
@@ -98,3 +102,6 @@ $(BINDIR)/kubebuilder/bin/kube-apiserver:
 	curl -sSLo $(BINDIR)/envtest-bins.tar.gz "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$(KUBEBUILDER_TOOLS_VERISON)-$(OS)-$(ARCH).tar.gz"
 	mkdir -p $(BINDIR)/kubebuilder
 	tar -C $(BINDIR)/kubebuilder --strip-components=1 -zvxf $(BINDIR)/envtest-bins.tar.gz
+
+$(BINDIR)/helm-docs:
+	go build -o $(BINDIR)/helm-docs github.com/norwoodj/helm-docs/cmd/helm-docs

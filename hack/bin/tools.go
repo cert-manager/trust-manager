@@ -1,3 +1,4 @@
+//go:build tools
 // +build tools
 
 // This file exists to force 'go mod' to fetch tool dependencies
@@ -6,6 +7,7 @@
 package bin
 
 import (
+	_ "github.com/norwoodj/helm-docs/cmd/helm-docs"
 	_ "github.com/onsi/ginkgo/ginkgo"
 	_ "k8s.io/code-generator/cmd/deepcopy-gen"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"

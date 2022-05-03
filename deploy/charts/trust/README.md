@@ -8,9 +8,9 @@ A Helm chart for cert-manager-trust
 
 ## Maintainers
 
-|           Name           |                   Email                   |          URL            |
-| ------------------------ | ----------------------------------------- | ----------------------- |
-| cert-manager maintainers | cert-manager-maintainers@googlegroups.com | https://cert-manager.io |
+| Name | Email | Url |
+| ---- | ------ | --- |
+| cert-manager-maintainers | <cert-manager-maintainers@googlegroups.com> | <https://cert-manager.io> |
 
 ## Source Code
 
