@@ -190,6 +190,9 @@ func Test_Handle(t *testing.T) {
 		"target": {
 		  "configMap": {
 			  "key": "bar"
+			},
+			"namespaceSelector": {
+			  "foo": "bar"
 			}
 		}
 	}
@@ -388,6 +391,35 @@ func Test_validateBundle(t *testing.T) {
 				field.Invalid(field.NewPath("status", "conditions", "[1]"), trustapi.BundleCondition{Type: "A", Reason: "C"}, "condition type already present on Bundle"),
 			},
 		},
+		"invalid namespace selector": {
+			bundle: &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle-1"},
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{InLine: pointer.String("test-1")},
+					},
+					Target: trustapi.BundleTarget{
+						ConfigMap: &trustapi.KeySelector{Key: "test-1"},
+						NamespaceSelector: &trustapi.NamespaceSelector{
+							LabelSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{"@@@@": ""},
+							},
+						},
+					},
+				},
+				Status: trustapi.BundleStatus{
+					Conditions: []trustapi.BundleCondition{
+						{
+							Type:   "A",
+							Reason: "C",
+						},
+					},
+				},
+			},
+			expEl: field.ErrorList{
+				field.Invalid(field.NewPath("spec", "target", "namespaceSelector"), &metav1.LabelSelector{MatchLabels: map[string]string{"@@@@": ""}}, `key: Invalid value: "@@@@": name part must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')`),
+			},
+		},
 		"valid bundle": {
 			bundle: &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle-1"},
@@ -395,7 +427,14 @@ func Test_validateBundle(t *testing.T) {
 					Sources: []trustapi.BundleSource{
 						{InLine: pointer.String("test-1")},
 					},
-					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test-1"}},
+					Target: trustapi.BundleTarget{
+						ConfigMap: &trustapi.KeySelector{Key: "test-1"},
+						NamespaceSelector: &trustapi.NamespaceSelector{
+							LabelSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{"foo": "bar"},
+							},
+						},
+					},
 				},
 				Status: trustapi.BundleStatus{
 					Conditions: []trustapi.BundleCondition{
