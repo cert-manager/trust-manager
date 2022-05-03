@@ -8,9 +8,9 @@ A Helm chart for cert-manager-trust
 
 ## Maintainers
 
-|           Name           |                   Email                   |          URL            |
-| ------------------------ | ----------------------------------------- | ----------------------- |
-| cert-manager maintainers | cert-manager-maintainers@googlegroups.com | https://cert-manager.io |
+| Name | Email | Url |
+| ---- | ------ | --- |
+| cert-manager-maintainers | cert-manager-maintainers@googlegroups.com | https://cert-manager.io |
 
 ## Source Code
 
@@ -28,7 +28,7 @@ A Helm chart for cert-manager-trust
 | app.metrics.service.type | string | `"ClusterIP"` | Service type to expose metrics. |
 | app.readinessProbe.path | string | `"/readyz"` | Path to expose istio-csr HTTP readiness probe on default network interface. |
 | app.readinessProbe.port | int | `6060` | Container port to expose istio-csr HTTP readiness probe on default network interface. |
-| app.trust.namespace | string | `"cert-manager"` | Namespace used as trust source. |
+| app.trust.namespace | string | `"cert-manager"` | Namespace used as trust source. Note that the namespace _must_ exist before installing cert-manager/trust. |
 | app.webhook.host | string | `"0.0.0.0"` | Host that the webhook listens on. |
 | app.webhook.port | int | `6443` | Port that the webhook listens on. |
 | app.webhook.service | object | `{"type":"ClusterIP"}` | Type of Kubernetes Service used by the Webhook |

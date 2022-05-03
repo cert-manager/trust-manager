@@ -2,6 +2,7 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: {{ include "cert-manager-trust.name" . }}
+  namespace: {{ .Values.app.trust.namespace }}
   labels:
 {{ include "cert-manager-trust.labels" . | indent 4 }}
 rules:

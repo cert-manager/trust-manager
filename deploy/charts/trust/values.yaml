@@ -40,7 +40,8 @@ app:
     path: "/readyz"
 
   trust:
-    # -- Namespace used as trust source.
+    # -- Namespace used as trust source. Note that the namespace _must_ exist
+    # before installing cert-manager/trust.
     namespace: cert-manager
 
   webhook:
