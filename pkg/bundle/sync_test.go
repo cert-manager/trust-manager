@@ -21,10 +21,13 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	apiequality "k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,35 +39,56 @@ import (
 func Test_syncTarget(t *testing.T) {
 	const (
 		bundleName = "test-bundle"
-		namespace  = "test-namespace"
 		key        = "key"
 		data       = "data"
 	)
 
+	labelEverything := func(*testing.T) labels.Selector {
+		return labels.Everything()
+	}
+
 	tests := map[string]struct {
-		object         runtime.Object
-		expNeedsUpdate bool
+		object    runtime.Object
+		namespace corev1.Namespace
+		selector  func(t *testing.T) labels.Selector
+		// Expect the configmap to exist at the end of the sync.
+		expExists bool
+		// Expect the owner reference of the configmap to point to the bundle.
+		expOwnerReference bool
+		expNeedsUpdate    bool
 	}{
 		"if object doesn't exist, expect update": {
-			object:         nil,
-			expNeedsUpdate: true,
+			object:            nil,
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			selector:          labelEverything,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
 		},
 		"if object exists but without data or owner, expect update": {
-			object:         &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: bundleName, Namespace: namespace}},
-			expNeedsUpdate: true,
+			object:            &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: bundleName, Namespace: "test-namespace"}},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			selector:          labelEverything,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
 		},
 		"if object exists with data but no owner, expect update": {
 			object: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{Name: bundleName, Namespace: namespace},
+				ObjectMeta: metav1.ObjectMeta{Name: bundleName, Namespace: "test-namespace"},
 				Data:       map[string]string{key: data},
 			},
-			expNeedsUpdate: true,
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			selector:          labelEverything,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
 		},
 		"if object exists with owner but no data, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      bundleName,
-					Namespace: namespace,
+					Namespace: "test-namespace",
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -76,13 +100,17 @@ func Test_syncTarget(t *testing.T) {
 					},
 				},
 			},
-			expNeedsUpdate: true,
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			selector:          labelEverything,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
 		},
 		"if object exists with owner but wrong data, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      bundleName,
-					Namespace: namespace,
+					Namespace: "test-namespace",
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -95,13 +123,17 @@ func Test_syncTarget(t *testing.T) {
 				},
 				Data: map[string]string{key: "wrong data"},
 			},
-			expNeedsUpdate: true,
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			selector:          labelEverything,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
 		},
 		"if object exists with owner but wrong key, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      bundleName,
-					Namespace: namespace,
+					Namespace: "test-namespace",
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -114,13 +146,17 @@ func Test_syncTarget(t *testing.T) {
 				},
 				Data: map[string]string{"wrong key": data},
 			},
-			expNeedsUpdate: true,
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			selector:          labelEverything,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
 		},
 		"if object exists with correct data, expect no update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      bundleName,
-					Namespace: namespace,
+					Namespace: "test-namespace",
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -133,13 +169,17 @@ func Test_syncTarget(t *testing.T) {
 				},
 				Data: map[string]string{key: data},
 			},
-			expNeedsUpdate: false,
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			selector:          labelEverything,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    false,
 		},
 		"if object exists with correct data and some extra data and owner, expect no update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      bundleName,
-					Namespace: namespace,
+					Namespace: "test-namespace",
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -159,7 +199,122 @@ func Test_syncTarget(t *testing.T) {
 				},
 				Data: map[string]string{key: data, "another-key": "another-data"},
 			},
-			expNeedsUpdate: false,
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			selector:          labelEverything,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    false,
+		},
+		"if object doesn't exist and labels match, expect update": {
+			object: nil,
+			namespace: corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name:   "test-namespace",
+				Labels: map[string]string{"foo": "bar"},
+			}},
+			selector: func(t *testing.T) labels.Selector {
+				req, err := labels.NewRequirement("foo", selection.Equals, []string{"bar"})
+				assert.NoError(t, err)
+				return labels.NewSelector().Add(*req)
+			},
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object doesn't exist and labels don't match, don't expect update": {
+			object: nil,
+			namespace: corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name:   "test-namespace",
+				Labels: map[string]string{"bar": "foo"},
+			}},
+			selector: func(t *testing.T) labels.Selector {
+				req, err := labels.NewRequirement("foo", selection.Equals, []string{"bar"})
+				assert.NoError(t, err)
+				return labels.NewSelector().Add(*req)
+			},
+			expExists:         false,
+			expOwnerReference: true,
+			expNeedsUpdate:    false,
+		},
+		"if object exists with correct data and labels match, expect no update": {
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bundleName,
+					Namespace: "test-namespace",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         pointer.Bool(true),
+							BlockOwnerDeletion: pointer.Bool(true),
+						},
+					},
+				},
+				Data: map[string]string{key: data},
+			},
+			namespace: corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name:   "test-namespace",
+				Labels: map[string]string{"foo": "bar"},
+			}},
+			selector: func(t *testing.T) labels.Selector {
+				req, err := labels.NewRequirement("foo", selection.Equals, []string{"bar"})
+				assert.NoError(t, err)
+				return labels.NewSelector().Add(*req)
+			},
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    false,
+		},
+		"if object exists with correct data but labels don't match, expect deletion": {
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bundleName,
+					Namespace: "test-namespace",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         pointer.Bool(true),
+							BlockOwnerDeletion: pointer.Bool(true),
+						},
+					},
+				},
+				Data: map[string]string{key: data},
+			},
+			namespace: corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name:   "test-namespace",
+				Labels: map[string]string{"bar": "foo"},
+			}},
+			selector: func(t *testing.T) labels.Selector {
+				req, err := labels.NewRequirement("foo", selection.Equals, []string{"bar"})
+				assert.NoError(t, err)
+				return labels.NewSelector().Add(*req)
+			},
+			expExists:         false,
+			expOwnerReference: false,
+			expNeedsUpdate:    true,
+		},
+		"if object exists and labels don't match, but controller doesn't have ownership, expect no update": {
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bundleName,
+					Namespace: "test-namespace",
+				},
+				Data: map[string]string{key: data},
+			},
+			namespace: corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name:   "test-namespace",
+				Labels: map[string]string{"bar": "foo"},
+			}},
+			selector: func(t *testing.T) labels.Selector {
+				req, err := labels.NewRequirement("foo", selection.Equals, []string{"bar"})
+				assert.NoError(t, err)
+				return labels.NewSelector().Add(*req)
+			},
+			expExists:         true,
+			expOwnerReference: false,
+			expNeedsUpdate:    false,
 		},
 	}
 
@@ -177,35 +332,30 @@ func Test_syncTarget(t *testing.T) {
 			needsUpdate, err := b.syncTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       trustapi.BundleSpec{Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: key}}},
-			}, namespace, data)
-			if err != nil {
-				t.Errorf("unexpected error: %s", err)
-			}
-			if needsUpdate != test.expNeedsUpdate {
-				t.Errorf("unexpected needsUpdate, exp=%t got=%t", test.expNeedsUpdate, needsUpdate)
-			}
+			}, test.selector(t), &test.namespace, data)
+			assert.NoError(t, err)
+
+			assert.Equalf(t, test.expNeedsUpdate, needsUpdate, "unexpected needsUpdate, exp=%t got=%t", test.expNeedsUpdate, needsUpdate)
 
 			var configMap corev1.ConfigMap
-			if err := fakeclient.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: bundleName}, &configMap); err != nil {
-				t.Errorf("unexpected error: %s", err)
-			}
+			err = fakeclient.Get(context.TODO(), client.ObjectKey{Namespace: test.namespace.Name, Name: bundleName}, &configMap)
+			assert.Equalf(t, test.expExists, !apierrors.IsNotFound(err), "unexpected is not found: %v", err)
 
-			if configMap.Data[key] != data {
-				t.Errorf("unexpected data on ConfigMap: exp=%s:%s got=%v", key, data, configMap.Data)
-			}
-			if configMap.Data[key] != data {
-				t.Errorf("unexpected data on ConfigMap: exp=%s:%s got=%v", key, data, configMap.Data)
-			}
+			if test.expExists {
+				assert.Equalf(t, data, configMap.Data[key], "unexpected data on ConfigMap: exp=%s:%s got=%v", key, data, configMap.Data)
 
-			exptedOwnerReference := metav1.OwnerReference{
-				Kind:               "Bundle",
-				APIVersion:         "trust.cert-manager.io/v1alpha1",
-				Name:               bundleName,
-				Controller:         pointer.Bool(true),
-				BlockOwnerDeletion: pointer.Bool(true),
-			}
-			if !apiequality.Semantic.DeepEqual(configMap.OwnerReferences[0], exptedOwnerReference) {
-				t.Errorf("unexpected owner reference: exp=%v got=%v", exptedOwnerReference, configMap.OwnerReferences)
+				expectedOwnerReference := metav1.OwnerReference{
+					Kind:               "Bundle",
+					APIVersion:         "trust.cert-manager.io/v1alpha1",
+					Name:               bundleName,
+					Controller:         pointer.Bool(true),
+					BlockOwnerDeletion: pointer.Bool(true),
+				}
+				if test.expOwnerReference {
+					assert.Equalf(t, expectedOwnerReference, configMap.OwnerReferences[0], "unexpected data on ConfigMap: exp=%s:%s got=%v", key, data, configMap.Data)
+				} else {
+					assert.NotContains(t, configMap.OwnerReferences, expectedOwnerReference)
+				}
 			}
 		})
 	}

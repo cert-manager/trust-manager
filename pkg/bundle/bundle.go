@@ -26,6 +26,7 @@ import (
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -83,6 +84,18 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	if err != nil {
 		log.Error(err, "failed to get bundle")
 		return ctrl.Result{}, fmt.Errorf("failed to get %q: %s", req.NamespacedName, err)
+	}
+
+	var namespaceSelector labels.Selector
+	if nsSelector := bundle.Spec.Target.NamespaceSelector; nsSelector != nil && nsSelector.LabelSelector != nil {
+		var err error
+		namespaceSelector, err = metav1.LabelSelectorAsSelector(nsSelector.LabelSelector)
+		if err != nil {
+			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceSelectorError", "Failed to build namespace selector: %s", err)
+			return ctrl.Result{}, fmt.Errorf("failed to build NamespaceSelector: %w", err)
+		}
+	} else {
+		namespaceSelector = labels.Everything()
 	}
 
 	var namespaceList corev1.NamespaceList
@@ -166,7 +179,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 			continue
 		}
 
-		synced, err := b.syncTarget(ctx, log, &bundle, namespace.Name, data)
+		synced, err := b.syncTarget(ctx, log, &bundle, namespaceSelector, &namespace, data)
 		if err != nil {
 			log.Error(err, "failed sync bundle to target namespace")
 			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncTargetFailed", "Failed to sync target in Namespace %q: %s", namespace.Name, err)
@@ -192,11 +205,20 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		needsUpdate = true
 	}
 
+	var message string
+
+	if nsSelector := bundle.Spec.Target.NamespaceSelector; nsSelector != nil && nsSelector.LabelSelector != nil {
+		message = fmt.Sprintf("Successfully synced Bundle to namespaces with selector [matchLabels:%v matchExpressions: %v]",
+			nsSelector.MatchLabels, nsSelector.MatchExpressions)
+	} else {
+		message = "Successfully synced Bundle to all namespaces"
+	}
+
 	syncedCondition := trustapi.BundleCondition{
 		Type:    trustapi.BundleConditionSynced,
 		Status:  corev1.ConditionTrue,
 		Reason:  "Synced",
-		Message: "Successfully synced Bundle to all namespaces",
+		Message: message,
 	}
 
 	if !needsUpdate && bundleHasCondition(&bundle, syncedCondition) {
@@ -206,6 +228,6 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	log.V(2).Info("successfully synced bundle")
 
 	b.setBundleCondition(&bundle, syncedCondition)
-	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", "Successfully synced Bundle to all namespaces")
+	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", message)
 	return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
 }
