@@ -55,10 +55,24 @@ spec:
     # every namespace.
     configMap:
       key: "root-certs.pem"
+    namespaceSelector:
+      matchLabels:
+        linkerd.io/inject: "enabled"
 ```
 
 Bundle currently supports the source types `configMap`, `secret` and `inLine`,
 and target type `configMap`.
+
+
+#### Namespace Selector
+
+The target `namespaceSelector` can be used for scoping which Namespaces targets
+are synced to, and supports both `matchLabels` and `matchExpressions`. Please
+see
+[here](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors)
+for more information and how label selectors are configured.
+
+If `namespaceSelector` is empty, all Namespaces will be synced to.
 
 ---
 
