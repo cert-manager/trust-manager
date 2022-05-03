@@ -84,6 +84,16 @@ type BundleTarget struct {
 	// ConfigMap is the target ConfigMap in all Namespaces that all Bundle source
 	// data will be synced to.
 	ConfigMap *KeySelector `json:"configMap,omitempty"`
+
+	// NamespaceSelector will, if set, only sync the target resource in
+	// Namespaces which match the selector.
+	NamespaceSelector *NamespaceSelector `json:"namespaceSelector,omitempty"`
+}
+
+// NamespaceSelector defines selectors to match on Namespaces.
+type NamespaceSelector struct {
+	// LabelSelector defines a selector which matches on the Namespace labels.
+	*metav1.LabelSelector `json:",inline,omitempty"`
 }
 
 // SourceObjectKeySelector is a reference to a source object and its `data` key
