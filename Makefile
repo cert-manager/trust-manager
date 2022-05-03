@@ -42,6 +42,10 @@ lint: vet
 vet:
 	go vet ./...
 
+.PHONY: helm-docs
+helm-docs: # verify helm-docs
+	./hack/verify-helm-docs.sh
+
 .PHONY: build
 build: | $(BINDIR) ## build trust
 	CGO_ENABLED=0 go build -o $(BINDIR)/cert-manager-trust ./cmd/.
@@ -79,7 +83,7 @@ smoke: demo ## create cluster, deploy trust and run smoke tests
 	REPO_ROOT=$(shell pwd) ./hack/ci/run-smoke-test.sh
 
 .PHONY: depend
-depend: $(BINDIR)/deepcopy-gen $(BINDIR)/controller-gen $(BINDIR)/ginkgo $(BINDIR)/kubectl $(BINDIR)/kind $(BINDIR)/helm $(BINDIR)/kubebuilder/bin/kube-apiserver
+depend: $(BINDIR)/deepcopy-gen $(BINDIR)/controller-gen $(BINDIR)/ginkgo $(BINDIR)/kubectl $(BINDIR)/kind $(BINDIR)/helm $(BINDIR)/kubebuilder/bin/kube-apiserver $(BINDIR)/helm-docs
 
 $(BINDIR)/deepcopy-gen: | $(BINDIR)
 	go build -o $@ k8s.io/code-generator/cmd/deepcopy-gen
@@ -99,6 +103,9 @@ $(BINDIR)/helm: | $(BINDIR)
 	cp $(BINDIR)/$(OS)-$(ARCH)/helm $@
 	rm -r $(BINDIR)/$(OS)-$(ARCH) $(BINDIR)/helm.tar.gz
 
+$(BINDIR)/helm-docs: | $(BINDIR)
+	go build -o $(BINDIR)/helm-docs github.com/norwoodj/helm-docs/cmd/helm-docs
+
 $(BINDIR)/kubectl: | $(BINDIR)
 	curl -o $@ -LO "https://storage.googleapis.com/kubernetes-release/release/$(shell curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$(OS)/$(ARCH)/kubectl"
 	chmod +x $@
@@ -107,5 +114,5 @@ $(BINDIR)/kubebuilder/bin/kube-apiserver: | $(BINDIR)/kubebuilder
 	curl -sSLo $(BINDIR)/envtest-bins.tar.gz "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$(KUBEBUILDER_TOOLS_VERISON)-$(OS)-$(ARCH).tar.gz"
 	tar -C $(BINDIR)/kubebuilder --strip-components=1 -zvxf $(BINDIR)/envtest-bins.tar.gz
 
-$(BINDIR) $(BINDIR)/kubebuilder $(BINDIR)/chart:
+$(BINDIR) $(BINDIR)/kubebuilder $(BINDIR)/chart $(BINDIR)/helm-docs:
 	@mkdir -p $@
