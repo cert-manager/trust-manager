@@ -67,3 +67,13 @@ func SetBundleResourceVersion(resourceVersion string) BundleModifier {
 		bundle.ResourceVersion = resourceVersion
 	}
 }
+
+// SetBundleTargetNamespaceSelector sets the Bundle object's spec target
+// namespace selector.
+func SetBundleTargetNamespaceSelectorLabelSelector(selector *metav1.LabelSelector) BundleModifier {
+	return func(bundle *trustapi.Bundle) {
+		bundle.Spec.Target.NamespaceSelector = &trustapi.NamespaceSelector{
+			LabelSelector: selector,
+		}
+	}
+}
