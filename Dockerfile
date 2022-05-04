@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Build the trust binary
-FROM docker.io/library/golang:1.17 as builder
+FROM docker.io/library/golang:1.18 as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
