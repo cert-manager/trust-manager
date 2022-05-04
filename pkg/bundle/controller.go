@@ -87,7 +87,7 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 
 				var requests []reconcile.Request
 				for _, bundle := range bundleList.Items {
-					requests = append(requests, reconcile.Request{types.NamespacedName{Name: bundle.Name}})
+					requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: bundle.Name}})
 				}
 
 				return requests
@@ -115,7 +115,7 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 
 						// Bundle references this ConfigMap as a source. Add to request.
 						if source.ConfigMap.Name == obj.GetName() {
-							requests = append(requests, reconcile.Request{types.NamespacedName{Name: bundle.Name}})
+							requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: bundle.Name}})
 							break
 						}
 					}
@@ -147,7 +147,7 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 
 						// Bundle references this Secret as a source. Add to request.
 						if source.Secret.Name == obj.GetName() {
-							requests = append(requests, reconcile.Request{types.NamespacedName{Name: bundle.Name}})
+							requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: bundle.Name}})
 							break
 						}
 					}

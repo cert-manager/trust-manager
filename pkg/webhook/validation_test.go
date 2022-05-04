@@ -251,16 +251,16 @@ func Test_validateBundle(t *testing.T) {
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
 						{
-							ConfigMap: &trustapi.SourceObjectKeySelector{"test", trustapi.KeySelector{"test"}},
+							ConfigMap: &trustapi.SourceObjectKeySelector{Name: "test", KeySelector: trustapi.KeySelector{Key: "test"}},
 							InLine:    pointer.String("test"),
 						},
 						{InLine: pointer.String("test")},
 						{
-							ConfigMap: &trustapi.SourceObjectKeySelector{"test", trustapi.KeySelector{"test"}},
-							Secret:    &trustapi.SourceObjectKeySelector{"test", trustapi.KeySelector{"test"}},
+							ConfigMap: &trustapi.SourceObjectKeySelector{Name: "test", KeySelector: trustapi.KeySelector{Key: "test"}},
+							Secret:    &trustapi.SourceObjectKeySelector{Name: "test", KeySelector: trustapi.KeySelector{Key: "test"}},
 						},
 					},
-					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{"test"}},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test"}},
 				},
 			},
 			expEl: field.ErrorList{
@@ -272,11 +272,11 @@ func Test_validateBundle(t *testing.T) {
 			bundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{ConfigMap: &trustapi.SourceObjectKeySelector{"", trustapi.KeySelector{""}}},
+						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "", KeySelector: trustapi.KeySelector{Key: ""}}},
 						{InLine: pointer.String("test")},
-						{Secret: &trustapi.SourceObjectKeySelector{"", trustapi.KeySelector{""}}},
+						{Secret: &trustapi.SourceObjectKeySelector{Name: "", KeySelector: trustapi.KeySelector{Key: ""}}},
 					},
-					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{"test"}},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test"}},
 				},
 			},
 			expEl: field.ErrorList{
@@ -292,9 +292,9 @@ func Test_validateBundle(t *testing.T) {
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
 						{InLine: pointer.String("test")},
-						{ConfigMap: &trustapi.SourceObjectKeySelector{"test-bundle", trustapi.KeySelector{"test"}}},
+						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "test-bundle", KeySelector: trustapi.KeySelector{Key: "test"}}},
 					},
-					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{"test"}},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test"}},
 				},
 			},
 			expEl: field.ErrorList{
@@ -307,7 +307,7 @@ func Test_validateBundle(t *testing.T) {
 					Sources: []trustapi.BundleSource{
 						{InLine: pointer.String("test")},
 					},
-					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{""}},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: ""}},
 				},
 			},
 			expEl: field.ErrorList{
@@ -321,7 +321,7 @@ func Test_validateBundle(t *testing.T) {
 					Sources: []trustapi.BundleSource{
 						{InLine: pointer.String("test-1")},
 					},
-					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{"test-1"}},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test-1"}},
 				},
 			},
 			existingBundles: []runtime.Object{
@@ -331,7 +331,7 @@ func Test_validateBundle(t *testing.T) {
 						Sources: []trustapi.BundleSource{
 							{InLine: pointer.String("test-2")},
 						},
-						Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{"test-2"}},
+						Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test-2"}},
 					},
 				},
 			},
@@ -344,7 +344,7 @@ func Test_validateBundle(t *testing.T) {
 					Sources: []trustapi.BundleSource{
 						{InLine: pointer.String("test-1")},
 					},
-					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{"test-1"}},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test-1"}},
 				},
 			},
 			existingBundles: []runtime.Object{
@@ -354,7 +354,7 @@ func Test_validateBundle(t *testing.T) {
 						Sources: []trustapi.BundleSource{
 							{InLine: pointer.String("test-2")},
 						},
-						Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{"test-1"}},
+						Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test-1"}},
 					},
 				},
 			},
@@ -369,7 +369,7 @@ func Test_validateBundle(t *testing.T) {
 					Sources: []trustapi.BundleSource{
 						{InLine: pointer.String("test-1")},
 					},
-					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{"test-1"}},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test-1"}},
 				},
 				Status: trustapi.BundleStatus{
 					Conditions: []trustapi.BundleCondition{
@@ -395,7 +395,7 @@ func Test_validateBundle(t *testing.T) {
 					Sources: []trustapi.BundleSource{
 						{InLine: pointer.String("test-1")},
 					},
-					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{"test-1"}},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test-1"}},
 				},
 				Status: trustapi.BundleStatus{
 					Conditions: []trustapi.BundleCondition{
