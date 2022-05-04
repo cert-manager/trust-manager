@@ -55,7 +55,7 @@ func NewCommand() *cobra.Command {
 				return fmt.Errorf("error creating kubernetes client: %s", err.Error())
 			}
 
-			mlog := opts.Logr.WithName("trust")
+			mlog := opts.Logr.WithName("manager")
 			eventBroadcaster := record.NewBroadcaster()
 			eventBroadcaster.StartLogging(func(format string, args ...interface{}) { mlog.V(3).Info(fmt.Sprintf(format, args...)) })
 			eventBroadcaster.StartRecordingToSink(&clientv1.EventSinkImpl{Interface: cl.CoreV1().Events("")})

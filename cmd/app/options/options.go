@@ -85,7 +85,7 @@ func (o *Options) Complete() error {
 	klog.InitFlags(nil)
 	log := klogr.New()
 	flag.Set("v", o.logLevel)
-	o.Logr = log
+	o.Logr = log.WithName("trust")
 
 	var err error
 	o.RestConfig, err = o.kubeConfigFlags.ToRESTConfig()
@@ -93,7 +93,7 @@ func (o *Options) Complete() error {
 		return fmt.Errorf("failed to build kubernetes rest config: %s", err)
 	}
 
-	o.Bundle.Log = o.Logr
+	o.Bundle.Log = o.Logr.WithName("bundle")
 
 	return nil
 }
