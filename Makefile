@@ -42,8 +42,8 @@ lint: vet
 vet:
 	go vet ./...
 
-.PHONY: helm-docs
-helm-docs: # verify helm-docs
+.PHONY: verify-helm-docs
+verify-helm-docs: $(BINDIR)/helm-docs # verify helm-docs
 	./hack/verify-helm-docs.sh
 
 .PHONY: build
@@ -86,16 +86,18 @@ smoke: demo ## create cluster, deploy trust and run smoke tests
 depend: $(BINDIR)/deepcopy-gen $(BINDIR)/controller-gen $(BINDIR)/ginkgo $(BINDIR)/kubectl $(BINDIR)/kind $(BINDIR)/helm $(BINDIR)/kubebuilder/bin/kube-apiserver $(BINDIR)/helm-docs
 
 $(BINDIR)/deepcopy-gen: | $(BINDIR)
-	go build -o $@ k8s.io/code-generator/cmd/deepcopy-gen
+	mkdir -p $(BINDIR)
+	cd hack/bin && go build -o $@ k8s.io/code-generator/cmd/deepcopy-gen
 
 $(BINDIR)/controller-gen: | $(BINDIR)
-	go build -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
+	mkdir -p $(BINDIR)
+	cd hack/bin && go build -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
 
 $(BINDIR)/ginkgo: | $(BINDIR)
-	go build -o $(BINDIR)/ginkgo github.com/onsi/ginkgo/ginkgo
+	cd hack/bin && go build -o $(BINDIR)/ginkgo github.com/onsi/ginkgo/ginkgo
 
 $(BINDIR)/kind: | $(BINDIR)
-	go build -o $(BINDIR)/kind sigs.k8s.io/kind
+	cd hack/bin && go build -o $(BINDIR)/kind sigs.k8s.io/kind
 
 $(BINDIR)/helm: | $(BINDIR)
 	curl -o $(BINDIR)/helm.tar.gz -LO "https://get.helm.sh/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz"
@@ -104,7 +106,7 @@ $(BINDIR)/helm: | $(BINDIR)
 	rm -r $(BINDIR)/$(OS)-$(ARCH) $(BINDIR)/helm.tar.gz
 
 $(BINDIR)/helm-docs: | $(BINDIR)
-	go build -o $(BINDIR)/helm-docs github.com/norwoodj/helm-docs/cmd/helm-docs
+	cd hack/bin && go build -o $(BINDIR)/helm-docs github.com/norwoodj/helm-docs/cmd/helm-docs
 
 $(BINDIR)/kubectl: | $(BINDIR)
 	curl -o $@ -LO "https://storage.googleapis.com/kubernetes-release/release/$(shell curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$(OS)/$(ARCH)/kubectl"
@@ -114,5 +116,5 @@ $(BINDIR)/kubebuilder/bin/kube-apiserver: | $(BINDIR)/kubebuilder
 	curl -sSLo $(BINDIR)/envtest-bins.tar.gz "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$(KUBEBUILDER_TOOLS_VERISON)-$(OS)-$(ARCH).tar.gz"
 	tar -C $(BINDIR)/kubebuilder --strip-components=1 -zvxf $(BINDIR)/envtest-bins.tar.gz
 
-$(BINDIR) $(BINDIR)/kubebuilder $(BINDIR)/chart $(BINDIR)/helm-docs:
+$(BINDIR) $(BINDIR)/kubebuilder $(BINDIR)/chart $(BINDIR)/kind $(BINDIR)/helm $(BINDIR)/helm-docs $(BINDIR)/kubectl:
 	@mkdir -p $@
