@@ -31,11 +31,11 @@ test: lint ## test trust
 	KUBEBUILDER_ASSETS=$(BINDIR)/kubebuilder/bin go test -v ./pkg/... ./cmd/...
 
 .PHONY: lint
-lint: depend helm-docs
+lint: depend verify-helm-docs
 	./hack/verify-boilerplate.sh
 
-.PHONY: helm-docs
-helm-docs: # verify helm-docs
+.PHONY: verify-helm-docs
+verify-helm-docs: $(BINDIR)/helm-docs # verify helm-docs
 	./hack/verify-helm-docs.sh
 
 .PHONY: build
@@ -76,17 +76,17 @@ depend: $(BINDIR)/deepcopy-gen $(BINDIR)/controller-gen $(BINDIR)/ginkgo $(BINDI
 
 $(BINDIR)/deepcopy-gen:
 	mkdir -p $(BINDIR)
-	go build -o $@ k8s.io/code-generator/cmd/deepcopy-gen
+	cd hack/bin && go build -o $@ k8s.io/code-generator/cmd/deepcopy-gen
 
 $(BINDIR)/controller-gen:
 	mkdir -p $(BINDIR)
-	go build -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
+	cd hack/bin && go build -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
 
 $(BINDIR)/ginkgo:
-	go build -o $(BINDIR)/ginkgo github.com/onsi/ginkgo/ginkgo
+	cd hack/bin && go build -o $(BINDIR)/ginkgo github.com/onsi/ginkgo/ginkgo
 
 $(BINDIR)/kind:
-	go build -o $(BINDIR)/kind sigs.k8s.io/kind
+	cd hack/bin && go build -o $(BINDIR)/kind sigs.k8s.io/kind
 
 $(BINDIR)/helm:
 	curl -o $(BINDIR)/helm.tar.gz -LO "https://get.helm.sh/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz"
@@ -104,4 +104,4 @@ $(BINDIR)/kubebuilder/bin/kube-apiserver:
 	tar -C $(BINDIR)/kubebuilder --strip-components=1 -zvxf $(BINDIR)/envtest-bins.tar.gz
 
 $(BINDIR)/helm-docs:
-	go build -o $(BINDIR)/helm-docs github.com/norwoodj/helm-docs/cmd/helm-docs
+	cd hack/bin && go build -o $(BINDIR)/helm-docs github.com/norwoodj/helm-docs/cmd/helm-docs
