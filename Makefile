@@ -27,7 +27,7 @@ help:  ## display this help
 all: depend generate test build image ## runs test, build and image
 
 .PHONY: test
-test: lint ## test trust
+test: depend lint ## test trust
 	KUBEBUILDER_ASSETS=$(BINDIR)/kubebuilder/bin go test -v ./pkg/... ./cmd/...
 
 .PHONY: lint
