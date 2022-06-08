@@ -172,6 +172,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 		}
 		// The ConfigMap isn't owned by us, so we shouldn't delete it. Return that
 		// we did nothing.
+		b.recorder.Eventf(&configMap, corev1.EventTypeWarning, "NotOwned", "ConfigMap is not owned by trust.cert-manager.io so ignoring")
 		return false, nil
 	}
 

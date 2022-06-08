@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -53,6 +54,7 @@ func Test_syncTarget(t *testing.T) {
 		selector  func(t *testing.T) labels.Selector
 		// Expect the configmap to exist at the end of the sync.
 		expExists bool
+		expEvent  string
 		// Expect the owner reference of the configmap to point to the bundle.
 		expOwnerReference bool
 		expNeedsUpdate    bool
@@ -315,6 +317,7 @@ func Test_syncTarget(t *testing.T) {
 			expExists:         true,
 			expOwnerReference: false,
 			expNeedsUpdate:    false,
+			expEvent:          "Warning NotOwned ConfigMap is not owned by trust.cert-manager.io so ignoring",
 		},
 	}
 
@@ -326,8 +329,9 @@ func Test_syncTarget(t *testing.T) {
 				clientBuilder.WithRuntimeObjects(test.object)
 			}
 			fakeclient := clientBuilder.Build()
+			fakerecorder := record.NewFakeRecorder(1)
 
-			b := &bundle{client: fakeclient}
+			b := &bundle{client: fakeclient, recorder: fakerecorder}
 
 			needsUpdate, err := b.syncTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
@@ -357,6 +361,13 @@ func Test_syncTarget(t *testing.T) {
 					assert.NotContains(t, configMap.OwnerReferences, expectedOwnerReference)
 				}
 			}
+
+			var event string
+			select {
+			case event = <-fakerecorder.Events:
+			default:
+			}
+			assert.Equal(t, test.expEvent, event)
 		})
 	}
 }
