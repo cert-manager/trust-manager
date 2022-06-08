@@ -116,5 +116,5 @@ $(BINDIR)/kubebuilder/bin/kube-apiserver: | $(BINDIR)/kubebuilder
 	curl -sSLo $(BINDIR)/envtest-bins.tar.gz "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$(KUBEBUILDER_TOOLS_VERISON)-$(OS)-$(ARCH).tar.gz"
 	tar -C $(BINDIR)/kubebuilder --strip-components=1 -zvxf $(BINDIR)/envtest-bins.tar.gz
 
-$(BINDIR) $(BINDIR)/kubebuilder $(BINDIR)/chart $(BINDIR)/kind $(BINDIR)/helm $(BINDIR)/helm-docs $(BINDIR)/kubectl:
+$(BINDIR) $(BINDIR)/kubebuilder $(BINDIR)/chart:
 	@mkdir -p $@
