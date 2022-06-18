@@ -18,5 +18,5 @@ not be known to cert-manager at all.
 ---
 
 Please follow the documentation at
-[cert-manager.io](https://cert-manager.io/docs/usage/trust/) for
+[cert-manager.io](https://cert-manager.io/docs/projects/trust/) for
 installing and using trust.
