@@ -81,7 +81,7 @@ type BundleSource struct {
 // BundleTarget is the target resource that the Bundle will sync all source
 // data to.
 type BundleTarget struct {
-	// ConfigMap is the target ConfigMap in all Namespaces that all Bundle source
+	// ConfigMap is the target ConfigMap in Namespaces that all Bundle source
 	// data will be synced to.
 	ConfigMap *KeySelector `json:"configMap,omitempty"`
 
