@@ -86,16 +86,13 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		return ctrl.Result{}, fmt.Errorf("failed to get %q: %s", req.NamespacedName, err)
 	}
 
-	var namespaceSelector labels.Selector
-	if nsSelector := bundle.Spec.Target.NamespaceSelector; nsSelector != nil && nsSelector.LabelSelector != nil {
-		var err error
-		namespaceSelector, err = metav1.LabelSelectorAsSelector(nsSelector.LabelSelector)
+	namespaceSelector := labels.Everything()
+	if nsSelector := bundle.Spec.Target.NamespaceSelector; nsSelector != nil && nsSelector.MatchLabels != nil {
+		namespaceSelector, err = metav1.LabelSelectorAsSelector(&metav1.LabelSelector{MatchLabels: nsSelector.MatchLabels})
 		if err != nil {
-			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceSelectorError", "Failed to build namespace selector: %s", err)
+			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceSelectorError", "Failed to build namespace match labels selector: %s", err)
 			return ctrl.Result{}, fmt.Errorf("failed to build NamespaceSelector: %w", err)
 		}
-	} else {
-		namespaceSelector = labels.Everything()
 	}
 
 	var namespaceList corev1.NamespaceList
@@ -205,13 +202,10 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		needsUpdate = true
 	}
 
-	var message string
-
-	if nsSelector := bundle.Spec.Target.NamespaceSelector; nsSelector != nil && nsSelector.LabelSelector != nil {
-		message = fmt.Sprintf("Successfully synced Bundle to namespaces with selector [matchLabels:%v matchExpressions: %v]",
-			nsSelector.MatchLabels, nsSelector.MatchExpressions)
-	} else {
-		message = "Successfully synced Bundle to all namespaces"
+	message := "Successfully synced Bundle to all namespaces"
+	if nsSelector := bundle.Spec.Target.NamespaceSelector; nsSelector != nil && nsSelector.MatchLabels != nil {
+		message = fmt.Sprintf("Successfully synced Bundle to namespaces with selector [matchLabels:%v]",
+			nsSelector.MatchLabels)
 	}
 
 	syncedCondition := trustapi.BundleCondition{

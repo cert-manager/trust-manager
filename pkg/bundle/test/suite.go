@@ -314,9 +314,7 @@ var _ = Describe("Integration", func() {
 		})
 
 		testBundle.Spec.Target.NamespaceSelector = &trustapi.NamespaceSelector{
-			LabelSelector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"foo": "bar"},
-			},
+			MatchLabels: map[string]string{"foo": "bar"},
 		}
 		Expect(cl.Update(ctx, testBundle)).ToNot(HaveOccurred())
 		Context("should observe ConfigMap deleted from Namespace", func() {

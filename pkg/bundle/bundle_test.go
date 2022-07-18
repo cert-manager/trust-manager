@@ -333,7 +333,7 @@ func Test_Reconcile(t *testing.T) {
 		},
 		"if Bundle not synced everywhere, sync except Namespaces that don't match labels and update Synced": {
 			existingObjects: append(namespaces, sourceConfigMap, sourceSecret, gen.BundleFrom(baseBundle,
-				gen.SetBundleTargetNamespaceSelectorLabelSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
+				gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}),
 			),
 				&corev1.Namespace{
 					TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
@@ -355,12 +355,12 @@ func Test_Reconcile(t *testing.T) {
 			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1001"),
-					gen.SetBundleTargetNamespaceSelectorLabelSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
+					gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}),
 					gen.SetBundleStatus(trustapi.BundleStatus{
 						Target: &trustapi.BundleTarget{
 							ConfigMap: &trustapi.KeySelector{Key: targetKey},
 							NamespaceSelector: &trustapi.NamespaceSelector{
-								LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+								MatchLabels: map[string]string{"foo": "bar"},
 							},
 						},
 						Conditions: []trustapi.BundleCondition{{
@@ -368,7 +368,7 @@ func Test_Reconcile(t *testing.T) {
 							Status:             corev1.ConditionTrue,
 							LastTransitionTime: &metav1.Time{Time: fixedclock.Now().Local()},
 							Reason:             "Synced",
-							Message:            "Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar] matchExpressions: []]",
+							Message:            "Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar]]",
 							ObservedGeneration: bundleGeneration,
 						}},
 					}),
@@ -384,11 +384,11 @@ func Test_Reconcile(t *testing.T) {
 					Data:       map[string]string{targetKey: "A\nB\nC\n"},
 				},
 			),
-			expEvent: "Normal Synced Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar] matchExpressions: []]",
+			expEvent: "Normal Synced Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar]]",
 		},
 		"if Bundle not synced everywhere, sync except Namespaces that don't match labels and update Synced. Should delete ConfigMaps in wrong namespaces.": {
 			existingObjects: append(namespaces, sourceConfigMap, sourceSecret, gen.BundleFrom(baseBundle,
-				gen.SetBundleTargetNamespaceSelectorLabelSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
+				gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}),
 			),
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
@@ -411,12 +411,12 @@ func Test_Reconcile(t *testing.T) {
 			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1001"),
-					gen.SetBundleTargetNamespaceSelectorLabelSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
+					gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}),
 					gen.SetBundleStatus(trustapi.BundleStatus{
 						Target: &trustapi.BundleTarget{
 							ConfigMap: &trustapi.KeySelector{Key: targetKey},
 							NamespaceSelector: &trustapi.NamespaceSelector{
-								LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+								MatchLabels: map[string]string{"foo": "bar"},
 							},
 						},
 						Conditions: []trustapi.BundleCondition{{
@@ -424,13 +424,13 @@ func Test_Reconcile(t *testing.T) {
 							Status:             corev1.ConditionTrue,
 							LastTransitionTime: &metav1.Time{Time: fixedclock.Now().Local()},
 							Reason:             "Synced",
-							Message:            "Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar] matchExpressions: []]",
+							Message:            "Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar]]",
 							ObservedGeneration: bundleGeneration,
 						}},
 					}),
 				),
 			),
-			expEvent: "Normal Synced Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar] matchExpressions: []]",
+			expEvent: "Normal Synced Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar]]",
 		},
 		"if Bundle synced but doesn't have owner reference, should sync and update": {
 			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
