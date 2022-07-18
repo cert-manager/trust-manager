@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.6.1
+    controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
   name: bundles.trust.cert-manager.io
 spec:
@@ -106,29 +106,8 @@ spec:
                       description: NamespaceSelector will, if set, only sync the target resource in Namespaces which match the selector.
                       type: object
                       properties:
-                        matchExpressions:
-                          description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
-                          type: array
-                          items:
-                            description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
-                            type: object
-                            required:
-                              - key
-                              - operator
-                            properties:
-                              key:
-                                description: key is the label key that the selector applies to.
-                                type: string
-                              operator:
-                                description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
-                                type: string
-                              values:
-                                description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
-                                type: array
-                                items:
-                                  type: string
                         matchLabels:
-                          description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
+                          description: MatchLabels matches on the set of labels that must be present on a Namespace for the Bundle target to be synced there.
                           type: object
                           additionalProperties:
                             type: string
@@ -183,29 +162,8 @@ spec:
                       description: NamespaceSelector will, if set, only sync the target resource in Namespaces which match the selector.
                       type: object
                       properties:
-                        matchExpressions:
-                          description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
-                          type: array
-                          items:
-                            description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
-                            type: object
-                            required:
-                              - key
-                              - operator
-                            properties:
-                              key:
-                                description: key is the label key that the selector applies to.
-                                type: string
-                              operator:
-                                description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
-                                type: string
-                              values:
-                                description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
-                                type: array
-                                items:
-                                  type: string
                         matchLabels:
-                          description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
+                          description: MatchLabels matches on the set of labels that must be present on a Namespace for the Bundle target to be synced there.
                           type: object
                           additionalProperties:
                             type: string
