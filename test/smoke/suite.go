@@ -94,7 +94,7 @@ var _ = Describe("Smoke", func() {
 		By("Setting Namespace Selector should remove ConfigMaps from Namespaces that do not have a match")
 		Expect(cl.Get(ctx, client.ObjectKey{Name: testBundle.Name}, testBundle)).NotTo(HaveOccurred())
 		testBundle.Spec.Target.NamespaceSelector = &trustapi.NamespaceSelector{
-			LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+			MatchLabels: map[string]string{"foo": "bar"},
 		}
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 		Context("should delete ConfigMap in test Namespace", func() {
