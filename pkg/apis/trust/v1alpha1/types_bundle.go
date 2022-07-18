@@ -87,13 +87,16 @@ type BundleTarget struct {
 
 	// NamespaceSelector will, if set, only sync the target resource in
 	// Namespaces which match the selector.
+	// +optional
 	NamespaceSelector *NamespaceSelector `json:"namespaceSelector,omitempty"`
 }
 
 // NamespaceSelector defines selectors to match on Namespaces.
 type NamespaceSelector struct {
-	// LabelSelector defines a selector which matches on the Namespace labels.
-	*metav1.LabelSelector `json:",inline,omitempty"`
+	// MatchLabels matches on the set of labels that must be present on a
+	// Namespace for the Bundle target to be synced there.
+	// +optional
+	MatchLabels map[string]string `json:"matchLabels,omitempty"`
 }
 
 // SourceObjectKeySelector is a reference to a source object and its `data` key
