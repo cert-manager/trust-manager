@@ -13,6 +13,7 @@
 # limitations under the License.
 
 BINDIR ?= $(CURDIR)/bin
+
 ARCH   ?= $(shell go env GOARCH)
 OS     ?= $(shell go env GOOS)
 
@@ -20,6 +21,9 @@ HELM_VERSION ?= 3.6.3
 KUBEBUILDER_TOOLS_VERISON ?= 1.21.2
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
 
+RELEASE_VERSION ?= 0.1.0
+
+.PHONY: help
 help:  ## display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n\nTargets:\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
@@ -39,9 +43,8 @@ vet:
 	go vet ./...
 
 .PHONY: build
-build: ## build trust
-	mkdir -p $(BINDIR)
-	CGO_ENABLED=0 go build -o ./bin/cert-manager-trust ./cmd/.
+build: | $(BINDIR) ## build trust
+	CGO_ENABLED=0 go build -o $(BINDIR)/cert-manager-trust ./cmd/.
 
 .PHONY: generate
 generate: depend ## generate code
@@ -54,8 +57,12 @@ verify: depend test build ## tests and builds trust
 # To actually push an image to the public repo, replace the `--output` flag and
 # arguments to `--push`.
 .PHONY: image
-image: ## build docker image targeting all supported platforms
-	docker buildx build --platform=$(IMAGE_PLATFORMS) -t quay.io/jetstack/cert-manager-trust:v0.1.0 --output type=local,dest=./bin/cert-manager-trust .
+image: | $(BINDIR) ## build docker image targeting all supported platforms
+	docker buildx build --platform=$(IMAGE_PLATFORMS) -t quay.io/jetstack/cert-manager-trust:v$(RELEASE_VERSION) --output type=local,dest=$(BINDIR)/cert-manager-trust .
+
+.PHONY: chart
+chart: | $(BINDIR)/helm $(BINDIR)/chart
+	$(BINDIR)/helm package --app-version=$(RELEASE_VERSION) --version=$(RELEASE_VERSION) --destination "$(BINDIR)/chart" ./deploy/charts/trust
 
 .PHONY: clean
 clean: ## clean up created files
@@ -74,31 +81,31 @@ smoke: demo ## create cluster, deploy trust and run smoke tests
 .PHONY: depend
 depend: $(BINDIR)/deepcopy-gen $(BINDIR)/controller-gen $(BINDIR)/ginkgo $(BINDIR)/kubectl $(BINDIR)/kind $(BINDIR)/helm $(BINDIR)/kubebuilder/bin/kube-apiserver
 
-$(BINDIR)/deepcopy-gen:
-	mkdir -p $(BINDIR)
+$(BINDIR)/deepcopy-gen: | $(BINDIR)
 	go build -o $@ k8s.io/code-generator/cmd/deepcopy-gen
 
-$(BINDIR)/controller-gen:
-	mkdir -p $(BINDIR)
+$(BINDIR)/controller-gen: | $(BINDIR)
 	go build -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
 
-$(BINDIR)/ginkgo:
+$(BINDIR)/ginkgo: | $(BINDIR)
 	go build -o $(BINDIR)/ginkgo github.com/onsi/ginkgo/ginkgo
 
-$(BINDIR)/kind:
+$(BINDIR)/kind: | $(BINDIR)
 	go build -o $(BINDIR)/kind sigs.k8s.io/kind
 
-$(BINDIR)/helm:
+$(BINDIR)/helm: | $(BINDIR)
 	curl -o $(BINDIR)/helm.tar.gz -LO "https://get.helm.sh/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz"
 	tar -C $(BINDIR) -xzf $(BINDIR)/helm.tar.gz
-	cp $(BINDIR)/$(OS)-$(ARCH)/helm $(BINDIR)/helm
+	cp $(BINDIR)/$(OS)-$(ARCH)/helm $@
 	rm -r $(BINDIR)/$(OS)-$(ARCH) $(BINDIR)/helm.tar.gz
 
-$(BINDIR)/kubectl:
-	curl -o ./bin/kubectl -LO "https://storage.googleapis.com/kubernetes-release/release/$(shell curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$(OS)/$(ARCH)/kubectl"
-	chmod +x ./bin/kubectl
+$(BINDIR)/kubectl: | $(BINDIR)
+	curl -o $@ -LO "https://storage.googleapis.com/kubernetes-release/release/$(shell curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$(OS)/$(ARCH)/kubectl"
+	chmod +x $@
 
-$(BINDIR)/kubebuilder/bin/kube-apiserver:
+$(BINDIR)/kubebuilder/bin/kube-apiserver: | $(BINDIR)/kubebuilder
 	curl -sSLo $(BINDIR)/envtest-bins.tar.gz "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$(KUBEBUILDER_TOOLS_VERISON)-$(OS)-$(ARCH).tar.gz"
-	mkdir -p $(BINDIR)/kubebuilder
 	tar -C $(BINDIR)/kubebuilder --strip-components=1 -zvxf $(BINDIR)/envtest-bins.tar.gz
+
+$(BINDIR) $(BINDIR)/kubebuilder $(BINDIR)/chart:
+	@mkdir -p $@
