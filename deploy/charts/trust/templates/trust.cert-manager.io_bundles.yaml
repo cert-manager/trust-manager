@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.6.1
+    controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
   name: bundles.trust.cert-manager.io
 spec:
@@ -94,7 +94,7 @@ spec:
                   type: object
                   properties:
                     configMap:
-                      description: ConfigMap is the target ConfigMap in all Namespaces that all Bundle source data will be synced to.
+                      description: ConfigMap is the target ConfigMap in Namespaces that all Bundle source data will be synced to.
                       type: object
                       required:
                         - key
@@ -102,6 +102,15 @@ spec:
                         key:
                           description: Key is the key of the entry in the object's `data` field to be used.
                           type: string
+                    namespaceSelector:
+                      description: NamespaceSelector will, if set, only sync the target resource in Namespaces which match the selector.
+                      type: object
+                      properties:
+                        matchLabels:
+                          description: MatchLabels matches on the set of labels that must be present on a Namespace for the Bundle target to be synced there.
+                          type: object
+                          additionalProperties:
+                            type: string
             status:
               description: Status of the Bundle. This is set and managed automatically.
               type: object
@@ -141,7 +150,7 @@ spec:
                   type: object
                   properties:
                     configMap:
-                      description: ConfigMap is the target ConfigMap in all Namespaces that all Bundle source data will be synced to.
+                      description: ConfigMap is the target ConfigMap in Namespaces that all Bundle source data will be synced to.
                       type: object
                       required:
                         - key
@@ -149,6 +158,15 @@ spec:
                         key:
                           description: Key is the key of the entry in the object's `data` field to be used.
                           type: string
+                    namespaceSelector:
+                      description: NamespaceSelector will, if set, only sync the target resource in Namespaces which match the selector.
+                      type: object
+                      properties:
+                        matchLabels:
+                          description: MatchLabels matches on the set of labels that must be present on a Namespace for the Bundle target to be synced there.
+                          type: object
+                          additionalProperties:
+                            type: string
       served: true
       storage: true
       subresources:

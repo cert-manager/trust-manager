@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustapi "github.com/cert-manager/trust/pkg/apis/trust/v1alpha1"
@@ -118,22 +119,36 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 // Ensures the ConfigMap is owned by the given Bundle, and the data is up to
 // date.
 // Returns true if the ConfigMap has been created or was updated.
-func (b *bundle) syncTarget(ctx context.Context, log logr.Logger, bundle *trustapi.Bundle, namespace, data string) (bool, error) {
+func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
+	bundle *trustapi.Bundle,
+	namespaceSelector labels.Selector,
+	namespace *corev1.Namespace,
+	data string,
+) (bool, error) {
 	target := bundle.Spec.Target
 
 	if target.ConfigMap == nil {
 		return false, errors.New("target not defined")
 	}
 
-	var configMap corev1.ConfigMap
-	err := b.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bundle.Name}, &configMap)
+	matchNamespace := namespaceSelector.Matches(labels.Set(namespace.Labels))
 
-	// If the ConfigMap doesn't exist yet, create it
+	var configMap corev1.ConfigMap
+	err := b.client.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: bundle.Name}, &configMap)
+
+	// If the ConfigMap doesn't exist yet, create it.
 	if apierrors.IsNotFound(err) {
+		// If the namespace doesn't match selector we do nothing since we don't
+		// want to create it, and it also doesn't exist.
+		if !matchNamespace {
+			log.V(4).Info("ignoring namespace as it doesn't match selector", "labels", namespace.Labels)
+			return false, nil
+		}
+
 		configMap = corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            bundle.Name,
-				Namespace:       namespace,
+				Namespace:       namespace.Name,
 				OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(bundle, trustapi.SchemeGroupVersion.WithKind("Bundle"))},
 			},
 			Data: map[string]string{
@@ -148,8 +163,20 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger, bundle *trusta
 		return false, fmt.Errorf("failed to get configmap %s/%s: %w", namespace, bundle.Name, err)
 	}
 
-	var needsUpdate bool
+	// Here, the config map exists, but the selector doesn't match the namespace.
+	if !matchNamespace {
+		// The ConfigMap is owned by this controller- delete it.
+		if metav1.IsControlledBy(&configMap, bundle) {
+			log.V(2).Info("deleting bundle from Namespace since namespaceSelector does not match")
+			return true, b.client.Delete(ctx, &configMap)
+		}
+		// The ConfigMap isn't owned by us, so we shouldn't delete it. Return that
+		// we did nothing.
+		b.recorder.Eventf(&configMap, corev1.EventTypeWarning, "NotOwned", "ConfigMap is not owned by trust.cert-manager.io so ignoring")
+		return false, nil
+	}
 
+	var needsUpdate bool
 	// If ConfigMap is missing OwnerReference, add it back.
 	if !metav1.IsControlledBy(&configMap, bundle) {
 		configMap.OwnerReferences = append(configMap.OwnerReferences, *metav1.NewControllerRef(bundle, trustapi.SchemeGroupVersion.WithKind("Bundle")))

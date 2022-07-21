@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -101,7 +102,7 @@ var _ = Describe("Integration", func() {
 		By("Creating Bundle for test")
 		testData = testenv.DefaultTrustData()
 		testBundle = testenv.NewTestBundle(ctx, cl, opts, testData)
-		Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+		Eventually(func() bool { return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, "A\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		Expect(cl.Get(ctx, client.ObjectKeyFromObject(testBundle), testBundle)).ToNot(HaveOccurred())
 	})
 
@@ -134,7 +135,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
 		Context("should observe Bundle has synced the new 'D' value", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\nD\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, "A\nB\nC\nD\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -156,7 +157,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
 		Context("should observe Bundle has synced the new 'D' value", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\nD\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, "A\nB\nC\nD\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -166,7 +167,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
 		Context("should observe Bundle has synced the new 'D' value", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\nD\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, "A\nB\nC\nD\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -175,7 +176,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
 		Context("should observe Bundle has removed the old 'A' value", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "B\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, "B\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -184,7 +185,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
 		Context("should observe Bundle has removed the old 'B' value", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, "A\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -193,7 +194,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
 		Context("should observe Bundle has removed the old 'C' value", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, "A\nB\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -204,7 +205,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, &configMap)).NotTo(HaveOccurred())
 
 		Context("should observe Bundle has changed the value 'A' -> 'D'", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "D\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, "D\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -215,7 +216,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, &secret)).NotTo(HaveOccurred())
 
 		Context("should observe Bundle has changed the value 'B' -> 'D'", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nD\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, "A\nD\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -225,7 +226,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Update(ctx, testBundle)).ToNot(HaveOccurred())
 
 		Context("should observe Bundle has changed the value 'C' -> 'D'", func() {
-			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nD\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+			Eventually(func() bool { return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, "A\nB\nD\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 
@@ -234,7 +235,7 @@ var _ = Describe("Integration", func() {
 			ConfigMap: &trustapi.KeySelector{Key: "changed-target-key"},
 		}
 		Expect(cl.Update(ctx, testBundle)).ToNot(HaveOccurred())
-		Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+		Eventually(func() bool { return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, "A\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 
 		Context("should observe that all targets have changed the key written", func() {
 			var namespaceList corev1.NamespaceList
@@ -298,6 +299,36 @@ var _ = Describe("Integration", func() {
 				Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
 				return apiequality.Semantic.DeepEqual(configMap.Data, map[string]string{testData.Target.Key: "A\nB\nC\n"})
 			}, eventuallyTimeout, "100ms").Should(BeTrue())
+		})
+	})
+
+	It("should only write to Namespaces where the namespace selector matches", func() {
+		testNamespace := corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "trust-test-smoke-random-namespace",
+			},
+		}
+		Expect(cl.Create(ctx, &testNamespace)).NotTo(HaveOccurred())
+		Context("should observe ConfigMap written to new Namespace", func() {
+			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, testNamespace.Name, "A\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+		})
+
+		testBundle.Spec.Target.NamespaceSelector = &trustapi.NamespaceSelector{
+			MatchLabels: map[string]string{"foo": "bar"},
+		}
+		Expect(cl.Update(ctx, testBundle)).ToNot(HaveOccurred())
+		Context("should observe ConfigMap deleted from Namespace", func() {
+			Eventually(func() bool {
+				var cm corev1.ConfigMap
+				return apierrors.IsNotFound(cl.Get(ctx, client.ObjectKey{Namespace: "trust-test-smoke-random-namespace", Name: testBundle.Name}, &cm))
+			}, eventuallyTimeout, "100ms").Should(BeTrue())
+		})
+
+		Expect(cl.Get(ctx, client.ObjectKeyFromObject(&testNamespace), &testNamespace)).ToNot(HaveOccurred())
+		testNamespace.Labels["foo"] = "bar"
+		Expect(cl.Update(ctx, &testNamespace)).ToNot(HaveOccurred())
+		Context("should observe ConfigMap written to Namespace with matching Labels", func() {
+			Eventually(func() bool { return testenv.BundleHasSynced(ctx, cl, testBundle.Name, testNamespace.Name, "A\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 	})
 })

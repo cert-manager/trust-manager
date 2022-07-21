@@ -20,7 +20,7 @@ rules:
   - ""
   resources:
   - "configmaps"
-  verbs: ["get", "list", "create", "update", "watch"]
+  verbs: ["get", "list", "create", "update", "watch", "delete"]
 - apiGroups:
   - ""
   resources:

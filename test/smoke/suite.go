@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
@@ -55,7 +56,7 @@ var _ = Describe("Smoke", func() {
 		}, testData)
 
 		By("Ensuring the Bundle has Synced")
-		Eventually(func() bool { return env.BundleHasSynced(ctx, cl, testBundle.Name, "A\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+		Eventually(func() bool { return env.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, "A\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 
 		By("Ensuring targets update when a ConfigMap source is updated")
 		var configMap corev1.ConfigMap
@@ -63,7 +64,7 @@ var _ = Describe("Smoke", func() {
 		configMap.Data[testData.Sources.ConfigMap.Key] = "D"
 		Expect(cl.Update(ctx, &configMap)).NotTo(HaveOccurred())
 		Context("should observe Bundle has changed the value 'A' -> 'D'", func() {
-			Eventually(func() bool { return env.BundleHasSynced(ctx, cl, testBundle.Name, "D\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+			Eventually(func() bool { return env.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, "D\nB\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 
 		By("Ensuring targets update when a Secret source is updated")
@@ -72,7 +73,7 @@ var _ = Describe("Smoke", func() {
 		secret.Data[testData.Sources.Secret.Key] = []byte("E")
 		Expect(cl.Update(ctx, &secret)).NotTo(HaveOccurred())
 		Context("should observe Bundle has changed the value 'B' -> 'E'", func() {
-			Eventually(func() bool { return env.BundleHasSynced(ctx, cl, testBundle.Name, "D\nE\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+			Eventually(func() bool { return env.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, "D\nE\nC\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
 
 		By("Ensuring targets update when an InLine source is updated")
@@ -80,8 +81,40 @@ var _ = Describe("Smoke", func() {
 		testBundle.Spec.Sources[2].InLine = pointer.String("F")
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 		Context("should observe Bundle has changed the value 'C' -> 'F'", func() {
-			Eventually(func() bool { return env.BundleHasSynced(ctx, cl, testBundle.Name, "D\nE\nF\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+			Eventually(func() bool { return env.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, "D\nE\nF\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
 		})
+
+		By("Ensuring targets update when a Namespace is created")
+		testNamespace := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "trust-test-smoke-random-namespace-"}}
+		Expect(cl.Create(ctx, &testNamespace)).NotTo(HaveOccurred())
+		Context("should observe Bundle has created ConfigMap in testNamespace", func() {
+			Eventually(func() bool { return env.BundleHasSynced(ctx, cl, testBundle.Name, testNamespace.Name, "D\nE\nF\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+		})
+
+		By("Setting Namespace Selector should remove ConfigMaps from Namespaces that do not have a match")
+		Expect(cl.Get(ctx, client.ObjectKey{Name: testBundle.Name}, testBundle)).NotTo(HaveOccurred())
+		testBundle.Spec.Target.NamespaceSelector = &trustapi.NamespaceSelector{
+			MatchLabels: map[string]string{"foo": "bar"},
+		}
+		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
+		Context("should delete ConfigMap in test Namespace", func() {
+			Eventually(func() bool {
+				var cm corev1.ConfigMap
+				err := cl.Get(ctx, client.ObjectKey{Namespace: testNamespace.Name, Name: testBundle.Name}, &cm)
+				return apierrors.IsNotFound(err)
+			}, eventuallyTimeout, "100ms").Should(BeTrue())
+		})
+
+		By("Adding matching label on Namespace should sync ConfigMap to namespace")
+		Expect(cl.Get(ctx, client.ObjectKey{Name: testNamespace.Name}, &testNamespace)).NotTo(HaveOccurred())
+		testNamespace.Labels["foo"] = "bar"
+		Expect(cl.Update(ctx, &testNamespace)).NotTo(HaveOccurred())
+		Context("should create ConfigMap in test Namespace", func() {
+			Eventually(func() bool { return env.BundleHasSynced(ctx, cl, testBundle.Name, testNamespace.Name, "D\nE\nF\n") }, eventuallyTimeout, "100ms").Should(BeTrue())
+		})
+
+		By("Deleting test Namespace")
+		Expect(cl.Delete(ctx, &testNamespace)).NotTo(HaveOccurred())
 
 		By("Deleting the Bundle created")
 		Expect(cl.Get(ctx, client.ObjectKeyFromObject(testBundle), testBundle)).ToNot(HaveOccurred())

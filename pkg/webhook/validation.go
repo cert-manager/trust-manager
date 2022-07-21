@@ -174,6 +174,12 @@ func (v *validator) validateBundle(ctx context.Context, bundle *trustapi.Bundle)
 		}
 	}
 
+	if nsSel := bundle.Spec.Target.NamespaceSelector; nsSel != nil && len(nsSel.MatchLabels) > 0 {
+		if _, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{MatchLabels: nsSel.MatchLabels}); err != nil {
+			el = append(el, field.Invalid(path.Child("target", "namespaceSelector", "matchLabels"), nsSel.MatchLabels, err.Error()))
+		}
+	}
+
 	path = field.NewPath("status")
 
 	conditionTypes := make(map[trustapi.BundleConditionType]struct{})

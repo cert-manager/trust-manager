@@ -131,29 +131,19 @@ func NewTestBundle(ctx context.Context, cl client.Client, opts bundle.Options, t
 // Ensures the Bundle status has been updated with the appropriate target.
 // Ensures the Bundle has the correct status condition with the same
 // ObservedGeneration as the current Generation.
-func BundleHasSynced(ctx context.Context, cl client.Client, name, expectedData string) bool {
+func BundleHasSynced(ctx context.Context, cl client.Client, name, namespace, expectedData string) bool {
 	var bundle trustapi.Bundle
 	Expect(cl.Get(ctx, client.ObjectKey{Name: name}, &bundle)).NotTo(HaveOccurred())
 
-	var namespaceList corev1.NamespaceList
-	Expect(cl.List(ctx, &namespaceList)).NotTo(HaveOccurred())
+	var configMap corev1.ConfigMap
+	Eventually(func() error {
+		return cl.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bundle.Name}, &configMap)
+	}, "1s", "100ms").Should(BeNil(), "Waiting for ConfigMap to be created")
 
-	for _, namespace := range namespaceList.Items {
-		// Skip terminating namespaces since Bundle won't be synced there
-		if namespace.Status.Phase == corev1.NamespaceTerminating {
-			continue
-		}
-
-		var configMap corev1.ConfigMap
-		Eventually(func() error {
-			return cl.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: bundle.Name}, &configMap)
-		}, "1s", "100ms").Should(BeNil(), "Waiting for ConfigMap to be created")
-
-		if configMap.Data[bundle.Spec.Target.ConfigMap.Key] != expectedData {
-			By(fmt.Sprintf("ConfigMap does not have expected data: %s/%s: EXPECTED[%q] GOT[%q]",
-				namespace.Name, bundle.Name, expectedData, configMap.Data[bundle.Spec.Target.ConfigMap.Key]))
-			return false
-		}
+	if configMap.Data[bundle.Spec.Target.ConfigMap.Key] != expectedData {
+		By(fmt.Sprintf("ConfigMap does not have expected data: %s/%s: EXPECTED[%q] GOT[%q]",
+			namespace, bundle.Name, expectedData, configMap.Data[bundle.Spec.Target.ConfigMap.Key]))
+		return false
 	}
 
 	if bundle.Status.Target == nil || !apiequality.Semantic.DeepEqual(*bundle.Status.Target, bundle.Spec.Target) {
@@ -167,4 +157,21 @@ func BundleHasSynced(ctx context.Context, cl client.Client, name, expectedData s
 	}
 
 	return false
+}
+
+// BundleHasSyncedAllNamespaces calls BundleHasSynced for all namespaces.
+func BundleHasSyncedAllNamespaces(ctx context.Context, cl client.Client, name, expectedData string) bool {
+	var namespaceList corev1.NamespaceList
+	Expect(cl.List(ctx, &namespaceList)).NotTo(HaveOccurred())
+
+	for _, namespace := range namespaceList.Items {
+		// Skip terminating namespaces since Bundle won't be synced there
+		if namespace.Status.Phase == corev1.NamespaceTerminating {
+			continue
+		}
+
+		return BundleHasSynced(ctx, cl, name, namespace.Name, expectedData)
+	}
+
+	return true
 }

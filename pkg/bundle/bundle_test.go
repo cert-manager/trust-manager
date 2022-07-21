@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -302,16 +303,14 @@ func Test_Reconcile(t *testing.T) {
 					gen.SetBundleResourceVersion("1001"),
 					gen.SetBundleStatus(trustapi.BundleStatus{
 						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
-						Conditions: []trustapi.BundleCondition{
-							{
-								Type:               trustapi.BundleConditionSynced,
-								Status:             corev1.ConditionTrue,
-								LastTransitionTime: fixedmetatime,
-								Reason:             "Synced",
-								Message:            "Successfully synced Bundle to all namespaces",
-								ObservedGeneration: bundleGeneration,
-							},
-						},
+						Conditions: []trustapi.BundleCondition{{
+							Type:               trustapi.BundleConditionSynced,
+							Status:             corev1.ConditionTrue,
+							LastTransitionTime: fixedmetatime,
+							Reason:             "Synced",
+							Message:            "Successfully synced Bundle to all namespaces",
+							ObservedGeneration: bundleGeneration,
+						}},
 					}),
 				),
 				&corev1.ConfigMap{
@@ -332,11 +331,114 @@ func Test_Reconcile(t *testing.T) {
 			),
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
+		"if Bundle not synced everywhere, sync except Namespaces that don't match labels and update Synced": {
+			existingObjects: append(namespaces, sourceConfigMap, sourceSecret, gen.BundleFrom(baseBundle,
+				gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}),
+			),
+				&corev1.Namespace{
+					TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   "random-namespace",
+						Labels: map[string]string{"foo": "bar"},
+					},
+				},
+				&corev1.Namespace{
+					TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   "another-random-namespace",
+						Labels: map[string]string{"foo": "bar"},
+					},
+				},
+			),
+			expResult: ctrl.Result{},
+			expError:  false,
+			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
+				gen.BundleFrom(baseBundle,
+					gen.SetBundleResourceVersion("1001"),
+					gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}),
+					gen.SetBundleStatus(trustapi.BundleStatus{
+						Target: &trustapi.BundleTarget{
+							ConfigMap: &trustapi.KeySelector{Key: targetKey},
+							NamespaceSelector: &trustapi.NamespaceSelector{
+								MatchLabels: map[string]string{"foo": "bar"},
+							},
+						},
+						Conditions: []trustapi.BundleCondition{{
+							Type:               trustapi.BundleConditionSynced,
+							Status:             corev1.ConditionTrue,
+							LastTransitionTime: &metav1.Time{Time: fixedclock.Now().Local()},
+							Reason:             "Synced",
+							Message:            "Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar]]",
+							ObservedGeneration: bundleGeneration,
+						}},
+					}),
+				),
+				&corev1.ConfigMap{
+					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: "random-namespace", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
+					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+				},
+				&corev1.ConfigMap{
+					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: "another-random-namespace", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
+					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+				},
+			),
+			expEvent: "Normal Synced Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar]]",
+		},
+		"if Bundle not synced everywhere, sync except Namespaces that don't match labels and update Synced. Should delete ConfigMaps in wrong namespaces.": {
+			existingObjects: append(namespaces, sourceConfigMap, sourceSecret, gen.BundleFrom(baseBundle,
+				gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}),
+			),
+				&corev1.ConfigMap{
+					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
+					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+				},
+				&corev1.ConfigMap{
+					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
+					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+				},
+				&corev1.ConfigMap{
+					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
+					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+				},
+			),
+			expResult: ctrl.Result{},
+			expError:  false,
+			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
+				gen.BundleFrom(baseBundle,
+					gen.SetBundleResourceVersion("1001"),
+					gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}),
+					gen.SetBundleStatus(trustapi.BundleStatus{
+						Target: &trustapi.BundleTarget{
+							ConfigMap: &trustapi.KeySelector{Key: targetKey},
+							NamespaceSelector: &trustapi.NamespaceSelector{
+								MatchLabels: map[string]string{"foo": "bar"},
+							},
+						},
+						Conditions: []trustapi.BundleCondition{{
+							Type:               trustapi.BundleConditionSynced,
+							Status:             corev1.ConditionTrue,
+							LastTransitionTime: &metav1.Time{Time: fixedclock.Now().Local()},
+							Reason:             "Synced",
+							Message:            "Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar]]",
+							ObservedGeneration: bundleGeneration,
+						}},
+					}),
+				),
+			),
+			expEvent: "Normal Synced Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar]]",
+		},
 		"if Bundle synced but doesn't have owner reference, should sync and update": {
 			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleStatus(trustapi.BundleStatus{
-						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
+						Target: &trustapi.BundleTarget{
+							ConfigMap: &trustapi.KeySelector{Key: targetKey},
+						},
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
@@ -557,9 +659,7 @@ func Test_Reconcile(t *testing.T) {
 			case event = <-fakerecorder.Events:
 			default:
 			}
-			if event != test.expEvent {
-				t.Errorf("unexpected event, exp=%q got=%q", test.expEvent, event)
-			}
+			assert.Equal(t, test.expEvent, event)
 
 			for _, expectedObject := range test.expObjects {
 				expObj := expectedObject.(client.Object)
@@ -578,10 +678,9 @@ func Test_Reconcile(t *testing.T) {
 				}
 
 				err := fakeclient.Get(context.TODO(), client.ObjectKeyFromObject(expObj), actual)
-				if err != nil {
-					t.Errorf("unexpected error getting expected object: %s", err)
-				} else if !apiequality.Semantic.DeepEqual(expObj, actual) {
-					t.Errorf("unexpected expected object, exp=%#+v got=%#+v", expObj, actual)
+				assert.NoError(t, err)
+				if !apiequality.Semantic.DeepEqual(expObj, actual) {
+					t.Errorf("unexpected expected object\nexp=%#+v\ngot=%#+v", expObj, actual)
 				}
 			}
 		})
