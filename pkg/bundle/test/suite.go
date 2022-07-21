@@ -38,7 +38,7 @@ import (
 )
 
 const (
-	eventuallyTimeout = "10s"
+	eventuallyTimeout = "30s"
 )
 
 var _ = Describe("Integration", func() {
