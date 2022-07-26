@@ -187,7 +187,7 @@ func (b *bundle) httpsBundle(ctx context.Context, ref *trustapi.SourceHTTPS) (st
 		date: date,
 		data: body,
 	}
-	b.etagCache.Lock()
+	b.etagCache.Unlock()
 	return string(body), nil
 }
 
