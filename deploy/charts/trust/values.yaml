@@ -1,4 +1,4 @@
-# -- Number of replicas of istio-csr to run.
+# -- Number of replicas of trust to run.
 replicaCount: 1
 
 # -- For Private docker registries, authentication is needed. Registry secrets are applied to the service account
@@ -13,8 +13,8 @@ image:
   pullPolicy: IfNotPresent
 
 app:
-  # -- Verbosity of istio-csr logging.
-  logLevel: 1 # 1-5
+  # -- Verbosity of trust logging; takes a value from 1-5, with higher being more verbose
+  logLevel: 1
 
   metrics:
     # -- Port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'.
@@ -34,9 +34,9 @@ app:
         labels: {}
 
   readinessProbe:
-    # -- Container port to expose istio-csr HTTP readiness probe on default network interface.
+    # -- Container port on which to expose trust HTTP readiness probe using default network interface.
     port: 6060
-    # -- Path to expose istio-csr HTTP readiness probe on default network interface.
+    # -- Path on which to expose trust HTTP readiness probe using default network interface.
     path: "/readyz"
 
   trust:
@@ -57,11 +57,11 @@ app:
 
 
 resources: {}
-  # -- Kubernetes pod resource limits for istio-csr.
+  # -- Kubernetes pod resource limits for trust.
   # limits:
   #   cpu: 100m
   #   memory: 128Mi
-  # -- Kubernetes pod memory resource requests for istio-csr.
+  # -- Kubernetes pod memory resource requests for trust.
   # requests:
   #   cpu: 100m
   #   memory: 128Mi
