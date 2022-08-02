@@ -60,6 +60,14 @@ verify: depend test verify-helm-docs build ## tests and builds trust
 image: | $(BINDIR) ## build docker image targeting all supported platforms
 	docker buildx build --platform=$(IMAGE_PLATFORMS) -t quay.io/jetstack/trust-manager:$(RELEASE_VERSION) --output type=local,dest=$(BINDIR)/trust-manager .
 
+.PHONY: kind-load
+kind-load: local-images | $(BINDIR)/kind
+	$(BINDIR)/kind load docker-image quay.io/jetstack/trust-manager:$(RELEASE_VERSION)
+
+.PHONY: local-images
+local-images:
+	docker buildx build --platform=linux/amd64 -t quay.io/jetstack/trust-manager:$(RELEASE_VERSION) --load .
+
 .PHONY: chart
 chart: | $(BINDIR)/helm $(BINDIR)/chart
 	$(BINDIR)/helm package --app-version=$(RELEASE_VERSION) --version=$(RELEASE_VERSION) --destination "$(BINDIR)/chart" ./deploy/charts/trust-manager
