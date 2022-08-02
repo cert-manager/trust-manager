@@ -15,6 +15,10 @@ trust is designed to complement
 trust X.509 certificates signed by Issuers, as well as external CAs which may
 not be known to cert-manager at all.
 
+⚠️ Trust is still an early stage project and will undergo large changes as it's developed.
+
+We'd encourage you to test it and we'd hope it'll be useful; just be prepared for breaking changes!
+
 ---
 
 Please follow the documentation at

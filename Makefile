@@ -1,4 +1,4 @@
-# Copyright 2021 The cert-manager Authors.
+# Copyright 2022 The cert-manager Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ generate: depend ## generate code
 	./hack/update-codegen.sh
 
 .PHONY: verify
-verify: depend test build ## tests and builds trust
+verify: depend test verify-helm-docs build ## tests and builds trust
 
 # image will only build and store the image locally, targeted in OCI format.
 # To actually push an image to the public repo, replace the `--output` flag and
@@ -63,6 +63,14 @@ image: | $(BINDIR) ## build docker image targeting all supported platforms
 .PHONY: chart
 chart: | $(BINDIR)/helm $(BINDIR)/chart
 	$(BINDIR)/helm package --app-version=$(RELEASE_VERSION) --version=$(RELEASE_VERSION) --destination "$(BINDIR)/chart" ./deploy/charts/trust
+
+.PHONY: verify-helm-docs
+verify-helm-docs: | $(BINDIR)/helm-docs
+	./hack/verify-helm-docs.sh $(BINDIR)/helm-docs
+
+.PHONY: update-helm-docs
+update-helm-docs: | $(BINDIR)/helm-docs
+	./hack/update-helm-docs.sh $(BINDIR)/helm-docs
 
 .PHONY: clean
 clean: ## clean up created files
@@ -98,6 +106,9 @@ $(BINDIR)/helm: | $(BINDIR)
 	tar -C $(BINDIR) -xzf $(BINDIR)/helm.tar.gz
 	cp $(BINDIR)/$(OS)-$(ARCH)/helm $@
 	rm -r $(BINDIR)/$(OS)-$(ARCH) $(BINDIR)/helm.tar.gz
+
+$(BINDIR)/helm-docs: | $(BINDIR)
+	cd hack/tools && go build -o $@ github.com/norwoodj/helm-docs/cmd/helm-docs
 
 $(BINDIR)/kubectl: | $(BINDIR)
 	curl -o $@ -LO "https://storage.googleapis.com/kubernetes-release/release/$(shell curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$(OS)/$(ARCH)/kubectl"
