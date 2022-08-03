@@ -17,7 +17,7 @@ limitations under the License.
 package test
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -43,8 +43,8 @@ var _ = BeforeSuite(func() {
 
 	_, err := env.Start()
 	Expect(err).NotTo(HaveOccurred())
-}, 60)
+})
 
 var _ = AfterSuite(func() {
 	Expect(env.Stop()).NotTo(HaveOccurred())
-}, 60)
+})

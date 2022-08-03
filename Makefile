@@ -19,6 +19,7 @@ OS     ?= $(shell go env GOOS)
 
 HELM_VERSION ?= 3.6.3
 KUBEBUILDER_TOOLS_VERISON ?= 1.21.2
+GINKGO_VERSION ?= $(shell grep "github.com/onsi/ginkgo/v2" go.mod | awk '{print $$NF}')
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
 
 RELEASE_VERSION ?= 0.1.0
@@ -96,7 +97,7 @@ $(BINDIR)/controller-gen: | $(BINDIR)
 	go build -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
 
 $(BINDIR)/ginkgo: | $(BINDIR)
-	go build -o $(BINDIR)/ginkgo github.com/onsi/ginkgo/ginkgo
+	GOBIN=$(BINDIR) go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
 
 $(BINDIR)/kind: | $(BINDIR)
 	go build -o $(BINDIR)/kind sigs.k8s.io/kind
