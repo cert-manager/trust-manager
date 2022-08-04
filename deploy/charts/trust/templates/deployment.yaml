@@ -34,24 +34,27 @@ spec:
           - "--metrics-port={{.Values.app.metrics.port}}"
           - "--readiness-probe-port={{.Values.app.readinessProbe.port}}"
           - "--readiness-probe-path={{.Values.app.readinessProbe.path}}"
-
             # trust
           - "--trust-namespace={{.Values.app.trust.namespace}}"
-
             # webhook
           - "--webhook-host={{.Values.app.webhook.host}}"
           - "--webhook-port={{.Values.app.webhook.port}}"
           - "--webhook-certificate-dir=/tls"
-
-
         volumeMounts:
         - mountPath: /tls
           name: tls
           readOnly: true
-
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
-
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
       volumes:
       - name: tls
         secret:
