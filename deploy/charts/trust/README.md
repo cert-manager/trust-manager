@@ -1,6 +1,6 @@
 # cert-manager-trust
 
-![Version: v0.1.2](https://img.shields.io/badge/Version-v0.1.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.1.0](https://img.shields.io/badge/AppVersion-v0.1.0-informational?style=flat-square)
+![Version: v0.2.0](https://img.shields.io/badge/Version-v0.2.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.2.0](https://img.shields.io/badge/AppVersion-v0.2.0-informational?style=flat-square)
 
 A Helm chart for cert-manager-trust
 
@@ -35,7 +35,7 @@ A Helm chart for cert-manager-trust
 | app.webhook.timeoutSeconds | int | `5` | Timeout of webhook HTTP request. |
 | image.pullPolicy | string | `"IfNotPresent"` | Kubernetes imagePullPolicy on Deployment. |
 | image.repository | string | `"quay.io/jetstack/cert-manager-trust"` | Target image repository. |
-| image.tag | string | `"v0.1.0"` | Target image version tag. |
+| image.tag | string | `"v0.2.0"` | Target image version tag. |
 | imagePullSecrets | list | `[]` | For Private docker registries, authentication is needed. Registry secrets are applied to the service account |
 | replicaCount | int | `1` | Number of replicas of trust to run. |
 | resources | object | `{}` |  |
