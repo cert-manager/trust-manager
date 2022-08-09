@@ -30,9 +30,7 @@ RUN go mod download
 # Build
 RUN make build
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static@sha256:bca3c203cdb36f5914ab8568e4c25165643ea9b711b41a8a58b42c80a51ed609
+FROM scratch
 LABEL description="cert-manager trust is an operator for distributing trust bundles across a Kubernetes cluster"
 
 WORKDIR /
