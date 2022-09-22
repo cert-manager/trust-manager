@@ -19,6 +19,7 @@ package env
 import (
 	"context"
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -138,7 +139,7 @@ func BundleHasSynced(ctx context.Context, cl client.Client, name, namespace, exp
 	var configMap corev1.ConfigMap
 	Eventually(func() error {
 		return cl.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bundle.Name}, &configMap)
-	}, "1s", "100ms").Should(BeNil(), "Waiting for ConfigMap to be created")
+	}).WithTimeout(time.Second*10).WithPolling(time.Millisecond*10).Should(BeNil(), "Waiting for ConfigMap to be created")
 
 	if configMap.Data[bundle.Spec.Target.ConfigMap.Key] != expectedData {
 		By(fmt.Sprintf("ConfigMap does not have expected data: %s/%s: EXPECTED[%q] GOT[%q]",
