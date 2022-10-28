@@ -44,7 +44,7 @@ vet:
 
 .PHONY: build
 build: | $(BINDIR) ## build trust
-	CGO_ENABLED=0 go build -o $(BINDIR)/cert-manager-trust ./cmd/.
+	CGO_ENABLED=0 go build -o $(BINDIR)/trust-manager ./cmd/.
 
 .PHONY: generate
 generate: depend ## generate code
@@ -58,11 +58,11 @@ verify: depend test verify-helm-docs build ## tests and builds trust
 # arguments to `--push`.
 .PHONY: image
 image: | $(BINDIR) ## build docker image targeting all supported platforms
-	docker buildx build --platform=$(IMAGE_PLATFORMS) -t quay.io/jetstack/cert-manager-trust:v$(RELEASE_VERSION) --output type=local,dest=$(BINDIR)/cert-manager-trust .
+	docker buildx build --platform=$(IMAGE_PLATFORMS) -t quay.io/jetstack/trust-manager:v$(RELEASE_VERSION) --output type=local,dest=$(BINDIR)/trust-manager .
 
 .PHONY: chart
 chart: | $(BINDIR)/helm $(BINDIR)/chart
-	$(BINDIR)/helm package --app-version=$(RELEASE_VERSION) --version=$(RELEASE_VERSION) --destination "$(BINDIR)/chart" ./deploy/charts/trust
+	$(BINDIR)/helm package --app-version=$(RELEASE_VERSION) --version=$(RELEASE_VERSION) --destination "$(BINDIR)/chart" ./deploy/charts/trust-manager
 
 .PHONY: verify-helm-docs
 verify-helm-docs: | $(BINDIR)/helm-docs

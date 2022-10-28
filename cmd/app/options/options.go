@@ -33,7 +33,7 @@ import (
 	"github.com/cert-manager/trust-manager/pkg/bundle"
 )
 
-// Options is a struct to hold options for cert-manager-trust
+// Options is a struct to hold options for trust-manager
 type Options struct {
 	logLevel        string
 	kubeConfigFlags *genericclioptions.ConfigFlags

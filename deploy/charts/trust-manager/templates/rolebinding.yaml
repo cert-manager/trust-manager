@@ -1,15 +1,15 @@
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: {{ include "cert-manager-trust.name" . }}
+  name: {{ include "trust-manager.name" . }}
   namespace: {{ .Values.app.trust.namespace }}
   labels:
-{{ include "cert-manager-trust.labels" . | indent 4 }}
+{{ include "trust-manager.labels" . | indent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: {{ include "cert-manager-trust.name" . }}
+  name: {{ include "trust-manager.name" . }}
 subjects:
 - kind: ServiceAccount
-  name: {{ include "cert-manager-trust.name" . }}
+  name: {{ include "trust-manager.name" . }}
   namespace: {{ .Release.Namespace }}

@@ -2,19 +2,19 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ include "cert-manager-trust.name" . }}
+  name: {{ include "trust-manager.name" . }}
   labels:
-    app: {{ include "cert-manager-trust.name" . }}
-{{ include "cert-manager-trust.labels" . | indent 4 }}
+    app: {{ include "trust-manager.name" . }}
+{{ include "trust-manager.labels" . | indent 4 }}
     prometheus: {{ .Values.app.metrics.service.servicemonitor.prometheusInstance }}
 {{- if .Values.app.metrics.service.servicemonitor.labels }}
 {{ toYaml .Values.app.metrics.service.servicemonitor.labels | indent 4}}
 {{- end }}
 spec:
-  jobLabel: {{ include "cert-manager-trust.name" . }}
+  jobLabel: {{ include "trust-manager.name" . }}
   selector:
     matchLabels:
-      app: {{ include "cert-manager-trust.name" . }}
+      app: {{ include "trust-manager.name" . }}
   namespaceSelector:
     matchNames:
       - {{ .Release.Namespace }}

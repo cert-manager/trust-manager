@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "cert-manager-trust.name" . }}
+  name: {{ include "trust-manager.name" . }}
   labels:
-{{ include "cert-manager-trust.labels" . | indent 4 }}
+{{ include "trust-manager.labels" . | indent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ include "cert-manager-trust.name" . }}
+      app: {{ include "trust-manager.name" . }}
   template:
     metadata:
       labels:
-        app: {{ include "cert-manager-trust.name" . }}
+        app: {{ include "trust-manager.name" . }}
     spec:
-      serviceAccountName: {{ include "cert-manager-trust.name" . }}
+      serviceAccountName: {{ include "trust-manager.name" . }}
       containers:
-      - name: {{ include "cert-manager-trust.name" . }}
+      - name: {{ include "trust-manager.name" . }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
@@ -28,7 +28,7 @@ spec:
             path: {{ .Values.app.readinessProbe.path }}
           initialDelaySeconds: 3
           periodSeconds: 7
-        command: ["cert-manager-trust"]
+        command: ["trust-manager"]
         args:
           - "--log-level={{.Values.app.logLevel}}"
           - "--metrics-port={{.Values.app.metrics.port}}"
@@ -59,5 +59,5 @@ spec:
       - name: tls
         secret:
           defaultMode: 420
-          secretName: {{ include "cert-manager-trust.name" . }}-tls
+          secretName: {{ include "trust-manager.name" . }}-tls
 

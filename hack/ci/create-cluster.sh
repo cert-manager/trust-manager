@@ -6,7 +6,7 @@ KUBECTL_BIN="${KUBECTL_BIN:-$REPO_ROOT/bin/kubectl}"
 HELM_BIN="${HELM_BIN:-$REPO_ROOT/bin/helm}"
 KIND_BIN="${KIND_BIN:-$REPO_ROOT/bin/kind}"
 TRUST_TAG="${TRUST_TAG:-smoke}"
-TRUST_IMAGE="${TRUST_IMAGE:-quay.io/jetstack/cert-manager-trust:$TRUST_TAG}"
+TRUST_IMAGE="${TRUST_IMAGE:-quay.io/jetstack/trust-manager:$TRUST_TAG}"
 
 echo ">> building docker image..."
 docker build -t $TRUST_IMAGE .
@@ -31,4 +31,4 @@ $HELM_BIN repo add jetstack https://charts.jetstack.io --force-update
 $HELM_BIN upgrade -i --create-namespace -n cert-manager cert-manager jetstack/cert-manager --set installCRDs=true --wait
 
 echo ">> installing trust..."
-$HELM_BIN upgrade -i -n cert-manager cert-manager-trust $REPO_ROOT/deploy/charts/trust/. --set image.tag=$TRUST_TAG --set app.logLevel=2 --wait
+$HELM_BIN upgrade -i -n cert-manager trust-manager $REPO_ROOT/deploy/charts/trust-manager/. --set image.tag=$TRUST_TAG --set app.logLevel=2 --wait

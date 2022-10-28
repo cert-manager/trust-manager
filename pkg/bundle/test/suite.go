@@ -82,7 +82,7 @@ var _ = Describe("Integration", func() {
 			LeaderElection:                true,
 			LeaderElectionNamespace:       opts.Namespace,
 			NewCache:                      bundle.NewCacheFunc(opts),
-			LeaderElectionID:              "cert-manager-trust",
+			LeaderElectionID:              "trust-manager",
 			LeaderElectionReleaseOnCancel: true,
 			Logger:                        logf.Log,
 		})

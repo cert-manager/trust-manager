@@ -28,9 +28,9 @@ fi
 TEMP_FILE=$(mktemp)
 trap '{ rm -f -- "$TEMP_FILE"; }' EXIT
 
-$HELM_DOCS_BIN ./deploy/charts/trust -d -l error > ${TEMP_FILE}
+$HELM_DOCS_BIN ./deploy/charts/trust-manager -d -l error > ${TEMP_FILE}
 
-if ! cmp -s "./deploy/charts/trust/README.md" "${TEMP_FILE}"; then
+if ! cmp -s "./deploy/charts/trust-manager/README.md" "${TEMP_FILE}"; then
   echo "Helm chart README.md is out of date."
   echo "Please run 'make update-helm-docs'."
   exit 1
