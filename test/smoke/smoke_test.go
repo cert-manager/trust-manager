@@ -19,7 +19,7 @@ package smoke
 import (
 	"testing"
 
-	"github.com/cert-manager/trust/test/env"
+	"github.com/cert-manager/trust-manager/test/env"
 )
 
 // Test_Smoke runs the full suite of smoke tests against trust.cert-manager.io

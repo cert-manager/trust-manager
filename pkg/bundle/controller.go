@@ -36,8 +36,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	trustapi "github.com/cert-manager/trust/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust/pkg/bundle/internal"
+	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle/internal"
 )
 
 // AddBundleController will register the Bundle controller with the

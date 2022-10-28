@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
 
-	"github.com/cert-manager/trust/pkg/apis/trust"
+	"github.com/cert-manager/trust-manager/pkg/apis/trust"
 )
 
 // SchemeGroupVersion is group version used to register these objects

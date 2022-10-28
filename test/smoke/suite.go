@@ -28,9 +28,9 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	trustapi "github.com/cert-manager/trust/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust/pkg/bundle"
-	"github.com/cert-manager/trust/test/env"
+	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle"
+	"github.com/cert-manager/trust-manager/test/env"
 )
 
 const (

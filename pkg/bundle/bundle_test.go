@@ -35,8 +35,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	trustapi "github.com/cert-manager/trust/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust/test/gen"
+	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/test/gen"
 )
 
 func Test_Reconcile(t *testing.T) {

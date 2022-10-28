@@ -30,7 +30,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 
-	"github.com/cert-manager/trust/pkg/bundle"
+	"github.com/cert-manager/trust-manager/pkg/bundle"
 )
 
 // Options is a struct to hold options for cert-manager-trust

@@ -4,13 +4,13 @@ name: cert-manager-trust
 type: application
 description: A Helm chart for cert-manager-trust
 
-home: https://github.com/cert-manager/trust
+home: https://github.com/cert-manager/trust-manager
 maintainers:
 - name: cert-manager-maintainers
   email: cert-manager-maintainers@googlegroups.com
   url: https://cert-manager.io
 sources:
-- https://github.com/cert-manager/trust
+- https://github.com/cert-manager/trust-manager
 
 appVersion: v0.2.0
 version: v0.2.0

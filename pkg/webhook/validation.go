@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/cert-manager/trust/pkg/apis/trust"
-	trustapi "github.com/cert-manager/trust/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/apis/trust"
+	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 )
 
 // validator validates against trust.cert-manager.io resources.

@@ -18,7 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-TRUST_DISTRIBUTION_PKG="github.com/cert-manager/trust"
+TRUST_DISTRIBUTION_PKG="github.com/cert-manager/trust-manager"
 BOILERPLATE="hack/boilerplate/boilerplate.go.txt"
 
 APIS_PKG="$TRUST_DISTRIBUTION_PKG/pkg/apis"

@@ -4,7 +4,7 @@
 
 A Helm chart for cert-manager-trust
 
-**Homepage:** <https://github.com/cert-manager/trust>
+**Homepage:** <https://github.com/cert-manager/trust-manager>
 
 ## Maintainers
 
@@ -14,7 +14,7 @@ A Helm chart for cert-manager-trust
 
 ## Source Code
 
-* <https://github.com/cert-manager/trust>
+* <https://github.com/cert-manager/trust-manager>
 
 ## Values
 

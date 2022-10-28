@@ -27,10 +27,10 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/cert-manager/trust/cmd/app/options"
-	trustapi "github.com/cert-manager/trust/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust/pkg/bundle"
-	"github.com/cert-manager/trust/pkg/webhook"
+	"github.com/cert-manager/trust-manager/cmd/app/options"
+	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle"
+	"github.com/cert-manager/trust-manager/pkg/webhook"
 )
 
 const (
