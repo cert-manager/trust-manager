@@ -18,7 +18,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-TRUST_DISTRIBUTION_PKG="github.com/cert-manager/trust"
+TRUST_DISTRIBUTION_PKG="github.com/cert-manager/trust-manager"
 BOILERPLATE="hack/boilerplate/boilerplate.go.txt"
 
 APIS_PKG="$TRUST_DISTRIBUTION_PKG/pkg/apis"
@@ -43,5 +43,5 @@ done
 echo "Generating deepcopy funcs"
 ${BIN_DIR}/deepcopy-gen --input-dirs "$(codegen::join , "${FQ_APIS[@]}")" -O zz_generated.deepcopy --bounding-dirs "${APIS_PKG}" -h $BOILERPLATE
 
-echo "Generating CRDs in ./deploy/charts/trust/templates"
-${BIN_DIR}/controller-gen crd schemapatch:manifests=./deploy/charts/trust/templates output:dir=./deploy/charts/trust/templates paths=./pkg/apis/...
+echo "Generating CRDs in ./deploy/charts/trust-manager/templates"
+${BIN_DIR}/controller-gen crd schemapatch:manifests=./deploy/charts/trust-manager/templates output:dir=./deploy/charts/trust-manager/templates paths=./pkg/apis/...

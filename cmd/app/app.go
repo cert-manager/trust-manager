@@ -27,10 +27,10 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/cert-manager/trust/cmd/app/options"
-	trustapi "github.com/cert-manager/trust/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust/pkg/bundle"
-	"github.com/cert-manager/trust/pkg/webhook"
+	"github.com/cert-manager/trust-manager/cmd/app/options"
+	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle"
+	"github.com/cert-manager/trust-manager/pkg/webhook"
 )
 
 const (
@@ -42,7 +42,7 @@ func NewCommand() *cobra.Command {
 	opts := options.New()
 
 	cmd := &cobra.Command{
-		Use:   "cert-manager-trust",
+		Use:   "trust-manager",
 		Short: helpOutput,
 		Long:  helpOutput,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -67,7 +67,7 @@ func NewCommand() *cobra.Command {
 				LeaderElectionNamespace:       opts.Bundle.Namespace,
 				NewCache:                      bundle.NewCacheFunc(opts.Bundle),
 				ClientDisableCacheFor:         bundle.ClientDisableCacheFor(),
-				LeaderElectionID:              "cert-manager-trust-leader-election",
+				LeaderElectionID:              "trust-manager-leader-election",
 				LeaderElectionReleaseOnCancel: true,
 				ReadinessEndpointName:         opts.ReadyzPath,
 				HealthProbeBindAddress:        fmt.Sprintf("0.0.0.0:%d", opts.ReadyzPort),

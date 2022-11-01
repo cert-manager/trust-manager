@@ -62,6 +62,6 @@ func (c *Config) addFlags(fs *flag.FlagSet) *Config {
 	}
 
 	fs.StringVar(&c.kubeConfig, "kubeconfig-path", kubeConfigFile, "Path to config containing embedded authinfo for kubernetes. Default value is from environment variable "+clientcmd.RecommendedConfigPathEnvVar)
-	fs.StringVar(&c.TrustNamespace, "trust-namespace", "cert-manager", "The trust namespace where cert-manager-trust is deployed to")
+	fs.StringVar(&c.TrustNamespace, "trust-namespace", "cert-manager", "The trust namespace where trust-manager is deployed to")
 	return c
 }

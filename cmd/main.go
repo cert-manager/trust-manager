@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cert-manager/trust/cmd/app"
+	"github.com/cert-manager/trust-manager/cmd/app"
 )
 
 func main() {

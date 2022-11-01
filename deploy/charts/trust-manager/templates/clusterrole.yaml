@@ -2,8 +2,8 @@ kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   labels:
-{{ include "cert-manager-trust.labels" . | indent 4 }}
-  name: {{ include "cert-manager-trust.name" . }}
+{{ include "trust-manager.labels" . | indent 4 }}
+  name: {{ include "trust-manager.name" . }}
 rules:
 - apiGroups:
   - "trust.cert-manager.io"

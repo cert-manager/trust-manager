@@ -32,9 +32,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	trustapi "github.com/cert-manager/trust/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust/pkg/bundle"
-	testenv "github.com/cert-manager/trust/test/env"
+	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle"
+	testenv "github.com/cert-manager/trust-manager/test/env"
 )
 
 const (
@@ -82,7 +82,7 @@ var _ = Describe("Integration", func() {
 			LeaderElection:                true,
 			LeaderElectionNamespace:       opts.Namespace,
 			NewCache:                      bundle.NewCacheFunc(opts),
-			LeaderElectionID:              "cert-manager-trust",
+			LeaderElectionID:              "trust-manager",
 			LeaderElectionReleaseOnCancel: true,
 			Logger:                        logf.Log,
 		})

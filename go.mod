@@ -1,4 +1,4 @@
-module github.com/cert-manager/trust
+module github.com/cert-manager/trust-manager
 
 go 1.19
 

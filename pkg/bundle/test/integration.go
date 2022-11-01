@@ -24,7 +24,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	trustapi "github.com/cert-manager/trust/pkg/apis/trust/v1alpha1"
+	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 )
 
 var (
@@ -36,7 +36,7 @@ var _ = BeforeSuite(func() {
 	env = &envtest.Environment{
 		UseExistingCluster: pointer.Bool(false),
 		CRDDirectoryPaths: []string{
-			"../../../deploy/charts/trust/templates/trust.cert-manager.io_bundles.yaml",
+			"../../../deploy/charts/trust-manager/templates/trust.cert-manager.io_bundles.yaml",
 		},
 		Scheme: trustapi.GlobalScheme,
 	}

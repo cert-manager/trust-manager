@@ -19,7 +19,7 @@ package test
 import (
 	"testing"
 
-	testenv "github.com/cert-manager/trust/test/env"
+	testenv "github.com/cert-manager/trust-manager/test/env"
 )
 
 // Test_Integration runs the full suite of tests for the Bundle controller.

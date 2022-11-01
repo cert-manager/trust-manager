@@ -35,6 +35,6 @@ LABEL description="cert-manager trust is an operator for distributing trust bund
 
 WORKDIR /
 USER 1001
-COPY --from=builder /workspace/bin/cert-manager-trust /usr/bin/cert-manager-trust
+COPY --from=builder /workspace/bin/trust-manager /usr/bin/trust-manager
 
-ENTRYPOINT ["/usr/bin/cert-manager-trust"]
+ENTRYPOINT ["/usr/bin/trust-manager"]

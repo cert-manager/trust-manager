@@ -2,23 +2,23 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "cert-manager-trust.name" -}}
+{{- define "trust-manager.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "cert-manager-trust.chart" -}}
+{{- define "trust-manager.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{/*
 Common labels
 */}}
-{{- define "cert-manager-trust.labels" -}}
-app.kubernetes.io/name: {{ include "cert-manager-trust.name" . }}
-helm.sh/chart: {{ include "cert-manager-trust.chart" . }}
+{{- define "trust-manager.labels" -}}
+app.kubernetes.io/name: {{ include "trust-manager.name" . }}
+helm.sh/chart: {{ include "trust-manager.chart" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
