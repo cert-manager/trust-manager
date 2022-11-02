@@ -7,10 +7,10 @@
   <a href="https://artifacthub.io/packages/search?repo=cert-manager"><img alt="Artifact Hub" src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/cert-manager" /></a>
 </p>
 
-# trust
+# trust-manager
 
-trust is an operator for distributing trust bundles across a Kubernetes cluster.
-trust is designed to complement
+trust-manager is an operator for distributing trust bundles across a Kubernetes cluster.
+trust-manager is designed to complement
 [cert-manager](https://github.com/cert-manager/cert-manager) by enabling services to
 trust X.509 certificates signed by Issuers, as well as external CAs which may
 not be known to cert-manager at all.
