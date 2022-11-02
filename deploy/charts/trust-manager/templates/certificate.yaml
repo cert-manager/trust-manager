@@ -20,3 +20,5 @@ spec:
   revisionHistoryLimit: 1
   issuerRef:
     name: {{ include "trust-manager.name" . }}
+    kind: Issuer
+    group: cert-manager.io
