@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: v2
 
 name: trust-manager
 type: application
