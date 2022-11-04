@@ -12,5 +12,5 @@ maintainers:
 sources:
 - https://github.com/cert-manager/trust-manager
 
-appVersion: v0.2.0
-version: v0.2.1
+appVersion: v0.3.0
+version: v0.3.0

@@ -21,7 +21,7 @@ HELM_VERSION ?= 3.6.3
 KUBEBUILDER_TOOLS_VERISON ?= 1.21.2
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
 
-RELEASE_VERSION ?= 0.2.0
+RELEASE_VERSION ?= 0.3.0
 
 .PHONY: help
 help:  ## display this help
