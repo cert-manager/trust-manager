@@ -1,0 +1,49 @@
+# This job runs the ci-update-debian-bundle target to keep the debian bundle up-to-date
+# It's designed to be a cloudbuild trigger invoked on a regular schedule
+
+timeout: 14400s
+
+secrets:
+- kmsKeyName: projects/cert-manager-release/locations/europe-west1/keyRings/cert-manager-release/cryptoKeys/cert-manager-release-secret-key
+  secretEnv:
+    DOCKER_CONFIG: CiQAPjqeEyZx+aSgFNoW7KQ4wE4hp/9vbWElifjHJNTI0/71ywMSkwIAUOH2xwTfrn72i6p+Op2PYnjDfwMBcInMEtgKAqiTsaup3R5HeL8BsZGuWxVhCEm5CJJ0Rg3CPdFUx2IVmCfC3j32LkAiMxMpszdHTjWHEyWmxwtBlTJW8NFmoYzxfN4Ox9rYFF66eZ0XVdLz1UejXpqAkGFVzTzQSu4rvNFnAsP5Sj7ZKJpXn+p0ZZW1IdMTD0xzCwZjW9hhcTjyNaCKDJYwl8j6Y/bYeoUMrzDQNk48fzKIBgxEdUTR2OOAI785GWSrkB4Y03oEyrfw8jTd1yAoil2S6p3AGV1FbvFleajSCy3Ov+5gjomjtqCbTx06hVsTcqLHC45WzAWPa/8TsiXh5PPgBbkg+pfBQUTj6i9+WA==
+
+steps:
+# NB: REF_NAME is auto-populated by cloud build based on the
+# configured repo in the GCB trigger
+- name: gcr.io/cloud-builders/git
+  dir: "trust-manager"
+  entrypoint: bash
+  args:
+  - -c
+  - |
+    set -e
+    git clone ${_REPO} .
+    git checkout ${REF_NAME}
+
+- name: 'eu.gcr.io/jetstack-build-infra-images/bazelbuild:${_BUILDER_IMAGE_TAG}'
+  entrypoint: bash
+  secretEnv:
+  - DOCKER_CONFIG
+  args:
+  - -c
+  - |
+    mkdir -p $$HOME/.docker
+    echo "$${DOCKER_CONFIG}" > $$HOME/.docker/config.json
+
+- name: 'eu.gcr.io/jetstack-build-infra-images/bazelbuild:${_BUILDER_IMAGE_TAG}'
+  dir: "trust-manager"
+  entrypoint: bash
+  args:
+  - -c
+  - |
+    set -eu -o pipefail
+    make provision-buildx
+    make ci-update-debian-bundle
+
+tags:
+- "trust-manager-bundle"
+
+substitutions:
+  _REPO: "https://github.com/cert-manager/trust-manager"
+  _BUILDER_IMAGE_TAG: "20220629-ee75d11-4.2.1"

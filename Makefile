@@ -23,6 +23,12 @@ IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
 
 RELEASE_VERSION ?= v0.3.0
 
+BUILDX_BUILDER ?= trust-manager-builder
+
+CONTAINER_REGISTRY ?= quay.io/jetstack
+
+include make/image-bundle-debian.mk
+
 .PHONY: help
 help:  ## display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n\nTargets:\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -53,20 +59,30 @@ generate: depend ## generate code
 .PHONY: verify
 verify: depend test verify-helm-docs build ## tests and builds trust
 
+# See wait-for-buildx.sh for an explanation of why it's needed
+.PHONY: provision-buildx
+provision-buildx:  ## set up docker buildx for multiarch building
+	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+	docker buildx rm $(BUILDX_BUILDER) &>/dev/null || :
+	./hack/wait-for-buildx.sh $(BUILDX_BUILDER) gone
+	docker buildx create --name $(BUILDX_BUILDER) --driver docker-container --use
+	./hack/wait-for-buildx.sh $(BUILDX_BUILDER) exists
+	docker buildx inspect --bootstrap --builder $(BUILDX_BUILDER)
+
 # image will only build and store the image locally, targeted in OCI format.
 # To actually push an image to the public repo, replace the `--output` flag and
 # arguments to `--push`.
 .PHONY: image
 image: | $(BINDIR) ## build docker image targeting all supported platforms
-	docker buildx build --platform=$(IMAGE_PLATFORMS) -t quay.io/jetstack/trust-manager:$(RELEASE_VERSION) --output type=local,dest=$(BINDIR)/trust-manager .
+	docker buildx build --builder $(BUILDX_BUILDER) --platform=$(IMAGE_PLATFORMS) -t $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) --output type=local,dest=$(BINDIR)/trust-manager .
 
 .PHONY: kind-load
 kind-load: local-images | $(BINDIR)/kind
-	$(BINDIR)/kind load docker-image quay.io/jetstack/trust-manager:$(RELEASE_VERSION)
+	$(BINDIR)/kind load docker-image $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) $(CONTAINER_REGISTRY)/cert-manager-bundle-debian:latest
 
 .PHONY: local-images
-local-images:
-	docker buildx build --platform=linux/amd64 -t quay.io/jetstack/trust-manager:$(RELEASE_VERSION) --load .
+local-images: bundle-debian-load
+	docker buildx build --builder $(BUILDX_BUILDER) --platform=linux/amd64 -t $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) --load .
 
 .PHONY: chart
 chart: | $(BINDIR)/helm $(BINDIR)/chart

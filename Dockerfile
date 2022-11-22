@@ -20,8 +20,11 @@ WORKDIR /workspace
 COPY go.mod go.mod
 COPY go.sum go.sum
 
-# Copy the go source files
+# Copy build scripts
 COPY Makefile Makefile
+COPY make/ make/
+
+# Copy the go source files
 COPY cmd/ cmd/
 COPY pkg/ pkg/
 
