@@ -2,7 +2,8 @@ DEBIAN_BUNDLE_VERSION ?=
 DEBIAN_BUNDLE_SUFFIX ?= .0
 
 define build_image_bundle
-	docker buildx build --platform=$(3) \
+	docker buildx build --builder $(BUILDX_BUILDER) \
+		--platform=$(3) \
 		-t $(CONTAINER_REGISTRY)/cert-manager-bundle-debian:$(2) \
 		--build-arg EXPECTED_VERSION=$(2) \
 		--build-arg VERSION_SUFFIX=$(DEBIAN_BUNDLE_SUFFIX) \

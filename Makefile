@@ -24,6 +24,8 @@ IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
 
 RELEASE_VERSION ?= v0.3.0
 
+BUILDX_BUILDER ?= trust-manager-builder
+
 CONTAINER_REGISTRY ?= quay.io/jetstack
 
 include make/image-bundle-debian.mk
@@ -58,17 +60,19 @@ generate: depend ## generate code
 .PHONY: verify
 verify: depend test verify-helm-docs build ## tests and builds trust
 
+.PHONY: provision-buildx
+provision-buildx:  ## set up docker buildx for multiarch building
+	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+	docker buildx rm $(BUILDX_BUILDER) >/dev/null || :
+	docker buildx create --name $(BUILDX_BUILDER) --driver docker-container --use
+	docker buildx inspect --bootstrap --builder $(BUILDX_BUILDER)
+
 # image will only build and store the image locally, targeted in OCI format.
 # To actually push an image to the public repo, replace the `--output` flag and
 # arguments to `--push`.
-#
-# docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-# docker buildx rm builder
-# docker buildx create --name builder --driver docker-container --use
-# docker buildx inspect --bootstrap
 .PHONY: image
 image: | $(BINDIR) ## build docker image targeting all supported platforms
-	docker buildx build --platform=$(IMAGE_PLATFORMS) -t $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) --output type=local,dest=$(BINDIR)/trust-manager .
+	docker buildx build --builder $(BUILDX_BUILDER) --platform=$(IMAGE_PLATFORMS) -t $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) --output type=local,dest=$(BINDIR)/trust-manager .
 
 .PHONY: kind-load
 kind-load: local-images | $(BINDIR)/kind
@@ -76,7 +80,7 @@ kind-load: local-images | $(BINDIR)/kind
 
 .PHONY: local-images
 local-images: bundle-debian-load
-	docker buildx build --platform=linux/amd64 -t $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) --load .
+	docker buildx build --builder $(BUILDX_BUILDER) --platform=linux/amd64 -t $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) --load .
 
 .PHONY: chart
 chart: | $(BINDIR)/helm $(BINDIR)/chart
