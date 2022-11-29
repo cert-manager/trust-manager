@@ -6,7 +6,15 @@ timeout: 14400s
 secrets:
 - kmsKeyName: projects/cert-manager-release/locations/europe-west1/keyRings/cert-manager-release/cryptoKeys/cert-manager-release-secret-key
   secretEnv:
-    DOCKER_CONFIG: CiQAPjqeEyZx+aSgFNoW7KQ4wE4hp/9vbWElifjHJNTI0/71ywMSkwIAUOH2xwTfrn72i6p+Op2PYnjDfwMBcInMEtgKAqiTsaup3R5HeL8BsZGuWxVhCEm5CJJ0Rg3CPdFUx2IVmCfC3j32LkAiMxMpszdHTjWHEyWmxwtBlTJW8NFmoYzxfN4Ox9rYFF66eZ0XVdLz1UejXpqAkGFVzTzQSu4rvNFnAsP5Sj7ZKJpXn+p0ZZW1IdMTD0xzCwZjW9hhcTjyNaCKDJYwl8j6Y/bYeoUMrzDQNk48fzKIBgxEdUTR2OOAI785GWSrkB4Y03oEyrfw8jTd1yAoil2S6p3AGV1FbvFleajSCy3Ov+5gjomjtqCbTx06hVsTcqLHC45WzAWPa/8TsiXh5PPgBbkg+pfBQUTj6i9+WA==
+    # this key is generated using:
+    # gcloud kms encrypt \
+    #   --key projects/cert-manager-release/locations/europe-west1/keyRings/cert-manager-release/cryptoKeys/cert-manager-release-secret-key \
+    #   --plaintext-file=/tmp/credentials.json \
+    #   --ciphertext-file=- \
+    #   | base64 -w0 > encrypted_docker_config
+    # The config is using a "robot account" in the Jetstack quay.io organisation
+    DOCKER_CONFIG: CiQAPjqeE/lNpYDSJR7Z4Gm3i7c/LlYk4/6IFxYp+y2Vc4XWeh4S+QEAUOH2x97d4crKdEuCH+RvW0YbrcjiZHK+APSL5XO/QiKWhOWoaXzn6VrqLs/zuY8CVTvspiMbhHW+RRePF7Okgsm2lDF8CXAZ+mbRgrx5ftw+27OgGOHK3DgCEsZFTnP9NtP6vA8aTM7Ram9TijlkzTqESBlx3vO/QleeFG93N/nLzNCXUn+3FSW+1161GMl/7DEXuSPK/ye4XdXEAalnhIEkEbiuSf+stOzo3+9lTm+CI3jvyqsnyTaCCaEn+rROPEDXPgCpKCWq2n5qHTdTGkyh27EUPCmuLUCvoelSdhY6nevQWGBzrjH+121yz37HeCVVM3W0ZTw=
+
 
 steps:
 # NB: REF_NAME is auto-populated by cloud build based on the
