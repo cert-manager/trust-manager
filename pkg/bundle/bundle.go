@@ -49,10 +49,10 @@ type bundle struct {
 	// client is a Kubernetes client that makes calls to the API for every
 	// request.
 	// Should be used for updating, deleting, and when requesting data from
-	// resources who's informer only caches metadata.
+	// resources whose informer only caches metadata.
 	client client.Client
 
-	// lister makes requests to the informer cache. Beware that resources who's
+	// lister makes requests to the informer cache. Beware that resources whose
 	// informer only caches metadata, will not return underlying data of that
 	// resource. Use client instead.
 	lister client.Reader

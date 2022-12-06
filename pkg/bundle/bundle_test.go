@@ -36,6 +36,7 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/test/dummy"
 	"github.com/cert-manager/trust-manager/test/gen"
 )
 
@@ -62,7 +63,7 @@ func Test_Reconcile(t *testing.T) {
 				Namespace: trustNamespace,
 			},
 			Data: map[string]string{
-				"configmap-key": "A",
+				"configmap-key": dummy.TestCertificate1,
 			},
 		}
 		sourceSecret runtime.Object = &corev1.Secret{
@@ -72,7 +73,7 @@ func Test_Reconcile(t *testing.T) {
 				Namespace: trustNamespace,
 			},
 			Data: map[string][]byte{
-				"secret-key": []byte("B"),
+				"secret-key": []byte(dummy.TestCertificate2),
 			},
 		}
 
@@ -88,7 +89,7 @@ func Test_Reconcile(t *testing.T) {
 				Sources: []trustapi.BundleSource{
 					{ConfigMap: &trustapi.SourceObjectKeySelector{Name: sourceConfigMapName, KeySelector: trustapi.KeySelector{Key: sourceConfigMapKey}}},
 					{Secret: &trustapi.SourceObjectKeySelector{Name: sourceSecretName, KeySelector: trustapi.KeySelector{Key: sourceSecretKey}}},
-					{InLine: pointer.String("C")},
+					{InLine: pointer.String(dummy.TestCertificate3)},
 				},
 				Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 			},
@@ -121,7 +122,7 @@ func Test_Reconcile(t *testing.T) {
 			expObjects:      append(namespaces, sourceConfigMap, sourceSecret),
 			expEvent:        "",
 		},
-		"if Bundle references a ConfigMap which does not exist, update not found": {
+		"if Bundle references a ConfigMap which does not exist, update with 'not found'": {
 			existingObjects: append(namespaces, sourceSecret, gen.BundleFrom(baseBundle)),
 			expResult:       ctrl.Result{},
 			expError:        false,
@@ -142,7 +143,7 @@ func Test_Reconcile(t *testing.T) {
 			),
 			expEvent: `Warning SourceNotFound Bundle source was not found: failed to retrieve bundle from source: configmaps "source-configmap" not found`,
 		},
-		"if Bundle references a ConfigMap who's key doesn't exist, update not found": {
+		"if Bundle references a ConfigMap whose key doesn't exist, update with 'not found'": {
 			existingObjects: append(namespaces,
 				&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: sourceConfigMapName}},
 				sourceSecret, gen.BundleFrom(baseBundle)),
@@ -169,7 +170,7 @@ func Test_Reconcile(t *testing.T) {
 			),
 			expEvent: `Warning SourceNotFound Bundle source was not found: failed to retrieve bundle from source: no data found in ConfigMap trust-namespace/source-configmap at key "configmap-key"`,
 		},
-		"if Bundle references a Secret which does not exist, update not found": {
+		"if Bundle references a Secret which does not exist, update with 'not found'": {
 			existingObjects: append(namespaces, sourceConfigMap, gen.BundleFrom(baseBundle)),
 			expResult:       ctrl.Result{},
 			expError:        false,
@@ -190,7 +191,7 @@ func Test_Reconcile(t *testing.T) {
 			),
 			expEvent: `Warning SourceNotFound Bundle source was not found: failed to retrieve bundle from source: secrets "source-secret" not found`,
 		},
-		"if Bundle references a Secret who's key doesn't exist, update not found": {
+		"if Bundle references a Secret whose key doesn't exist, update with 'not found'": {
 			existingObjects: append(namespaces, sourceConfigMap,
 				&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: sourceSecretName}},
 				gen.BundleFrom(baseBundle)),
@@ -273,17 +274,17 @@ func Test_Reconcile(t *testing.T) {
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 			),
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
@@ -316,17 +317,17 @@ func Test_Reconcile(t *testing.T) {
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 			),
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
@@ -376,12 +377,12 @@ func Test_Reconcile(t *testing.T) {
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "random-namespace", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "another-random-namespace", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 			),
 			expEvent: "Normal Synced Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar]]",
@@ -393,17 +394,17 @@ func Test_Reconcile(t *testing.T) {
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 			),
 			expResult: ctrl.Result{},
@@ -453,15 +454,15 @@ func Test_Reconcile(t *testing.T) {
 				),
 				&corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 			),
 			expResult: ctrl.Result{},
@@ -486,17 +487,17 @@ func Test_Reconcile(t *testing.T) {
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1000"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1000"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1000"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 			),
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
@@ -506,17 +507,17 @@ func Test_Reconcile(t *testing.T) {
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 			),
 			expResult: ctrl.Result{},
@@ -541,17 +542,17 @@ func Test_Reconcile(t *testing.T) {
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "999"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "999"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "999"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 			),
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
@@ -575,15 +576,15 @@ func Test_Reconcile(t *testing.T) {
 				),
 				&corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 			),
 			expResult: ctrl.Result{},
@@ -608,17 +609,17 @@ func Test_Reconcile(t *testing.T) {
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "999"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "999"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "999"},
-					Data:       map[string]string{targetKey: "A\nB\nC\n"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
 			),
 			expEvent: "",
