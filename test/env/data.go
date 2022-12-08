@@ -30,6 +30,7 @@ import (
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle"
+	"github.com/cert-manager/trust-manager/test/dummy"
 )
 
 // TestData is used as a set of input data to a Bundle suite test. It
@@ -53,14 +54,14 @@ type TestData struct {
 }
 
 // DefaultTrustData returns a well-known set of default data for a test.
-// Resulting Bundle will sync "A\nB\nC\n" to the Target "target-key".
+// Resulting Bundle will sync to the Target "target-key".
 func DefaultTrustData() TestData {
 	var td TestData
 	td.Sources.ConfigMap.Key = "configMap-key"
-	td.Sources.ConfigMap.Data = "A"
+	td.Sources.ConfigMap.Data = dummy.TestCertificate1
 	td.Sources.Secret.Key = "secret-key"
-	td.Sources.Secret.Data = "B"
-	td.Sources.InLine.Data = "C"
+	td.Sources.Secret.Data = dummy.TestCertificate2
+	td.Sources.InLine.Data = dummy.TestCertificate3
 	td.Target.Key = "target-key"
 	return td
 }

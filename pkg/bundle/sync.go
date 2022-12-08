@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/util"
 )
 
 type notFoundError struct{ error }
@@ -61,7 +62,12 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 			return "", fmt.Errorf("failed to retrieve bundle from source: %w", err)
 		}
 
-		data = append(data, strings.TrimSpace(sourceData))
+		sanitizedBundle, err := util.ValidateAndSanitizePEMBundle([]byte(sourceData))
+		if err != nil {
+			return "", fmt.Errorf("invalid PEM data in source: %w", err)
+		}
+
+		data = append(data, string(sanitizedBundle))
 	}
 
 	// return early to prevent returning just newline

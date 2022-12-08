@@ -35,13 +35,14 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/test/dummy"
 )
 
 func Test_syncTarget(t *testing.T) {
 	const (
 		bundleName = "test-bundle"
 		key        = "key"
-		data       = "data"
+		data       = dummy.TestCertificate1
 	)
 
 	labelEverything := func(*testing.T) labels.Selector {
@@ -389,10 +390,10 @@ func Test_buildSourceBundle(t *testing.T) {
 		},
 		"if single InLine source defined with newlines, should trim and return": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
-				{InLine: pointer.String("\n\n\nA\n\nB\n\n\n")},
+				{InLine: pointer.String(dummy.TestCertificate1 + "\n" + dummy.TestCertificate2 + "\n\n")},
 			}}},
 			objects:          []runtime.Object{},
-			expData:          "A\n\nB\n",
+			expData:          dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2),
 			expError:         false,
 			expNotFoundError: false,
 		},
@@ -420,22 +421,22 @@ func Test_buildSourceBundle(t *testing.T) {
 			}}},
 			objects: []runtime.Object{&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
-				Data:       map[string]string{"key": "\n\n\nA\n\nB\n\n"},
+				Data:       map[string]string{"key": dummy.TestCertificate1 + "\n" + dummy.TestCertificate2},
 			}},
-			expData:          "A\n\nB\n",
+			expData:          dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2),
 			expError:         false,
 			expNotFoundError: false,
 		},
-		"if ConfigMap and InLine source, return appended data": {
+		"if ConfigMap and InLine source, return concatenated data": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
 				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
-				{InLine: pointer.String("\n\n\nC\n\nD\n\n\n")},
+				{InLine: pointer.String(dummy.TestCertificate2)},
 			}}},
 			objects: []runtime.Object{&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
-				Data:       map[string]string{"key": "\n\n\nA\n\nB\n\n"},
+				Data:       map[string]string{"key": dummy.TestCertificate1},
 			}},
-			expData:          "A\n\nB\nC\n\nD\n",
+			expData:          dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2),
 			expError:         false,
 			expNotFoundError: false,
 		},
@@ -463,42 +464,42 @@ func Test_buildSourceBundle(t *testing.T) {
 			}}},
 			objects: []runtime.Object{&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
-				Data:       map[string][]byte{"key": []byte("\n\n\nA\n\nB\n\n")},
+				Data:       map[string][]byte{"key": []byte(dummy.TestCertificate1 + "\n" + dummy.TestCertificate2)},
 			}},
-			expData:          "A\n\nB\n",
+			expData:          dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2),
 			expError:         false,
 			expNotFoundError: false,
 		},
-		"if Secret and InLine source, return appended data": {
+		"if Secret and InLine source, return concatenated data": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
 				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", KeySelector: trustapi.KeySelector{Key: "key"}}},
-				{InLine: pointer.String("\n\n\nC\n\nD\n\n\n")},
+				{InLine: pointer.String(dummy.TestCertificate1)},
 			}}},
 			objects: []runtime.Object{&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
-				Data:       map[string][]byte{"key": []byte("\n\n\nA\n\nB\n\n")},
+				Data:       map[string][]byte{"key": []byte(dummy.TestCertificate2)},
 			}},
-			expData:          "A\n\nB\nC\n\nD\n",
+			expData:          dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1),
 			expError:         false,
 			expNotFoundError: false,
 		},
-		"if Secret, ConfigmMap and InLine source, return appended data": {
+		"if Secret, ConfigmMap and InLine source, return concatenated data": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
 				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
-				{InLine: pointer.String("\n\n\nC\n\nD\n\n\n")},
+				{InLine: pointer.String(dummy.TestCertificate3)},
 				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", KeySelector: trustapi.KeySelector{Key: "key"}}},
 			}}},
 			objects: []runtime.Object{
 				&corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
-					Data:       map[string]string{"key": "\n\n\nA\n\nB\n\n"},
+					Data:       map[string]string{"key": dummy.TestCertificate1},
 				},
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{Name: "secret"},
-					Data:       map[string][]byte{"key": []byte("\n\n\nE\n\nF\n\n")},
+					Data:       map[string][]byte{"key": []byte(dummy.TestCertificate2)},
 				},
 			},
-			expData:          "A\n\nB\nC\n\nD\nE\n\nF\n",
+			expData:          dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate3, dummy.TestCertificate2),
 			expError:         false,
 			expNotFoundError: false,
 		},
@@ -510,7 +511,7 @@ func Test_buildSourceBundle(t *testing.T) {
 			objects: []runtime.Object{
 				&corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
-					Data:       map[string]string{"key": "\n\n\nA\n\nB\n\n"},
+					Data:       map[string]string{"key": dummy.TestCertificate1},
 				},
 			},
 			expData:          "",
@@ -525,7 +526,7 @@ func Test_buildSourceBundle(t *testing.T) {
 			objects: []runtime.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{Name: "secret"},
-					Data:       map[string][]byte{"key": []byte("\n\n\nA\n\nB\n\n")},
+					Data:       map[string][]byte{"key": []byte(dummy.TestCertificate1)},
 				},
 			},
 			expData:          "",

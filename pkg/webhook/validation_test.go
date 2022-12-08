@@ -64,7 +64,7 @@ func Test_Handle(t *testing.T) {
 				},
 			},
 		},
-		"a resource who's type is not recognised should return a Denied response": {
+		"a resource whose type is not recognised should return a Denied response": {
 			req: admission.Request{
 				AdmissionRequest: admissionv1.AdmissionRequest{
 					UID: types.UID("abc"),
