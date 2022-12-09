@@ -31,7 +31,7 @@ COPY go.mod go.mod
 COPY go.sum go.sum
 COPY main.go main.go
 
-RUN CGO_ENABLED=0 go build -o copyandpause main.go
+RUN CGO_ENABLED=0 go build -o copyandmaybepause main.go
 
 FROM scratch
 
@@ -43,9 +43,9 @@ LABEL description="cert-manager debian static trust bundle"
 USER 1001
 
 COPY --from=debbase /usr/bin/tini-static /tini
-COPY --from=debbase /work/bundle.json /packaged-bundles/bundle-debian-$EXPECTED_VERSION$VERSION_SUFFIX.json
-COPY --from=gobuild /work/copyandpause /copyandpause
+COPY --from=debbase /work/bundle.json /packaged-bundles/bundle-cert-manager-debian.json
+COPY --from=gobuild /work/copyandmaybepause /copyandmaybepause
 
 ENTRYPOINT ["/tini", "--"]
 
-CMD ["/copyandpause", "/packaged-bundles", "/bundles"]
+CMD ["/copyandmaybepause", "/packaged-bundles", "/bundles"]

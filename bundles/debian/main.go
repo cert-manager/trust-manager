@@ -17,6 +17,8 @@ limitations under the License.
 package main
 
 import (
+	"bytes"
+	"flag"
 	"fmt"
 	"io"
 	"io/fs"
@@ -24,21 +26,49 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 )
+
+var waitFlag = flag.Bool("wait", false, "if true, wait for a signal before exiting\nif false, exit with a status code after copying")
+
+// usage ensures that printing arg defaults from the flag package goes through the logger
+func usage(logger *log.Logger) func() {
+	return func() {
+		logger.Printf("usage: %s [flags] <input-folder> <output-folder>", os.Args[0])
+
+		buf := &bytes.Buffer{}
+
+		flag.CommandLine.SetOutput(buf)
+		flag.PrintDefaults()
+
+		for _, line := range strings.Split(buf.String(), "\n") {
+			if strings.TrimSpace(line) == "" {
+				continue
+			}
+
+			logger.Println(line)
+		}
+	}
+}
 
 func main() {
 	stderrLogger := log.New(os.Stderr, "", log.LstdFlags)
 
-	if len(os.Args) != 3 {
-		stderrLogger.Fatalf("usage: %s <input-folder> <output-folder>", os.Args[0])
+	flag.Usage = usage(stderrLogger)
+
+	flag.Parse()
+
+	if flag.NArg() != 2 {
+		flag.Usage()
+		os.Exit(1)
 	}
 
-	inputDir := os.Args[1]
-	destinationDir := os.Args[2]
+	inputDir := flag.Arg(0)
+	destinationDir := flag.Arg(1)
 
-	stderrLogger.Printf("reading from %q", inputDir)
-	stderrLogger.Printf("writing to %q", destinationDir)
+	stderrLogger.Printf("reading from %s", inputDir)
+	stderrLogger.Printf("writing to   %s", destinationDir)
 
 	if err := dirOrError(inputDir); err != nil {
 		stderrLogger.Fatalf("couldn't confirm that input path is a directory that exists: %s", err.Error())
@@ -90,7 +120,7 @@ func main() {
 			return fmt.Errorf("failed to copy source %q to destination %q: %w", path, destinationFile, err)
 		}
 
-		stderrLogger.Printf("successfully copied %q to %q", path, destinationFile)
+		stderrLogger.Printf("successfully copied %s to %s", path, destinationFile)
 
 		return nil
 	})
@@ -99,16 +129,18 @@ func main() {
 		stderrLogger.Fatalf("failed to walk input dir %q: %s", inputDir, walkErr.Error())
 	}
 
-	stderrLogger.Printf("finished copying, waiting for termination signal")
+	if *waitFlag {
+		stderrLogger.Printf("finished copying, waiting for termination signal")
 
-	// TODO: if we add the ability to reap zombie processes, this could function as a full init
+		// TODO: if we add the ability to reap zombie processes, this could function as a full init
 
-	sigs := make(chan os.Signal, 1)
+		sigs := make(chan os.Signal, 1)
 
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	<-sigs
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+		<-sigs
 
-	stderrLogger.Println("received interrupt, closing")
+		stderrLogger.Println("received interrupt, closing")
+	}
 }
 
 func dirOrError(name string) error {
