@@ -46,7 +46,8 @@ fi
 
 echo "{}" | jq \
 	--rawfile bundle /etc/ssl/certs/ca-certificates.crt \
+	--arg name "cert-manager-debian" \
 	--arg type "static" \
 	--arg version "$EXPECTED_VERSION$VERSION_SUFFIX" \
-	'.bundle = $bundle | .type = $type | .version = $version' \
+	'.name = $name | .bundle = $bundle | .type = $type | .version = $version' \
 	> $DESTINATION_FILE
