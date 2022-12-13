@@ -134,7 +134,9 @@ func (v *validator) validateBundle(ctx context.Context, bundle *trustapi.Bundle)
 			}
 
 			if unionCount != 1 {
-				el = append(el, field.Forbidden(path, "must define exactly one source type for each item"))
+				el = append(el, field.Forbidden(
+					path, fmt.Sprintf("must define exactly one source type for each item but found %d defined types", unionCount),
+				))
 			}
 		}
 	}
