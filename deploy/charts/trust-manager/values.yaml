@@ -55,6 +55,8 @@ app:
     service:
       type: ClusterIP
 
+  securityContext:
+    seccompProfileEnabled: true
 
 resources: {}
   # -- Kubernetes pod resource limits for trust.

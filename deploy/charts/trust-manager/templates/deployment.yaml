@@ -53,8 +53,10 @@ spec:
             - ALL
           readOnlyRootFilesystem: true
           runAsNonRoot: true
+          {{- if .Values.app.securityContext.seccompProfileEnabled }}
           seccompProfile:
             type: RuntimeDefault
+          {{- end }}
       volumes:
       - name: tls
         secret:
