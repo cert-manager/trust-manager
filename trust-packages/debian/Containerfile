@@ -21,7 +21,7 @@ WORKDIR /work
 
 COPY ./build.sh /work/build.sh
 
-RUN /work/build.sh $EXPECTED_VERSION $VERSION_SUFFIX /work/bundle.json
+RUN /work/build.sh $EXPECTED_VERSION $VERSION_SUFFIX /work/package.json
 
 FROM docker.io/library/golang:1.19 as gobuild
 
@@ -38,14 +38,14 @@ FROM scratch
 ARG EXPECTED_VERSION
 ARG VERSION_SUFFIX
 
-LABEL description="cert-manager debian static trust bundle"
+LABEL description="cert-manager trust package based on Debian"
 
 USER 1001
 
 COPY --from=debbase /usr/bin/tini-static /tini
-COPY --from=debbase /work/bundle.json /packaged-bundles/bundle-cert-manager-debian.json
+COPY --from=debbase /work/package.json /debian-package/cert-manager-package-debian.json
 COPY --from=gobuild /work/copyandmaybepause /copyandmaybepause
 
 ENTRYPOINT ["/tini", "--"]
 
-CMD ["/copyandmaybepause", "/packaged-bundles", "/bundles"]
+CMD ["/copyandmaybepause", "/debian-package", "/packages"]

@@ -27,7 +27,7 @@ BUILDX_BUILDER ?= trust-manager-builder
 
 CONTAINER_REGISTRY ?= quay.io/jetstack
 
-include make/image-bundle-debian.mk
+include make/trust-package-debian.mk
 
 .PHONY: help
 help:  ## display this help
@@ -57,7 +57,7 @@ generate: depend ## generate code
 	./hack/update-codegen.sh
 
 .PHONY: verify
-verify: depend test verify-helm-docs build ## tests and builds trust
+verify: depend test verify-helm-docs build ## tests and builds trust-manager
 
 # See wait-for-buildx.sh for an explanation of why it's needed
 .PHONY: provision-buildx
@@ -78,10 +78,10 @@ image: | $(BINDIR) ## build docker image targeting all supported platforms
 
 .PHONY: kind-load
 kind-load: local-images | $(BINDIR)/kind
-	$(BINDIR)/kind load docker-image $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) $(CONTAINER_REGISTRY)/cert-manager-bundle-debian:latest
+	$(BINDIR)/kind load docker-image $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) $(CONTAINER_REGISTRY)/cert-manager-package-debian:latest$(DEBIAN_TRUST_PACKAGE_SUFFIX)
 
 .PHONY: local-images
-local-images: bundle-debian-load
+local-images: trust-package-debian-load
 	docker buildx build --builder $(BUILDX_BUILDER) --platform=linux/amd64 -t $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) --load .
 
 .PHONY: chart

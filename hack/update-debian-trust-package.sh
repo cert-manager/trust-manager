@@ -20,7 +20,7 @@ set -o pipefail
 
 # This script uses a container to install the latest ca-certificates package, and then
 # checks to see if the installed version of that package matches the latest available
-# debian bundle image in our container registry.
+# debian trust package image in our container registry.
 
 # If we installed a newer version in the local container, we build a new image container
 # and push it upstream
@@ -28,7 +28,7 @@ set -o pipefail
 CTR=${CTR:-docker}
 
 REPO=${1:-}
-DEBIAN_BUNDLE_SUFFIX=${2:-}
+DEBIAN_TRUST_PACKAGE_SUFFIX=${2:-}
 
 DEBIAN_IMAGE=docker.io/library/debian:11-slim
 
@@ -50,7 +50,7 @@ if [[ -z $REPO ]]; then
 	exit 1
 fi
 
-if [[ -z $DEBIAN_BUNDLE_SUFFIX ]]; then
+if [[ -z $DEBIAN_TRUST_PACKAGE_SUFFIX ]]; then
 	print_usage
 	echo "Missing version suffix"
 	exit 1
@@ -79,10 +79,11 @@ echo "+++ fetching latest version of ca-certificates package"
 CA_CERTIFICATES_VERSION=$(latest_ca_certificate_package_version)
 
 # Rather than use CA_CERTIFICATES_VERSION directly as an image tag, suffix our own version number
-# that we control. We can increment this if we need to build a second version of a given ca-certificates,
+# that we control.
+# We can increment this if we need to build a second version of a given ca-certificates,
 # say to add a new file or update the contents.
 
-IMAGE_TAG=$CA_CERTIFICATES_VERSION$DEBIAN_BUNDLE_SUFFIX
+IMAGE_TAG=$CA_CERTIFICATES_VERSION$DEBIAN_TRUST_PACKAGE_SUFFIX
 
 FULL_IMAGE=$REPO:$IMAGE_TAG
 
@@ -93,4 +94,4 @@ $CTR run --rm gcr.io/go-containerregistry/crane:v0.12.1 digest $FULL_IMAGE && ec
 
 echo "+++ latest image appears not to exist; building and pushing $FULL_IMAGE"
 
-make DEBIAN_BUNDLE_VERSION=$CA_CERTIFICATES_VERSION DEBIAN_BUNDLE_SUFFIX=$DEBIAN_BUNDLE_SUFFIX bundle-debian-push
+make DEBIAN_TRUST_PACKAGE_VERSION=$CA_CERTIFICATES_VERSION DEBIAN_TRUST_PACKAGE_SUFFIX=$DEBIAN_TRUST_PACKAGE_SUFFIX trust-package-debian-push

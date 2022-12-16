@@ -1,4 +1,4 @@
-# This job runs the ci-update-debian-bundle target to keep the debian bundle up-to-date
+# This job runs the ci-update-debian-trust-package target to keep the debian bundle up-to-date
 # It's designed to be a cloudbuild trigger invoked on a regular schedule
 
 timeout: 14400s
@@ -47,10 +47,10 @@ steps:
   - |
     set -eu -o pipefail
     make provision-buildx
-    make ci-update-debian-bundle
+    make ci-update-debian-trust-package
 
 tags:
-- "trust-manager-bundle"
+- "trust-manager-cert-manager-package-debian"
 
 substitutions:
   _REPO: "https://github.com/cert-manager/trust-manager"
