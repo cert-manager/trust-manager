@@ -28,6 +28,7 @@ A Helm chart for trust-manager
 | app.metrics.service.type | string | `"ClusterIP"` | Service type to expose metrics. |
 | app.readinessProbe.path | string | `"/readyz"` | Path on which to expose trust HTTP readiness probe using default network interface. |
 | app.readinessProbe.port | int | `6060` | Container port on which to expose trust HTTP readiness probe using default network interface. |
+| app.securityContext.seccompProfileEnabled | bool | `true` |  |
 | app.trust.namespace | string | `"cert-manager"` | Namespace used as trust source. Note that the namespace _must_ exist before installing trust-manager. |
 | app.webhook.host | string | `"0.0.0.0"` | Host that the webhook listens on. |
 | app.webhook.port | int | `6443` | Port that the webhook listens on. |
