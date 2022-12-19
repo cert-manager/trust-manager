@@ -25,13 +25,15 @@ RUN /work/build.sh $EXPECTED_VERSION $VERSION_SUFFIX /work/package.json
 
 FROM docker.io/library/golang:1.19 as gobuild
 
+ARG GOPROXY
+
 WORKDIR /work
 
 COPY go.mod go.mod
 COPY go.sum go.sum
 COPY main.go main.go
 
-RUN CGO_ENABLED=0 go build -o copyandmaybepause main.go
+RUN GOPROXY=$GOPROXY CGO_ENABLED=0 go build -o copyandmaybepause main.go
 
 FROM scratch
 

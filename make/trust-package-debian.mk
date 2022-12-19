@@ -5,6 +5,7 @@ define build_debian_trust_package
 	docker buildx build --builder $(BUILDX_BUILDER) \
 		--platform=$(3) \
 		-t $(CONTAINER_REGISTRY)/cert-manager-package-debian:$(2)$(DEBIAN_TRUST_PACKAGE_SUFFIX) \
+		--build-arg GOPROXY=$(GOPROXY) \
 		--build-arg EXPECTED_VERSION=$(2) \
 		--build-arg VERSION_SUFFIX=$(DEBIAN_TRUST_PACKAGE_SUFFIX) \
 		--output $(1) \

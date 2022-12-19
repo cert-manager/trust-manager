@@ -27,6 +27,8 @@ BUILDX_BUILDER ?= trust-manager-builder
 
 CONTAINER_REGISTRY ?= quay.io/jetstack
 
+GOPROXY ?= https://proxy.golang.org,direct
+
 include make/trust-package-debian.mk
 
 .PHONY: help
@@ -74,7 +76,7 @@ provision-buildx:  ## set up docker buildx for multiarch building
 # arguments to `--push`.
 .PHONY: image
 image: | $(BINDIR) ## build docker image targeting all supported platforms
-	docker buildx build --builder $(BUILDX_BUILDER) --platform=$(IMAGE_PLATFORMS) -t $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) --output type=local,dest=$(BINDIR)/trust-manager .
+	docker buildx build --builder $(BUILDX_BUILDER) --build-arg GOPROXY=$(GOPROXY) --platform=$(IMAGE_PLATFORMS) -t $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) --output type=local,dest=$(BINDIR)/trust-manager .
 
 .PHONY: kind-load
 kind-load: local-images | $(BINDIR)/kind
@@ -82,7 +84,7 @@ kind-load: local-images | $(BINDIR)/kind
 
 .PHONY: local-images
 local-images: trust-package-debian-load
-	docker buildx build --builder $(BUILDX_BUILDER) --platform=linux/amd64 -t $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) --load .
+	docker buildx build --builder $(BUILDX_BUILDER) --build-arg GOPROXY=$(GOPROXY) --platform=linux/amd64 -t $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) --load .
 
 .PHONY: chart
 chart: | $(BINDIR)/helm $(BINDIR)/chart
