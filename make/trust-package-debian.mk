@@ -37,4 +37,4 @@ endif
 
 .PHONY: ci-update-debian-trust-package
 ci-update-debian-trust-package:
-	./hack/update-debian-trust-package.sh "$(CONTAINER_REGISTRY)/cert-manager-package-debian" $(DEBIAN_BUNDLE_SUFFIX)
+	./hack/update-debian-trust-package.sh "$(CONTAINER_REGISTRY)/cert-manager-package-debian" $(DEBIAN_TRUST_PACKAGE_SUFFIX)
