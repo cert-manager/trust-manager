@@ -15,6 +15,8 @@
 # Build the trust binary
 FROM docker.io/library/golang:1.19 as builder
 
+ARG GOPROXY
+
 WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -28,7 +30,7 @@ COPY make/ make/
 COPY cmd/ cmd/
 COPY pkg/ pkg/
 
-RUN go mod download
+RUN GOPROXY=$GOPROXY go mod download
 
 # Build
 RUN make build
