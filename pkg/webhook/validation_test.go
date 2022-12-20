@@ -261,8 +261,21 @@ func Test_validateBundle(t *testing.T) {
 				},
 			},
 			expEl: field.ErrorList{
-				field.Forbidden(field.NewPath("spec", "sources", "[0]"), "must define exactly one source type for each item"),
-				field.Forbidden(field.NewPath("spec", "sources", "[2]"), "must define exactly one source type for each item"),
+				field.Forbidden(field.NewPath("spec", "sources", "[0]"), "must define exactly one source type for each item but found 2 defined types"),
+				field.Forbidden(field.NewPath("spec", "sources", "[2]"), "must define exactly one source type for each item but found 2 defined types"),
+			},
+		},
+		"empty source with no defined types": {
+			bundle: &trustapi.Bundle{
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{},
+					},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test"}},
+				},
+			},
+			expEl: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "sources", "[0]"), "must define exactly one source type for each item but found 0 defined types"),
 			},
 		},
 		"sources no names and keys": {
