@@ -50,7 +50,10 @@ integration-test: depend  ## runs integration tests, defined as tests which requ
 	KUBEBUILDER_ASSETS=$(BINDIR)/kubebuilder/bin go test -v ./test/integration/...
 
 .PHONY: lint
-lint: vet
+lint: vet verify-boilerplate verify-helm-docs
+
+.PHONY: verify-boilerplate
+verify-boilerplate:
 	./hack/verify-boilerplate.sh
 
 .PHONY: vet
