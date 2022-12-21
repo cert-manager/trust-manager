@@ -17,7 +17,7 @@ BINDIR ?= $(CURDIR)/bin
 ARCH   ?= $(shell go env GOARCH)
 OS     ?= $(shell go env GOOS)
 
-HELM_VERSION ?= 3.6.3
+HELM_VERSION ?= 3.10.3
 KUBEBUILDER_TOOLS_VERISON ?= 1.21.2
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
 
@@ -127,11 +127,12 @@ $(BINDIR)/ginkgo: | $(BINDIR)
 $(BINDIR)/kind: | $(BINDIR)
 	go build -o $(BINDIR)/kind sigs.k8s.io/kind
 
-$(BINDIR)/helm: | $(BINDIR)
-	curl -o $(BINDIR)/helm.tar.gz -LO "https://get.helm.sh/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz"
-	tar -C $(BINDIR) -xzf $(BINDIR)/helm.tar.gz
-	cp $(BINDIR)/$(OS)-$(ARCH)/helm $@
-	rm -r $(BINDIR)/$(OS)-$(ARCH) $(BINDIR)/helm.tar.gz
+$(BINDIR)/helm: $(BINDIR)/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz | $(BINDIR)
+	tar xfO $< $(OS)-$(ARCH)/helm > $@
+	chmod +x $@
+
+$(BINDIR)/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz: | $(BINDIR)
+	curl -o $@ -LO "https://get.helm.sh/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz"
 
 $(BINDIR)/helm-docs: | $(BINDIR)
 	cd hack/tools && go build -o $@ github.com/norwoodj/helm-docs/cmd/helm-docs
