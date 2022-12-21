@@ -18,7 +18,7 @@ ARCH   ?= $(shell go env GOARCH)
 OS     ?= $(shell go env GOOS)
 
 HELM_VERSION ?= 3.10.3
-KUBEBUILDER_TOOLS_VERISON ?= 1.21.2
+KUBEBUILDER_TOOLS_VERISON ?= 1.25.0
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
 
 RELEASE_VERSION ?= v0.3.0
@@ -39,8 +39,15 @@ help:  ## display this help
 all: depend generate test build image ## runs test, build and image
 
 .PHONY: test
-test: depend lint ## test trust
-	KUBEBUILDER_ASSETS=$(BINDIR)/kubebuilder/bin go test -v ./pkg/... ./cmd/...
+test: lint unit-test integration-test ## test trust-manager, running linters, unit and integration tests
+
+.PHONY: unit-test
+unit-test:  ## runs unit tests, defined as any test which doesn't require external stup
+	go test -v ./pkg/... ./cmd/...
+
+.PHONY: integration-test
+integration-test: depend  ## runs integration tests, defined as tests which require external setup (but not full end-to-end tests)
+	KUBEBUILDER_ASSETS=$(BINDIR)/kubebuilder/bin go test -v ./test/integration/...
 
 .PHONY: lint
 lint: vet
