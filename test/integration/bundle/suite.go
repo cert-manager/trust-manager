@@ -81,9 +81,10 @@ var _ = Describe("Integration", func() {
 
 		mgr, err = ctrl.NewManager(env.Config, ctrl.Options{
 			Scheme:                        trustapi.GlobalScheme,
+			NewCache:                      bundle.NewCacheFunc(opts),
 			LeaderElection:                true,
 			LeaderElectionNamespace:       opts.Namespace,
-			NewCache:                      bundle.NewCacheFunc(opts),
+			LeaderElectionResourceLock:    "leases",
 			LeaderElectionID:              "trust-manager",
 			LeaderElectionReleaseOnCancel: true,
 			Logger:                        logf.Log,
