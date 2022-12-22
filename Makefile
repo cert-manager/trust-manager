@@ -63,6 +63,9 @@ integration-test: depend  ## runs integration tests, defined as tests which requ
 .PHONY: lint
 lint: vet verify-boilerplate verify-helm-docs
 
+.PHONY: verify
+verify: depend build test ## tests and builds trust-manager
+
 .PHONY: verify-boilerplate
 verify-boilerplate:
 	./hack/verify-boilerplate.sh
@@ -78,9 +81,6 @@ build: | $(BINDIR) ## build trust
 .PHONY: generate
 generate: depend ## generate code
 	./hack/update-codegen.sh
-
-.PHONY: verify
-verify: depend test verify-helm-docs build ## tests and builds trust-manager
 
 # See wait-for-buildx.sh for an explanation of why it's needed
 .PHONY: provision-buildx
@@ -101,8 +101,9 @@ local-images: trust-manager-load trust-package-debian-load  ## build container i
 .PHONY: kind-load
 kind-load: local-images | $(BINDIR)/kind  ## same as local-images but also run "kind load docker-image"
 	$(BINDIR)/kind load docker-image \
-		$(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) \
-		$(CONTAINER_REGISTRY)/cert-manager-package-debian:latest$(DEBIAN_TRUST_PACKAGE_SUFFIX)
+		$(CONTAINER_REGISTRY)/trust-manager:latest \
+		$(CONTAINER_REGISTRY)/cert-manager-package-debian:latest$(DEBIAN_TRUST_PACKAGE_SUFFIX) \
+		--name trust
 
 .PHONY: chart
 chart: | $(BINDIR)/helm $(BINDIR)/chart
@@ -123,12 +124,47 @@ clean: ## clean up created files
 		_artifacts
 
 .PHONY: demo
-demo: depend ## create cluster and deploy trust
-	REPO_ROOT=$(shell pwd) ./hack/ci/create-cluster.sh
+demo: ensure-kind kind-load ensure-cert-manager ensure-trust-manager $(BINDIR)/kubeconfig.yaml  ## ensure a cluster ready for a smoke test or local testing
 
 .PHONY: smoke
-smoke: demo ## create cluster, deploy trust and run smoke tests
-	REPO_ROOT=$(shell pwd) ./hack/ci/run-smoke-test.sh
+smoke: demo  ## ensure cluster, deploy trust-manager and run smoke tests
+	${BINDIR}/ginkgo -nodes 1 test/smoke/ -- --kubeconfig-path ${BINDIR}/kubeconfig.yaml
+
+$(BINDIR)/kubeconfig.yaml: depend ensure-kind _FORCE | $(BINDIR)
+	$(BINDIR)/kind get kubeconfig --name trust > $@
+
+.PHONY: ensure-kind
+ensure-kind: depend ensure-ci-docker-network  ## create a trust-manager kind cluster, if one doesn't already exist
+	@if $(BINDIR)/kind get clusters | grep -q "^trust$$"; then \
+		echo "cluster already exists, not trying to create"; \
+	else \
+		$(BINDIR)/kind create cluster --name trust; \
+	fi
+
+.PHONY: ensure-cert-manager
+ensure-cert-manager: depend ensure-kind
+	@if $(BINDIR)/helm list --short --namespace cert-manager --selector name=cert-manager | grep -q cert-manager; then \
+		echo "cert-manager already installed, not trying to reinstall"; \
+	else \
+		$(BINDIR)/helm repo add jetstack https://charts.jetstack.io --force-update; \
+		$(BINDIR)/helm upgrade -i --create-namespace -n cert-manager cert-manager jetstack/cert-manager --set installCRDs=true --wait; \
+	fi
+
+.PHONY: ensure-trust-manager
+ensure-trust-manager: depend ensure-kind kind-load ensure-cert-manager
+	$(BINDIR)/helm uninstall -n cert-manager trust-manager || :
+	$(BINDIR)/helm upgrade -i -n cert-manager trust-manager deploy/charts/trust-manager/. --set image.tag=$(RELEASE_VERSION) --set app.logLevel=2 --wait
+
+# When running in our CI environment the Docker network's subnet choice
+# causees issues with routing.
+# Creating a custom kind network gets around that problem.
+.PHONY: ensure-ci-docker-network
+ensure-ci-docker-network:
+ifneq ($(strip $(CI)),)
+	docker network create --driver=bridge --subnet=192.168.0.0/16 --gateway 192.168.0.1 kind || true
+	@# Sleep for 2s to avoid any races between docker's network subcommand and 'kind create'
+	sleep 2
+endif
 
 .PHONY: depend
 depend: $(BINDIR)/deepcopy-gen $(BINDIR)/controller-gen $(BINDIR)/ginkgo $(BINDIR)/kubectl $(BINDIR)/kind $(BINDIR)/helm $(BINDIR)/kubebuilder/bin/kube-apiserver
@@ -171,3 +207,5 @@ $(BINDIR)/kubebuilder/bin/kube-apiserver: | $(BINDIR)/kubebuilder
 
 $(BINDIR) $(BINDIR)/kubebuilder $(BINDIR)/chart:
 	@mkdir -p $@
+
+_FORCE:

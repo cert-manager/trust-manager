@@ -19,7 +19,7 @@ package test
 import (
 	"context"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
@@ -40,7 +40,8 @@ import (
 )
 
 const (
-	eventuallyTimeout = "30s"
+	eventuallyTimeout      = testenv.EventuallyTimeout
+	eventuallyPollInterval = testenv.EventuallyPollInterval
 )
 
 var _ = Describe("Integration", func() {
@@ -80,8 +81,10 @@ var _ = Describe("Integration", func() {
 		}
 
 		mgr, err = ctrl.NewManager(env.Config, ctrl.Options{
-			Scheme:                        trustapi.GlobalScheme,
-			NewCache:                      bundle.NewCacheFunc(opts),
+			Scheme:   trustapi.GlobalScheme,
+			NewCache: bundle.NewCacheFunc(opts),
+			// TODO: can we disable leader election here? The mgr goroutine prints extra output we probably don't need
+			// and it might not be valuable to enable leader election here
 			LeaderElection:                true,
 			LeaderElectionNamespace:       opts.Namespace,
 			LeaderElectionResourceLock:    "leases",
@@ -105,9 +108,9 @@ var _ = Describe("Integration", func() {
 		By("Creating Bundle for test")
 		testData = testenv.DefaultTrustData()
 		testBundle = testenv.NewTestBundle(ctx, cl, opts, testData)
-		Eventually(func() bool {
-			return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.DefaultJoinedCerts())
-		}, eventuallyTimeout, "100ms").Should(BeTrue())
+
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.DefaultJoinedCerts())
+
 		Expect(cl.Get(ctx, client.ObjectKeyFromObject(testBundle), testBundle)).ToNot(HaveOccurred())
 	})
 
@@ -139,11 +142,9 @@ var _ = Describe("Integration", func() {
 		})
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
-		Context("should observe Bundle has synced the new ConfigMap source", func() {
-			Eventually(func() bool {
-				return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate4))
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+		expectedData := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate4)
+
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
 
 	It("should update all targets when a Secret source is added", func() {
@@ -158,16 +159,15 @@ var _ = Describe("Integration", func() {
 		})).NotTo(HaveOccurred())
 
 		Expect(cl.Get(ctx, client.ObjectKeyFromObject(testBundle), testBundle)).ToNot(HaveOccurred())
+
 		testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
 			Secret: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", KeySelector: trustapi.KeySelector{Key: "new-source-key"}},
 		})
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
-		Context("should observe Bundle has synced the new Secret source", func() {
-			Eventually(func() bool {
-				return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate4))
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+		expectedData := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate4)
+
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
 
 	It("should update all targets when an inLine source is added", func() {
@@ -176,44 +176,43 @@ var _ = Describe("Integration", func() {
 		testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{InLine: &newInLine})
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
-		Context("should observe Bundle has synced the new inLine value", func() {
-			Eventually(func() bool {
-				return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate4))
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+		expectedData := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate4)
+
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
 
 	It("should update all targets when a ConfigMap source is removed", func() {
 		testBundle.Spec.Sources = []trustapi.BundleSource{testBundle.Spec.Sources[1], testBundle.Spec.Sources[2]}
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
-		Context("should observe Bundle has removed the old ConfigMap value", func() {
-			Eventually(func() bool {
-				return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate3))
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate3)
+
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
 
 	It("should update all targets when a Secret source is removed", func() {
-		testBundle.Spec.Sources = []trustapi.BundleSource{testBundle.Spec.Sources[0], testBundle.Spec.Sources[2]}
+		testBundle.Spec.Sources = []trustapi.BundleSource{
+			testBundle.Spec.Sources[0],
+			testBundle.Spec.Sources[2],
+		}
+
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
-		Context("should observe Bundle has removed the old Secret value", func() {
-			Eventually(func() bool {
-				return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate3))
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+		expectedData := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate3)
+
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
 
 	It("should update all targets when an InLine source is removed", func() {
-		testBundle.Spec.Sources = []trustapi.BundleSource{testBundle.Spec.Sources[0], testBundle.Spec.Sources[1]}
+		testBundle.Spec.Sources = []trustapi.BundleSource{
+			testBundle.Spec.Sources[0],
+			testBundle.Spec.Sources[1],
+		}
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
-		Context("should observe Bundle has removed the old inLine value", func() {
-			Eventually(func() bool {
-				return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2))
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+		expectedData := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2)
+
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
 
 	It("should update all targets when a ConfigMap source has been modified", func() {
@@ -225,11 +224,9 @@ var _ = Describe("Integration", func() {
 
 		Expect(cl.Update(ctx, &configMap)).NotTo(HaveOccurred())
 
-		Context("should observe Bundle has changed the ConfigMap value", func() {
-			Eventually(func() bool {
-				return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate4, dummy.TestCertificate2, dummy.TestCertificate3))
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+		expectedData := dummy.JoinCerts(dummy.TestCertificate4, dummy.TestCertificate2, dummy.TestCertificate3)
+
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
 
 	It("should update all targets when a Secret source has been modified", func() {
@@ -241,11 +238,9 @@ var _ = Describe("Integration", func() {
 
 		Expect(cl.Update(ctx, &secret)).NotTo(HaveOccurred())
 
-		Context("should observe Bundle has changed the Secret value", func() {
-			Eventually(func() bool {
-				return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3))
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+		expectedData := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3)
+
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
 
 	It("should update all targets when an InLine source has been modified", func() {
@@ -255,11 +250,9 @@ var _ = Describe("Integration", func() {
 
 		Expect(cl.Update(ctx, testBundle)).ToNot(HaveOccurred())
 
-		Context("should observe Bundle has changed the inLine value", func() {
-			Eventually(func() bool {
-				return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate4))
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+		expectedData := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate4)
+
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
 
 	It("should delete old targets and update to new ones when the Spec.Target is modified", func() {
@@ -269,26 +262,23 @@ var _ = Describe("Integration", func() {
 
 		Expect(cl.Update(ctx, testBundle)).ToNot(HaveOccurred())
 
-		Eventually(func() bool {
-			return testenv.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.DefaultJoinedCerts())
-		}, eventuallyTimeout, "100ms").Should(BeTrue())
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.DefaultJoinedCerts())
 
-		Context("should observe that all targets have changed the key written", func() {
-			var namespaceList corev1.NamespaceList
-			Expect(cl.List(ctx, &namespaceList)).ToNot(HaveOccurred())
-			for _, namespace := range namespaceList.Items {
-				if namespace.Status.Phase == corev1.NamespaceTerminating {
-					continue
-				}
+		var namespaceList corev1.NamespaceList
+		Expect(cl.List(ctx, &namespaceList)).ToNot(HaveOccurred())
 
-				var configMap corev1.ConfigMap
-				Expect(cl.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
-
-				Expect(configMap.Data).To(MatchAllKeys(Keys{
-					"changed-target-key": Equal(dummy.DefaultJoinedCerts()),
-				}), "Ensuring old target Key has been replaced with the new target Key")
+		for _, namespace := range namespaceList.Items {
+			if namespace.Status.Phase == corev1.NamespaceTerminating {
+				continue
 			}
-		})
+
+			var configMap corev1.ConfigMap
+			Expect(cl.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
+
+			Expect(configMap.Data).To(MatchAllKeys(Keys{
+				"changed-target-key": Equal(dummy.DefaultJoinedCerts()),
+			}), "Ensuring old target Key has been replaced with the new target Key")
+		}
 	})
 
 	It("should re-add the owner reference of a target ConfigMap if it has been removed", func() {
@@ -299,34 +289,32 @@ var _ = Describe("Integration", func() {
 
 		Expect(cl.Update(ctx, &configMap)).ToNot(HaveOccurred())
 
-		Context("should observe the owner reference is re-added to the target", func() {
-			Eventually(func() bool {
-				var configMap corev1.ConfigMap
-				Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
-				return len(configMap.OwnerReferences) == 1 && apiequality.Semantic.DeepEqual(configMap.OwnerReferences[0], metav1.OwnerReference{
-					Kind:               "Bundle",
-					APIVersion:         "trust.cert-manager.io/v1alpha1",
-					UID:                testBundle.UID,
-					Name:               testBundle.Name,
-					Controller:         pointer.Bool(true),
-					BlockOwnerDeletion: pointer.Bool(true),
-				})
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+		Eventually(func() bool {
+			var configMap corev1.ConfigMap
+			Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
+			return len(configMap.OwnerReferences) == 1 && apiequality.Semantic.DeepEqual(configMap.OwnerReferences[0], metav1.OwnerReference{
+				Kind:               "Bundle",
+				APIVersion:         "trust.cert-manager.io/v1alpha1",
+				UID:                testBundle.UID,
+				Name:               testBundle.Name,
+				Controller:         pointer.Bool(true),
+				BlockOwnerDeletion: pointer.Bool(true),
+			})
+		}, eventuallyTimeout, eventuallyPollInterval).Should(BeTrue(), "ensuring owner references were re-added correctly")
 	})
 
 	It("should revert modifications to target ConfigMap data", func() {
 		var configMap corev1.ConfigMap
 		Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
+
 		configMap.Data[testData.Target.Key] = "CHANGED DATA"
 		Expect(cl.Update(ctx, &configMap)).ToNot(HaveOccurred())
 
-		Context("should observe the data is written back to the target", func() {
-			Eventually(func() bool {
-				Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
-				return apiequality.Semantic.DeepEqual(configMap.Data, map[string]string{testData.Target.Key: dummy.DefaultJoinedCerts()})
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+		Eventually(func() bool {
+			Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
+
+			return apiequality.Semantic.DeepEqual(configMap.Data, map[string]string{testData.Target.Key: dummy.DefaultJoinedCerts()})
+		}, eventuallyTimeout, eventuallyPollInterval).Should(BeTrue(), "checking that the data is written back to the target")
 
 		Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
 
@@ -334,46 +322,52 @@ var _ = Describe("Integration", func() {
 
 		Expect(cl.Update(ctx, &configMap)).ToNot(HaveOccurred())
 
-		Context("should observe the data is written back to the target", func() {
-			Eventually(func() bool {
-				var configMap corev1.ConfigMap
-				Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
-				return apiequality.Semantic.DeepEqual(configMap.Data, map[string]string{testData.Target.Key: dummy.DefaultJoinedCerts()})
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+		Eventually(func() bool {
+			var configMap corev1.ConfigMap
+			Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
+
+			return apiequality.Semantic.DeepEqual(configMap.Data, map[string]string{testData.Target.Key: dummy.DefaultJoinedCerts()})
+		}, eventuallyTimeout, eventuallyPollInterval).Should(BeTrue(), "checking that the data is written back to the target")
 	})
 
 	It("should only write to Namespaces where the namespace selector matches", func() {
+		// Create a new namespace for this test; GenerateName will populate the name after creation
+		// We use GenerateName to create a new uniquely-named namespace that shouldn't clash with any of
+		// the existing ones.
 		testNamespace := corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "trust-test-smoke-random-namespace",
+				GenerateName: "trust-bundle-integration-ns-",
 			},
 		}
 		Expect(cl.Create(ctx, &testNamespace)).NotTo(HaveOccurred())
-		Context("should observe ConfigMap written to new Namespace", func() {
-			Eventually(func() bool {
-				return testenv.BundleHasSynced(ctx, cl, testBundle.Name, testNamespace.Name, dummy.DefaultJoinedCerts())
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
 
+		expectedData := dummy.DefaultJoinedCerts()
+
+		// confirm all namespaces - including the new one - have the expected data
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+
+		// add a label selector to the Bundle which should exclude all namespaces
 		testBundle.Spec.Target.NamespaceSelector = &trustapi.NamespaceSelector{
 			MatchLabels: map[string]string{"foo": "bar"},
 		}
 		Expect(cl.Update(ctx, testBundle)).ToNot(HaveOccurred())
-		Context("should observe ConfigMap deleted from Namespace", func() {
-			Eventually(func() bool {
-				var cm corev1.ConfigMap
-				return apierrors.IsNotFound(cl.Get(ctx, client.ObjectKey{Namespace: "trust-test-smoke-random-namespace", Name: testBundle.Name}, &cm))
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+
+		// confirm that the new namespace doesn't contain the config map any more
+		// (no namespace should contain it but for brevity, only check the new one)
+		Eventually(func() bool {
+			var cm corev1.ConfigMap
+			return apierrors.IsNotFound(cl.Get(ctx, client.ObjectKey{Namespace: testNamespace.Name, Name: testBundle.Name}, &cm))
+		}, eventuallyTimeout, eventuallyPollInterval).Should(BeTrue(), "checking that the new namespace without the label no longer has the ConfigMap")
 
 		Expect(cl.Get(ctx, client.ObjectKeyFromObject(&testNamespace), &testNamespace)).ToNot(HaveOccurred())
+
+		// add the matching label to the new namespace
 		testNamespace.Labels["foo"] = "bar"
 		Expect(cl.Update(ctx, &testNamespace)).ToNot(HaveOccurred())
-		Context("should observe ConfigMap written to Namespace with matching Labels", func() {
-			Eventually(func() bool {
-				return testenv.BundleHasSynced(ctx, cl, testBundle.Name, testNamespace.Name, dummy.DefaultJoinedCerts())
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+
+		// confirm that the new namespace now contains the bundle
+		Eventually(func() error {
+			return testenv.CheckBundleSynced(ctx, cl, testBundle.Name, testNamespace.Name, expectedData)
+		}, eventuallyTimeout, eventuallyPollInterval).Should(BeNil(), "checking that bundle was re-added to newly labelled namespace")
 	})
 })

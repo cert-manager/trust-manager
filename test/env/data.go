@@ -19,18 +19,24 @@ package env
 import (
 	"context"
 	"fmt"
-	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle"
 	"github.com/cert-manager/trust-manager/test/dummy"
+)
+
+const (
+	EventuallyTimeout      = "30s"
+	EventuallyPollInterval = "100ms"
 )
 
 // TestData is used as a set of input data to a Bundle suite test. It
@@ -127,44 +133,53 @@ func NewTestBundle(ctx context.Context, cl client.Client, opts bundle.Options, t
 	return &bundle
 }
 
-// BundleHasSynced will return true if the given Bundle has synced the expected
-// data to targets in all namespaces.
-// Skips Namespaces that are Terminating since targets are not synced there.
-// Ensures the Bundle status has been updated with the appropriate target.
-// Ensures the Bundle has the correct status condition with the same
-// ObservedGeneration as the current Generation.
-func BundleHasSynced(ctx context.Context, cl client.Client, name, namespace, expectedData string) bool {
+// CheckBundleSynced returns nil if the given Bundle has synced the expected data to the given
+// namespace, or else returns a descriptive error if that's not the case.
+// - Skips Namespaces that are Terminating since targets are not synced there.
+// - Ensures the Bundle status has been updated with the appropriate target.
+// - Ensures the Bundle has the correct status condition with the same ObservedGeneration as the current Generation.
+func CheckBundleSynced(ctx context.Context, cl client.Client, bundleName string, namespace string, expectedData string) error {
 	var bundle trustapi.Bundle
-	Expect(cl.Get(ctx, client.ObjectKey{Name: name}, &bundle)).NotTo(HaveOccurred())
+	Expect(cl.Get(ctx, client.ObjectKey{Name: bundleName}, &bundle)).NotTo(HaveOccurred())
 
 	var configMap corev1.ConfigMap
-	Eventually(func() error {
-		return cl.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bundle.Name}, &configMap)
-	}).WithTimeout(time.Second*10).WithPolling(time.Millisecond*10).Should(BeNil(), "Waiting for ConfigMap to be created")
-
-	if configMap.Data[bundle.Spec.Target.ConfigMap.Key] != expectedData {
-		By(fmt.Sprintf("ConfigMap does not have expected data: %s/%s: EXPECTED[%q] GOT[%q]",
-			namespace, bundle.Name, expectedData, configMap.Data[bundle.Spec.Target.ConfigMap.Key]))
-		return false
+	if err := cl.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bundle.Name}, &configMap); err != nil {
+		return fmt.Errorf("failed to get configMap %s/%s when checking bundle sync: %w", namespace, bundle.Name, err)
 	}
 
-	if bundle.Status.Target == nil || !apiequality.Semantic.DeepEqual(*bundle.Status.Target, bundle.Spec.Target) {
-		return false
+	gotData := configMap.Data[bundle.Spec.Target.ConfigMap.Key]
+
+	if gotData != expectedData {
+		// TODO: also print "expected" and "got" data, but don't just dump the raw PEM values
+		// maybe parse certs and transform into a user friendly representation for easier visual inspection
+		return fmt.Errorf("configMap %s/%s didn't have expected value", namespace, bundle.Name)
+	}
+
+	if bundle.Status.Target == nil {
+		return fmt.Errorf("bundle status target was nil")
+	}
+
+	if !apiequality.Semantic.DeepEqual(*bundle.Status.Target, bundle.Spec.Target) {
+		return fmt.Errorf("bundle status target didn't match expected status target")
 	}
 
 	for _, condition := range bundle.Status.Conditions {
 		if condition.Status == corev1.ConditionTrue && bundle.Generation == condition.ObservedGeneration {
-			return true
+			return nil
 		}
 	}
 
-	return false
+	return fmt.Errorf("couldn't find a success condition on bundle status with expected observedGeneration %d", bundle.Generation)
 }
 
-// BundleHasSyncedAllNamespaces calls BundleHasSynced for all namespaces.
-func BundleHasSyncedAllNamespaces(ctx context.Context, cl client.Client, name, expectedData string) bool {
+// CheckBundleSyncedAllNamespaces calls CheckBundleSynced for all namespaces and returns an error if any of them failed
+func CheckBundleSyncedAllNamespaces(ctx context.Context, cl client.Client, name, expectedData string) error {
 	var namespaceList corev1.NamespaceList
-	Expect(cl.List(ctx, &namespaceList)).NotTo(HaveOccurred())
+	if err := cl.List(ctx, &namespaceList); err != nil {
+		return fmt.Errorf("failed to list namespaces: %w", err)
+	}
+
+	var errs []error
 
 	for _, namespace := range namespaceList.Items {
 		// Skip terminating namespaces since Bundle won't be synced there
@@ -172,10 +187,36 @@ func BundleHasSyncedAllNamespaces(ctx context.Context, cl client.Client, name, e
 			continue
 		}
 
-		if !BundleHasSynced(ctx, cl, name, namespace.Name, expectedData) {
-			return false
+		if err := CheckBundleSynced(ctx, cl, name, namespace.Name, expectedData); err != nil {
+			errs = append(errs, fmt.Errorf("namespace %q has not synced: %w", namespace.Name, err))
 		}
 	}
 
-	return true
+	if len(errs) > 0 {
+		return fmt.Errorf("bundle has not synced all namespaces; errors: %w", utilerrors.NewAggregate(errs))
+	}
+
+	return nil
+}
+
+// EventuallyBundleHasSyncedToNamespace tries to assert that the given bundle is synced correctly to the given namespace
+// until either the assertion passes or the timeout is triggered
+func EventuallyBundleHasSyncedToNamespace(ctx context.Context, cl client.Client, bundleName string, namespace string, expectedData string) {
+	Eventually(
+		CheckBundleSynced,
+		EventuallyTimeout, EventuallyPollInterval, ctx,
+	).WithArguments(
+		ctx, cl, bundleName, namespace, expectedData,
+	).Should(BeNil(), fmt.Sprintf("checking bundle %s has synced to namespace %s", bundleName, namespace))
+}
+
+// EventuallyBundleHasSyncedAllNamespaces tries to assert that the given bundle is synced correctly to every namespace
+// until either the assertion passes or the timeout is triggered
+func EventuallyBundleHasSyncedAllNamespaces(ctx context.Context, cl client.Client, bundleName string, expectedData string) {
+	Eventually(
+		CheckBundleSyncedAllNamespaces,
+		EventuallyTimeout, EventuallyPollInterval, ctx,
+	).WithArguments(
+		ctx, cl, bundleName, expectedData,
+	).Should(BeNil(), fmt.Sprintf("checking bundle %s has synced to all namespaces", bundleName))
 }
