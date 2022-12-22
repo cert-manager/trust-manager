@@ -17,8 +17,8 @@ BINDIR ?= $(CURDIR)/bin
 ARCH   ?= $(shell go env GOARCH)
 OS     ?= $(shell go env GOOS)
 
-HELM_VERSION ?= 3.6.3
-KUBEBUILDER_TOOLS_VERISON ?= 1.21.2
+HELM_VERSION ?= 3.10.3
+KUBEBUILDER_TOOLS_VERISON ?= 1.25.0
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
 
 RELEASE_VERSION ?= v0.3.0
@@ -29,6 +29,10 @@ CONTAINER_REGISTRY ?= quay.io/jetstack
 
 GOPROXY ?= https://proxy.golang.org,direct
 
+# can't use a comma in an argument to a make function, so define a variable instead
+_COMMA := ,
+
+include make/trust-manager-build.mk
 include make/trust-package-debian.mk
 
 .PHONY: help
@@ -39,11 +43,21 @@ help:  ## display this help
 all: depend generate test build image ## runs test, build and image
 
 .PHONY: test
-test: depend lint ## test trust
-	KUBEBUILDER_ASSETS=$(BINDIR)/kubebuilder/bin go test -v ./pkg/... ./cmd/...
+test: lint unit-test integration-test ## test trust-manager, running linters, unit and integration tests
+
+.PHONY: unit-test
+unit-test:  ## runs unit tests, defined as any test which doesn't require external stup
+	go test -v ./pkg/... ./cmd/...
+
+.PHONY: integration-test
+integration-test: depend  ## runs integration tests, defined as tests which require external setup (but not full end-to-end tests)
+	KUBEBUILDER_ASSETS=$(BINDIR)/kubebuilder/bin go test -v ./test/integration/...
 
 .PHONY: lint
-lint: vet
+lint: vet verify-boilerplate verify-helm-docs
+
+.PHONY: verify-boilerplate
+verify-boilerplate:
 	./hack/verify-boilerplate.sh
 
 .PHONY: vet
@@ -71,20 +85,17 @@ provision-buildx:  ## set up docker buildx for multiarch building
 	./hack/wait-for-buildx.sh $(BUILDX_BUILDER) exists
 	docker buildx inspect --bootstrap --builder $(BUILDX_BUILDER)
 
-# image will only build and store the image locally, targeted in OCI format.
-# To actually push an image to the public repo, replace the `--output` flag and
-# arguments to `--push`.
 .PHONY: image
-image: | $(BINDIR) ## build docker image targeting all supported platforms
-	docker buildx build --builder $(BUILDX_BUILDER) --build-arg GOPROXY=$(GOPROXY) --platform=$(IMAGE_PLATFORMS) -t $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) --output type=local,dest=$(BINDIR)/trust-manager .
-
-.PHONY: kind-load
-kind-load: local-images | $(BINDIR)/kind
-	$(BINDIR)/kind load docker-image $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) $(CONTAINER_REGISTRY)/cert-manager-package-debian:latest$(DEBIAN_TRUST_PACKAGE_SUFFIX)
+image: trust-manager-save trust-package-debian-save | $(BINDIR) ## build docker images targeting all supported platforms and save to disk
 
 .PHONY: local-images
-local-images: trust-package-debian-load
-	docker buildx build --builder $(BUILDX_BUILDER) --build-arg GOPROXY=$(GOPROXY) --platform=linux/amd64 -t $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) --load .
+local-images: trust-manager-load trust-package-debian-load  ## build container images for only amd64 and load into docker
+
+.PHONY: kind-load
+kind-load: local-images | $(BINDIR)/kind  ## same as local-images but also run "kind load docker-image"
+	$(BINDIR)/kind load docker-image \
+		$(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) \
+		$(CONTAINER_REGISTRY)/cert-manager-package-debian:latest$(DEBIAN_TRUST_PACKAGE_SUFFIX)
 
 .PHONY: chart
 chart: | $(BINDIR)/helm $(BINDIR)/chart
@@ -127,11 +138,12 @@ $(BINDIR)/ginkgo: | $(BINDIR)
 $(BINDIR)/kind: | $(BINDIR)
 	go build -o $(BINDIR)/kind sigs.k8s.io/kind
 
-$(BINDIR)/helm: | $(BINDIR)
-	curl -o $(BINDIR)/helm.tar.gz -LO "https://get.helm.sh/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz"
-	tar -C $(BINDIR) -xzf $(BINDIR)/helm.tar.gz
-	cp $(BINDIR)/$(OS)-$(ARCH)/helm $@
-	rm -r $(BINDIR)/$(OS)-$(ARCH) $(BINDIR)/helm.tar.gz
+$(BINDIR)/helm: $(BINDIR)/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz | $(BINDIR)
+	tar xfO $< $(OS)-$(ARCH)/helm > $@
+	chmod +x $@
+
+$(BINDIR)/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz: | $(BINDIR)
+	curl -o $@ -LO "https://get.helm.sh/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz"
 
 $(BINDIR)/helm-docs: | $(BINDIR)
 	cd hack/tools && go build -o $@ github.com/norwoodj/helm-docs/cmd/helm-docs
