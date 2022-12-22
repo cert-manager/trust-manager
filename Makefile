@@ -29,6 +29,10 @@ CONTAINER_REGISTRY ?= quay.io/jetstack
 
 GOPROXY ?= https://proxy.golang.org,direct
 
+# can't use a comma in an argument to a make function, so define a variable instead
+_COMMA := ,
+
+include make/trust-manager-build.mk
 include make/trust-package-debian.mk
 
 .PHONY: help
@@ -81,20 +85,17 @@ provision-buildx:  ## set up docker buildx for multiarch building
 	./hack/wait-for-buildx.sh $(BUILDX_BUILDER) exists
 	docker buildx inspect --bootstrap --builder $(BUILDX_BUILDER)
 
-# image will only build and store the image locally, targeted in OCI format.
-# To actually push an image to the public repo, replace the `--output` flag and
-# arguments to `--push`.
 .PHONY: image
-image: | $(BINDIR) ## build docker image targeting all supported platforms
-	docker buildx build --builder $(BUILDX_BUILDER) --build-arg GOPROXY=$(GOPROXY) --platform=$(IMAGE_PLATFORMS) -t $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) --output type=local,dest=$(BINDIR)/trust-manager .
-
-.PHONY: kind-load
-kind-load: local-images | $(BINDIR)/kind
-	$(BINDIR)/kind load docker-image $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) $(CONTAINER_REGISTRY)/cert-manager-package-debian:latest$(DEBIAN_TRUST_PACKAGE_SUFFIX)
+image: trust-manager-save trust-package-debian-save | $(BINDIR) ## build docker images targeting all supported platforms and save to disk
 
 .PHONY: local-images
-local-images: trust-package-debian-load
-	docker buildx build --builder $(BUILDX_BUILDER) --build-arg GOPROXY=$(GOPROXY) --platform=linux/amd64 -t $(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) --load .
+local-images: trust-manager-load trust-package-debian-load  ## build container images for only amd64 and load into docker
+
+.PHONY: kind-load
+kind-load: local-images | $(BINDIR)/kind  ## same as local-images but also run "kind load docker-image"
+	$(BINDIR)/kind load docker-image \
+		$(CONTAINER_REGISTRY)/trust-manager:$(RELEASE_VERSION) \
+		$(CONTAINER_REGISTRY)/cert-manager-package-debian:latest$(DEBIAN_TRUST_PACKAGE_SUFFIX)
 
 .PHONY: chart
 chart: | $(BINDIR)/helm $(BINDIR)/chart
