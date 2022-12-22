@@ -172,7 +172,9 @@ func BundleHasSyncedAllNamespaces(ctx context.Context, cl client.Client, name, e
 			continue
 		}
 
-		return BundleHasSynced(ctx, cl, name, namespace.Name, expectedData)
+		if !BundleHasSynced(ctx, cl, name, namespace.Name, expectedData) {
+			return false
+		}
 	}
 
 	return true
