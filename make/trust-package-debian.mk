@@ -13,9 +13,6 @@ define build_debian_trust_package
 		./trust-packages/debian
 endef
 
-# can't use a comma in an argument to a make function, so define a variable instead
-_COMMA := ,
-
 .PHONY: trust-package-debian-save
 trust-package-debian-save:
 ifeq ($(strip $(DEBIAN_TRUST_PACKAGE_VERSION)),)
