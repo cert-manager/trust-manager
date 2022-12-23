@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+MAKEFLAGS += --warn-undefined-variables --no-builtin-rules
+SHELL := /usr/bin/env bash
+.SHELLFLAGS := -uo pipefail -c
+.DEFAULT_GOAL := help
+.DELETE_ON_ERROR:
+
 BINDIR ?= $(CURDIR)/bin
 
 ARCH   ?= $(shell go env GOARCH)
