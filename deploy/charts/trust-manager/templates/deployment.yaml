@@ -15,6 +15,27 @@ spec:
         app: {{ include "trust-manager.name" . }}
     spec:
       serviceAccountName: {{ include "trust-manager.name" . }}
+      initContainers:
+      - name: cert-manager-package-debian
+        image: "{{ .Values.defaultPackageImage.repository }}:{{ .Values.defaultPackageImage.tag }}"
+        imagePullPolicy: {{ .Values.defaultPackageImage.pullPolicy }}
+        args:
+          - "/copyandmaybepause"
+          - "/debian-package"
+          - "/packages"
+        volumeMounts:
+        - mountPath: /packages
+          name: packages
+          readOnly: false
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
       containers:
       - name: {{ include "trust-manager.name" . }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -40,9 +61,13 @@ spec:
           - "--webhook-host={{.Values.app.webhook.host}}"
           - "--webhook-port={{.Values.app.webhook.port}}"
           - "--webhook-certificate-dir=/tls"
+          - "--default-package-location=/packages/cert-manager-package-debian.json"
         volumeMounts:
         - mountPath: /tls
           name: tls
+          readOnly: true
+        - mountPath: /packages
+          name: packages
           readOnly: true
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
@@ -58,8 +83,9 @@ spec:
             type: RuntimeDefault
           {{- end }}
       volumes:
+      - name: packages
+        emptyDir: {}
       - name: tls
         secret:
           defaultMode: 420
           secretName: {{ include "trust-manager.name" . }}-tls
-

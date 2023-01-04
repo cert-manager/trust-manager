@@ -94,12 +94,21 @@ var _ = Describe("Smoke", func() {
 
 		env.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, newBundle)
 
+		By("Ensuring targets update when default CAs are requested")
+		Expect(cl.Get(ctx, client.ObjectKey{Name: testBundle.Name}, testBundle)).NotTo(HaveOccurred())
+
+		testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{UseDefaultCAs: pointer.Bool(true)})
+
+		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
+
+		env.EventuallyBundleHasSyncedAllNamespacesStartsWith(ctx, cl, testBundle.Name, newBundle)
+
 		By("Ensuring targets update when a Namespace is created")
 		testNamespace := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "trust-test-smoke-random-namespace-"}}
 
 		Expect(cl.Create(ctx, &testNamespace)).NotTo(HaveOccurred())
 
-		env.EventuallyBundleHasSyncedToNamespace(ctx, cl, testBundle.Name, testNamespace.Name, newBundle)
+		env.EventuallyBundleHasSyncedToNamespaceStartsWith(ctx, cl, testBundle.Name, testNamespace.Name, newBundle)
 
 		By("Setting Namespace Selector should remove ConfigMaps from Namespaces that do not have a match")
 		Expect(cl.Get(ctx, client.ObjectKey{Name: testBundle.Name}, testBundle)).NotTo(HaveOccurred())
@@ -123,7 +132,7 @@ var _ = Describe("Smoke", func() {
 
 		Expect(cl.Update(ctx, &testNamespace)).NotTo(HaveOccurred())
 
-		env.EventuallyBundleHasSyncedToNamespace(ctx, cl, testBundle.Name, testNamespace.Name, newBundle)
+		env.EventuallyBundleHasSyncedToNamespaceStartsWith(ctx, cl, testBundle.Name, testNamespace.Name, newBundle)
 
 		By("Deleting test Namespace")
 		Expect(cl.Delete(ctx, &testNamespace)).NotTo(HaveOccurred())

@@ -38,6 +38,7 @@ import (
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal"
+	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
 
 // AddBundleController will register the Bundle controller with the
@@ -52,6 +53,17 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 		recorder: mgr.GetEventRecorderFor("bundles"),
 		clock:    clock.RealClock{},
 		Options:  opts,
+	}
+
+	if b.Options.DefaultPackageLocation != "" {
+		pkg, err := fspkg.LoadPackage(b.Options.DefaultPackageLocation)
+		if err != nil {
+			return fmt.Errorf("must load default package successfully when default package location is set: %w", err)
+		}
+
+		b.defaultPackage = &pkg
+
+		b.Options.Log.Info("successfully loaded default package from filesystem", "path", b.Options.DefaultPackageLocation)
 	}
 
 	// Only reconcile config maps that match the well known name

@@ -89,6 +89,9 @@ spec:
                           name:
                             description: Name is the name of the source object in the trust Namespace.
                             type: string
+                      useDefaultCAs:
+                        description: UseDefaultCAs, when true, requests the default CA bundle to be used as a source. Default CAs are available if trust-manager was installed via Helm or was otherwise set up to include a package-injecting init container by using the "--default-package-location" flag when starting the trust-manager controller. If default CAs were not configured at start-up, any request to use the default CAs will fail. The version of the default CA package which is used for a Bundle is stored in the defaultCAPackageVersion field of the Bundle's status field.
+                        type: boolean
                 target:
                   description: Target is the target location in all namespaces to sync source data to.
                   type: object
@@ -145,6 +148,9 @@ spec:
                       type:
                         description: Type of the condition, known values are (`Synced`).
                         type: string
+                defaultCAVersion:
+                  description: DefaultCAPackageVersion, if set and non-empty, indicates the version information which was retrieved when the set of default CAs was requested in the bundle source. This should only be set if useDefaultCAs was set to "true" on a source, and will be the same for the same version of a bundle with identical certificates.
+                  type: string
                 target:
                   description: Target is the current Target that the Bundle is attempting or has completed syncing the source data to.
                   type: object

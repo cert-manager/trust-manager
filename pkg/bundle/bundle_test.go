@@ -36,6 +36,7 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/test/dummy"
 	"github.com/cert-manager/trust-manager/test/gen"
 )
@@ -106,16 +107,24 @@ func Test_Reconcile(t *testing.T) {
 		fixedTime     = time.Date(2021, 01, 01, 01, 0, 0, 0, time.UTC)
 		fixedmetatime = &metav1.Time{Time: fixedTime}
 		fixedclock    = fakeclock.NewFakeClock(fixedTime)
+
+		testDefaultPackage = &fspkg.Package{
+			Name:    "testpkg",
+			Version: "123",
+			Type:    fspkg.PackageTypeStatic,
+			Bundle:  dummy.TestCertificate5,
+		}
 	)
 
 	tests := map[string]struct {
-		existingObjects []runtime.Object
-		expResult       ctrl.Result
-		expError        bool
-		expObjects      []runtime.Object
-		expEvent        string
+		existingObjects         []runtime.Object
+		configureDefaultPackage bool
+		expResult               ctrl.Result
+		expError                bool
+		expObjects              []runtime.Object
+		expEvent                string
 	}{
-		"if no bundle exits, should return nothing": {
+		"if no bundle exists, should return nothing": {
 			existingObjects: append(namespaces, sourceConfigMap, sourceSecret),
 			expResult:       ctrl.Result{},
 			expError:        false,
@@ -624,6 +633,170 @@ func Test_Reconcile(t *testing.T) {
 			),
 			expEvent: "",
 		},
+		"if Bundle references default CAs but it wasn't configured at startup, update with error": {
+			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
+				gen.BundleFrom(baseBundle, gen.AppendBundleUsesDefaultPackage())),
+			expResult: ctrl.Result{},
+			expError:  false,
+			expObjects: append(namespaces, sourceConfigMap,
+				gen.BundleFrom(baseBundle,
+					gen.SetBundleResourceVersion("1001"),
+					gen.SetBundleStatus(trustapi.BundleStatus{Conditions: []trustapi.BundleCondition{
+						{
+							Type:               trustapi.BundleConditionSynced,
+							Status:             corev1.ConditionFalse,
+							Reason:             "SourceNotFound",
+							Message:            `Bundle source was not found: failed to retrieve bundle from source: no default package was specified when trust-manager was started; default CAs not available`,
+							ObservedGeneration: bundleGeneration,
+							LastTransitionTime: fixedmetatime,
+						},
+					}}),
+					gen.AppendBundleUsesDefaultPackage(),
+				),
+			),
+			expEvent: `Warning SourceNotFound Bundle source was not found: failed to retrieve bundle from source: no default package was specified when trust-manager was started; default CAs not available`,
+		},
+		"if Bundle references the configured default CAs, update targets with the CAs and ensure Bundle status references the configured default package version": {
+			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
+				gen.BundleFrom(baseBundle,
+					gen.AppendBundleUsesDefaultPackage(),
+					gen.SetBundleStatus(trustapi.BundleStatus{
+						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
+						Conditions: []trustapi.BundleCondition{
+							{
+								Type:               trustapi.BundleConditionSynced,
+								Status:             corev1.ConditionTrue,
+								LastTransitionTime: fixedmetatime,
+								Reason:             "Synced",
+								Message:            "Successfully synced Bundle to all namespaces",
+								ObservedGeneration: bundleGeneration,
+							},
+						},
+					}),
+				),
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
+				},
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
+				},
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
+				},
+			),
+			configureDefaultPackage: true,
+			expResult:               ctrl.Result{},
+			expError:                false,
+			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
+				gen.BundleFrom(baseBundle,
+					gen.SetBundleResourceVersion("1001"),
+					gen.AppendBundleUsesDefaultPackage(),
+					gen.SetBundleStatus(trustapi.BundleStatus{
+						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
+						Conditions: []trustapi.BundleCondition{
+							{
+								Type:               trustapi.BundleConditionSynced,
+								Status:             corev1.ConditionTrue,
+								LastTransitionTime: fixedmetatime,
+								Reason:             "Synced",
+								Message:            "Successfully synced Bundle to all namespaces",
+								ObservedGeneration: bundleGeneration,
+							},
+						},
+						DefaultCAPackageVersion: pointer.String(testDefaultPackage.StringID()),
+					}),
+				),
+				&corev1.ConfigMap{
+					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1000"},
+					Data:       map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)},
+				},
+				&corev1.ConfigMap{
+					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1000"},
+					Data:       map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)},
+				},
+				&corev1.ConfigMap{
+					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1000"},
+					Data:       map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)},
+				},
+			),
+			expEvent: `Normal Synced Successfully synced Bundle to all namespaces`,
+		},
+		"if Bundle removes reference to default package, remove version from Bundle Status and update targets": {
+			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
+				gen.BundleFrom(baseBundle,
+					gen.SetBundleStatus(trustapi.BundleStatus{
+						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
+						Conditions: []trustapi.BundleCondition{
+							{
+								Type:               trustapi.BundleConditionSynced,
+								Status:             corev1.ConditionTrue,
+								LastTransitionTime: fixedmetatime,
+								Reason:             "Synced",
+								Message:            "Successfully synced Bundle to all namespaces",
+								ObservedGeneration: bundleGeneration,
+							},
+						},
+						DefaultCAPackageVersion: pointer.String(testDefaultPackage.StringID()),
+					}),
+				),
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
+					Data:       map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)},
+				},
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
+					Data:       map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)},
+				},
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
+					Data:       map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)},
+				},
+			),
+			configureDefaultPackage: true,
+			expResult:               ctrl.Result{},
+			expError:                false,
+			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
+				gen.BundleFrom(baseBundle,
+					gen.SetBundleResourceVersion("1001"),
+					gen.SetBundleStatus(trustapi.BundleStatus{
+						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
+						Conditions: []trustapi.BundleCondition{
+							{
+								Type:               trustapi.BundleConditionSynced,
+								Status:             corev1.ConditionTrue,
+								LastTransitionTime: fixedmetatime,
+								Reason:             "Synced",
+								Message:            "Successfully synced Bundle to all namespaces",
+								ObservedGeneration: bundleGeneration,
+							},
+						},
+						DefaultCAPackageVersion: nil,
+					}),
+				),
+				&corev1.ConfigMap{
+					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1000"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
+				},
+				&corev1.ConfigMap{
+					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1000"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
+				},
+				&corev1.ConfigMap{
+					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1000"},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
+				},
+			),
+			expEvent: `Normal Synced Successfully synced Bundle to all namespaces`,
+		},
 	}
 
 	for name, test := range tests {
@@ -644,6 +817,10 @@ func Test_Reconcile(t *testing.T) {
 					Log:       klogr.New(),
 					Namespace: trustNamespace,
 				},
+			}
+
+			if test.configureDefaultPackage {
+				b.defaultPackage = testDefaultPackage.Clone()
 			}
 
 			resp, err := b.Reconcile(context.TODO(), ctrl.Request{NamespacedName: types.NamespacedName{Name: bundleName}})

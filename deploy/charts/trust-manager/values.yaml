@@ -12,6 +12,14 @@ image:
   # -- Kubernetes imagePullPolicy on Deployment.
   pullPolicy: IfNotPresent
 
+defaultPackageImage:
+  # -- Repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles.
+  repository: quay.io/jetstack/cert-manager-package-debian
+  # -- Tag for the default package image
+  tag: "20210119.0"
+  # -- imagePullPolicy for the default package image
+  pullPolicy: IfNotPresent
+
 app:
   # -- Verbosity of trust logging; takes a value from 1-5, with higher being more verbose
   logLevel: 1

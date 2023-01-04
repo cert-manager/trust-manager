@@ -101,8 +101,11 @@ func (v *validator) validateBundle(ctx context.Context, bundle *trustapi.Bundle)
 	} else {
 		path := path.Child("sources")
 
+		defaultCAsCount := 0
+
 		for i, source := range bundle.Spec.Sources {
 			path := path.Child("[" + strconv.Itoa(i) + "]")
+
 			unionCount := 0
 
 			if configMap := source.ConfigMap; configMap != nil {
@@ -133,11 +136,23 @@ func (v *validator) validateBundle(ctx context.Context, bundle *trustapi.Bundle)
 				unionCount++
 			}
 
+			if source.UseDefaultCAs != nil && *source.UseDefaultCAs {
+				unionCount++
+				defaultCAsCount++
+			}
+
 			if unionCount != 1 {
 				el = append(el, field.Forbidden(
 					path, fmt.Sprintf("must define exactly one source type for each item but found %d defined types", unionCount),
 				))
 			}
+		}
+
+		if defaultCAsCount > 1 {
+			el = append(el, field.Forbidden(
+				path,
+				fmt.Sprintf("must request default CAs either once or not at all but got %d requests", defaultCAsCount),
+			))
 		}
 	}
 
