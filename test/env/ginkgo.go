@@ -23,35 +23,43 @@ import (
 	"testing"
 	"time"
 
-	"github.com/onsi/ginkgo"
-	ginkgoconfig "github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
+	"github.com/onsi/ginkgo/v2"
+
 	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 func init() {
-	// Turn on verbose by default to get spec names
-	ginkgoconfig.DefaultReporterConfig.Verbose = true
-	// Turn on EmitSpecProgress to get spec progress (especially on interrupt)
-	ginkgoconfig.GinkgoConfig.EmitSpecProgress = true
-	// Randomize specs as well as suites
-	ginkgoconfig.GinkgoConfig.RandomizeAllSpecs = true
-
 	wait.ForeverTestTimeout = time.Second * 60
 }
 
 func RunSuite(t *testing.T, suiteName, artifactDir string) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
+	// NB: ARTIFACTS is set in prow jobs to a location which prow uses when consuming reports
+	// see: https://docs.prow.k8s.io/docs/jobs/#job-environment-variables
 	if path := os.Getenv("ARTIFACTS"); len(path) > 0 {
 		artifactDir = path
 	}
 
-	junitReporter := reporters.NewJUnitReporter(filepath.Join(
-		artifactDir,
-		fmt.Sprintf("junit-go-%s.xml", suiteName),
-	))
+	if err := os.MkdirAll(artifactDir, 0o775); err != nil {
+		t.Fatalf("failed to ensure artifactDir %q exists to store reports in: %s", artifactDir, err.Error())
+	}
 
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, suiteName, []ginkgo.Reporter{junitReporter})
+	junitDestination := filepath.Join(artifactDir, fmt.Sprintf("junit-go-%s.xml", suiteName))
+
+	suiteConfig, reporterConfig := ginkgo.GinkgoConfiguration()
+
+	// NB: CI is set in prow jobs
+	// see: https://docs.prow.k8s.io/docs/jobs/#job-environment-variables
+	if _, ci := os.LookupEnv("CI"); ci {
+		reporterConfig.NoColor = true
+		reporterConfig.Verbose = true
+	}
+
+	reporterConfig.JUnitReport = junitDestination
+
+	suiteConfig.RandomizeAllSpecs = true
+
+	ginkgo.RunSpecs(t, suiteName, suiteConfig, reporterConfig)
 }

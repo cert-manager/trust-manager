@@ -19,8 +19,9 @@ package smoke
 import (
 	"context"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,7 +36,8 @@ import (
 )
 
 const (
-	eventuallyTimeout = "10s"
+	eventuallyTimeout     = "10s"
+	eventualyPollInterval = "100ms"
 )
 
 var _ = Describe("Smoke", func() {
@@ -57,9 +59,7 @@ var _ = Describe("Smoke", func() {
 		}, testData)
 
 		By("Ensuring the Bundle has Synced")
-		Eventually(func() bool {
-			return env.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.DefaultJoinedCerts())
-		}, eventuallyTimeout, "100ms").Should(BeTrue())
+		env.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.DefaultJoinedCerts())
 
 		By("Ensuring targets update when a ConfigMap source is updated")
 		var configMap corev1.ConfigMap
@@ -69,11 +69,8 @@ var _ = Describe("Smoke", func() {
 		configMap.Data[testData.Sources.ConfigMap.Key] = dummy.TestCertificate4
 
 		Expect(cl.Update(ctx, &configMap)).NotTo(HaveOccurred())
-		Context("should observe Bundle has updated the certificate from the ConfigMap", func() {
-			Eventually(func() bool {
-				return env.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate4, dummy.TestCertificate2, dummy.TestCertificate3))
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+
+		env.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate4, dummy.TestCertificate2, dummy.TestCertificate3))
 
 		By("Ensuring targets update when a Secret source is updated")
 		var secret corev1.Secret
@@ -83,11 +80,8 @@ var _ = Describe("Smoke", func() {
 		secret.Data[testData.Sources.Secret.Key] = []byte(dummy.TestCertificate1)
 
 		Expect(cl.Update(ctx, &secret)).NotTo(HaveOccurred())
-		Context("should observe Bundle has updated the certificate from the Secret", func() {
-			Eventually(func() bool {
-				return env.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate4, dummy.TestCertificate1, dummy.TestCertificate3))
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+
+		env.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate4, dummy.TestCertificate1, dummy.TestCertificate3))
 
 		By("Ensuring targets update when an InLine source is updated")
 		Expect(cl.Get(ctx, client.ObjectKey{Name: testBundle.Name}, testBundle)).NotTo(HaveOccurred())
@@ -98,36 +92,29 @@ var _ = Describe("Smoke", func() {
 
 		newBundle := dummy.JoinCerts(dummy.TestCertificate4, dummy.TestCertificate1, dummy.TestCertificate2)
 
-		Context("should observe Bundle has changed the certificate that was passed InLine", func() {
-			Eventually(func() bool {
-				return env.BundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, newBundle)
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+		env.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, newBundle)
 
 		By("Ensuring targets update when a Namespace is created")
 		testNamespace := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "trust-test-smoke-random-namespace-"}}
 
 		Expect(cl.Create(ctx, &testNamespace)).NotTo(HaveOccurred())
 
-		Context("should observe Bundle has created ConfigMap in testNamespace", func() {
-			Eventually(func() bool {
-				return env.BundleHasSynced(ctx, cl, testBundle.Name, testNamespace.Name, newBundle)
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+		env.EventuallyBundleHasSyncedToNamespace(ctx, cl, testBundle.Name, testNamespace.Name, newBundle)
 
 		By("Setting Namespace Selector should remove ConfigMaps from Namespaces that do not have a match")
 		Expect(cl.Get(ctx, client.ObjectKey{Name: testBundle.Name}, testBundle)).NotTo(HaveOccurred())
+
 		testBundle.Spec.Target.NamespaceSelector = &trustapi.NamespaceSelector{
 			MatchLabels: map[string]string{"foo": "bar"},
 		}
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
-		Context("should delete ConfigMap in test Namespace", func() {
-			Eventually(func() bool {
-				var cm corev1.ConfigMap
-				err := cl.Get(ctx, client.ObjectKey{Namespace: testNamespace.Name, Name: testBundle.Name}, &cm)
-				return apierrors.IsNotFound(err)
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+
+		Eventually(func() bool {
+			var cm corev1.ConfigMap
+
+			err := cl.Get(ctx, client.ObjectKey{Namespace: testNamespace.Name, Name: testBundle.Name}, &cm)
+			return apierrors.IsNotFound(err)
+		}, eventuallyTimeout, eventualyPollInterval).Should(BeTrue(), "checking that namespace selector resulted in non-matching namespaces having ConfigMap removed")
 
 		By("Adding matching label on Namespace should sync ConfigMap to namespace")
 		Expect(cl.Get(ctx, client.ObjectKey{Name: testNamespace.Name}, &testNamespace)).NotTo(HaveOccurred())
@@ -135,28 +122,29 @@ var _ = Describe("Smoke", func() {
 		testNamespace.Labels["foo"] = "bar"
 
 		Expect(cl.Update(ctx, &testNamespace)).NotTo(HaveOccurred())
-		Context("should create ConfigMap in test Namespace", func() {
-			Eventually(func() bool {
-				return env.BundleHasSynced(ctx, cl, testBundle.Name, testNamespace.Name, newBundle)
-			}, eventuallyTimeout, "100ms").Should(BeTrue())
-		})
+
+		env.EventuallyBundleHasSyncedToNamespace(ctx, cl, testBundle.Name, testNamespace.Name, newBundle)
 
 		By("Deleting test Namespace")
 		Expect(cl.Delete(ctx, &testNamespace)).NotTo(HaveOccurred())
 
-		By("Deleting the Bundle created")
+		By("Deleting the created Bundle")
 		Expect(cl.Get(ctx, client.ObjectKeyFromObject(testBundle), testBundle)).ToNot(HaveOccurred())
+
 		Expect(cl.Delete(ctx, testBundle)).NotTo(HaveOccurred())
+
 		Expect(cl.Delete(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: cnf.TrustNamespace, Name: testBundle.Spec.Sources[0].ConfigMap.Name}})).NotTo(HaveOccurred())
+
 		Expect(cl.Delete(ctx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: cnf.TrustNamespace, Name: testBundle.Spec.Sources[1].Secret.Name}})).NotTo(HaveOccurred())
 
 		By("Ensuring all targets have been deleted")
 		var namespaceList corev1.NamespaceList
 		Expect(cl.List(ctx, &namespaceList)).ToNot(HaveOccurred())
+
 		for _, namespace := range namespaceList.Items {
 			Eventually(func() error {
 				return cl.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: testBundle.Name}, new(corev1.ConfigMap))
-			}, eventuallyTimeout, "100ms").ShouldNot(BeNil())
+			}, eventuallyTimeout, eventualyPollInterval).ShouldNot(BeNil())
 		}
 	})
 })
