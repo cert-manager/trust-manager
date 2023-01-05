@@ -87,16 +87,10 @@ var _ = Describe("Integration", func() {
 		}
 
 		mgr, err = ctrl.NewManager(env.Config, ctrl.Options{
-			Scheme:   trustapi.GlobalScheme,
-			NewCache: bundle.NewCacheFunc(opts),
-			// TODO: can we disable leader election here? The mgr goroutine prints extra output we probably don't need
-			// and it might not be valuable to enable leader election here
-			LeaderElection:                true,
-			LeaderElectionNamespace:       opts.Namespace,
-			LeaderElectionResourceLock:    "leases",
-			LeaderElectionID:              "trust-manager",
-			LeaderElectionReleaseOnCancel: true,
-			Logger:                        log,
+			Scheme:         trustapi.GlobalScheme,
+			NewCache:       bundle.NewCacheFunc(opts),
+			LeaderElection: false,
+			Logger:         log,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
