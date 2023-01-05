@@ -53,9 +53,10 @@ var _ = Describe("Integration", func() {
 
 		log logr.Logger
 
-		cl   client.Client
-		mgr  manager.Manager
-		opts bundle.Options
+		cl         client.Client
+		mgr        manager.Manager
+		mgrStopped chan struct{}
+		opts       bundle.Options
 
 		testBundle *trustapi.Bundle
 		testData   testenv.TestData
@@ -99,10 +100,17 @@ var _ = Describe("Integration", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
+		mgrStopped = make(chan struct{})
+
 		Expect(bundle.AddBundleController(ctx, mgr, opts)).NotTo(HaveOccurred())
 
 		By("Running Bundle controller")
-		go mgr.Start(ctx)
+		go func() {
+			defer close(mgrStopped)
+
+			err := mgr.Start(ctx)
+			Expect(err).NotTo(HaveOccurred())
+		}()
 
 		By("Waiting for Informers to Sync")
 		Expect(mgr.GetCache().WaitForCacheSync(ctx)).Should(BeTrue())
@@ -128,6 +136,7 @@ var _ = Describe("Integration", func() {
 
 		By("Stopping Bundle controller")
 		cancel()
+		<-mgrStopped
 	})
 
 	It("should update all targets when a ConfigMap source is added", func() {
