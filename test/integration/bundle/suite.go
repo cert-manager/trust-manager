@@ -23,10 +23,12 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2/ktesting"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,6 +51,8 @@ var _ = Describe("Integration", func() {
 		ctx    context.Context
 		cancel func()
 
+		log logr.Logger
+
 		cl   client.Client
 		mgr  manager.Manager
 		opts bundle.Options
@@ -58,7 +62,8 @@ var _ = Describe("Integration", func() {
 	)
 
 	BeforeEach(func() {
-		ctx, cancel = context.WithCancel(context.Background())
+		log, ctx = ktesting.NewTestContext(GinkgoT())
+		ctx, cancel = context.WithCancel(ctx)
 
 		var err error
 		cl, err = client.New(env.Config, client.Options{
@@ -90,7 +95,7 @@ var _ = Describe("Integration", func() {
 			LeaderElectionResourceLock:    "leases",
 			LeaderElectionID:              "trust-manager",
 			LeaderElectionReleaseOnCancel: true,
-			Logger:                        logf.Log,
+			Logger:                        log,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
