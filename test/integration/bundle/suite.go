@@ -32,6 +32,7 @@ import (
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -48,6 +49,8 @@ const (
 
 var _ = Describe("Integration", func() {
 	var (
+		env *envtest.Environment
+
 		ctx    context.Context
 		cancel func()
 
@@ -63,6 +66,8 @@ var _ = Describe("Integration", func() {
 	)
 
 	BeforeEach(func() {
+		env = CreateEnvtestEnvironment()
+
 		log, ctx = ktesting.NewTestContext(GinkgoT())
 		ctx, cancel = context.WithCancel(ctx)
 
@@ -131,6 +136,8 @@ var _ = Describe("Integration", func() {
 		By("Stopping Bundle controller")
 		cancel()
 		<-mgrStopped
+
+		StopEnvtestEnvironment(env)
 	})
 
 	It("should update all targets when a ConfigMap source is added", func() {

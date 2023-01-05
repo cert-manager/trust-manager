@@ -29,12 +29,11 @@ import (
 )
 
 var (
-	env *envtest.Environment
+	globalEnv *envtest.Environment
 )
 
-var _ = BeforeSuite(func() {
-	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-	env = &envtest.Environment{
+func CreateEnvtestEnvironment() *envtest.Environment {
+	env := &envtest.Environment{
 		UseExistingCluster: pointer.Bool(false),
 		CRDDirectoryPaths: []string{
 			"../../../deploy/charts/trust-manager/templates/trust.cert-manager.io_bundles.yaml",
@@ -44,8 +43,20 @@ var _ = BeforeSuite(func() {
 
 	_, err := env.Start()
 	Expect(err).NotTo(HaveOccurred())
+
+	return env
+}
+
+func StopEnvtestEnvironment(env *envtest.Environment) {
+	Expect(env.Stop()).NotTo(HaveOccurred())
+}
+
+var _ = BeforeSuite(func() {
+	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+
+	//globalEnv = CreateEnvtestEnvironment()
 })
 
 var _ = AfterSuite(func() {
-	Expect(env.Stop()).NotTo(HaveOccurred())
+	//StopEnvtestEnvironment(globalEnv)
 })
