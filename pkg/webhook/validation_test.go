@@ -278,6 +278,39 @@ func Test_validateBundle(t *testing.T) {
 				field.Forbidden(field.NewPath("spec", "sources", "[0]"), "must define exactly one source type for each item but found 0 defined types"),
 			},
 		},
+		"useDefaultCAs false, with no other defined sources": {
+			bundle: &trustapi.Bundle{
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{
+							UseDefaultCAs: pointer.Bool(false),
+						},
+					},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test"}},
+				},
+			},
+			expEl: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "sources", "[0]"), "must define exactly one source type for each item but found 0 defined types"),
+			},
+		},
+		"useDefaultCAs requested twice": {
+			bundle: &trustapi.Bundle{
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{
+							UseDefaultCAs: pointer.Bool(true),
+						},
+						{
+							UseDefaultCAs: pointer.Bool(true),
+						},
+					},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test"}},
+				},
+			},
+			expEl: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "sources"), "must request default CAs either once or not at all but got 2 requests"),
+			},
+		},
 		"sources no names and keys": {
 			bundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{

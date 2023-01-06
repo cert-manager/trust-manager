@@ -153,7 +153,7 @@ ensure-cert-manager: depend ensure-kind
 .PHONY: ensure-trust-manager
 ensure-trust-manager: depend ensure-kind kind-load ensure-cert-manager
 	$(BINDIR)/helm uninstall -n cert-manager trust-manager || :
-	$(BINDIR)/helm upgrade -i -n cert-manager trust-manager deploy/charts/trust-manager/. --set image.tag=$(RELEASE_VERSION) --set app.logLevel=2 --wait
+	$(BINDIR)/helm upgrade -i -n cert-manager trust-manager deploy/charts/trust-manager/. --set image.tag=latest --set app.logLevel=2 --wait
 
 # When running in our CI environment the Docker network's subnet choice
 # causees issues with routing.

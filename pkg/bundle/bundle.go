@@ -33,21 +33,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
 
 // Options hold options for the Bundle controller.
 type Options struct {
 	// Log is the Bundle controller logger.
 	Log logr.Logger
+
 	// Namespace is the trust Namespace that source data can be referenced.
 	Namespace string
+
+	// DefaultPackageLocation is the location on the filesystem from which the 'default'
+	// certificate package should be loaded. If set, a valid package must be successfully
+	// loaded in order for the controller to start. If unset, referring to the default
+	// certificate package in a `Bundle` resource will cause that Bundle to error.
+	DefaultPackageLocation string
 }
 
 // bundle is a controller-runtime controller. Implements the actual controller
 // logic by reconciling over Bundles.
 type bundle struct {
-	// client is a Kubernetes client that makes calls to the API for every
-	// request.
+	// client is a Kubernetes client that makes calls to the API for every request.
 	// Should be used for updating, deleting, and when requesting data from
 	// resources whose informer only caches metadata.
 	client client.Client
@@ -57,13 +64,17 @@ type bundle struct {
 	// resource. Use client instead.
 	lister client.Reader
 
+	// defaultPackage holds the loaded 'default' certificate package, if one was specified
+	// at startup.
+	defaultPackage *fspkg.Package
+
 	// recorder is used for create Kubernetes Events for reconciled Bundles.
 	recorder record.EventRecorder
 
 	// clock returns time which can be overwritten for testing.
 	clock clock.Clock
 
-	// Options hold options for the Bundle controller.
+	// Options holds options for the Bundle controller.
 	Options
 }
 
@@ -145,7 +156,8 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
 	}
 
-	data, err := b.buildSourceBundle(ctx, &bundle)
+	resolvedBundle, err := b.buildSourceBundle(ctx, &bundle)
+
 	// If any source is not found, update the Bundle status to an unready state.
 	if errors.As(err, &notFoundError{}) {
 		log.Error(err, "bundle source was not found")
@@ -176,7 +188,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 			continue
 		}
 
-		synced, err := b.syncTarget(ctx, log, &bundle, namespaceSelector, &namespace, data)
+		synced, err := b.syncTarget(ctx, log, &bundle, namespaceSelector, &namespace, resolvedBundle.data)
 		if err != nil {
 			log.Error(err, "failed sync bundle to target namespace")
 			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncTargetFailed", "Failed to sync target in Namespace %q: %s", namespace.Name, err)
@@ -202,6 +214,10 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		needsUpdate = true
 	}
 
+	if b.setBundleStatusDefaultCAVersion(&bundle, resolvedBundle.defaultCAPackageStringID) {
+		needsUpdate = true
+	}
+
 	message := "Successfully synced Bundle to all namespaces"
 	if nsSelector := bundle.Spec.Target.NamespaceSelector; nsSelector != nil && nsSelector.MatchLabels != nil {
 		message = fmt.Sprintf("Successfully synced Bundle to namespaces with selector [matchLabels:%v]",
@@ -222,6 +238,8 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	log.V(2).Info("successfully synced bundle")
 
 	b.setBundleCondition(&bundle, syncedCondition)
+
 	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", message)
+
 	return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
 }

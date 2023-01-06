@@ -148,6 +148,10 @@ func (o *Options) addBundleFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Bundle.Namespace,
 		"trust-namespace", "cert-manager",
 		"Namespace to source trust bundles from.")
+
+	fs.StringVar(&o.Bundle.DefaultPackageLocation,
+		"default-package-location", "",
+		"Path to a JSON file containing the default certificate package. If set, must be a valid package.")
 }
 
 func (o *Options) addWebhookFlags(fs *pflag.FlagSet) {

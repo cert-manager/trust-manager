@@ -35,11 +35,21 @@ import (
 
 type notFoundError struct{ error }
 
-// buildSourceBundle retrieves and appends all source bundle data for this
-// Bundle object.
-// Each source data has its space trimmed, and is appended by a new line character.
-func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle) (string, error) {
-	var data []string
+// bundleData holds the result of a call to buildSourceBundle. It contains both the resulting PEM-encoded
+// certificate data from concatenating all of the sources together and any metadata from the sources which
+// needs to be exposed on the Bundle resource's status field.
+type bundleData struct {
+	data string
+
+	defaultCAPackageStringID string
+}
+
+// buildSourceBundle retrieves and concatenates all source bundle data for this Bundle object.
+// Each source data is validated and pruned to ensure that all certificates within are valid, and
+// is each bundle is concatenated together with a new line character.
+func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle) (bundleData, error) {
+	var resolvedBundle bundleData
+	var bundles []string
 
 	for _, source := range bundle.Spec.Sources {
 		var (
@@ -56,30 +66,43 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 
 		case source.InLine != nil:
 			sourceData = *source.InLine
+
+		case source.UseDefaultCAs != nil && *source.UseDefaultCAs:
+			if b.defaultPackage == nil {
+				err = notFoundError{fmt.Errorf("no default package was specified when trust-manager was started; default CAs not available")}
+			} else {
+				sourceData = b.defaultPackage.Bundle
+				resolvedBundle.defaultCAPackageStringID = b.defaultPackage.StringID()
+			}
 		}
 
 		if err != nil {
-			return "", fmt.Errorf("failed to retrieve bundle from source: %w", err)
+			return bundleData{}, fmt.Errorf("failed to retrieve bundle from source: %w", err)
 		}
 
 		sanitizedBundle, err := util.ValidateAndSanitizePEMBundle([]byte(sourceData))
 		if err != nil {
-			return "", fmt.Errorf("invalid PEM data in source: %w", err)
+			return bundleData{}, fmt.Errorf("invalid PEM data in source: %w", err)
 		}
 
-		data = append(data, string(sanitizedBundle))
+		bundles = append(bundles, string(sanitizedBundle))
 	}
 
-	// return early to prevent returning just newline
-	if len(data) == 0 {
-		return "", nil
+	// NB: bundles should never be empty here, since ValidateAndSanitizePEMBundle errors when a bundle source
+	// contains no valid certificates. Plus, the webhook validation should confirm that there's at least one source
+	// defined to avoid otherwise empty bundles.
+	// Still, just in case, we check and return an error in case somehow an empty bundle snuck through.
+
+	if len(bundles) == 0 {
+		return bundleData{}, fmt.Errorf("couldn't find any valid certificates in bundle")
 	}
 
-	return strings.Join(data, "\n") + "\n", nil
+	resolvedBundle.data = strings.Join(bundles, "\n") + "\n"
+
+	return resolvedBundle, nil
 }
 
-// configMapBundle returns the data in the target ConfigMap within the trust
-// Namespace.
+// configMapBundle returns the data in the target ConfigMap within the trust Namespace.
 func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObjectKeySelector) (string, error) {
 	var configMap corev1.ConfigMap
 	err := b.client.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &configMap)
@@ -99,8 +122,7 @@ func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObject
 	return data, nil
 }
 
-// secretBundle returns the data in the target Secret within the trust
-// Namespace.
+// secretBundle returns the data in the target Secret within the trust Namespace.
 func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKeySelector) (string, error) {
 	var secret corev1.Secret
 	err := b.client.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &secret)
@@ -119,11 +141,9 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 	return string(data), nil
 }
 
-// syncTarget syncs the given data to the target ConfigMap in the given
-// namespace.
+// syncTarget syncs the given data to the target ConfigMap in the given namespace.
 // The name of the ConfigMap is the same as the Bundle.
-// Ensures the ConfigMap is owned by the given Bundle, and the data is up to
-// date.
+// Ensures the ConfigMap is owned by the given Bundle, and the data is up to date.
 // Returns true if the ConfigMap has been created or was updated.
 func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 	bundle *trustapi.Bundle,

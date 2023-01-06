@@ -19,6 +19,7 @@ package env
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -31,6 +32,7 @@ import (
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle"
+	"github.com/cert-manager/trust-manager/pkg/util"
 	"github.com/cert-manager/trust-manager/test/dummy"
 )
 
@@ -133,12 +135,7 @@ func NewTestBundle(ctx context.Context, cl client.Client, opts bundle.Options, t
 	return &bundle
 }
 
-// CheckBundleSynced returns nil if the given Bundle has synced the expected data to the given
-// namespace, or else returns a descriptive error if that's not the case.
-// - Skips Namespaces that are Terminating since targets are not synced there.
-// - Ensures the Bundle status has been updated with the appropriate target.
-// - Ensures the Bundle has the correct status condition with the same ObservedGeneration as the current Generation.
-func CheckBundleSynced(ctx context.Context, cl client.Client, bundleName string, namespace string, expectedData string) error {
+func checkBundleSyncedInternal(ctx context.Context, cl client.Client, bundleName string, namespace string, comparator func(string) error) error {
 	var bundle trustapi.Bundle
 	Expect(cl.Get(ctx, client.ObjectKey{Name: bundleName}, &bundle)).NotTo(HaveOccurred())
 
@@ -149,10 +146,8 @@ func CheckBundleSynced(ctx context.Context, cl client.Client, bundleName string,
 
 	gotData := configMap.Data[bundle.Spec.Target.ConfigMap.Key]
 
-	if gotData != expectedData {
-		// TODO: also print "expected" and "got" data, but don't just dump the raw PEM values
-		// maybe parse certs and transform into a user friendly representation for easier visual inspection
-		return fmt.Errorf("configMap %s/%s didn't have expected value", namespace, bundle.Name)
+	if err := comparator(gotData); err != nil {
+		return fmt.Errorf("configMap %s/%s didn't have expected value: %w", namespace, bundle.Name, err)
 	}
 
 	if bundle.Status.Target == nil {
@@ -172,8 +167,45 @@ func CheckBundleSynced(ctx context.Context, cl client.Client, bundleName string,
 	return fmt.Errorf("couldn't find a success condition on bundle status with expected observedGeneration %d", bundle.Generation)
 }
 
-// CheckBundleSyncedAllNamespaces calls CheckBundleSynced for all namespaces and returns an error if any of them failed
-func CheckBundleSyncedAllNamespaces(ctx context.Context, cl client.Client, name, expectedData string) error {
+// CheckBundleSynced returns nil if the given Bundle has synced the expected data to the given
+// namespace, or else returns a descriptive error if that's not the case.
+// - Skips Namespaces that are Terminating since targets are not synced there.
+// - Ensures the Bundle status has been updated with the appropriate target.
+// - Ensures the Bundle has the correct status condition with the same ObservedGeneration as the current Generation.
+func CheckBundleSynced(ctx context.Context, cl client.Client, bundleName string, namespace string, expectedData string) error {
+	return checkBundleSyncedInternal(ctx, cl, bundleName, namespace, func(got string) error {
+		if expectedData != got {
+			// TODO: also detail "expected" and "got" data, but don't just dump the raw PEM values
+			// maybe parse certs and transform into a user friendly representation for easier visual inspection
+			return fmt.Errorf("received data didn't exactly match expected data")
+		}
+
+		return nil
+	})
+}
+
+// CheckBundleSyncedStartsWith is similar to CheckBundleSynced but only checks that the synced bundle starts with the given data,
+// along with checking that the rest of the data contains at least one valid certificate
+func CheckBundleSyncedStartsWith(ctx context.Context, cl client.Client, name string, namespace string, startingData string) error {
+	return checkBundleSyncedInternal(ctx, cl, name, namespace, func(got string) error {
+		if !strings.HasPrefix(got, startingData) {
+			return fmt.Errorf("received data didn't start with expected data")
+		}
+
+		remaining := strings.TrimPrefix(got, startingData)
+
+		// check that there are a nonzero number of valid certs remaining
+
+		_, err := util.ValidateAndSanitizePEMBundle([]byte(remaining))
+		if err != nil {
+			return fmt.Errorf("received data didn't have any valid certs after valid starting data: %w", err)
+		}
+
+		return nil
+	})
+}
+
+func checkBundleSyncedAllNamespacesInternal(ctx context.Context, cl client.Client, bundleName string, checker func(namespace string) error) error {
 	var namespaceList corev1.NamespaceList
 	if err := cl.List(ctx, &namespaceList); err != nil {
 		return fmt.Errorf("failed to list namespaces: %w", err)
@@ -187,7 +219,7 @@ func CheckBundleSyncedAllNamespaces(ctx context.Context, cl client.Client, name,
 			continue
 		}
 
-		if err := CheckBundleSynced(ctx, cl, name, namespace.Name, expectedData); err != nil {
+		if err := checker(namespace.Name); err != nil {
 			errs = append(errs, fmt.Errorf("namespace %q has not synced: %w", namespace.Name, err))
 		}
 	}
@@ -197,6 +229,20 @@ func CheckBundleSyncedAllNamespaces(ctx context.Context, cl client.Client, name,
 	}
 
 	return nil
+}
+
+// CheckBundleSyncedAllNamespaces calls CheckBundleSynced for all namespaces and returns an error if any of them failed
+func CheckBundleSyncedAllNamespaces(ctx context.Context, cl client.Client, name string, expectedData string) error {
+	return checkBundleSyncedAllNamespacesInternal(ctx, cl, name, func(namespace string) error {
+		return CheckBundleSynced(ctx, cl, name, namespace, expectedData)
+	})
+}
+
+// CheckBundleSyncedAllNamespacesStartsWith calls CheckBundleSyncedStartsWith for all namespaces and returns an error if any of them failed
+func CheckBundleSyncedAllNamespacesStartsWith(ctx context.Context, cl client.Client, name string, startingData string) error {
+	return checkBundleSyncedAllNamespacesInternal(ctx, cl, name, func(namespace string) error {
+		return CheckBundleSyncedStartsWith(ctx, cl, name, namespace, startingData)
+	})
 }
 
 // EventuallyBundleHasSyncedToNamespace tries to assert that the given bundle is synced correctly to the given namespace
@@ -210,6 +256,17 @@ func EventuallyBundleHasSyncedToNamespace(ctx context.Context, cl client.Client,
 	).Should(BeNil(), fmt.Sprintf("checking bundle %s has synced to namespace %s", bundleName, namespace))
 }
 
+// EventuallyBundleHasSyncedToNamespaceStartsWith tries to assert that the given bundle is synced correctly to the given namespace
+// until either the assertion passes or the timeout is triggered
+func EventuallyBundleHasSyncedToNamespaceStartsWith(ctx context.Context, cl client.Client, bundleName string, namespace string, startingData string) {
+	Eventually(
+		CheckBundleSyncedStartsWith,
+		EventuallyTimeout, EventuallyPollInterval, ctx,
+	).WithArguments(
+		ctx, cl, bundleName, namespace, startingData,
+	).Should(BeNil(), fmt.Sprintf("checking bundle %s has synced to namespace %s", bundleName, namespace))
+}
+
 // EventuallyBundleHasSyncedAllNamespaces tries to assert that the given bundle is synced correctly to every namespace
 // until either the assertion passes or the timeout is triggered
 func EventuallyBundleHasSyncedAllNamespaces(ctx context.Context, cl client.Client, bundleName string, expectedData string) {
@@ -219,4 +276,15 @@ func EventuallyBundleHasSyncedAllNamespaces(ctx context.Context, cl client.Clien
 	).WithArguments(
 		ctx, cl, bundleName, expectedData,
 	).Should(BeNil(), fmt.Sprintf("checking bundle %s has synced to all namespaces", bundleName))
+}
+
+// EventuallyBundleHasSyncedAllNamespacesStartsWith tries to assert that the given bundle is synced correctly to every namespace
+// until either the assertion passes or the timeout is triggered
+func EventuallyBundleHasSyncedAllNamespacesStartsWith(ctx context.Context, cl client.Client, bundleName string, startingData string) {
+	Eventually(
+		CheckBundleSyncedAllNamespacesStartsWith,
+		EventuallyTimeout, EventuallyPollInterval, ctx,
+	).WithArguments(
+		ctx, cl, bundleName, startingData,
+	).Should(BeNil(), fmt.Sprintf("checking bundle %s has synced to all namespaces with correct starting data", bundleName))
 }

@@ -23,10 +23,8 @@ import (
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 )
 
-// bundleHasCondition returns true if the bundle has an exact matching
-// condition.
-// The given condition will have the ObservedGeneration set to the bundle
-// Generation.
+// bundleHasCondition returns true if the bundle has an exact matching condition.
+// The given condition will have the ObservedGeneration set to the bundle Generation.
 // The LastTransitionTime is ignored.
 func bundleHasCondition(bundle *trustapi.Bundle, condition trustapi.BundleCondition) bool {
 	// A condition does not match if the ObservedGeneration is not the same.
@@ -70,4 +68,30 @@ func (b *bundle) setBundleCondition(bundle *trustapi.Bundle, condition trustapi.
 	}
 
 	bundle.Status.Conditions = append(updatedConditions, condition)
+}
+
+// setBundleStatusDefaultCAVersion ensures that the given Bundle's Status correctly
+// reflects the defaultCAVersion represented by requiredID.
+// Returns true if the bundle status needs updating.
+func (b *bundle) setBundleStatusDefaultCAVersion(bundle *trustapi.Bundle, requiredID string) bool {
+	currentVersion := bundle.Status.DefaultCAPackageVersion
+
+	if len(requiredID) == 0 {
+		if currentVersion != nil {
+			bundle.Status.DefaultCAPackageVersion = nil
+			return true
+		}
+
+		return false
+	}
+
+	// If we're here, requiredID is not empty and we need to confirm that currentVersion
+	// matches it
+
+	if currentVersion == nil || *currentVersion != requiredID {
+		bundle.Status.DefaultCAPackageVersion = &requiredID
+		return true
+	}
+
+	return false
 }

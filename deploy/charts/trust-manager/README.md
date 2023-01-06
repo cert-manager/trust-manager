@@ -34,6 +34,9 @@ A Helm chart for trust-manager
 | app.webhook.port | int | `6443` | Port that the webhook listens on. |
 | app.webhook.service | object | `{"type":"ClusterIP"}` | Type of Kubernetes Service used by the Webhook |
 | app.webhook.timeoutSeconds | int | `5` | Timeout of webhook HTTP request. |
+| defaultPackageImage.pullPolicy | string | `"IfNotPresent"` | imagePullPolicy for the default package image |
+| defaultPackageImage.repository | string | `"quay.io/jetstack/cert-manager-package-debian"` | Repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles. |
+| defaultPackageImage.tag | string | `"20210119.0"` | Tag for the default package image |
 | image.pullPolicy | string | `"IfNotPresent"` | Kubernetes imagePullPolicy on Deployment. |
 | image.repository | string | `"quay.io/jetstack/trust-manager"` | Target image repository. |
 | image.tag | string | `"v0.3.0"` | Target image version tag. |

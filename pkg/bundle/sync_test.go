@@ -35,6 +35,7 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/test/dummy"
 )
 
@@ -381,11 +382,11 @@ func Test_buildSourceBundle(t *testing.T) {
 		expError         bool
 		expNotFoundError bool
 	}{
-		"if no sources defined, should return no data": {
+		"if no sources defined, should return an error": {
 			bundle:           &trustapi.Bundle{},
 			objects:          []runtime.Object{},
 			expData:          "",
-			expError:         false,
+			expError:         true,
 			expNotFoundError: false,
 		},
 		"if single InLine source defined with newlines, should trim and return": {
@@ -394,6 +395,13 @@ func Test_buildSourceBundle(t *testing.T) {
 			}}},
 			objects:          []runtime.Object{},
 			expData:          dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2),
+			expError:         false,
+			expNotFoundError: false,
+		},
+		"if single DefaultPackage source defined, should return": {
+			bundle:           &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{{UseDefaultCAs: pointer.Bool(true)}}}},
+			objects:          []runtime.Object{},
+			expData:          dummy.JoinCerts(dummy.TestCertificate5),
 			expError:         false,
 			expNotFoundError: false,
 		},
@@ -542,9 +550,16 @@ func Test_buildSourceBundle(t *testing.T) {
 				WithScheme(trustapi.GlobalScheme).
 				Build()
 
-			b := &bundle{client: fakeclient}
+			b := &bundle{
+				client: fakeclient,
+				defaultPackage: &fspkg.Package{
+					Name:    "testpkg",
+					Version: "123",
+					Bundle:  dummy.TestCertificate5,
+				},
+			}
 
-			data, err := b.buildSourceBundle(context.TODO(), test.bundle)
+			resolvedBundle, err := b.buildSourceBundle(context.TODO(), test.bundle)
 
 			if (err != nil) != test.expError {
 				t.Errorf("unexpected error, exp=%t got=%v", test.expError, err)
@@ -553,8 +568,8 @@ func Test_buildSourceBundle(t *testing.T) {
 				t.Errorf("unexpected notFoundError, exp=%t got=%v", test.expNotFoundError, err)
 			}
 
-			if data != test.expData {
-				t.Errorf("unexpected data, exp=%q got=%q", test.expData, data)
+			if resolvedBundle.data != test.expData {
+				t.Errorf("unexpected data, exp=%q got=%q", test.expData, resolvedBundle.data)
 			}
 		})
 	}

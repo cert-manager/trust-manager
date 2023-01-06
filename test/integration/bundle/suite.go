@@ -18,6 +18,8 @@ package test
 
 import (
 	"context"
+	"encoding/json"
+	"os"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -35,6 +37,7 @@ import (
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle"
+	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/test/dummy"
 	testenv "github.com/cert-manager/trust-manager/test/env"
 )
@@ -55,12 +58,19 @@ var _ = Describe("Integration", func() {
 
 		testBundle *trustapi.Bundle
 		testData   testenv.TestData
+
+		tmpFileName string
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
 		var err error
+
+		By("Writing default package")
+		tmpFileName, err = writeDefaultPackage()
+		Expect(err).NotTo(HaveOccurred())
+
 		cl, err = client.New(env.Config, client.Options{
 			Scheme: trustapi.GlobalScheme,
 		})
@@ -74,10 +84,10 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, namespace)).NotTo(HaveOccurred())
 
 		By("Created trust Namespace: " + namespace.Name)
-
 		opts = bundle.Options{
-			Log:       logf.Log,
-			Namespace: namespace.Name,
+			Log:                    logf.Log,
+			Namespace:              namespace.Name,
+			DefaultPackageLocation: tmpFileName,
 		}
 
 		mgr, err = ctrl.NewManager(env.Config, ctrl.Options{
@@ -123,6 +133,9 @@ var _ = Describe("Integration", func() {
 
 		By("Stopping Bundle controller")
 		cancel()
+
+		By("Removing default package")
+		Expect(os.Remove(tmpFileName)).ToNot(HaveOccurred())
 	})
 
 	It("should update all targets when a ConfigMap source is added", func() {
@@ -178,6 +191,14 @@ var _ = Describe("Integration", func() {
 
 		expectedData := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate4)
 
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+	})
+
+	It("should update all targets when a default CA source is added", func() {
+		testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{UseDefaultCAs: pointer.Bool(true)})
+		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
+
+		expectedData := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)
 		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
 
@@ -371,3 +392,30 @@ var _ = Describe("Integration", func() {
 		}, eventuallyTimeout, eventuallyPollInterval).Should(BeNil(), "checking that bundle was re-added to newly labelled namespace")
 	})
 })
+
+func writeDefaultPackage() (string, error) {
+	file, err := os.CreateTemp("", "trust-manager-suite-*.json")
+	if err != nil {
+		return "", err
+	}
+
+	defer file.Close()
+
+	pkg := &fspkg.Package{
+		Name:    "asd",
+		Version: "123",
+		Bundle:  dummy.TestCertificate5,
+	}
+
+	serialized, err := json.Marshal(pkg)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = file.Write(serialized)
+	if err != nil {
+		return "", err
+	}
+
+	return file.Name(), nil
+}

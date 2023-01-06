@@ -76,6 +76,17 @@ type BundleSource struct {
 	// InLine is a simple string to append as the source data.
 	// +optional
 	InLine *string `json:"inLine,omitempty"`
+
+	// UseDefaultCAs, when true, requests the default CA bundle to be used as a source.
+	// Default CAs are available if trust-manager was installed via Helm
+	// or was otherwise set up to include a package-injecting init container by using the
+	// "--default-package-location" flag when starting the trust-manager controller.
+	// If default CAs were not configured at start-up, any request to use the default
+	// CAs will fail.
+	// The version of the default CA package which is used for a Bundle is stored in the
+	// defaultCAPackageVersion field of the Bundle's status field.
+	// +optional
+	UseDefaultCAs *bool `json:"useDefaultCAs,omitempty"`
 }
 
 // BundleTarget is the target resource that the Bundle will sync all source
@@ -127,6 +138,12 @@ type BundleStatus struct {
 	// Known condition types are `Bundle`.
 	// +optional
 	Conditions []BundleCondition `json:"conditions,omitempty"`
+
+	// DefaultCAPackageVersion, if set and non-empty, indicates the version information
+	// which was retrieved when the set of default CAs was requested in the bundle
+	// source. This should only be set if useDefaultCAs was set to "true" on a source,
+	// and will be the same for the same version of a bundle with identical certificates.
+	DefaultCAPackageVersion *string `json:"defaultCAVersion,omitempty"`
 }
 
 // BundleCondition contains condition information for a Bundle.
