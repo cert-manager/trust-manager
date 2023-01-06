@@ -111,7 +111,6 @@ func Test_Reconcile(t *testing.T) {
 		testDefaultPackage = &fspkg.Package{
 			Name:    "testpkg",
 			Version: "123",
-			Type:    fspkg.PackageTypeStatic,
 			Bundle:  dummy.TestCertificate5,
 		}
 	)

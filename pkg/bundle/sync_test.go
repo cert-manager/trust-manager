@@ -555,7 +555,6 @@ func Test_buildSourceBundle(t *testing.T) {
 				defaultPackage: &fspkg.Package{
 					Name:    "testpkg",
 					Version: "123",
-					Type:    fspkg.PackageTypeStatic,
 					Bundle:  dummy.TestCertificate5,
 				},
 			}

@@ -402,8 +402,8 @@ func writeDefaultPackage() (string, error) {
 	defer file.Close()
 
 	pkg := &fspkg.Package{
+		Name:    "asd",
 		Version: "123",
-		Type:    fspkg.PackageTypeStatic,
 		Bundle:  dummy.TestCertificate5,
 	}
 

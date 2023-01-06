@@ -56,7 +56,7 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 	}
 
 	if b.Options.DefaultPackageLocation != "" {
-		pkg, err := fspkg.LoadPackage(b.Options.DefaultPackageLocation)
+		pkg, err := fspkg.LoadPackageFromFile(b.Options.DefaultPackageLocation)
 		if err != nil {
 			return fmt.Errorf("must load default package successfully when default package location is set: %w", err)
 		}

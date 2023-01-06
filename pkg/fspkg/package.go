@@ -21,22 +21,18 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/cert-manager/trust-manager/pkg/util"
 )
 
-type PackageType string
-
-const (
-	// PackageTypeStatic indicates that the package does not change once loaded. This is the default.
-	// Currently, only static packages are supported and all other values for "Type" will be rejected.
-	PackageTypeStatic PackageType = "static"
-)
-
 // Package specifies the structure of JSON packages which can be read from the filesystem
-// of the trust-manager container and subsequently used in a Bundle resource
+// of the trust-manager container and subsequently used in a Bundle resource.
+// Note that this struct must be both forwards and backwards compatible. Any JSON which
+// marshals / unmarshals from this struct should be readable by every version of trust-manager
+// which supports loading default CA packages.
 type Package struct {
 	// Name contains a friendly name for the bundle
 	Name string `json:"name"`
@@ -46,17 +42,13 @@ type Package struct {
 
 	// Version identifies the bundle's version, to distinguish updated bundles from older counterparts
 	Version string `json:"version"`
-
-	// Type identifies how the bundle should be consumed. Provided for future-use;
-	// the only valid value currently is PackageTypeStatic
-	Type PackageType `json:"type"`
 }
 
 // StringID returns a human-readable string ID which should allow one package to be easily distinguished from another.
 func (p Package) StringID() string {
 	bundleHash := sha256.Sum256([]byte(p.Bundle))
 
-	return fmt.Sprintf("%s-%s-%s-%s", p.Name, p.Version, p.Type, hex.EncodeToString(bundleHash[:8]))
+	return fmt.Sprintf("%s-%s-%s", p.Name, p.Version, hex.EncodeToString(bundleHash[:8]))
 }
 
 // Clone returns a new copy of the given package
@@ -65,43 +57,64 @@ func (p *Package) Clone() *Package {
 		Name:    p.Name,
 		Bundle:  p.Bundle,
 		Version: p.Version,
-		Type:    p.Type,
 	}
 }
 
-// LoadPackage attempts to read a package from the given path
-func LoadPackage(path string) (Package, error) {
+// Validate checks that the given package is valid. All packages must successfully validate before being accepted for use.
+func (p *Package) Validate() error {
+	// Ignore the sanitized bundle here and preserve the bundle as-is.
+	// We'll sanitize later, when building a bundle on a reconcile.
+	_, err := util.ValidateAndSanitizePEMBundle([]byte(p.Bundle))
+	if err != nil {
+		return fmt.Errorf("package bundle failed validation: %w", err)
+	}
+
+	if len(p.Name) == 0 {
+		return fmt.Errorf("package may not have an empty 'name'")
+	}
+
+	if len(p.Version) == 0 {
+		return fmt.Errorf("package may not have an empty 'version'")
+	}
+
+	return nil
+}
+
+// LoadPackage tries to read a package from the given reader, checking that it only contains valid certificates
+func LoadPackage(reader io.Reader) (Package, error) {
+	var pkg Package
+
+	if err := json.NewDecoder(reader).Decode(&pkg); err != nil {
+		return Package{}, fmt.Errorf("failed to parse package JSON: %w", err)
+	}
+
+	// We validate here so we can error when loading rather than just erroring at the time of use
+	if err := pkg.Validate(); err != nil {
+		return Package{}, err
+	}
+
+	return pkg, nil
+}
+
+const requiredExt = ".json"
+
+// LoadPackageFromFile uses LoadPackage to read a JSON file specifying a package
+func LoadPackageFromFile(path string) (Package, error) {
 	// Only try to read files ending in ".json"
-	if filepath.Ext(path) != ".json" {
-		return Package{}, fmt.Errorf("can't load package at path '%s' since it doesn't have the required .json extension", path)
+	if filepath.Ext(path) != requiredExt {
+		return Package{}, fmt.Errorf("can't load package at path %q since it doesn't have the required %q extension", path, requiredExt)
 	}
 
 	f, err := os.Open(path)
 	if err != nil {
-		return Package{}, fmt.Errorf("failed to open package on filesystem '%s': %w", path, err)
+		return Package{}, fmt.Errorf("failed to open package on filesystem %q: %w", path, err)
 	}
+
 	defer f.Close()
 
-	var pkg Package
-
-	if err := json.NewDecoder(f).Decode(&pkg); err != nil {
-		return Package{}, fmt.Errorf("failed to parse package JSON at path '%s': %w", path, err)
-	}
-
-	if pkg.Type == "" {
-		pkg.Type = PackageTypeStatic
-	}
-
-	// Ignore the sanitized bundle here and preserve the bundle as-is.
-	// We'll sanitize later, when building a bundle on a reconcile.
-	// We validate here so we can error when loading rather than just erroring at the time of use
-	_, err = util.ValidateAndSanitizePEMBundle([]byte(pkg.Bundle))
+	pkg, err := LoadPackage(f)
 	if err != nil {
-		return Package{}, fmt.Errorf("package '%s' failed validation: %w", path, err)
-	}
-
-	if pkg.Type != PackageTypeStatic {
-		return Package{}, fmt.Errorf("invalid package '%s'; only supported type currently is '%s'", path, PackageTypeStatic)
+		return Package{}, fmt.Errorf("failed to load package %q: %w", path, err)
 	}
 
 	return pkg, nil
