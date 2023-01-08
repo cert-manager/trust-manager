@@ -23,6 +23,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/clock"
@@ -194,12 +195,6 @@ func (b *bundle) mustBundleList(ctx context.Context) *trustapi.BundleList {
 
 // NewCacheFunc will return a multi-scoped controller-runtime NewCacheFunc
 // where Secret resources will only be watched within the trust Namespace.
-func NewCacheFunc(opts Options) cache.NewCacheFunc {
-	return internal.NewMultiScopedCache(opts.Namespace, []schema.GroupKind{{Kind: "Secret"}})
-}
-
-// ClientDisableCacheFor returns resources which should only be watched within
-// the Trust Namespace, and not at the cluster level.
-func ClientDisableCacheFor() []client.Object {
-	return []client.Object{new(corev1.Secret)}
+func NewCacheFunc(scheme *runtime.Scheme, opts Options) cache.NewCacheFunc {
+	return internal.NewMultiScopedCache(scheme, opts.Namespace, []schema.GroupKind{{Kind: "Secret"}})
 }
