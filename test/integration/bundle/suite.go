@@ -90,10 +90,9 @@ var _ = Describe("Integration", func() {
 			DefaultPackageLocation: tmpFileName,
 		}
 
-		scheme := trustapi.GlobalScheme
 		mgr, err = ctrl.NewManager(env.Config, ctrl.Options{
-			Scheme:   scheme,
-			NewCache: bundle.NewCacheFunc(scheme, opts),
+			Scheme:   trustapi.GlobalScheme,
+			NewCache: bundle.NewCacheFunc(opts),
 			// TODO: can we disable leader election here? The mgr goroutine prints extra output we probably don't need
 			// and it might not be valuable to enable leader election here
 			LeaderElection:                true,

@@ -60,13 +60,12 @@ func NewCommand() *cobra.Command {
 			eventBroadcaster.StartLogging(func(format string, args ...interface{}) { mlog.V(3).Info(fmt.Sprintf(format, args...)) })
 			eventBroadcaster.StartRecordingToSink(&clientv1.EventSinkImpl{Interface: cl.CoreV1().Events("")})
 
-			scheme := trustapi.GlobalScheme
 			mgr, err := ctrl.NewManager(opts.RestConfig, ctrl.Options{
-				Scheme:                        scheme,
+				Scheme:                        trustapi.GlobalScheme,
 				EventBroadcaster:              eventBroadcaster,
 				LeaderElection:                true,
 				LeaderElectionNamespace:       opts.Bundle.Namespace,
-				NewCache:                      bundle.NewCacheFunc(scheme, opts.Bundle),
+				NewCache:                      bundle.NewCacheFunc(opts.Bundle),
 				LeaderElectionID:              "trust-manager-leader-election",
 				LeaderElectionReleaseOnCancel: true,
 				ReadinessEndpointName:         opts.ReadyzPath,

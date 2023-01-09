@@ -23,7 +23,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/clock"
@@ -38,7 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust-manager/pkg/bundle/internal"
+	multiscopedcache "github.com/cert-manager/trust-manager/pkg/bundle/cache"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
 
@@ -195,6 +194,6 @@ func (b *bundle) mustBundleList(ctx context.Context) *trustapi.BundleList {
 
 // NewCacheFunc will return a multi-scoped controller-runtime NewCacheFunc
 // where Secret resources will only be watched within the trust Namespace.
-func NewCacheFunc(scheme *runtime.Scheme, opts Options) cache.NewCacheFunc {
-	return internal.NewMultiScopedCache(scheme, opts.Namespace, []schema.GroupKind{{Kind: "Secret"}})
+func NewCacheFunc(opts Options) cache.NewCacheFunc {
+	return multiscopedcache.NewMultiScopedCache(opts.Namespace, []schema.GroupKind{{Kind: "Secret"}})
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package internal
+package cache
 
 import (
 	"context"
@@ -56,7 +56,7 @@ type multiScopedCache struct {
 // resources in the given namespace. namespacedInformers is the set of resource
 // types which should only be watched in the given namespace.
 // namespacedInformers expects Namespaced resource types.
-func NewMultiScopedCache(scheme *runtime.Scheme, namespace string, namespacedInformers []schema.GroupKind) cache.NewCacheFunc {
+func NewMultiScopedCache(namespace string, namespacedInformers []schema.GroupKind) cache.NewCacheFunc {
 	return func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
 		namespacedOpts := opts
 		namespacedOpts.Namespace = namespace
@@ -71,8 +71,9 @@ func NewMultiScopedCache(scheme *runtime.Scheme, namespace string, namespacedInf
 		if err != nil {
 			return nil, err
 		}
+
 		return &multiScopedCache{
-			scheme:              scheme,
+			scheme:              opts.Scheme,
 			namespacedCache:     namespacedCache,
 			clusterCache:        clusterCache,
 			namespacedInformers: namespacedInformers,
@@ -85,13 +86,23 @@ func (b *multiScopedCache) GetInformer(ctx context.Context, obj client.Object) (
 	if err := setGroupVersionKind(b.scheme, obj); err != nil {
 		return nil, err
 	}
-	return b.cacheFromGVK(obj.GetObjectKind().GroupVersionKind()).GetInformer(ctx, obj)
+
+	cache, err := b.cacheFromGVK(obj.GetObjectKind().GroupVersionKind())
+	if err != nil {
+		return nil, err
+	}
+	return cache.GetInformer(ctx, obj)
 }
 
 // GetInformerForKind returns the underlying cache's GetInformerForKind based
 // on resource type.
 func (b *multiScopedCache) GetInformerForKind(ctx context.Context, gvk schema.GroupVersionKind) (cache.Informer, error) {
-	return b.cacheFromGVK(gvk).GetInformerForKind(ctx, gvk)
+
+	cache, err := b.cacheFromGVK(gvk)
+	if err != nil {
+		return nil, err
+	}
+	return cache.GetInformerForKind(ctx, gvk)
 }
 
 // Start starts both the cluster and namespaced caches. Returned is an
@@ -137,7 +148,12 @@ func (b *multiScopedCache) IndexField(ctx context.Context, obj client.Object, fi
 	if err := setGroupVersionKind(b.scheme, obj); err != nil {
 		return err
 	}
-	return b.cacheFromGVK(obj.GetObjectKind().GroupVersionKind()).IndexField(ctx, obj, field, extractValue)
+
+	cache, err := b.cacheFromGVK(obj.GetObjectKind().GroupVersionKind())
+	if err != nil {
+		return err
+	}
+	return cache.IndexField(ctx, obj, field, extractValue)
 }
 
 // Get returns the underlying cache's Get based on resource type.
@@ -145,7 +161,12 @@ func (b *multiScopedCache) Get(ctx context.Context, key client.ObjectKey, obj cl
 	if err := setGroupVersionKind(b.scheme, obj); err != nil {
 		return err
 	}
-	return b.cacheFromGVK(obj.GetObjectKind().GroupVersionKind()).Get(ctx, key, obj)
+
+	cache, err := b.cacheFromGVK(obj.GetObjectKind().GroupVersionKind())
+	if err != nil {
+		return err
+	}
+	return cache.Get(ctx, key, obj)
 }
 
 // List returns the underlying cache's List based on resource type.
@@ -153,22 +174,27 @@ func (b *multiScopedCache) List(ctx context.Context, list client.ObjectList, opt
 	if err := setGroupVersionKind(b.scheme, list); err != nil {
 		return err
 	}
-	return b.cacheFromGVK(list.GetObjectKind().GroupVersionKind()).List(ctx, list, opts...)
+
+	cache, err := b.cacheFromGVK(list.GetObjectKind().GroupVersionKind())
+	if err != nil {
+		return err
+	}
+	return cache.List(ctx, list, opts...)
 }
 
 // cacheFromGVK returns either the cluster or namespaced cache, based on the
 // resource type given.
-func (b *multiScopedCache) cacheFromGVK(gvk schema.GroupVersionKind) cache.Cache {
+func (b *multiScopedCache) cacheFromGVK(gvk schema.GroupVersionKind) (cache.Cache, error) {
 	if gvk.Group == "" && gvk.Kind == "" {
-		panic("The Group and/or Kind must be set")
+		return nil, fmt.Errorf("the Group and/or Kind must be set")
 	}
 
 	for _, namespacedInformer := range b.namespacedInformers {
 		if namespacedInformer.Group == gvk.Group && namespacedInformer.Kind == gvk.Kind {
-			return b.namespacedCache
+			return b.namespacedCache, nil
 		}
 	}
-	return b.clusterCache
+	return b.clusterCache, nil
 }
 
 // setGroupVersionKind populates the Group and Kind fields of obj using the
@@ -176,7 +202,7 @@ func (b *multiScopedCache) cacheFromGVK(gvk schema.GroupVersionKind) cache.Cache
 // Inspired by https://github.com/kubernetes-sigs/controller-runtime/issues/1735#issuecomment-984763173
 func setGroupVersionKind(scheme *runtime.Scheme, obj runtime.Object) error {
 	gvk := obj.GetObjectKind().GroupVersionKind()
-	if gvk.Group != "" || gvk.Kind != "" {
+	if gvk.Group != "" || gvk.Kind != "" || scheme == nil {
 		return nil // eg. in case of PartialMetadata, we don't want to overwrite the Group/ Kind
 	}
 
