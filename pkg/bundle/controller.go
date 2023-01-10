@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust-manager/pkg/bundle/internal"
+	multiscopedcache "github.com/cert-manager/trust-manager/pkg/bundle/cache"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
 
@@ -195,11 +195,5 @@ func (b *bundle) mustBundleList(ctx context.Context) *trustapi.BundleList {
 // NewCacheFunc will return a multi-scoped controller-runtime NewCacheFunc
 // where Secret resources will only be watched within the trust Namespace.
 func NewCacheFunc(opts Options) cache.NewCacheFunc {
-	return internal.NewMultiScopedCache(opts.Namespace, []schema.GroupKind{{Kind: "Secret"}})
-}
-
-// ClientDisableCacheFor returns resources which should only be watched within
-// the Trust Namespace, and not at the cluster level.
-func ClientDisableCacheFor() []client.Object {
-	return []client.Object{new(corev1.Secret)}
+	return multiscopedcache.NewMultiScopedCache(opts.Namespace, []schema.GroupKind{{Kind: "Secret"}})
 }
