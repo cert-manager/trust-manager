@@ -27,6 +27,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
 var _ cache.Cache = &multiScopedCache{}
@@ -83,11 +84,12 @@ func NewMultiScopedCache(namespace string, namespacedInformers []schema.GroupKin
 
 // GetInformer returns the underlying cache's GetInformer based on resource type.
 func (b *multiScopedCache) GetInformer(ctx context.Context, obj client.Object) (cache.Informer, error) {
-	if err := setGroupVersionKind(b.scheme, obj); err != nil {
+	gvk, err := apiutil.GVKForObject(obj, b.scheme)
+	if err != nil {
 		return nil, err
 	}
 
-	cache, err := b.cacheFromGVK(obj.GetObjectKind().GroupVersionKind())
+	cache, err := b.cacheFromGVK(gvk)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +99,6 @@ func (b *multiScopedCache) GetInformer(ctx context.Context, obj client.Object) (
 // GetInformerForKind returns the underlying cache's GetInformerForKind based
 // on resource type.
 func (b *multiScopedCache) GetInformerForKind(ctx context.Context, gvk schema.GroupVersionKind) (cache.Informer, error) {
-
 	cache, err := b.cacheFromGVK(gvk)
 	if err != nil {
 		return nil, err
@@ -145,11 +146,12 @@ func (b *multiScopedCache) WaitForCacheSync(ctx context.Context) bool {
 
 // IndexField returns the underlying cache's IndexField based on resource type.
 func (b *multiScopedCache) IndexField(ctx context.Context, obj client.Object, field string, extractValue client.IndexerFunc) error {
-	if err := setGroupVersionKind(b.scheme, obj); err != nil {
+	gvk, err := apiutil.GVKForObject(obj, b.scheme)
+	if err != nil {
 		return err
 	}
 
-	cache, err := b.cacheFromGVK(obj.GetObjectKind().GroupVersionKind())
+	cache, err := b.cacheFromGVK(gvk)
 	if err != nil {
 		return err
 	}
@@ -158,11 +160,12 @@ func (b *multiScopedCache) IndexField(ctx context.Context, obj client.Object, fi
 
 // Get returns the underlying cache's Get based on resource type.
 func (b *multiScopedCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
-	if err := setGroupVersionKind(b.scheme, obj); err != nil {
+	gvk, err := apiutil.GVKForObject(obj, b.scheme)
+	if err != nil {
 		return err
 	}
 
-	cache, err := b.cacheFromGVK(obj.GetObjectKind().GroupVersionKind())
+	cache, err := b.cacheFromGVK(gvk)
 	if err != nil {
 		return err
 	}
@@ -171,11 +174,12 @@ func (b *multiScopedCache) Get(ctx context.Context, key client.ObjectKey, obj cl
 
 // List returns the underlying cache's List based on resource type.
 func (b *multiScopedCache) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
-	if err := setGroupVersionKind(b.scheme, list); err != nil {
+	gvk, err := apiutil.GVKForObject(list, b.scheme)
+	if err != nil {
 		return err
 	}
 
-	cache, err := b.cacheFromGVK(list.GetObjectKind().GroupVersionKind())
+	cache, err := b.cacheFromGVK(gvk)
 	if err != nil {
 		return err
 	}
@@ -195,27 +199,4 @@ func (b *multiScopedCache) cacheFromGVK(gvk schema.GroupVersionKind) (cache.Cach
 		}
 	}
 	return b.clusterCache, nil
-}
-
-// setGroupVersionKind populates the Group and Kind fields of obj using the
-// scheme type registry.
-// Inspired by https://github.com/kubernetes-sigs/controller-runtime/issues/1735#issuecomment-984763173
-func setGroupVersionKind(scheme *runtime.Scheme, obj runtime.Object) error {
-	gvk := obj.GetObjectKind().GroupVersionKind()
-	if gvk.Group != "" || gvk.Kind != "" || scheme == nil {
-		return nil // eg. in case of PartialMetadata, we don't want to overwrite the Group/ Kind
-	}
-
-	gvks, unversioned, err := scheme.ObjectKinds(obj)
-	if err != nil {
-		return err
-	}
-	if unversioned {
-		return fmt.Errorf("ObjectKinds unexpectedly returned unversioned: %#v", unversioned)
-	}
-	if len(gvks) != 1 {
-		return fmt.Errorf("ObjectKinds unexpectedly returned zero or multiple gvks: %#v", gvks)
-	}
-	obj.GetObjectKind().SetGroupVersionKind(gvks[0])
-	return nil
 }
