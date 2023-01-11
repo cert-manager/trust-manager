@@ -166,6 +166,12 @@ ifneq ($(strip $(CI)),)
 	sleep 2
 endif
 
+.PHONY: build-validate-trust-package
+build-validate-trust-package: $(BINDIR)/validate-trust-package
+
+$(BINDIR)/validate-trust-package: cmd/validate-trust-package/main.go pkg/fspkg/package.go | $(BINDIR)
+	CGO_ENABLED=0 go build -o $@ $<
+
 .PHONY: depend
 depend: $(BINDIR)/deepcopy-gen $(BINDIR)/controller-gen $(BINDIR)/ginkgo $(BINDIR)/kubectl $(BINDIR)/kind $(BINDIR)/helm $(BINDIR)/kubebuilder/bin/kube-apiserver
 

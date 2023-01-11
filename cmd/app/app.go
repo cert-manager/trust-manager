@@ -34,10 +34,14 @@ import (
 )
 
 const (
-	helpOutput = "Operator for distributing bundles from a trust Namespace across a Kubernetes Cluster to be made available to all services"
+	helpOutput = `trust-manager is an operator for distributing bundles in Kubernetes clusters
+
+Sources are loaded by being defined in Bundle resources, and are concatenated
+into an output bundle 'target', which can then be made available to all
+services across a cluster.`
 )
 
-// NewCommand will return a new command instance for the trust operator.
+// NewCommand will return a new command instance for the trust-manager operator.
 func NewCommand() *cobra.Command {
 	opts := options.New()
 
