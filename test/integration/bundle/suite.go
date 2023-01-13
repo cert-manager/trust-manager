@@ -96,7 +96,7 @@ var _ = Describe("Integration", func() {
 			DefaultPackageLocation: tmpFileName,
 		}
 
-		By("Make sure that managaer is not running")
+		By("Make sure that manager is not running")
 		Expect(mgr).To(BeNil())
 
 		mgr, err = ctrl.NewManager(env.Config, ctrl.Options{
