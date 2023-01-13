@@ -808,10 +808,10 @@ func Test_Reconcile(t *testing.T) {
 			fakerecorder := record.NewFakeRecorder(1)
 
 			b := &bundle{
-				client:   fakeclient,
-				lister:   fakeclient,
-				recorder: fakerecorder,
-				clock:    fixedclock,
+				directClient: fakeclient,
+				lister:       fakeclient,
+				recorder:     fakerecorder,
+				clock:        fixedclock,
 				Options: Options{
 					Log:       klogr.New(),
 					Namespace: trustNamespace,
