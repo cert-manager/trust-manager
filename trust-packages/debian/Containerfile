@@ -12,17 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM docker.io/library/debian:11-slim as debbase
-
-ARG EXPECTED_VERSION
-ARG VERSION_SUFFIX
-
-WORKDIR /work
-
-COPY ./build.sh /work/build.sh
-
-RUN /work/build.sh $EXPECTED_VERSION $VERSION_SUFFIX /work/package.json
-
 FROM docker.io/library/golang:1.19 as gobuild
 
 ARG GOPROXY
@@ -34,6 +23,20 @@ COPY go.sum go.sum
 COPY main.go main.go
 
 RUN GOPROXY=$GOPROXY CGO_ENABLED=0 go build -o copyandmaybepause main.go
+
+RUN GOPROXY=$GOPROXY CGO_ENABLED=0 go install github.com/cert-manager/trust-manager/cmd/validate-trust-package@main
+
+FROM docker.io/library/debian:11-slim as debbase
+
+ARG EXPECTED_VERSION
+ARG VERSION_SUFFIX
+
+WORKDIR /work
+
+COPY ./build.sh /work/build.sh
+COPY --from=gobuild /go/bin/validate-trust-package /usr/bin/validate-trust-package
+
+RUN /work/build.sh $EXPECTED_VERSION $VERSION_SUFFIX /work/package.json
 
 FROM scratch
 

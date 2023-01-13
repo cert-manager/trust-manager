@@ -50,3 +50,5 @@ echo "{}" | jq \
 	--arg version "$EXPECTED_VERSION$VERSION_SUFFIX" \
 	'.name = $name | .bundle = $bundle | .version = $version' \
 	> $DESTINATION_FILE
+
+validate-trust-package < $DESTINATION_FILE
