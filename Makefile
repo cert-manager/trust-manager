@@ -128,7 +128,7 @@ demo: ensure-kind kind-load ensure-cert-manager ensure-trust-manager $(BINDIR)/k
 
 .PHONY: smoke
 smoke: demo  ## ensure cluster, deploy trust-manager and run smoke tests
-	${BINDIR}/ginkgo -nodes 1 test/smoke/ -- --kubeconfig-path ${BINDIR}/kubeconfig.yaml
+	${BINDIR}/ginkgo -procs 1 test/smoke/ -- --kubeconfig-path ${BINDIR}/kubeconfig.yaml
 
 $(BINDIR)/kubeconfig.yaml: depend ensure-kind _FORCE | $(BINDIR)
 	$(BINDIR)/kind get kubeconfig --name trust > $@

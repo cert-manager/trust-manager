@@ -25,10 +25,12 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2/ktesting"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -52,9 +54,12 @@ var _ = Describe("Integration", func() {
 		ctx    context.Context
 		cancel func()
 
-		cl   client.Client
-		mgr  manager.Manager
-		opts bundle.Options
+		log logr.Logger
+
+		cl         client.Client
+		mgr        manager.Manager
+		mgrStopped chan struct{}
+		opts       bundle.Options
 
 		testBundle *trustapi.Bundle
 		testData   testenv.TestData
@@ -63,7 +68,8 @@ var _ = Describe("Integration", func() {
 	)
 
 	BeforeEach(func() {
-		ctx, cancel = context.WithCancel(context.Background())
+		log, ctx = ktesting.NewTestContext(GinkgoT())
+		ctx, cancel = context.WithCancel(ctx)
 
 		var err error
 
@@ -90,24 +96,30 @@ var _ = Describe("Integration", func() {
 			DefaultPackageLocation: tmpFileName,
 		}
 
+		By("Make sure that managaer is not running")
+		Expect(mgr).To(BeNil())
+
 		mgr, err = ctrl.NewManager(env.Config, ctrl.Options{
 			Scheme:   trustapi.GlobalScheme,
 			NewCache: bundle.NewCacheFunc(opts),
-			// TODO: can we disable leader election here? The mgr goroutine prints extra output we probably don't need
-			// and it might not be valuable to enable leader election here
-			LeaderElection:                true,
-			LeaderElectionNamespace:       opts.Namespace,
-			LeaderElectionResourceLock:    "leases",
-			LeaderElectionID:              "trust-manager",
-			LeaderElectionReleaseOnCancel: true,
-			Logger:                        logf.Log,
+			// we don't need leader election for this test,
+			// there should only be one test running at a time
+			LeaderElection: false,
+			Logger:         log,
 		})
 		Expect(err).NotTo(HaveOccurred())
+
+		mgrStopped = make(chan struct{})
 
 		Expect(bundle.AddBundleController(ctx, mgr, opts)).NotTo(HaveOccurred())
 
 		By("Running Bundle controller")
-		go mgr.Start(ctx)
+		go func() {
+			defer close(mgrStopped)
+
+			err := mgr.Start(ctx)
+			Expect(err).NotTo(HaveOccurred())
+		}()
 
 		By("Waiting for Informers to Sync")
 		Expect(mgr.GetCache().WaitForCacheSync(ctx)).Should(BeTrue())
@@ -136,6 +148,10 @@ var _ = Describe("Integration", func() {
 
 		By("Removing default package")
 		Expect(os.Remove(tmpFileName)).ToNot(HaveOccurred())
+
+		<-mgrStopped
+		// set to nil to indicate that the manager has been stopped
+		mgr = nil
 	})
 
 	It("should update all targets when a ConfigMap source is added", func() {
