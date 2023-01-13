@@ -96,9 +96,14 @@ var _ = Describe("Integration", func() {
 			DefaultPackageLocation: tmpFileName,
 		}
 
+		By("Make sure that managaer is not running")
+		Expect(mgr).To(BeNil())
+
 		mgr, err = ctrl.NewManager(env.Config, ctrl.Options{
-			Scheme:         trustapi.GlobalScheme,
-			NewCache:       bundle.NewCacheFunc(opts),
+			Scheme:   trustapi.GlobalScheme,
+			NewCache: bundle.NewCacheFunc(opts),
+			// we don't need leader election for this test,
+			// there should only be one test running at a time
 			LeaderElection: false,
 			Logger:         log,
 		})
@@ -145,6 +150,8 @@ var _ = Describe("Integration", func() {
 		Expect(os.Remove(tmpFileName)).ToNot(HaveOccurred())
 
 		<-mgrStopped
+		// set to nil to indicate that the manager has been stopped
+		mgr = nil
 	})
 
 	It("should update all targets when a ConfigMap source is added", func() {
