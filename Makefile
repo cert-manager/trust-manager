@@ -36,6 +36,8 @@ CONTAINER_REGISTRY ?= quay.io/jetstack
 
 GOPROXY ?= https://proxy.golang.org,direct
 
+KUBECONFIG ?= $(BINDIR)/kubeconfig.yaml
+
 # can't use a comma in an argument to a make function, so define a variable instead
 _COMMA := ,
 
@@ -101,9 +103,9 @@ local-images: trust-manager-load trust-package-debian-load  ## build container i
 .PHONY: kind-load
 kind-load: local-images | $(BINDIR)/kind  ## same as local-images but also run "kind load docker-image"
 	$(BINDIR)/kind load docker-image \
+		--name trust \
 		$(CONTAINER_REGISTRY)/trust-manager:latest \
-		$(CONTAINER_REGISTRY)/cert-manager-package-debian:latest$(DEBIAN_TRUST_PACKAGE_SUFFIX) \
-		--name trust
+		$(CONTAINER_REGISTRY)/cert-manager-package-debian:latest$(DEBIAN_TRUST_PACKAGE_SUFFIX)
 
 .PHONY: chart
 chart: | $(BINDIR)/helm $(BINDIR)/chart
@@ -131,7 +133,7 @@ smoke: demo  ## ensure cluster, deploy trust-manager and run smoke tests
 	${BINDIR}/ginkgo -procs 1 test/smoke/ -- --kubeconfig-path ${BINDIR}/kubeconfig.yaml
 
 $(BINDIR)/kubeconfig.yaml: depend ensure-kind _FORCE | $(BINDIR)
-	$(BINDIR)/kind get kubeconfig --name trust > $@
+	$(BINDIR)/kind get kubeconfig --name trust > $@ && chmod 600 $@
 
 .PHONY: ensure-kind
 ensure-kind: depend ensure-ci-docker-network  ## create a trust-manager kind cluster, if one doesn't already exist
@@ -142,18 +144,18 @@ ensure-kind: depend ensure-ci-docker-network  ## create a trust-manager kind clu
 	fi
 
 .PHONY: ensure-cert-manager
-ensure-cert-manager: depend ensure-kind
+ensure-cert-manager: depend ensure-kind $(BINDIR)/kubeconfig.yaml
 	@if $(BINDIR)/helm list --short --namespace cert-manager --selector name=cert-manager | grep -q cert-manager; then \
 		echo "cert-manager already installed, not trying to reinstall"; \
 	else \
 		$(BINDIR)/helm repo add jetstack https://charts.jetstack.io --force-update; \
-		$(BINDIR)/helm upgrade -i --create-namespace -n cert-manager cert-manager jetstack/cert-manager --set installCRDs=true --wait; \
+		$(BINDIR)/helm upgrade --kubeconfig $(KUBECONFIG) -i --create-namespace -n cert-manager cert-manager jetstack/cert-manager --set installCRDs=true --wait; \
 	fi
 
 .PHONY: ensure-trust-manager
 ensure-trust-manager: depend ensure-kind kind-load ensure-cert-manager
 	$(BINDIR)/helm uninstall -n cert-manager trust-manager || :
-	$(BINDIR)/helm upgrade -i -n cert-manager trust-manager deploy/charts/trust-manager/. --set image.tag=latest --set app.logLevel=2 --wait
+	$(BINDIR)/helm upgrade --kubeconfig $(KUBECONFIG) -i -n cert-manager trust-manager deploy/charts/trust-manager/. --set image.tag=latest --set defaultTrustPackage.tag=latest$(DEBIAN_TRUST_PACKAGE_SUFFIX) --set app.logLevel=2 --wait
 
 # When running in our CI environment the Docker network's subnet choice
 # causees issues with routing.
