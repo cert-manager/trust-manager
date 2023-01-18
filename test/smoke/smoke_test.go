@@ -17,10 +17,30 @@ limitations under the License.
 package smoke
 
 import (
+	"flag"
 	"testing"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"github.com/cert-manager/trust-manager/test/env"
+	"github.com/cert-manager/trust-manager/test/smoke/config"
 )
+
+var (
+	cnf *config.Config
+)
+
+func init() {
+	// subtle: Flags need to be registered in an init function when Ginkgo is used.
+	// If not, go test will call flag.Parse before ginkgo runs and our custom args will
+	// not be respected
+	cnf = config.New(flag.CommandLine)
+}
+
+var _ = BeforeSuite(func() {
+	Expect(cnf.Complete()).NotTo(HaveOccurred())
+})
 
 // Test_Smoke runs the full suite of smoke tests against trust.cert-manager.io
 func Test_Smoke(t *testing.T) {
