@@ -132,16 +132,16 @@ demo: ensure-kind kind-load ensure-cert-manager ensure-trust-manager $(BINDIR)/k
 smoke: demo  ## ensure local cluster exists, deploy trust-manager and run smoke tests
 	$(BINDIR)/ginkgo -procs 1 test/smoke/ -- --kubeconfig-path $(BINDIR)/kubeconfig.yaml
 
-$(BINDIR)/kubeconfig.yaml: depend ensure-kind _FORCE | $(BINDIR)
-	$(BINDIR)/kind get kubeconfig --name trust > $@ && chmod 600 $@
-
-.PHONY: ensure-kind
-ensure-kind: depend ensure-ci-docker-network  ## create a trust-manager kind cluster, if one doesn't already exist
+$(BINDIR)/kubeconfig.yaml: depend ensure-ci-docker-network _FORCE | $(BINDIR)
 	@if $(BINDIR)/kind get clusters | grep -q "^trust$$"; then \
 		echo "cluster already exists, not trying to create"; \
+		$(BINDIR)/kind get kubeconfig --name trust > $@ && chmod 600 $@; \
 	else \
-		$(BINDIR)/kind create cluster --name trust; \
+		$(BINDIR)/kind create cluster --name trust --kubeconfig $@ && chmod 600 $@; \
 	fi
+
+.PHONY: ensure-kind
+ensure-kind: $(BINDIR)/kubeconfig.yaml  ## create a trust-manager kind cluster, if one doesn't already exist
 
 .PHONY: ensure-cert-manager
 ensure-cert-manager: depend ensure-kind $(BINDIR)/kubeconfig.yaml  ## ensure cert-manager is installed on cluster for testing
