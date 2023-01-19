@@ -41,6 +41,7 @@ CI ?=
 # can't use a comma in an argument to a make function, so define a variable instead
 _COMMA := ,
 
+include make/color.mk
 include make/trust-manager-build.mk
 include make/trust-package-debian.mk
 
@@ -138,6 +139,8 @@ $(BINDIR)/kubeconfig.yaml: depend ensure-ci-docker-network _FORCE | $(BINDIR)
 		$(BINDIR)/kind get kubeconfig --name trust > $@ && chmod 600 $@; \
 	else \
 		$(BINDIR)/kind create cluster --name trust --kubeconfig $@ && chmod 600 $@; \
+		echo -e "$(_RED)kind cluster 'trust' was created; to access it, pass '--kubeconfig  $(BINDIR)/kubeconfig.yaml' to kubectl/helm$(_END)"; \
+		sleep 2; \
 	fi
 
 .PHONY: ensure-kind
@@ -163,9 +166,12 @@ ensure-trust-manager: depend ensure-kind kind-load ensure-cert-manager  ## ensur
 .PHONY: ensure-ci-docker-network
 ensure-ci-docker-network:
 ifneq ($(strip $(CI)),)
+	@echo -e "$(_RED)Creating CI docker network$(_END); this will cause problems if you're not in CI"
+	@echo "To undo, run 'docker network rm kind'"
+	@sleep 2
 	docker network create --driver=bridge --subnet=192.168.0.0/16 --gateway 192.168.0.1 kind || true
 	@# Sleep for 2s to avoid any races between docker's network subcommand and 'kind create'
-	sleep 2
+	@sleep 2
 endif
 
 .PHONY: build-validate-trust-package
