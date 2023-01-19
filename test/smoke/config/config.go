@@ -39,13 +39,13 @@ func New(fs *flag.FlagSet) *Config {
 
 func (c *Config) Complete() error {
 	if c.kubeConfig == "" {
-		return fmt.Errorf("--kubeconfig-path must be specified")
+		return fmt.Errorf("--kubeconfig-path must not be empty")
 	}
 
 	var err error
 	c.RestConfig, err = clientcmd.BuildConfigFromFlags("", c.kubeConfig)
 	if err != nil {
-		return fmt.Errorf("failed to build kubernetes rest config: %s", err)
+		return fmt.Errorf("failed to build kubernetes rest config from %q: %s", c.kubeConfig, err)
 	}
 
 	return nil

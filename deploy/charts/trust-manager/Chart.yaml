@@ -2,13 +2,17 @@ apiVersion: v2
 
 name: trust-manager
 type: application
-description: A Helm chart for trust-manager
+description: trust-manager is the easiest way to manage TLS trust bundles in Kubernetes and OpenShift clusters
 
 home: https://github.com/cert-manager/trust-manager
+
+kubeVersion: ">= 1.22.0-0"
+
 maintainers:
 - name: cert-manager-maintainers
   email: cert-manager-maintainers@googlegroups.com
   url: https://cert-manager.io
+
 sources:
 - https://github.com/cert-manager/trust-manager
 

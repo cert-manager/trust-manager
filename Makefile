@@ -36,9 +36,12 @@ CONTAINER_REGISTRY ?= quay.io/jetstack
 
 GOPROXY ?= https://proxy.golang.org,direct
 
+CI ?=
+
 # can't use a comma in an argument to a make function, so define a variable instead
 _COMMA := ,
 
+include make/color.mk
 include make/trust-manager-build.mk
 include make/trust-package-debian.mk
 
@@ -101,9 +104,9 @@ local-images: trust-manager-load trust-package-debian-load  ## build container i
 .PHONY: kind-load
 kind-load: local-images | $(BINDIR)/kind  ## same as local-images but also run "kind load docker-image"
 	$(BINDIR)/kind load docker-image \
+		--name trust \
 		$(CONTAINER_REGISTRY)/trust-manager:latest \
-		$(CONTAINER_REGISTRY)/cert-manager-package-debian:latest$(DEBIAN_TRUST_PACKAGE_SUFFIX) \
-		--name trust
+		$(CONTAINER_REGISTRY)/cert-manager-package-debian:latest$(DEBIAN_TRUST_PACKAGE_SUFFIX)
 
 .PHONY: chart
 chart: | $(BINDIR)/helm $(BINDIR)/chart
@@ -114,7 +117,7 @@ verify-helm-docs: | $(BINDIR)/helm-docs
 	./hack/verify-helm-docs.sh $(BINDIR)/helm-docs
 
 .PHONY: update-helm-docs
-update-helm-docs: | $(BINDIR)/helm-docs
+update-helm-docs: | $(BINDIR)/helm-docs  ## update Helm README, generated from other Helm files
 	./hack/update-helm-docs.sh $(BINDIR)/helm-docs
 
 .PHONY: clean
@@ -127,33 +130,35 @@ clean: ## clean up created files
 demo: ensure-kind kind-load ensure-cert-manager ensure-trust-manager $(BINDIR)/kubeconfig.yaml  ## ensure a cluster ready for a smoke test or local testing
 
 .PHONY: smoke
-smoke: demo  ## ensure cluster, deploy trust-manager and run smoke tests
-	${BINDIR}/ginkgo -procs 1 test/smoke/ -- --kubeconfig-path ${BINDIR}/kubeconfig.yaml
+smoke: demo  ## ensure local cluster exists, deploy trust-manager and run smoke tests
+	$(BINDIR)/ginkgo -procs 1 test/smoke/ -- --kubeconfig-path $(BINDIR)/kubeconfig.yaml
 
-$(BINDIR)/kubeconfig.yaml: depend ensure-kind _FORCE | $(BINDIR)
-	$(BINDIR)/kind get kubeconfig --name trust > $@
-
-.PHONY: ensure-kind
-ensure-kind: depend ensure-ci-docker-network  ## create a trust-manager kind cluster, if one doesn't already exist
+$(BINDIR)/kubeconfig.yaml: depend ensure-ci-docker-network _FORCE | $(BINDIR)
 	@if $(BINDIR)/kind get clusters | grep -q "^trust$$"; then \
 		echo "cluster already exists, not trying to create"; \
+		$(BINDIR)/kind get kubeconfig --name trust > $@ && chmod 600 $@; \
 	else \
-		$(BINDIR)/kind create cluster --name trust; \
+		$(BINDIR)/kind create cluster --name trust --kubeconfig $@ && chmod 600 $@; \
+		echo -e "$(_RED)kind cluster 'trust' was created; to access it, pass '--kubeconfig  $(BINDIR)/kubeconfig.yaml' to kubectl/helm$(_END)"; \
+		sleep 2; \
 	fi
 
+.PHONY: ensure-kind
+ensure-kind: $(BINDIR)/kubeconfig.yaml  ## create a trust-manager kind cluster, if one doesn't already exist
+
 .PHONY: ensure-cert-manager
-ensure-cert-manager: depend ensure-kind
-	@if $(BINDIR)/helm list --short --namespace cert-manager --selector name=cert-manager | grep -q cert-manager; then \
+ensure-cert-manager: depend ensure-kind $(BINDIR)/kubeconfig.yaml  ## ensure cert-manager is installed on cluster for testing
+	@if $(BINDIR)/helm --kubeconfig $(BINDIR)/kubeconfig.yaml list --short --namespace cert-manager --selector name=cert-manager | grep -q cert-manager; then \
 		echo "cert-manager already installed, not trying to reinstall"; \
 	else \
 		$(BINDIR)/helm repo add jetstack https://charts.jetstack.io --force-update; \
-		$(BINDIR)/helm upgrade -i --create-namespace -n cert-manager cert-manager jetstack/cert-manager --set installCRDs=true --wait; \
+		$(BINDIR)/helm upgrade --kubeconfig $(BINDIR)/kubeconfig.yaml -i --create-namespace -n cert-manager cert-manager jetstack/cert-manager --set installCRDs=true --wait; \
 	fi
 
 .PHONY: ensure-trust-manager
-ensure-trust-manager: depend ensure-kind kind-load ensure-cert-manager
-	$(BINDIR)/helm uninstall -n cert-manager trust-manager || :
-	$(BINDIR)/helm upgrade -i -n cert-manager trust-manager deploy/charts/trust-manager/. --set image.tag=latest --set app.logLevel=2 --wait
+ensure-trust-manager: depend ensure-kind kind-load ensure-cert-manager  ## ensure trust-manager is available on cluster, built from local checkout
+	$(BINDIR)/helm uninstall --kubeconfig $(BINDIR)/kubeconfig.yaml -n cert-manager trust-manager || :
+	$(BINDIR)/helm upgrade --kubeconfig $(BINDIR)/kubeconfig.yaml -i -n cert-manager trust-manager deploy/charts/trust-manager/. --set image.tag=latest --set defaultTrustPackage.tag=latest$(DEBIAN_TRUST_PACKAGE_SUFFIX) --set app.logLevel=2 --wait
 
 # When running in our CI environment the Docker network's subnet choice
 # causees issues with routing.
@@ -161,9 +166,12 @@ ensure-trust-manager: depend ensure-kind kind-load ensure-cert-manager
 .PHONY: ensure-ci-docker-network
 ensure-ci-docker-network:
 ifneq ($(strip $(CI)),)
+	@echo -e "$(_RED)Creating CI docker network$(_END); this will cause problems if you're not in CI"
+	@echo "To undo, run 'docker network rm kind'"
+	@sleep 2
 	docker network create --driver=bridge --subnet=192.168.0.0/16 --gateway 192.168.0.1 kind || true
 	@# Sleep for 2s to avoid any races between docker's network subcommand and 'kind create'
-	sleep 2
+	@sleep 2
 endif
 
 .PHONY: build-validate-trust-package
