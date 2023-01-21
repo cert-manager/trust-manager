@@ -76,3 +76,7 @@ resources: {}
   # requests:
   #   cpu: 100m
   #   memory: 128Mi
+
+crds:
+  # -- Whether or not to install the crds.
+  enabled: true
