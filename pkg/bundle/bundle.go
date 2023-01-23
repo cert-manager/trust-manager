@@ -202,7 +202,26 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 			return ctrl.Result{Requeue: true}, b.targetDirectClient.Status().Update(ctx, &bundle)
 		}
 
-		if synced {
+        secretSynced := false
+        if bundle.Spec.Target.Secret != nil {
+            var syncErr error
+            secretSynced, syncErr = b.syncSecretTarget(ctx, log, &bundle, namespaceSelector, &namespace, []byte(resolvedBundle.data))
+            if syncErr != nil {
+                log.Error(syncErr, "failed sync bundle to target namespace")
+                b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncTargetFailed", "Failed to sync secret target in Namespace %q: %s", namespace.Name, syncErr)
+
+                b.setBundleCondition(&bundle, trustapi.BundleCondition{
+                    Type:    trustapi.BundleConditionSynced,
+                    Status:  corev1.ConditionFalse,
+                    Reason:  "SyncTargetFailed",
+                    Message: fmt.Sprintf("Failed to sync bundle target secret to namespace %q: %s", namespace.Name, syncErr),
+                })
+
+                return ctrl.Result{Requeue: true}, b.targetDirectClient.Status().Update(ctx, &bundle)
+            }
+        }
+
+		if synced || secretSynced {
 			// We need to update if any target is synced.
 			needsUpdate = true
 		}

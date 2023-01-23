@@ -96,6 +96,10 @@ type BundleTarget struct {
 	// data will be synced to.
 	ConfigMap *KeySelector `json:"configMap,omitempty"`
 
+    // Secret is the target Secret in Namespaces that all Bundle source
+    // data will be synced to.
+    Secret *KeySelector `json:"secret,omitempty"`
+
 	// NamespaceSelector will, if set, only sync the target resource in
 	// Namespaces which match the selector.
 	// +optional

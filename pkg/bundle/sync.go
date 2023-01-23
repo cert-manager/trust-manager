@@ -18,6 +18,7 @@ package bundle
 
 import (
 	"context"
+    "bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -210,7 +211,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 	}
 
 	// Match, return do nothing
-	if cmdata, ok := configMap.Data[target.ConfigMap.Key]; !ok || cmdata != data {
+	if cmdata, ok2 := configMap.Data[target.ConfigMap.Key]; !ok2 || cmdata != data {
 		if configMap.Data == nil {
 			configMap.Data = make(map[string]string)
 		}
@@ -223,8 +224,97 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 		return false, nil
 	}
 
-	if err := b.targetDirectClient.Update(ctx, &configMap); err != nil {
+	if err = b.targetDirectClient.Update(ctx, &configMap); err != nil {
 		return true, fmt.Errorf("failed to update configmap %s/%s with bundle: %w", namespace, bundle.Name, err)
+	}
+
+	log.V(2).Info("synced bundle to namespace")
+
+	return true, nil
+}
+
+// syncSecretTarget syncs the given data to the target Secret in the given namespace.
+// The name of the Secret is the same as the Bundle.
+// Ensures the Secret is owned by the given Bundle, and the data is up to date.
+// Returns true if the Secret has been created or was updated.
+func (b *bundle) syncSecretTarget(ctx context.Context, log logr.Logger,
+	bundle *trustapi.Bundle,
+	namespaceSelector labels.Selector,
+	namespace *corev1.Namespace,
+	data []byte,
+) (bool, error) {
+	target := bundle.Spec.Target
+
+	if target.Secret == nil {
+        // Fail silently, since target.Secret is optional
+		return false, nil
+	}
+
+	matchNamespace := namespaceSelector.Matches(labels.Set(namespace.Labels))
+
+	var secret corev1.Secret
+	err := b.targetDirectClient.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: bundle.Name}, &secret)
+
+	// If the Secret doesn't exist yet, create it.
+	if apierrors.IsNotFound(err) {
+		// If the namespace doesn't match selector we do nothing since we don't
+		// want to create it, and it also doesn't exist.
+		if !matchNamespace {
+			log.V(4).Info("ignoring namespace as it doesn't match selector", "labels", namespace.Labels)
+			return false, nil
+		}
+
+        secret = corev1.Secret{
+            ObjectMeta: metav1.ObjectMeta{
+                Name:           bundle.Name,
+                Namespace:      namespace.Name,
+                OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(bundle, trustapi.SchemeGroupVersion.WithKind("Bundle"))},
+            },
+            Type: "Opaque",
+            Data: map[string][]byte{
+                target.Secret.Key: data,
+            },
+        }
+
+		return true, b.targetDirectClient.Create(ctx, &secret)
+	}
+
+	// Here, the secret exists, but the selector doesn't match the namespace.
+	if !matchNamespace {
+		// The ConfigMap is owned by this controller- delete it.
+		if metav1.IsControlledBy(&secret, bundle) {
+			log.V(2).Info("deleting bundle from Namespace since namespaceSelector does not match")
+			return true, b.targetDirectClient.Delete(ctx, &secret)
+		}
+		// The ConfigMap isn't owned by us, so we shouldn't delete it. Return that
+		// we did nothing.
+		b.recorder.Eventf(&secret, corev1.EventTypeWarning, "NotOwned", "Secret is not owned by trust.cert-manager.io so ignoring")
+		return false, nil
+	}
+
+	var needsUpdate bool
+	// If ConfigMap is missing OwnerReference, add it back.
+	if !metav1.IsControlledBy(&secret, bundle) {
+		secret.OwnerReferences = append(secret.OwnerReferences, *metav1.NewControllerRef(bundle, trustapi.SchemeGroupVersion.WithKind("Bundle")))
+		needsUpdate = true
+	}
+
+	// Match, return do nothing
+	if cmdata, ok := secret.Data[target.Secret.Key]; !ok || bytes.Compare(cmdata, data) != 0 {
+		if secret.Data == nil {
+			secret.Data = make(map[string][]byte)
+		}
+		secret.Data[target.Secret.Key] = data
+		needsUpdate = true
+	}
+
+	// Exit early if no update is needed
+	if !needsUpdate {
+		return false, nil
+	}
+
+	if err := b.targetDirectClient.Update(ctx, &secret); err != nil {
+		return true, fmt.Errorf("failed to update secret %s/%s with bundle: %w", namespace, bundle.Name, err)
 	}
 
 	log.V(2).Info("synced bundle to namespace")

@@ -38,6 +38,7 @@ Kubernetes: `>= 1.22.0-0`
 | app.webhook.port | int | `6443` | Port that the webhook listens on. |
 | app.webhook.service | object | `{"type":"ClusterIP"}` | Type of Kubernetes Service used by the Webhook |
 | app.webhook.timeoutSeconds | int | `5` | Timeout of webhook HTTP request. |
+| authorizedSecrets[0] | string | `"ca-bundle"` |  |
 | crds.enabled | bool | `true` | Whether or not to install the crds. |
 | defaultPackageImage.pullPolicy | string | `"IfNotPresent"` | imagePullPolicy for the default package image |
 | defaultPackageImage.repository | string | `"quay.io/jetstack/cert-manager-package-debian"` | Repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles. |

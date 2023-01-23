@@ -34,6 +34,17 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - "secrets"
+  verbs: ["get", "list", "update", "watch", "delete"]
+  resourceNames: {{ .Values.authorizedSecrets | toYaml | nindent 2 }}
+- apiGroups:
+  - ""
+  resources:
+  - "secrets"
+  verbs: ["create"]
+- apiGroups:
+  - ""
+  resources:
   - "namespaces"
   verbs: ["get", "list", "watch"]
 
