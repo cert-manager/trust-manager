@@ -9,18 +9,35 @@
 
 # trust-manager
 
-trust-manager is an operator for distributing trust bundles across a Kubernetes cluster.
-trust-manager is designed to complement
-[cert-manager](https://github.com/cert-manager/cert-manager) by enabling services to
-trust X.509 certificates signed by Issuers, as well as external CAs which may
-not be known to cert-manager at all.
+trust-manager is the easiest way to manage trust bundles in Kubernetes and OpenShift clusters.
 
-⚠️ trust-manager is still an early stage project and will undergo large changes as it's developed.
+It orchestrates bundles of trusted X.509 certificates which are primarily used for validating
+certificates during a TLS handshake but can be used in other situations, too.
 
-We'd encourage you to test it and we'd hope it'll be useful; just be prepared for breaking changes!
+⚠️ trust-manager is still an early stage project and may undergo large changes as it's developed.
+
+We'd encourage you to test it and we believe it's useful, but while we'll strive to avoid any
+breaking changes we reserve the right to break things if we must!
 
 ---
 
-Please follow the documentation at
-[cert-manager.io](https://cert-manager.io/docs/projects/trust-manager/) for
-installing and using trust-manager.
+Please follow the documentation on [cert-manager.io](https://cert-manager.io/docs/projects/trust-manager/) to
+install trust-manager.
+
+## Demo
+
+If you've got Docker installed and you just want to play with trust-manager as soon as possible, we provide
+a `demo` command to get a [Kind cluster](https://kind.sigs.k8s.io/) set up with minimal fuss.
+
+First, clone the repo then run `make demo`:
+
+```bash
+git clone --single-branch https://github.com/cert-manager/trust-manager trust-manager
+cd trust-manager
+make demo
+# kubeconfig is in ./bin/kubeconfig.yaml
+# kind cluster is called "trust"
+```
+
+The demo installation uses Helm, and roughly matches what you'd get by installing trust-manager into your own
+cluster using Helm - although it uses locally-built images rather than the ones we publish publicly.
