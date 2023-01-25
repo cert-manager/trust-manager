@@ -40,7 +40,7 @@ webhooks:
           - UPDATE
         resources:
           - "*/*"
-    admissionReviewVersions: ["v1", "v1beta1"]
+    admissionReviewVersions: ["v1"]
     timeoutSeconds: {{ .Values.app.webhook.timeoutSeconds }}
     failurePolicy: Fail
     sideEffects: None
