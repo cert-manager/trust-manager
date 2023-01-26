@@ -2,13 +2,14 @@ module github.com/cert-manager/tools/hack/tools
 
 go 1.19
 
-require github.com/norwoodj/helm-docs v1.10.0
+require github.com/norwoodj/helm-docs v1.11.0
 
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.1.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.2 // indirect
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
+	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huandu/xstrings v1.3.1 // indirect
