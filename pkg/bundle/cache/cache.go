@@ -159,7 +159,7 @@ func (b *multiScopedCache) IndexField(ctx context.Context, obj client.Object, fi
 }
 
 // Get returns the underlying cache's Get based on resource type.
-func (b *multiScopedCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+func (b *multiScopedCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	gvk, err := apiutil.GVKForObject(obj, b.scheme)
 	if err != nil {
 		return err
@@ -169,7 +169,7 @@ func (b *multiScopedCache) Get(ctx context.Context, key client.ObjectKey, obj cl
 	if err != nil {
 		return err
 	}
-	return cache.Get(ctx, key, obj)
+	return cache.Get(ctx, key, obj, opts...)
 }
 
 // List returns the underlying cache's List based on resource type.
