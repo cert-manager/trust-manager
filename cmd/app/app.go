@@ -69,7 +69,6 @@ func NewCommand() *cobra.Command {
 				EventBroadcaster:              eventBroadcaster,
 				LeaderElection:                true,
 				LeaderElectionNamespace:       opts.Bundle.Namespace,
-				NewCache:                      bundle.NewCacheFunc(opts.Bundle),
 				LeaderElectionID:              "trust-manager-leader-election",
 				LeaderElectionReleaseOnCancel: true,
 				ReadinessEndpointName:         opts.ReadyzPath,

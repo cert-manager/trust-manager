@@ -59,10 +59,9 @@ type bundle struct {
 	// resources whose informer only caches metadata.
 	directClient client.Client
 
-	// lister makes requests to the informer cache. Beware that resources whose
-	// informer only caches metadata, will not return underlying data of that
-	// resource. Use client instead.
-	lister client.Reader
+	// sourceLister makes requests to the informer cache. All cached source resources
+	// are expected to be full objects in a single namespace (the TrustNamespace).
+	sourceLister client.Reader
 
 	// defaultPackage holds the loaded 'default' certificate package, if one was specified
 	// at startup.
@@ -86,7 +85,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	log.V(2).Info("syncing bundle")
 
 	var bundle trustapi.Bundle
-	err := b.lister.Get(ctx, req.NamespacedName, &bundle)
+	err := b.sourceLister.Get(ctx, req.NamespacedName, &bundle)
 	if apierrors.IsNotFound(err) {
 		log.V(2).Info("bundle no longer exists, ignoring")
 		return ctrl.Result{}, nil
@@ -107,7 +106,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	}
 
 	var namespaceList corev1.NamespaceList
-	if err := b.lister.List(ctx, &namespaceList); err != nil {
+	if err := b.sourceLister.List(ctx, &namespaceList); err != nil {
 		log.Error(err, "failed to list namespaces")
 		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceListError", "Failed to list namespaces: %s", err)
 		return ctrl.Result{}, fmt.Errorf("failed to list Namespaces: %w", err)

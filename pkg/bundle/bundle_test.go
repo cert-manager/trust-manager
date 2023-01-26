@@ -809,7 +809,7 @@ func Test_Reconcile(t *testing.T) {
 
 			b := &bundle{
 				directClient: fakeclient,
-				lister:       fakeclient,
+				sourceLister: fakeclient,
 				recorder:     fakerecorder,
 				clock:        fixedclock,
 				Options: Options{

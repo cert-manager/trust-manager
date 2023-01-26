@@ -552,6 +552,7 @@ func Test_buildSourceBundle(t *testing.T) {
 
 			b := &bundle{
 				directClient: fakeclient,
+				sourceLister: fakeclient,
 				defaultPackage: &fspkg.Package{
 					Name:    "testpkg",
 					Version: "123",

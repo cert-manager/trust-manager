@@ -100,8 +100,7 @@ var _ = Describe("Integration", func() {
 		Expect(mgr).To(BeNil())
 
 		mgr, err = ctrl.NewManager(env.Config, ctrl.Options{
-			Scheme:   trustapi.GlobalScheme,
-			NewCache: bundle.NewCacheFunc(opts),
+			Scheme: trustapi.GlobalScheme,
 			// we don't need leader election for this test,
 			// there should only be one test running at a time
 			LeaderElection: false,

@@ -102,10 +102,10 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 	return resolvedBundle, nil
 }
 
-// configMapBundle returns the data in the target ConfigMap within the trust Namespace.
+// configMapBundle returns the data in the source ConfigMap within the trust Namespace.
 func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObjectKeySelector) (string, error) {
 	var configMap corev1.ConfigMap
-	err := b.directClient.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &configMap)
+	err := b.sourceLister.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &configMap)
 	if apierrors.IsNotFound(err) {
 		return "", notFoundError{err}
 	}
@@ -125,7 +125,7 @@ func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObject
 // secretBundle returns the data in the target Secret within the trust Namespace.
 func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKeySelector) (string, error) {
 	var secret corev1.Secret
-	err := b.directClient.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &secret)
+	err := b.sourceLister.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &secret)
 	if apierrors.IsNotFound(err) {
 		return "", notFoundError{err}
 	}
