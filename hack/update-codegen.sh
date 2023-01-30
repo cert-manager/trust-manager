@@ -46,7 +46,7 @@ ${BIN_DIR}/deepcopy-gen --input-dirs "$(codegen::join , "${FQ_APIS[@]}")" -O zz_
 echo "Generating CRDs in ./deploy/crds"
 ${BIN_DIR}/controller-gen crd schemapatch:manifests=./deploy/crds output:dir=./deploy/crds paths=./pkg/apis/...
 
-echo "Updating CRDs with helm templating, writing to /deploy/charts/trust-manager/templates"
+echo "Updating CRDs with helm templating, writing to ./deploy/charts/trust-manager/templates"
 for i in $(ls ./deploy/crds); do
 
   cat << EOF > ./deploy/charts/trust-manager/templates/$i
