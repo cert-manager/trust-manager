@@ -59,7 +59,7 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 		Namespace: opts.Namespace,
 
 		// These transforms are used as a safety check to ensure that only
-		// resources that only the expected types are cached.
+		// resources of the expected types are cached.
 		TransformByObject: map[client.Object]toolscache.TransformFunc{
 			new(corev1.Namespace): func(obj interface{}) (interface{}, error) {
 				return obj, nil
@@ -90,7 +90,7 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 		Mapper: mgr.GetRESTMapper(),
 
 		// These transforms are used as a safety check to ensure that only
-		// resources that only the expected types are cached.
+		// resources of the expected types are cached.
 		TransformByObject: map[client.Object]toolscache.TransformFunc{
 			&metav1.PartialObjectMetadata{
 				TypeMeta: metav1.TypeMeta{
