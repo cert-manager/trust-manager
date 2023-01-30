@@ -61,7 +61,7 @@ func NewCommand() *cobra.Command {
 
 			mlog := opts.Logr.WithName("manager")
 			eventBroadcaster := record.NewBroadcaster()
-			eventBroadcaster.StartLogging(func(format string, args ...interface{}) { mlog.V(3).Info(fmt.Sprintf(format, args...)) })
+			eventBroadcaster.StartLogging(func(format string, args ...any) { mlog.V(3).Info(fmt.Sprintf(format, args...)) })
 			eventBroadcaster.StartRecordingToSink(&clientv1.EventSinkImpl{Interface: cl.CoreV1().Events("")})
 
 			mgr, err := ctrl.NewManager(opts.RestConfig, ctrl.Options{

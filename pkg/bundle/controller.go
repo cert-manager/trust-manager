@@ -61,20 +61,20 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 		// These transforms are used as a safety check to ensure that only
 		// resources of the expected types are cached.
 		TransformByObject: map[client.Object]toolscache.TransformFunc{
-			new(corev1.Namespace): func(obj interface{}) (interface{}, error) {
+			new(corev1.Namespace): func(obj any) (any, error) {
 				return obj, nil
 			},
-			new(trustapi.Bundle): func(obj interface{}) (interface{}, error) {
+			new(trustapi.Bundle): func(obj any) (any, error) {
 				return obj, nil
 			},
-			new(corev1.Secret): func(obj interface{}) (interface{}, error) {
+			new(corev1.Secret): func(obj any) (any, error) {
 				return obj, nil
 			},
-			new(corev1.ConfigMap): func(obj interface{}) (interface{}, error) {
+			new(corev1.ConfigMap): func(obj any) (any, error) {
 				return obj, nil
 			},
 		},
-		DefaultTransform: func(obj interface{}) (interface{}, error) {
+		DefaultTransform: func(obj any) (any, error) {
 			return nil, fmt.Errorf("object %T not supported by target cache", obj)
 		},
 	})
@@ -97,11 +97,11 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 					Kind:       "ConfigMap",
 					APIVersion: "v1",
 				},
-			}: func(obj interface{}) (interface{}, error) {
+			}: func(obj any) (any, error) {
 				return obj, nil
 			},
 		},
-		DefaultTransform: func(obj interface{}) (interface{}, error) {
+		DefaultTransform: func(obj any) (any, error) {
 			return nil, fmt.Errorf("object %T not supported by target cache", obj)
 		},
 	})
