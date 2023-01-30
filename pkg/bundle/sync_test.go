@@ -333,7 +333,7 @@ func Test_syncTarget(t *testing.T) {
 			fakeclient := clientBuilder.Build()
 			fakerecorder := record.NewFakeRecorder(1)
 
-			b := &bundle{directClient: fakeclient, recorder: fakerecorder}
+			b := &bundle{targetDirectClient: fakeclient, recorder: fakerecorder}
 
 			needsUpdate, err := b.syncTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
@@ -551,8 +551,8 @@ func Test_buildSourceBundle(t *testing.T) {
 				Build()
 
 			b := &bundle{
-				directClient: fakeclient,
-				sourceLister: fakeclient,
+				targetDirectClient: fakeclient,
+				sourceLister:       fakeclient,
 				defaultPackage: &fspkg.Package{
 					Name:    "testpkg",
 					Version: "123",

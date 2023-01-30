@@ -160,7 +160,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 	matchNamespace := namespaceSelector.Matches(labels.Set(namespace.Labels))
 
 	var configMap corev1.ConfigMap
-	err := b.directClient.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: bundle.Name}, &configMap)
+	err := b.targetDirectClient.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: bundle.Name}, &configMap)
 
 	// If the ConfigMap doesn't exist yet, create it.
 	if apierrors.IsNotFound(err) {
@@ -182,7 +182,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 			},
 		}
 
-		return true, b.directClient.Create(ctx, &configMap)
+		return true, b.targetDirectClient.Create(ctx, &configMap)
 	}
 
 	if err != nil {
@@ -194,7 +194,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 		// The ConfigMap is owned by this controller- delete it.
 		if metav1.IsControlledBy(&configMap, bundle) {
 			log.V(2).Info("deleting bundle from Namespace since namespaceSelector does not match")
-			return true, b.directClient.Delete(ctx, &configMap)
+			return true, b.targetDirectClient.Delete(ctx, &configMap)
 		}
 		// The ConfigMap isn't owned by us, so we shouldn't delete it. Return that
 		// we did nothing.
@@ -223,7 +223,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 		return false, nil
 	}
 
-	if err := b.directClient.Update(ctx, &configMap); err != nil {
+	if err := b.targetDirectClient.Update(ctx, &configMap); err != nil {
 		return true, fmt.Errorf("failed to update configmap %s/%s with bundle: %w", namespace, bundle.Name, err)
 	}
 

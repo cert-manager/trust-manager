@@ -45,7 +45,7 @@ import (
 // when any related resource event in the Bundle source and target.
 // The controller will only cache metadata for ConfigMaps and Secrets.
 func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options) error {
-	directClient, err := client.New(mgr.GetConfig(), client.Options{
+	targetDirectClient, err := client.New(mgr.GetConfig(), client.Options{
 		Scheme: mgr.GetScheme(),
 		Mapper: mgr.GetRESTMapper(),
 	})
@@ -113,11 +113,11 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 	}
 
 	b := &bundle{
-		directClient: directClient,
-		sourceLister: sourceCache,
-		recorder:     mgr.GetEventRecorderFor("bundles"),
-		clock:        clock.RealClock{},
-		Options:      opts,
+		targetDirectClient: targetDirectClient,
+		sourceLister:       sourceCache,
+		recorder:           mgr.GetEventRecorderFor("bundles"),
+		clock:              clock.RealClock{},
+		Options:            opts,
 	}
 
 	if b.Options.DefaultPackageLocation != "" {
