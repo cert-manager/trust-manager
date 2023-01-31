@@ -54,15 +54,14 @@ type Options struct {
 // bundle is a controller-runtime controller. Implements the actual controller
 // logic by reconciling over Bundles.
 type bundle struct {
-	// directClient is a Kubernetes client that makes calls to the API for every request.
+	// targetDirectClient is a Kubernetes client that makes calls to the API for every request.
 	// Should be used for updating, deleting, and when requesting data from
 	// resources whose informer only caches metadata.
-	directClient client.Client
+	targetDirectClient client.Client
 
-	// lister makes requests to the informer cache. Beware that resources whose
-	// informer only caches metadata, will not return underlying data of that
-	// resource. Use client instead.
-	lister client.Reader
+	// sourceLister makes requests to the informer cache. All cached source resources
+	// are expected to be full objects in a single namespace (the TrustNamespace).
+	sourceLister client.Reader
 
 	// defaultPackage holds the loaded 'default' certificate package, if one was specified
 	// at startup.
@@ -86,7 +85,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	log.V(2).Info("syncing bundle")
 
 	var bundle trustapi.Bundle
-	err := b.lister.Get(ctx, req.NamespacedName, &bundle)
+	err := b.sourceLister.Get(ctx, req.NamespacedName, &bundle)
 	if apierrors.IsNotFound(err) {
 		log.V(2).Info("bundle no longer exists, ignoring")
 		return ctrl.Result{}, nil
@@ -107,7 +106,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	}
 
 	var namespaceList corev1.NamespaceList
-	if err := b.lister.List(ctx, &namespaceList); err != nil {
+	if err := b.sourceLister.List(ctx, &namespaceList); err != nil {
 		log.Error(err, "failed to list namespaces")
 		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceListError", "Failed to list namespaces: %s", err)
 		return ctrl.Result{}, fmt.Errorf("failed to list Namespaces: %w", err)
@@ -126,7 +125,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 				},
 			}
 
-			err := b.directClient.Get(ctx, client.ObjectKeyFromObject(configMap), configMap)
+			err := b.targetDirectClient.Get(ctx, client.ObjectKeyFromObject(configMap), configMap)
 
 			// Ignore ConfigMaps that have not been created yet, as they will be
 			// created later on in the sync.
@@ -142,7 +141,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 
 			delete(configMap.Data, bundle.Status.Target.ConfigMap.Key)
 
-			if err := b.directClient.Update(ctx, configMap); err != nil {
+			if err := b.targetDirectClient.Update(ctx, configMap); err != nil {
 				log.Error(err, "failed to delete old ConfigMap target key")
 				b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "TargetUpdateError", "Failed to remove old key from ConfigMap target: %s", err)
 				return ctrl.Result{}, fmt.Errorf("failed to delete old ConfigMap target key: %w", err)
@@ -153,7 +152,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 
 		// Return with update here, so targets are synced on the next Reconcile.
 		bundle.Status.Target = &bundle.Spec.Target
-		return ctrl.Result{}, b.directClient.Status().Update(ctx, &bundle)
+		return ctrl.Result{}, b.targetDirectClient.Status().Update(ctx, &bundle)
 	}
 
 	resolvedBundle, err := b.buildSourceBundle(ctx, &bundle)
@@ -169,7 +168,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		})
 
 		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SourceNotFound", "Bundle source was not found: %s", err)
-		return ctrl.Result{}, b.directClient.Status().Update(ctx, &bundle)
+		return ctrl.Result{}, b.targetDirectClient.Status().Update(ctx, &bundle)
 	}
 
 	if err != nil {
@@ -200,7 +199,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 				Message: fmt.Sprintf("Failed to sync bundle to namespace %q: %s", namespace.Name, err),
 			})
 
-			return ctrl.Result{Requeue: true}, b.directClient.Status().Update(ctx, &bundle)
+			return ctrl.Result{Requeue: true}, b.targetDirectClient.Status().Update(ctx, &bundle)
 		}
 
 		if synced {
@@ -241,5 +240,5 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 
 	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", message)
 
-	return ctrl.Result{}, b.directClient.Status().Update(ctx, &bundle)
+	return ctrl.Result{}, b.targetDirectClient.Status().Update(ctx, &bundle)
 }

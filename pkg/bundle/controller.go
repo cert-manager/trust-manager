@@ -22,9 +22,8 @@ import (
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -32,12 +31,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
-	multiscopedcache "github.com/cert-manager/trust-manager/pkg/bundle/cache"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
 
@@ -47,7 +44,7 @@ import (
 // when any related resource event in the Bundle source and target.
 // The controller will only cache metadata for ConfigMaps and Secrets.
 func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options) error {
-	directClient, err := client.New(mgr.GetConfig(), client.Options{
+	targetDirectClient, err := client.New(mgr.GetConfig(), client.Options{
 		Scheme: mgr.GetScheme(),
 		Mapper: mgr.GetRESTMapper(),
 	})
@@ -55,12 +52,44 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 		return fmt.Errorf("failed to create client: %w", err)
 	}
 
+	sourceCache, err := cache.New(mgr.GetConfig(), cache.Options{
+		Scheme:    mgr.GetScheme(),
+		Mapper:    mgr.GetRESTMapper(),
+		Namespace: opts.Namespace,
+
+		// These transforms are used as a safety check to ensure that only
+		// resources of the expected types are cached.
+		TransformByObject: map[client.Object]toolscache.TransformFunc{
+			new(corev1.Namespace): func(obj any) (any, error) {
+				return obj, nil
+			},
+			new(trustapi.Bundle): func(obj any) (any, error) {
+				return obj, nil
+			},
+			new(corev1.Secret): func(obj any) (any, error) {
+				return obj, nil
+			},
+			new(corev1.ConfigMap): func(obj any) (any, error) {
+				return obj, nil
+			},
+		},
+		DefaultTransform: func(obj any) (any, error) {
+			return nil, fmt.Errorf("object %T not supported by target cache", obj)
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create source cache: %w", err)
+	}
+	if err := mgr.Add(sourceCache); err != nil {
+		return fmt.Errorf("failed to add source cache to manager: %w", err)
+	}
+
 	b := &bundle{
-		directClient: directClient,
-		lister:       mgr.GetCache(),
-		recorder:     mgr.GetEventRecorderFor("bundles"),
-		clock:        clock.RealClock{},
-		Options:      opts,
+		targetDirectClient: targetDirectClient,
+		sourceLister:       sourceCache,
+		recorder:           mgr.GetEventRecorderFor("bundles"),
+		clock:              clock.RealClock{},
+		Options:            opts,
 	}
 
 	if b.Options.DefaultPackageLocation != "" {
@@ -76,29 +105,26 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 
 	// Only reconcile config maps that match the well known name
 	if err := ctrl.NewControllerManagedBy(mgr).
-		// Reconcile trust.cert-manager.io Bundles
-		For(new(trustapi.Bundle)).
+		Named("bundles").
+
+		////// Targets //////
 
 		// Reconcile over owned ConfigMaps in all Namespaces. Only cache metadata.
 		// These ConfigMaps will be Bundle Targets
-		Owns(new(corev1.ConfigMap), builder.OnlyMetadata).
+		Watches(&source.Kind{Type: new(corev1.ConfigMap)}, &handler.EnqueueRequestForOwner{
+			OwnerType:    new(trustapi.Bundle),
+			IsController: true,
+		}, builder.OnlyMetadata).
+
+		////// Sources //////
+
+		// Reconcile trust.cert-manager.io Bundles
+		Watches(source.NewKindWithCache(new(trustapi.Bundle), sourceCache), &handler.EnqueueRequestForObject{}).
 
 		// Watch all Namespaces. Cache whole Namespaces to include Phase Status.
 		// Reconcile all Bundles on a Namespace change.
-		Watches(&source.Kind{Type: new(corev1.Namespace)}, handler.EnqueueRequestsFromMapFunc(
+		Watches(source.NewKindWithCache(new(corev1.Namespace), sourceCache), handler.EnqueueRequestsFromMapFunc(
 			func(obj client.Object) []reconcile.Request {
-				err := b.lister.Get(ctx, client.ObjectKeyFromObject(obj), obj)
-				if apierrors.IsNotFound(err) {
-					// No need to reconcile all Bundles if the namespace has been deleted.
-					return nil
-				}
-
-				if err != nil {
-					// If an error occurred we still need to reconcile all Bundles to
-					// ensure no Namespace gets lost.
-					b.Log.Error(err, "failed to get Namespace, reconciling all Bundles anyway", "namespace", obj.GetName())
-				}
-
 				// If an error happens here and we do nothing, we run the risk of
 				// leaving a Namespace behind when syncing.
 				// Exiting error is the safest option, as it will force a resync on
@@ -116,9 +142,8 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 
 		// Watch ConfigMaps in trust Namespace. Only cache metadata.
 		// Reconcile Bundles who reference a modified source ConfigMap.
-		Watches(&source.Kind{Type: new(corev1.ConfigMap)}, handler.EnqueueRequestsFromMapFunc(
+		Watches(source.NewKindWithCache(new(corev1.ConfigMap), sourceCache), handler.EnqueueRequestsFromMapFunc(
 			func(obj client.Object) []reconcile.Request {
-
 				// If an error happens here and we do nothing, we run the risk of
 				// having trust Bundles out of sync with this source or target
 				// ConfigMap.
@@ -143,14 +168,11 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 
 				return requests
 			},
-		), builder.OnlyMetadata, builder.WithPredicates(predicate.NewPredicateFuncs(func(obj client.Object) bool {
-			// Only process ConfigMaps in the trust Namespace.
-			return obj.GetNamespace() == b.Namespace
-		}))).
+		)).
 
 		// Watch Secrets in trust Namespace. Only cache metadata.
 		// Reconcile Bundles who reference a modified source Secret.
-		Watches(&source.Kind{Type: new(corev1.Secret)}, handler.EnqueueRequestsFromMapFunc(
+		Watches(source.NewKindWithCache(new(corev1.Secret), sourceCache), handler.EnqueueRequestsFromMapFunc(
 			func(obj client.Object) []reconcile.Request {
 				// If an error happens here and we do nothing, we run the risk of
 				// having trust Bundles out of sync with this source Secret.
@@ -175,10 +197,7 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 
 				return requests
 			},
-		), builder.OnlyMetadata, builder.WithPredicates(predicate.NewPredicateFuncs(func(obj client.Object) bool {
-			// Only process Secrets in the trust Namespace.
-			return obj.GetNamespace() == b.Namespace
-		}))).
+		)).
 
 		// Complete controller.
 		Complete(b); err != nil {
@@ -192,16 +211,10 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 // error occurs, will exit error the program.
 func (b *bundle) mustBundleList(ctx context.Context) *trustapi.BundleList {
 	var bundleList trustapi.BundleList
-	if err := b.lister.List(ctx, &bundleList); err != nil {
+	if err := b.sourceLister.List(ctx, &bundleList); err != nil {
 		b.Log.Error(err, "failed to list all Bundles, exiting error")
 		os.Exit(-1)
 	}
 
 	return &bundleList
-}
-
-// NewCacheFunc will return a multi-scoped controller-runtime NewCacheFunc
-// where Secret resources will only be watched within the trust Namespace.
-func NewCacheFunc(opts Options) cache.NewCacheFunc {
-	return multiscopedcache.NewMultiScopedCache(opts.Namespace, []schema.GroupKind{{Kind: "Secret"}})
 }
