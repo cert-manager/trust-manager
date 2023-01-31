@@ -22,7 +22,6 @@ import (
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/utils/clock"
@@ -85,33 +84,6 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 		return fmt.Errorf("failed to add source cache to manager: %w", err)
 	}
 
-	targetCache, err := cache.New(mgr.GetConfig(), cache.Options{
-		Scheme: mgr.GetScheme(),
-		Mapper: mgr.GetRESTMapper(),
-
-		// These transforms are used as a safety check to ensure that only
-		// resources of the expected types are cached.
-		TransformByObject: map[client.Object]toolscache.TransformFunc{
-			&metav1.PartialObjectMetadata{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "ConfigMap",
-					APIVersion: "v1",
-				},
-			}: func(obj any) (any, error) {
-				return obj, nil
-			},
-		},
-		DefaultTransform: func(obj any) (any, error) {
-			return nil, fmt.Errorf("object %T not supported by target cache", obj)
-		},
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create target cache: %w", err)
-	}
-	if err := mgr.Add(targetCache); err != nil {
-		return fmt.Errorf("failed to add target cache to manager: %w", err)
-	}
-
 	b := &bundle{
 		targetDirectClient: targetDirectClient,
 		sourceLister:       sourceCache,
@@ -139,7 +111,7 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 
 		// Reconcile over owned ConfigMaps in all Namespaces. Only cache metadata.
 		// These ConfigMaps will be Bundle Targets
-		Watches(source.NewKindWithCache(new(corev1.ConfigMap), targetCache), &handler.EnqueueRequestForOwner{
+		Watches(&source.Kind{Type: new(corev1.ConfigMap)}, &handler.EnqueueRequestForOwner{
 			OwnerType:    new(trustapi.Bundle),
 			IsController: true,
 		}, builder.OnlyMetadata).
