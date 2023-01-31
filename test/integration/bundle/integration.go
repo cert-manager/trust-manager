@@ -37,7 +37,7 @@ var _ = BeforeSuite(func() {
 	env = &envtest.Environment{
 		UseExistingCluster: pointer.Bool(false),
 		CRDDirectoryPaths: []string{
-			"../../../deploy/charts/trust-manager/templates/trust.cert-manager.io_bundles.yaml",
+			"../../../deploy/crds/trust.cert-manager.io_bundles.yaml",
 		},
 		Scheme: trustapi.GlobalScheme,
 	}
