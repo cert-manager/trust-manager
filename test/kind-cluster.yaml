@@ -1,0 +1,16 @@
+# This configuration is used to set up a Kind cluster for smoke tests or demo environments.
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+# WARNING: Makefile commands which interact with the cluster _require_ that it be called "trust"
+# Changing the name here will stop the cluster being able to be controlled via Make!
+name: trust
+nodes:
+- role: control-plane
+  # Enable OwnerReferencesPermissionEnforcement to better match OpenShift environments in tests
+  kubeadmConfigPatches:
+  - |
+    kind: ClusterConfiguration
+    apiServer:
+        extraArgs:
+          enable-admission-plugins: OwnerReferencesPermissionEnforcement
