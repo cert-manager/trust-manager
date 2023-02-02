@@ -44,7 +44,7 @@ Kubernetes: `>= 1.22.0-0`
 | defaultPackageImage.tag | string | `"20210119.0"` | Tag for the default package image |
 | image.pullPolicy | string | `"IfNotPresent"` | Kubernetes imagePullPolicy on Deployment. |
 | image.repository | string | `"quay.io/jetstack/trust-manager"` | Target image repository. |
-| image.tag | string | `"v0.3.0"` | Target image version tag. |
+| image.tag | string | `"v0.4.0"` | Target image version tag. |
 | imagePullSecrets | list | `[]` | For Private docker registries, authentication is needed. Registry secrets are applied to the service account |
 | replicaCount | int | `1` | Number of replicas of trust to run. |
 | resources | object | `{}` |  |
