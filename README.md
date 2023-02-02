@@ -14,15 +14,17 @@ trust-manager is the easiest way to manage trust bundles in Kubernetes and OpenS
 It orchestrates bundles of trusted X.509 certificates which are primarily used for validating
 certificates during a TLS handshake but can be used in other situations, too.
 
-⚠️ trust-manager is still an early stage project and may undergo large changes as it's developed.
+⚠️ trust-manager is still an early stage project and may undergo changes as it's developed!
 
-We'd encourage you to test it and we believe it's useful, but while we'll strive to avoid any
-breaking changes we reserve the right to break things if we must!
+We encourage you to run it and test it and we truly believe it's useful! The caveat is that while
+we'll strive to avoid any breaking changes we reserve the right to break things if we _must_.
 
 ---
 
 Please follow the documentation on [cert-manager.io](https://cert-manager.io/docs/projects/trust-manager/) to
 install trust-manager.
+
+There's also full [API reference documentation](https://cert-manager.io/docs/projects/trust-manager/api-reference/) available.
 
 ## Demo
 
@@ -41,3 +43,26 @@ make demo
 
 The demo installation uses Helm, and roughly matches what you'd get by installing trust-manager into your own
 cluster using Helm - although it uses locally-built images rather than the ones we publish publicly.
+
+## Example Bundle
+
+The simplest useful Bundle to start with is likely to be one using default CAs, which are available from trust-manager 0.4.0+.
+
+This default CA package is based on Debian's `ca-certificates` package, and so matches what you'd expect to see in a Debian
+container or VM.
+
+```yaml
+apiVersion: trust.cert-manager.io/v1alpha1
+kind: Bundle
+metadata:
+  name: trust-manager-bundle
+spec:
+  sources:
+  - useDefaultCAs: true
+  target:
+    configMap:
+      key: "bundle.pem"
+```
+
+This Bundle will lead to a ConfigMap called `trust-manager-bundle` being created in all namespaces, ready to be mounted
+and used by your applications. For more details see the [trust-manager documentation](https://cert-manager.io/docs/projects/trust-manager/).
