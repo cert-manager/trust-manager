@@ -64,5 +64,9 @@ spec:
       key: "bundle.pem"
 ```
 
-This Bundle will lead to a ConfigMap called `trust-manager-bundle` being created in all namespaces, ready to be mounted
-and used by your applications. For more details see the [trust-manager documentation](https://cert-manager.io/docs/projects/trust-manager/).
+This Bundle will lead to a ConfigMap called `trust-manager-bundle` containing the default CAs being created in all namespaces, ready to be mounted
+and used by your applications.
+
+Your ConfigMap will automatically be updated if you change your bundle, too - so to update it, simply update your Bundle!
+
+For more details see the [trust-manager documentation](https://cert-manager.io/docs/projects/trust-manager/).
