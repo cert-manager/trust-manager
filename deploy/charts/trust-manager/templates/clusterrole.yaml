@@ -10,6 +10,15 @@ rules:
   resources:
   - "bundles"
   verbs: ["get", "list", "watch"]
+
+# Permissions to update finalizers are required for trust-manager to work correctly
+# on OpenShift, even though we don't directly use finalizers at the time of writing
+- apiGroups:
+  - "trust.cert-manager.io"
+  resources:
+  - "bundles/finalizers"
+  verbs: ["update"]
+
 - apiGroups:
   - "trust.cert-manager.io"
   resources:
@@ -21,6 +30,7 @@ rules:
   resources:
   - "configmaps"
   verbs: ["get", "list", "create", "update", "watch", "delete"]
+
 - apiGroups:
   - ""
   resources:
