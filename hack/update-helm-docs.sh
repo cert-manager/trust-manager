@@ -25,4 +25,4 @@ if [[ -z $HELM_DOCS_BIN ]]; then
 	exit 1
 fi
 
-$HELM_DOCS_BIN ./deploy/charts/csi-driver
+$HELM_DOCS_BIN ./deploy/charts/trust-manager
