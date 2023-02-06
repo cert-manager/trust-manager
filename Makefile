@@ -64,7 +64,7 @@ integration-test: depend  ## runs integration tests, defined as tests which requ
 	KUBEBUILDER_ASSETS=$(BINDIR)/kubebuilder/bin go test -v ./test/integration/...
 
 .PHONY: lint
-lint: vet verify-boilerplate verify-helm-docs
+lint: vet verify-boilerplate verify-helm-docs verify-versions
 
 .PHONY: verify
 verify: depend build test ## tests and builds trust-manager
@@ -72,6 +72,10 @@ verify: depend build test ## tests and builds trust-manager
 .PHONY: verify-boilerplate
 verify-boilerplate:
 	./hack/verify-boilerplate.sh
+
+.PHONY: verify-versions
+verify-versions:
+	./hack/verify-versions.sh
 
 .PHONY: vet
 vet:
