@@ -114,6 +114,15 @@ spec:
                           type: object
                           additionalProperties:
                             type: string
+                    secret:
+                      description: Secret is the target Secret in Namespaces that all Bundle source data will be synced to.
+                      type: object
+                      required:
+                        - key
+                      properties:
+                        key:
+                          description: Key is the key of the entry in the object's `data` field to be used.
+                          type: string
             status:
               description: Status of the Bundle. This is set and managed automatically.
               type: object
@@ -173,6 +182,15 @@ spec:
                           type: object
                           additionalProperties:
                             type: string
+                    secret:
+                      description: Secret is the target Secret in Namespaces that all Bundle source data will be synced to.
+                      type: object
+                      required:
+                        - key
+                      properties:
+                        key:
+                          description: Key is the key of the entry in the object's `data` field to be used.
+                          type: string
       served: true
       storage: true
       subresources:

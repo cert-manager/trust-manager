@@ -187,16 +187,16 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 			continue
 		}
 
-		synced, err := b.syncTarget(ctx, log, &bundle, namespaceSelector, &namespace, resolvedBundle.data)
+		cmSynced, err := b.syncTarget(ctx, log, &bundle, namespaceSelector, &namespace, resolvedBundle.data)
 		if err != nil {
 			log.Error(err, "failed sync bundle to target namespace")
-			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncTargetFailed", "Failed to sync target in Namespace %q: %s", namespace.Name, err)
+			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncTargetFailed", "Failed to sync configMap target in Namespace %q: %s", namespace.Name, err)
 
 			b.setBundleCondition(&bundle, trustapi.BundleCondition{
 				Type:    trustapi.BundleConditionSynced,
 				Status:  corev1.ConditionFalse,
 				Reason:  "SyncTargetFailed",
-				Message: fmt.Sprintf("Failed to sync bundle to namespace %q: %s", namespace.Name, err),
+				Message: fmt.Sprintf("Failed to sync bundle target configMap to namespace %q: %s", namespace.Name, err),
 			})
 
 			return ctrl.Result{Requeue: true}, b.targetDirectClient.Status().Update(ctx, &bundle)
@@ -221,7 +221,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
             }
         }
 
-		if synced || secretSynced {
+		if cmSynced || secretSynced {
 			// We need to update if any target is synced.
 			needsUpdate = true
 		}

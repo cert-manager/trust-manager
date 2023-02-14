@@ -211,7 +211,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 	}
 
 	// Match, return do nothing
-	if cmdata, ok2 := configMap.Data[target.ConfigMap.Key]; !ok2 || cmdata != data {
+	if cmdata, ok := configMap.Data[target.ConfigMap.Key]; !ok || cmdata != data {
 		if configMap.Data == nil {
 			configMap.Data = make(map[string]string)
 		}
@@ -224,11 +224,11 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 		return false, nil
 	}
 
-	if err = b.targetDirectClient.Update(ctx, &configMap); err != nil {
+	if err := b.targetDirectClient.Update(ctx, &configMap); err != nil {
 		return true, fmt.Errorf("failed to update configmap %s/%s with bundle: %w", namespace, bundle.Name, err)
 	}
 
-	log.V(2).Info("synced bundle to namespace")
+	log.V(2).Info("synced bundle target configMap to namespace")
 
 	return true, nil
 }
@@ -286,14 +286,14 @@ func (b *bundle) syncSecretTarget(ctx context.Context, log logr.Logger,
 			log.V(2).Info("deleting bundle from Namespace since namespaceSelector does not match")
 			return true, b.targetDirectClient.Delete(ctx, &secret)
 		}
-		// The ConfigMap isn't owned by us, so we shouldn't delete it. Return that
+		// The Secret isn't owned by us, so we shouldn't delete it. Return that
 		// we did nothing.
 		b.recorder.Eventf(&secret, corev1.EventTypeWarning, "NotOwned", "Secret is not owned by trust.cert-manager.io so ignoring")
 		return false, nil
 	}
 
 	var needsUpdate bool
-	// If ConfigMap is missing OwnerReference, add it back.
+	// If Secret is missing OwnerReference, add it back.
 	if !metav1.IsControlledBy(&secret, bundle) {
 		secret.OwnerReferences = append(secret.OwnerReferences, *metav1.NewControllerRef(bundle, trustapi.SchemeGroupVersion.WithKind("Bundle")))
 		needsUpdate = true
@@ -317,7 +317,7 @@ func (b *bundle) syncSecretTarget(ctx context.Context, log logr.Logger,
 		return true, fmt.Errorf("failed to update secret %s/%s with bundle: %w", namespace, bundle.Name, err)
 	}
 
-	log.V(2).Info("synced bundle to namespace")
+	log.V(2).Info("synced bundle target secret to namespace")
 
 	return true, nil
 }
