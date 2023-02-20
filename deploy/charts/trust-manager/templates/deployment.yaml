@@ -12,8 +12,15 @@ spec:
       app: {{ include "trust-manager.name" . }}
   template:
     metadata:
+      {{- with .Values.app.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       labels:
         app: {{ include "trust-manager.name" . }}
+        {{- with .Values.app.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       serviceAccountName: {{ include "trust-manager.name" . }}
       {{- if .Values.defaultPackage.enabled }}

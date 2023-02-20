@@ -31,6 +31,8 @@ Kubernetes: `>= 1.25.0-0`
 | app.metrics.service.enabled | bool | `true` | Create a Service resource to expose metrics endpoint. |
 | app.metrics.service.servicemonitor | object | `{"enabled":false,"interval":"10s","labels":{},"prometheusInstance":"default","scrapeTimeout":"5s"}` | ServiceMonitor resource for this Service. |
 | app.metrics.service.type | string | `"ClusterIP"` | Service type to expose metrics. |
+| app.podAnnotations | object | `{}` | Pod annotations to add to trust-manager pods. |
+| app.podLabels | object | `{}` | Pod labels to add to trust-manager pods. |
 | app.readinessProbe.path | string | `"/readyz"` | Path on which to expose trust-manager HTTP readiness probe using default network interface. |
 | app.readinessProbe.port | int | `6060` | Container port on which to expose trust-manager HTTP readiness probe using default network interface. |
 | app.securityContext.seccompProfileEnabled | bool | `true` | If false, disables the default seccomp profile, which might be required to run on certain platforms |
