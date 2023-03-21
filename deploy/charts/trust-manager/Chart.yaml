@@ -17,4 +17,4 @@ sources:
 - https://github.com/cert-manager/trust-manager
 
 appVersion: v0.4.0
-version: v0.4.0
+version: v0.4.1
