@@ -17,7 +17,9 @@ limitations under the License.
 package bundle
 
 import (
+	"bytes"
 	"context"
+	"encoding/pem"
 	"errors"
 	"testing"
 
@@ -37,12 +39,15 @@ import (
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/test/dummy"
+
+	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 )
 
 func Test_syncTarget(t *testing.T) {
 	const (
 		bundleName = "test-bundle"
-		key        = "key"
+		key        = "trust.pem"
+		jksKey     = "trust.jks"
 		data       = dummy.TestCertificate1
 	)
 
@@ -54,9 +59,13 @@ func Test_syncTarget(t *testing.T) {
 		object    runtime.Object
 		namespace corev1.Namespace
 		selector  func(t *testing.T) labels.Selector
+		// Add JKS to AdditionalFormats
+		withJks bool
 		// Expect the configmap to exist at the end of the sync.
 		expExists bool
-		expEvent  string
+		// Expect jks to exist in the configmap at the end of the sync.
+		expJks   bool
+		expEvent string
 		// Expect the owner reference of the configmap to point to the bundle.
 		expOwnerReference bool
 		expNeedsUpdate    bool
@@ -66,6 +75,16 @@ func Test_syncTarget(t *testing.T) {
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
 			selector:          labelEverything,
 			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object doesn't exist with jks, expect update": {
+			object:            nil,
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			selector:          labelEverything,
+			withJks:           true,
+			expExists:         true,
+			expJks:            true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
@@ -133,6 +152,31 @@ func Test_syncTarget(t *testing.T) {
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
+		"if object exists with owner but without jks, expect update": {
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bundleName,
+					Namespace: "test-namespace",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         pointer.Bool(true),
+							BlockOwnerDeletion: pointer.Bool(true),
+						},
+					},
+				},
+				Data: map[string]string{key: data},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			selector:          labelEverything,
+			withJks:           true,
+			expExists:         true,
+			expJks:            true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
 		"if object exists with owner but wrong key, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -153,6 +197,34 @@ func Test_syncTarget(t *testing.T) {
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
 			selector:          labelEverything,
 			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object exists with owner but wrong jks key, expect update": {
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bundleName,
+					Namespace: "test-namespace",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         pointer.Bool(true),
+							BlockOwnerDeletion: pointer.Bool(true),
+						},
+					},
+				},
+				Data: map[string]string{key: data},
+				BinaryData: map[string][]byte{
+					"wrong-key": []byte(data),
+				},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			selector:          labelEverything,
+			withJks:           true,
+			expExists:         true,
+			expJks:            true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
@@ -178,6 +250,31 @@ func Test_syncTarget(t *testing.T) {
 			expExists:         true,
 			expOwnerReference: true,
 			expNeedsUpdate:    false,
+		},
+		"if object exists without jks, expect update": {
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bundleName,
+					Namespace: "test-namespace",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         pointer.Bool(true),
+							BlockOwnerDeletion: pointer.Bool(true),
+						},
+					},
+				},
+				Data: map[string]string{key: data},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			selector:          labelEverything,
+			withJks:           true,
+			expExists:         true,
+			expJks:            true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
 		},
 		"if object exists with correct data and some extra data and owner, expect no update": {
 			object: &corev1.ConfigMap{
@@ -335,9 +432,13 @@ func Test_syncTarget(t *testing.T) {
 
 			b := &bundle{targetDirectClient: fakeclient, recorder: fakerecorder}
 
+			spec := trustapi.BundleSpec{Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: key}}}
+			if test.withJks {
+				spec.Target.AdditionalFormats = &trustapi.AdditionalFormats{Jks: &trustapi.KeySelector{Key: jksKey}}
+			}
 			needsUpdate, err := b.syncTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
-				Spec:       trustapi.BundleSpec{Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: key}}},
+				Spec:       spec,
 			}, test.selector(t), &test.namespace, data)
 			assert.NoError(t, err)
 
@@ -361,6 +462,25 @@ func Test_syncTarget(t *testing.T) {
 					assert.Equalf(t, expectedOwnerReference, configMap.OwnerReferences[0], "unexpected data on ConfigMap: exp=%s:%s got=%v", key, data, configMap.Data)
 				} else {
 					assert.NotContains(t, configMap.OwnerReferences, expectedOwnerReference)
+				}
+
+				jksData, jksExists := configMap.BinaryData[jksKey]
+				if test.expJks {
+					assert.True(t, jksExists, "jks should be present in configmap")
+					reader := bytes.NewReader(jksData)
+					ks := jks.New()
+					err := ks.Load(reader, []byte(defaultJksPassword))
+					assert.Nil(t, err)
+					entryNames := ks.Aliases()
+					assert.Len(t, entryNames, 1)
+					assert.True(t, ks.IsTrustedCertificateEntry(entryNames[0]))
+					// Safe to ignore errors here, we've tested that it's present and a TrustedCertificateEntry
+					cert, _ := ks.GetTrustedCertificateEntry(entryNames[0])
+					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
+					p, _ := pem.Decode([]byte(data))
+					assert.Equal(t, p.Bytes, cert.Certificate.Content)
+				} else {
+					assert.False(t, jksExists, "jks should not be present in configmap")
 				}
 			}
 

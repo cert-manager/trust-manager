@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
   name: bundles.trust.cert-manager.io
 spec:
@@ -96,6 +96,19 @@ spec:
                   description: Target is the target location in all namespaces to sync source data to.
                   type: object
                   properties:
+                    additionalFormats:
+                      description: AdditionalFormats specifies any additional formats to write to the configmap
+                      type: object
+                      properties:
+                        jks:
+                          description: KeySelector is a reference to a key for some map data object.
+                          type: object
+                          required:
+                            - key
+                          properties:
+                            key:
+                              description: Key is the key of the entry in the object's `data` field to be used.
+                              type: string
                     configMap:
                       description: ConfigMap is the target ConfigMap in Namespaces that all Bundle source data will be synced to.
                       type: object
@@ -155,6 +168,19 @@ spec:
                   description: Target is the current Target that the Bundle is attempting or has completed syncing the source data to.
                   type: object
                   properties:
+                    additionalFormats:
+                      description: AdditionalFormats specifies any additional formats to write to the configmap
+                      type: object
+                      properties:
+                        jks:
+                          description: KeySelector is a reference to a key for some map data object.
+                          type: object
+                          required:
+                            - key
+                          properties:
+                            key:
+                              description: Key is the key of the entry in the object's `data` field to be used.
+                              type: string
                     configMap:
                       description: ConfigMap is the target ConfigMap in Namespaces that all Bundle source data will be synced to.
                       type: object
@@ -177,9 +203,3 @@ spec:
       storage: true
       subresources:
         status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

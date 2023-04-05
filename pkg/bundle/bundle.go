@@ -140,6 +140,9 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 			}
 
 			delete(configMap.Data, bundle.Status.Target.ConfigMap.Key)
+			if bundle.Status.Target.AdditionalFormats != nil && bundle.Status.Target.AdditionalFormats.Jks != nil {
+				delete(configMap.BinaryData, bundle.Status.Target.AdditionalFormats.Jks.Key)
+			}
 
 			if err := b.targetDirectClient.Update(ctx, configMap); err != nil {
 				log.Error(err, "failed to delete old ConfigMap target key")
