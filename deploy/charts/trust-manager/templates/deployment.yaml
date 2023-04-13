@@ -15,6 +15,7 @@ spec:
         app: {{ include "trust-manager.name" . }}
     spec:
       serviceAccountName: {{ include "trust-manager.name" . }}
+      {{- if .Values.defaultPackage.enabled }}
       initContainers:
       - name: cert-manager-package-debian
         image: "{{ .Values.defaultPackageImage.repository }}:{{ .Values.defaultPackageImage.tag }}"
@@ -36,6 +37,7 @@ spec:
           runAsNonRoot: true
           seccompProfile:
             type: RuntimeDefault
+      {{- end }}
       containers:
       - name: {{ include "trust-manager.name" . }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -61,7 +63,9 @@ spec:
           - "--webhook-host={{.Values.app.webhook.host}}"
           - "--webhook-port={{.Values.app.webhook.port}}"
           - "--webhook-certificate-dir=/tls"
+          {{- if .Values.defaultPackage.enabled }}
           - "--default-package-location=/packages/cert-manager-package-debian.json"
+          {{- end }}
         volumeMounts:
         - mountPath: /tls
           name: tls
