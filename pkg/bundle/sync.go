@@ -38,6 +38,7 @@ import (
 )
 
 const (
+	// This is the default password that Java uses, expected by Java apps
 	defaultJksPassword = "changeit"
 )
 
