@@ -2,6 +2,7 @@ apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: {{ include "trust-manager.name" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
 {{ include "trust-manager.labels" . | indent 4 }}
 spec:
@@ -11,6 +12,7 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: {{ include "trust-manager.name" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
 {{ include "trust-manager.labels" . | indent 4 }}
 spec:
