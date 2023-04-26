@@ -79,7 +79,7 @@ vet:
 
 .PHONY: build
 build: | $(BINDIR) ## build trust
-	CGO_ENABLED=0 go build -o $(BINDIR)/trust-manager ./cmd/.
+	CGO_ENABLED=0 go build -o $(BINDIR)/trust-manager ./cmd/trust-manager
 
 .PHONY: generate
 generate: depend ## generate code
