@@ -105,7 +105,7 @@ type BundleTarget struct {
 	NamespaceSelector *NamespaceSelector `json:"namespaceSelector,omitempty"`
 }
 
-// AdditionalFormats specifies any additional formats to write to the configmap
+// AdditionalFormats specifies any additional formats to write to the target
 type AdditionalFormats struct {
 	Jks *KeySelector `json:"jks,omitempty"`
 }
