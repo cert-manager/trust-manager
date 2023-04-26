@@ -207,6 +207,98 @@ func Test_Handle(t *testing.T) {
 				},
 			},
 		},
+		"a Bundle with JKS which succeeds validation should return an Allowed response": {
+			req: admission.Request{
+				AdmissionRequest: admissionv1.AdmissionRequest{
+					UID: types.UID("abc"),
+					RequestKind: &metav1.GroupVersionKind{
+						Group:   "trust.cert-manager.io",
+						Version: "v1alpha1",
+						Kind:    "Bundle",
+					},
+					Operation: admissionv1.Create,
+					Object: runtime.RawExtension{
+						Raw: []byte(`
+{
+ "apiVersion": "trust.cert-manager.io/v1alpha1",
+	"kind": "Bundle",
+	"metadata": {
+		"name": "testing"
+	},
+	"spec": {
+		"sources": [{ "inLine": "foo" }],
+		"target": {
+		  "additionalFormats": {
+		  	"jks": {
+				"key": "bar.jks"
+			}
+		  },
+		  "configMap": {
+			  "key": "bar"
+			},
+			"namespaceSelector": {
+			  "foo": "bar"
+			}
+		}
+	}
+}
+`),
+					},
+				},
+			},
+			expResp: admission.Response{
+				AdmissionResponse: admissionv1.AdmissionResponse{
+					Allowed: true,
+					Result:  &metav1.Status{Reason: "Bundle validated", Code: 200},
+				},
+			},
+		},
+		"a Bundle with a duplicate target JKS key should fail validation and return a denied response": {
+			req: admission.Request{
+				AdmissionRequest: admissionv1.AdmissionRequest{
+					UID: types.UID("abc"),
+					RequestKind: &metav1.GroupVersionKind{
+						Group:   "trust.cert-manager.io",
+						Version: "v1alpha1",
+						Kind:    "Bundle",
+					},
+					Operation: admissionv1.Create,
+					Object: runtime.RawExtension{
+						Raw: []byte(`
+{
+ "apiVersion": "trust.cert-manager.io/v1alpha1",
+	"kind": "Bundle",
+	"metadata": {
+		"name": "testing"
+	},
+	"spec": {
+		"sources": [{ "inLine": "foo" }],
+		"target": {
+		  "additionalFormats": {
+		  	"jks": {
+				"key": "bar"
+			}
+		  },
+		  "configMap": {
+			  "key": "bar"
+			},
+			"namespaceSelector": {
+			  "foo": "bar"
+			}
+		}
+	}
+}
+`),
+					},
+				},
+			},
+			expResp: admission.Response{
+				AdmissionResponse: admissionv1.AdmissionResponse{
+					Allowed: false,
+					Result:  &metav1.Status{Reason: `spec.target.additionalFormats.jks.key: Invalid value: "bar": target JKS key must be different to configMap key`, Code: 403},
+				},
+			},
+		},
 	}
 
 	for name, test := range tests {
