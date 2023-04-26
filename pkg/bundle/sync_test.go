@@ -465,8 +465,9 @@ func Test_syncTarget(t *testing.T) {
 				}
 
 				jksData, jksExists := configMap.BinaryData[jksKey]
+				assert.Equal(t, test.expJKS, jksExists)
+
 				if test.expJks {
-					assert.True(t, jksExists, "jks should be present in configmap")
 					reader := bytes.NewReader(jksData)
 					ks := jks.New()
 					err := ks.Load(reader, []byte(defaultJksPassword))
@@ -479,8 +480,6 @@ func Test_syncTarget(t *testing.T) {
 					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
 					p, _ := pem.Decode([]byte(data))
 					assert.Equal(t, p.Bytes, cert.Certificate.Content)
-				} else {
-					assert.False(t, jksExists, "jks should not be present in configmap")
 				}
 			}
 
