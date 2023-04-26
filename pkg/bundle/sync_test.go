@@ -59,14 +59,13 @@ func Test_syncTarget(t *testing.T) {
 		object    runtime.Object
 		namespace corev1.Namespace
 		selector  func(t *testing.T) labels.Selector
-		// Add JKS to AdditionalFormats with the specified key
-		withJKSKey string
+		// Add JKS to AdditionalFormats
+		withJKS bool
 		// Expect the configmap to exist at the end of the sync.
 		expExists bool
 		// Expect jks to exist in the configmap at the end of the sync.
 		expJKS   bool
 		expEvent string
-		expError error
 		// Expect the owner reference of the configmap to point to the bundle.
 		expOwnerReference bool
 		expNeedsUpdate    bool
@@ -83,18 +82,11 @@ func Test_syncTarget(t *testing.T) {
 			object:            nil,
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
 			selector:          labelEverything,
-			withJKSKey:        jksKey,
+			withJKS:           true,
 			expExists:         true,
 			expJKS:            true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
-		},
-		"if object doesn't exist with duplicate key, expect error": {
-			object:     nil,
-			namespace:  corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:   labelEverything,
-			withJKSKey: key,
-			expError:   errors.New("invalid target (duplicate key)"),
 		},
 		"if object exists but without data or owner, expect update": {
 			object:            &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: bundleName, Namespace: "test-namespace"}},
@@ -179,7 +171,7 @@ func Test_syncTarget(t *testing.T) {
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
 			selector:          labelEverything,
-			withJKSKey:        jksKey,
+			withJKS:           true,
 			expExists:         true,
 			expJKS:            true,
 			expOwnerReference: true,
@@ -230,7 +222,7 @@ func Test_syncTarget(t *testing.T) {
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
 			selector:          labelEverything,
-			withJKSKey:        jksKey,
+			withJKS:           true,
 			expExists:         true,
 			expJKS:            true,
 			expOwnerReference: true,
@@ -278,7 +270,7 @@ func Test_syncTarget(t *testing.T) {
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
 			selector:          labelEverything,
-			withJKSKey:        jksKey,
+			withJKS:           true,
 			expExists:         true,
 			expJKS:            true,
 			expOwnerReference: true,
@@ -441,18 +433,13 @@ func Test_syncTarget(t *testing.T) {
 			b := &bundle{targetDirectClient: fakeclient, recorder: fakerecorder}
 
 			spec := trustapi.BundleSpec{Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: key}}}
-			if test.withJKSKey != "" {
-				spec.Target.AdditionalFormats = &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: test.withJKSKey}}
+			if test.withJKS {
+				spec.Target.AdditionalFormats = &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: jksKey}}
 			}
 			needsUpdate, err := b.syncTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       spec,
 			}, test.selector(t), &test.namespace, data)
-			if test.expError != nil {
-				assert.Error(t, err)
-				assert.Equal(t, test.expError, err)
-				return
-			}
 			assert.NoError(t, err)
 
 			assert.Equalf(t, test.expNeedsUpdate, needsUpdate, "unexpected needsUpdate, exp=%t got=%t", test.expNeedsUpdate, needsUpdate)

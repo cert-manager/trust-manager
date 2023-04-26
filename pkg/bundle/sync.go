@@ -201,9 +201,6 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 	err := b.targetDirectClient.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: bundle.Name}, &configMap)
 
 	if target.AdditionalFormats != nil && target.AdditionalFormats.JKS != nil {
-		if target.AdditionalFormats.JKS.Key == target.ConfigMap.Key {
-			return false, errors.New("invalid target (duplicate key)")
-		}
 		j, err := encodeJKS(data)
 		if err != nil {
 			return false, err
