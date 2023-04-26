@@ -39,7 +39,7 @@ import (
 
 const (
 	// This is the default password that Java uses, expected by Java apps
-	defaultJksPassword = "changeit"
+	defaultJKSPassword = "changeit"
 )
 
 type notFoundError struct{ error }
@@ -173,7 +173,7 @@ func encodeJKS(trustbundle string) ([]byte, error) {
 	}
 
 	buf := &bytes.Buffer{}
-	ks.Store(buf, []byte(defaultJksPassword))
+	ks.Store(buf, []byte(defaultJKSPassword))
 
 	return buf.Bytes(), nil
 }
@@ -200,7 +200,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 	var configMap corev1.ConfigMap
 	err := b.targetDirectClient.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: bundle.Name}, &configMap)
 
-	if target.AdditionalFormats != nil && target.AdditionalFormats.Jks != nil {
+	if target.AdditionalFormats != nil && target.AdditionalFormats.JKS != nil {
 		j, err := encodeJKS(data)
 		if err != nil {
 			return false, err
@@ -230,7 +230,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 
 		if binData != nil {
 			configMap.BinaryData = map[string][]byte{
-				target.AdditionalFormats.Jks.Key: *binData,
+				target.AdditionalFormats.JKS.Key: *binData,
 			}
 		}
 
@@ -261,17 +261,17 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 		needsUpdate = true
 	}
 
-	needsJks := false
-	if target.AdditionalFormats != nil && target.AdditionalFormats.Jks != nil {
-		if _, ok := configMap.BinaryData[target.AdditionalFormats.Jks.Key]; !ok {
-			needsJks = true
+	needsJKS := false
+	if target.AdditionalFormats != nil && target.AdditionalFormats.JKS != nil {
+		if _, ok := configMap.BinaryData[target.AdditionalFormats.JKS.Key]; !ok {
+			needsJKS = true
 		}
 	}
 
-	// If PEM not present, or if Jks required and not present, or configmap PEM doesn't match
-	// Generated Jks is not deterministic - best we can do here is update if the pem cert has
-	// changed (hence not checking if jks matches)
-	if cmdata, ok := configMap.Data[target.ConfigMap.Key]; !ok || needsJks || cmdata != data {
+	// If PEM not present, or if JKS required and not present, or configmap PEM doesn't match
+	// Generated JKS is not deterministic - best we can do here is update if the pem cert has
+	// changed (hence not checking if JKS matches)
+	if cmdata, ok := configMap.Data[target.ConfigMap.Key]; !ok || needsJKS || cmdata != data {
 		if configMap.Data == nil {
 			configMap.Data = make(map[string]string)
 		}
@@ -280,7 +280,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 			if configMap.BinaryData == nil {
 				configMap.BinaryData = make(map[string][]byte)
 			}
-			configMap.BinaryData[target.AdditionalFormats.Jks.Key] = *binData
+			configMap.BinaryData[target.AdditionalFormats.JKS.Key] = *binData
 		}
 		needsUpdate = true
 	}

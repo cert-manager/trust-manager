@@ -107,7 +107,7 @@ type BundleTarget struct {
 
 // AdditionalFormats specifies any additional formats to write to the target
 type AdditionalFormats struct {
-	Jks *KeySelector `json:"jks,omitempty"`
+	JKS *KeySelector `json:"jks,omitempty"`
 }
 
 // NamespaceSelector defines selectors to match on Namespaces.

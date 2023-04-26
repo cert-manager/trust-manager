@@ -60,11 +60,11 @@ func Test_syncTarget(t *testing.T) {
 		namespace corev1.Namespace
 		selector  func(t *testing.T) labels.Selector
 		// Add JKS to AdditionalFormats
-		withJks bool
+		withJKS bool
 		// Expect the configmap to exist at the end of the sync.
 		expExists bool
 		// Expect jks to exist in the configmap at the end of the sync.
-		expJks   bool
+		expJKS   bool
 		expEvent string
 		// Expect the owner reference of the configmap to point to the bundle.
 		expOwnerReference bool
@@ -82,9 +82,9 @@ func Test_syncTarget(t *testing.T) {
 			object:            nil,
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
 			selector:          labelEverything,
-			withJks:           true,
+			withJKS:           true,
 			expExists:         true,
-			expJks:            true,
+			expJKS:            true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
@@ -171,9 +171,9 @@ func Test_syncTarget(t *testing.T) {
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
 			selector:          labelEverything,
-			withJks:           true,
+			withJKS:           true,
 			expExists:         true,
-			expJks:            true,
+			expJKS:            true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
@@ -222,9 +222,9 @@ func Test_syncTarget(t *testing.T) {
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
 			selector:          labelEverything,
-			withJks:           true,
+			withJKS:           true,
 			expExists:         true,
-			expJks:            true,
+			expJKS:            true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
@@ -270,9 +270,9 @@ func Test_syncTarget(t *testing.T) {
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
 			selector:          labelEverything,
-			withJks:           true,
+			withJKS:           true,
 			expExists:         true,
-			expJks:            true,
+			expJKS:            true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
@@ -433,8 +433,8 @@ func Test_syncTarget(t *testing.T) {
 			b := &bundle{targetDirectClient: fakeclient, recorder: fakerecorder}
 
 			spec := trustapi.BundleSpec{Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: key}}}
-			if test.withJks {
-				spec.Target.AdditionalFormats = &trustapi.AdditionalFormats{Jks: &trustapi.KeySelector{Key: jksKey}}
+			if test.withJKS {
+				spec.Target.AdditionalFormats = &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: jksKey}}
 			}
 			needsUpdate, err := b.syncTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
@@ -467,10 +467,10 @@ func Test_syncTarget(t *testing.T) {
 				jksData, jksExists := configMap.BinaryData[jksKey]
 				assert.Equal(t, test.expJKS, jksExists)
 
-				if test.expJks {
+				if test.expJKS {
 					reader := bytes.NewReader(jksData)
 					ks := jks.New()
-					err := ks.Load(reader, []byte(defaultJksPassword))
+					err := ks.Load(reader, []byte(defaultJKSPassword))
 					assert.Nil(t, err)
 					entryNames := ks.Aliases()
 					assert.Len(t, entryNames, 1)

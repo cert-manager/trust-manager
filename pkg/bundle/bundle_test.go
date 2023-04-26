@@ -261,10 +261,10 @@ func Test_Reconcile(t *testing.T) {
 		"if Bundle Status Target doesn't match the Spec Target, delete all old targets and update": {
 			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{Jks: &trustapi.KeySelector{Key: "target.jks"}}),
+					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
 					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{
 						ConfigMap:         &trustapi.KeySelector{Key: "old-target"},
-						AdditionalFormats: &trustapi.AdditionalFormats{Jks: &trustapi.KeySelector{Key: "target.jks"}},
+						AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}},
 					}}),
 				),
 				&corev1.ConfigMap{
@@ -281,10 +281,10 @@ func Test_Reconcile(t *testing.T) {
 			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1001"),
-					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{Jks: &trustapi.KeySelector{Key: "target.jks"}}),
+					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
 					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{
 						ConfigMap:         &trustapi.KeySelector{Key: targetKey},
-						AdditionalFormats: &trustapi.AdditionalFormats{Jks: &trustapi.KeySelector{Key: "target.jks"}},
+						AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}},
 					}}),
 				),
 				&corev1.ConfigMap{
@@ -298,13 +298,13 @@ func Test_Reconcile(t *testing.T) {
 			),
 			expEvent: "Normal DeleteOldTarget Deleting old targets as Bundle target has been modified",
 		},
-		"if Bundle Status Target.AdditionalFormats.Jks doesn't match the Spec Target.AdditionalFormats.Jks, delete old targets and update": {
+		"if Bundle Status Target.AdditionalFormats.JKS doesn't match the Spec Target.AdditionalFormats.JKS, delete old targets and update": {
 			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{Jks: &trustapi.KeySelector{Key: "target.jks"}}),
+					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
 					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{
 						ConfigMap:         &trustapi.KeySelector{Key: targetKey},
-						AdditionalFormats: &trustapi.AdditionalFormats{Jks: &trustapi.KeySelector{Key: "old-target.jks"}},
+						AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "old-target.jks"}},
 					}}),
 				),
 				&corev1.ConfigMap{
@@ -321,10 +321,10 @@ func Test_Reconcile(t *testing.T) {
 			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1001"),
-					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{Jks: &trustapi.KeySelector{Key: "target.jks"}}),
+					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
 					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{
 						ConfigMap:         &trustapi.KeySelector{Key: targetKey},
-						AdditionalFormats: &trustapi.AdditionalFormats{Jks: &trustapi.KeySelector{Key: "target.jks"}},
+						AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}},
 					}}),
 				),
 				&corev1.ConfigMap{
