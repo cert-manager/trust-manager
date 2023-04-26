@@ -169,6 +169,10 @@ func (v *validator) validateBundle(ctx context.Context, bundle *trustapi.Bundle)
 		el = append(el, field.Invalid(path.Child("target", "configMap"), configMap, "target configMap must be defined"))
 	} else if len(configMap.Key) == 0 {
 		el = append(el, field.Invalid(path.Child("target", "configMap", "key"), configMap.Key, "target configMap key must be defined"))
+	} else if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.JKS != nil {
+		if bundle.Spec.Target.AdditionalFormats.JKS.Key == configMap.Key {
+			el = append(el, field.Invalid(path.Child("target", "additionalFormats", "jks", "key"), bundle.Spec.Target.AdditionalFormats.JKS.Key, "target JKS key must be different to configMap key"))
+		}
 	}
 
 	if nsSel := bundle.Spec.Target.NamespaceSelector; nsSel != nil && len(nsSel.MatchLabels) > 0 {

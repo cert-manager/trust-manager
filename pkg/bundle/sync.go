@@ -17,7 +17,10 @@ limitations under the License.
 package bundle
 
 import (
+	"bytes"
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"strings"
@@ -31,6 +34,12 @@ import (
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/util"
+	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
+)
+
+const (
+	// This is the default password that Java uses, expected by Java apps
+	defaultJKSPassword = "changeit"
 )
 
 type notFoundError struct{ error }
@@ -141,6 +150,34 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 	return string(data), nil
 }
 
+func encodeJKS(trustbundle string) ([]byte, error) {
+	remaining := []byte(trustbundle)
+	ks := jks.New()
+	for len(remaining) > 0 {
+		var p *pem.Block
+		p, remaining = pem.Decode([]byte(remaining))
+		if p == nil {
+			break
+		}
+		c, err := x509.ParseCertificate(p.Bytes)
+		if err != nil {
+			return []byte{}, err
+		}
+		ks.SetTrustedCertificateEntry(c.Issuer.String(), jks.TrustedCertificateEntry{
+			CreationTime: c.NotBefore,
+			Certificate: jks.Certificate{
+				Type:    "X509",
+				Content: p.Bytes,
+			},
+		})
+	}
+
+	buf := &bytes.Buffer{}
+	ks.Store(buf, []byte(defaultJKSPassword))
+
+	return buf.Bytes(), nil
+}
+
 // syncTarget syncs the given data to the target ConfigMap in the given namespace.
 // The name of the ConfigMap is the same as the Bundle.
 // Ensures the ConfigMap is owned by the given Bundle, and the data is up to date.
@@ -152,6 +189,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 	data string,
 ) (bool, error) {
 	target := bundle.Spec.Target
+	var binData *[]byte
 
 	if target.ConfigMap == nil {
 		return false, errors.New("target not defined")
@@ -161,6 +199,14 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 
 	var configMap corev1.ConfigMap
 	err := b.targetDirectClient.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: bundle.Name}, &configMap)
+
+	if target.AdditionalFormats != nil && target.AdditionalFormats.JKS != nil {
+		j, err := encodeJKS(data)
+		if err != nil {
+			return false, err
+		}
+		binData = &j
+	}
 
 	// If the ConfigMap doesn't exist yet, create it.
 	if apierrors.IsNotFound(err) {
@@ -180,6 +226,12 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 			Data: map[string]string{
 				target.ConfigMap.Key: data,
 			},
+		}
+
+		if binData != nil {
+			configMap.BinaryData = map[string][]byte{
+				target.AdditionalFormats.JKS.Key: *binData,
+			}
 		}
 
 		return true, b.targetDirectClient.Create(ctx, &configMap)
@@ -209,12 +261,27 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 		needsUpdate = true
 	}
 
-	// Match, return do nothing
-	if cmdata, ok := configMap.Data[target.ConfigMap.Key]; !ok || cmdata != data {
+	needsJKS := false
+	if target.AdditionalFormats != nil && target.AdditionalFormats.JKS != nil {
+		if _, ok := configMap.BinaryData[target.AdditionalFormats.JKS.Key]; !ok {
+			needsJKS = true
+		}
+	}
+
+	// If PEM not present, or if JKS required and not present, or configmap PEM doesn't match
+	// Generated JKS is not deterministic - best we can do here is update if the pem cert has
+	// changed (hence not checking if JKS matches)
+	if cmdata, ok := configMap.Data[target.ConfigMap.Key]; !ok || needsJKS || cmdata != data {
 		if configMap.Data == nil {
 			configMap.Data = make(map[string]string)
 		}
 		configMap.Data[target.ConfigMap.Key] = data
+		if binData != nil {
+			if configMap.BinaryData == nil {
+				configMap.BinaryData = make(map[string][]byte)
+			}
+			configMap.BinaryData[target.AdditionalFormats.JKS.Key] = *binData
+		}
 		needsUpdate = true
 	}
 
