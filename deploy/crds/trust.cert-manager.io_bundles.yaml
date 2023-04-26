@@ -97,7 +97,7 @@ spec:
                   type: object
                   properties:
                     additionalFormats:
-                      description: AdditionalFormats specifies any additional formats to write to the configmap
+                      description: AdditionalFormats specifies any additional formats to write to the target
                       type: object
                       properties:
                         jks:
@@ -169,7 +169,7 @@ spec:
                   type: object
                   properties:
                     additionalFormats:
-                      description: AdditionalFormats specifies any additional formats to write to the configmap
+                      description: AdditionalFormats specifies any additional formats to write to the target
                       type: object
                       properties:
                         jks:
