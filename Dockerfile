@@ -36,7 +36,7 @@ RUN GOPROXY=$GOPROXY go mod download
 RUN make build
 
 FROM scratch
-LABEL description="cert-manager trust is an operator for distributing trust bundles across a Kubernetes cluster"
+LABEL description="trust-manager is an operator for distributing trust bundles across a Kubernetes cluster"
 
 WORKDIR /
 USER 1001

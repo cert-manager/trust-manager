@@ -28,7 +28,7 @@ KUBEBUILDER_TOOLS_VERISON ?= 1.25.0
 GINKGO_VERSION ?= $(shell grep "github.com/onsi/ginkgo/v2" go.mod | awk '{print $$NF}')
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
 
-RELEASE_VERSION ?= v0.4.0
+RELEASE_VERSION ?= v0.5.0-beta.0
 
 BUILDX_BUILDER ?= trust-manager-builder
 
