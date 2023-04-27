@@ -80,7 +80,7 @@ resources: {}
 nodeSelector:
   kubernetes.io/os: linux
 
-# expects input structure as per specification https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#affinity-v1-core
+# expects input structure as per specification https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core
 # for example:
 #   affinity:
 #     nodeAffinity:
@@ -93,7 +93,7 @@ nodeSelector:
 #            - master
 affinity: {}
 
-# expects input structure as per specification https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#toleration-v1-core
+# expects input structure as per specification https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core
 # for example:
 #   tolerations:
 #   - key: foo.bar.com/role
@@ -102,7 +102,7 @@ affinity: {}
 #     effect: NoSchedule
 tolerations: []
 
-# expects input structure as per specification https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#topologyspreadconstraint-v1-core
+# expects input structure as per specification https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core
 # for example:
 #   topologySpreadConstraints:
 #   - maxSkew: 2
