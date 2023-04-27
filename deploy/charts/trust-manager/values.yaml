@@ -110,8 +110,7 @@ tolerations: []
 #     whenUnsatisfiable: ScheduleAnyway
 #     labelSelector:
 #       matchLabels:
-#         app.kubernetes.io/instance: cert-manager
-#         app.kubernetes.io/component: controller
+#         app: trust-manager
 topologySpreadConstraints: []
 
 crds:
