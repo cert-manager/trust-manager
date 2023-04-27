@@ -77,6 +77,42 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
+nodeSelector:
+  kubernetes.io/os: linux
+
+# expects input structure as per specification https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core
+# for example:
+#   affinity:
+#     nodeAffinity:
+#      requiredDuringSchedulingIgnoredDuringExecution:
+#        nodeSelectorTerms:
+#        - matchExpressions:
+#          - key: foo.bar.com/role
+#            operator: In
+#            values:
+#            - master
+affinity: {}
+
+# expects input structure as per specification https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core
+# for example:
+#   tolerations:
+#   - key: foo.bar.com/role
+#     operator: Equal
+#     value: master
+#     effect: NoSchedule
+tolerations: []
+
+# expects input structure as per specification https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core
+# for example:
+#   topologySpreadConstraints:
+#   - maxSkew: 2
+#     topologyKey: topology.kubernetes.io/zone
+#     whenUnsatisfiable: ScheduleAnyway
+#     labelSelector:
+#       matchLabels:
+#         app: trust-manager
+topologySpreadConstraints: []
+
 crds:
   # -- Whether or not to install the crds.
   enabled: true
