@@ -24,6 +24,7 @@ Kubernetes: `>= 1.22.0-0`
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| affinity | object | `{}` |  |
 | app.logLevel | int | `1` | Verbosity of trust logging; takes a value from 1-5, with higher being more verbose |
 | app.metrics.port | int | `9402` | Port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'. |
 | app.metrics.service | object | `{"enabled":true,"servicemonitor":{"enabled":false,"interval":"10s","labels":{},"prometheusInstance":"default","scrapeTimeout":"5s"},"type":"ClusterIP"}` | Service to expose metrics endpoint. |
@@ -46,6 +47,9 @@ Kubernetes: `>= 1.22.0-0`
 | image.repository | string | `"quay.io/jetstack/trust-manager"` | Target image repository. |
 | image.tag | string | `"v0.4.0"` | Target image version tag. |
 | imagePullSecrets | list | `[]` | For Private docker registries, authentication is needed. Registry secrets are applied to the service account |
+| nodeSelector."kubernetes.io/os" | string | `"linux"` |  |
 | replicaCount | int | `1` | Number of replicas of trust to run. |
 | resources | object | `{}` |  |
+| tolerations | list | `[]` |  |
+| topologySpreadConstraints | list | `[]` |  |
 
