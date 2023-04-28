@@ -38,7 +38,9 @@ import (
 )
 
 const (
-	// This is the default password that Java uses, expected by Java apps
+	// defaultJKSPassword is the default password that Java uses; it's a Java convention to use this exact password.
+	// Since we're not storing anything secret in the JKS files we generate, this password is essentially irrelevant
+	// but is required anyway.
 	defaultJKSPassword = "changeit"
 )
 
@@ -152,7 +154,8 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 
 func encodeJKS(trustbundle string) ([]byte, error) {
 	remaining := []byte(trustbundle)
-	ks := jks.New()
+	ks := jks.New(jks.WithOrderedAliases())
+
 	for len(remaining) > 0 {
 		var p *pem.Block
 		p, remaining = pem.Decode([]byte(remaining))
