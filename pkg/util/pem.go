@@ -44,6 +44,23 @@ import (
 
 // See also https://github.com/golang/go/blob/5d5ed57b134b7a02259ff070864f753c9e601a18/src/crypto/x509/cert_pool.go#L201-L239
 func ValidateAndSanitizePEMBundle(data []byte) ([]byte, error) {
+	certificates, err := ValidateAndSplitPEMBundle(data)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(certificates) == 0 {
+		return nil, fmt.Errorf("bundle contains no PEM certificates")
+	}
+
+	return bytes.TrimSpace(bytes.Join(certificates, nil)), nil
+}
+
+// ValidateAndSplitPEMBundle takes a PEM bundle as input, validates it and
+// returns the list of certificates as a slice, allowing them to be
+// iterated over.
+// For details of the validation performed, see the comment for ValidateAndSanitizePEMBundle
+func ValidateAndSplitPEMBundle(data []byte) ([][]byte, error) {
 	var certificates [][]byte
 
 	for {
@@ -73,9 +90,5 @@ func ValidateAndSanitizePEMBundle(data []byte) ([]byte, error) {
 		certificates = append(certificates, pem.EncodeToMemory(b))
 	}
 
-	if len(certificates) == 0 {
-		return nil, fmt.Errorf("bundle contains no PEM certificates")
-	}
-
-	return bytes.TrimSpace(bytes.Join(certificates, nil)), nil
+	return certificates, nil
 }

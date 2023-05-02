@@ -19,6 +19,7 @@ package bundle
 import (
 	"bytes"
 	"context"
+	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"testing"
@@ -472,7 +473,7 @@ func Test_syncTarget(t *testing.T) {
 					reader := bytes.NewReader(jksData)
 
 					ks := jks.New()
-					err := ks.Load(reader, []byte(defaultJKSPassword))
+					err := ks.Load(reader, []byte(DefaultJKSPassword))
 					assert.Nil(t, err)
 
 					entryNames := ks.Aliases()
@@ -698,5 +699,62 @@ func Test_buildSourceBundle(t *testing.T) {
 				t.Errorf("unexpected data, exp=%q got=%q", test.expData, resolvedBundle.data)
 			}
 		})
+	}
+}
+
+func Test_encodeJKSAliases(t *testing.T) {
+	// IMPORTANT: We use TestCertificate1 and TestCertificate2 here because they're defined
+	// to be self-signed and to also use the same Subject, while being different certs.
+	// This test ensures that the aliases we create when adding to a JKS file is different under
+	// these conditions (where the issuer / subject is identical).
+	// Using different dummy certs would allow this test to pass but wouldn't actually test anything useful!
+	bundle := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2)
+
+	password := []byte(DefaultJKSPassword)
+
+	jksFile, err := encodeJKS(bundle, password)
+	if err != nil {
+		t.Fatalf("didn't expect an error but got: %s", err)
+	}
+
+	reader := bytes.NewReader(jksFile)
+
+	ks := jks.New()
+
+	err = ks.Load(reader, password)
+	if err != nil {
+		t.Fatalf("failed to parse generated JKS file: %s", err)
+	}
+
+	entryNames := ks.Aliases()
+
+	if len(entryNames) != 2 {
+		t.Fatalf("expected two certs in JKS file but got %d", len(entryNames))
+	}
+}
+
+func Test_jksAlias(t *testing.T) {
+	// We might not ever rely on aliases being stable, but this test seeks
+	// to enforce stability for now. It'll be easy to remove.
+
+	// If this test starts failing after TestCertificate1 is updated, it'll
+	// need to be updated with the new alias for the new cert.
+
+	block, _ := pem.Decode([]byte(dummy.TestCertificate1))
+	if block == nil {
+		t.Fatalf("couldn't parse a PEM block from TestCertificate1")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatalf("Dummy certificate TestCertificate1 couldn't be parsed: %s", err)
+	}
+
+	alias := jksAlias(cert)
+
+	expectedAlias := "548b988f|CN=cmct-test-root,O=cert-manager"
+
+	if alias != expectedAlias {
+		t.Fatalf("expected alias to be %q but got %q", expectedAlias, alias)
 	}
 }

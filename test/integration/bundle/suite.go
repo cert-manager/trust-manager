@@ -317,6 +317,36 @@ var _ = Describe("Integration", func() {
 		}
 	})
 
+	It("should delete old targets and update to new ones when a JKS file is requested in the target", func() {
+		testBundle.Spec.Target = trustapi.BundleTarget{
+			ConfigMap: &trustapi.KeySelector{Key: testData.Target.Key},
+			AdditionalFormats: &trustapi.AdditionalFormats{
+				JKS: &trustapi.KeySelector{Key: "myfile.jks"},
+			},
+		}
+
+		Expect(cl.Update(ctx, testBundle)).ToNot(HaveOccurred())
+
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.DefaultJoinedCerts())
+
+		var namespaceList corev1.NamespaceList
+		Expect(cl.List(ctx, &namespaceList)).ToNot(HaveOccurred())
+
+		for _, namespace := range namespaceList.Items {
+			if namespace.Status.Phase == corev1.NamespaceTerminating {
+				continue
+			}
+
+			var configMap corev1.ConfigMap
+			Expect(cl.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
+
+			jksData, exists := configMap.BinaryData["myfile.jks"]
+			Expect(exists).To(BeTrue(), "should find an entry called myfile.jks")
+
+			Expect(testenv.CheckJKSFileSynced(jksData, bundle.DefaultJKSPassword, dummy.DefaultJoinedCerts())).ToNot(HaveOccurred())
+		}
+	})
+
 	It("should re-add the owner reference of a target ConfigMap if it has been removed", func() {
 		var configMap corev1.ConfigMap
 		Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
