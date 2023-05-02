@@ -24,7 +24,7 @@ Kubernetes: `>= 1.22.0-0`
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| affinity | object | `{}` |  |
+| affinity | object | `{}` | Kubernetes Affinty; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core |
 | app.logLevel | int | `1` | Verbosity of trust logging; takes a value from 1-5, with higher being more verbose |
 | app.metrics.port | int | `9402` | Port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'. |
 | app.metrics.service | object | `{"enabled":true,"servicemonitor":{"enabled":false,"interval":"10s","labels":{},"prometheusInstance":"default","scrapeTimeout":"5s"},"type":"ClusterIP"}` | Service to expose metrics endpoint. |
@@ -48,9 +48,9 @@ Kubernetes: `>= 1.22.0-0`
 | image.repository | string | `"quay.io/jetstack/trust-manager"` | Target image repository. |
 | image.tag | string | `"v0.5.0-beta.0"` | Target image version tag. |
 | imagePullSecrets | list | `[]` | For Private docker registries, authentication is needed. Registry secrets are applied to the service account |
-| nodeSelector."kubernetes.io/os" | string | `"linux"` |  |
+| nodeSelector | object | `{"kubernetes.io/os":"linux"}` | Configure the nodeSelector; defaults to any Linux node (trust-manager doesn't support Windows nodes) |
 | replicaCount | int | `1` | Number of replicas of trust to run. |
 | resources | object | `{}` |  |
-| tolerations | list | `[]` |  |
-| topologySpreadConstraints | list | `[]` |  |
+| tolerations | list | `[]` | List of Kubernetes Tolerations; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core |
+| topologySpreadConstraints | list | `[]` | List of Kubernetes TopologySpreadConstraints; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core |
 

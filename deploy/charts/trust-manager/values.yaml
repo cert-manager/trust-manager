@@ -81,10 +81,11 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
+# -- Configure the nodeSelector; defaults to any Linux node (trust-manager doesn't support Windows nodes)
 nodeSelector:
   kubernetes.io/os: linux
 
-# expects input structure as per specification https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core
+# Kubernetes Affinty; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core
 # for example:
 #   affinity:
 #     nodeAffinity:
@@ -95,18 +96,20 @@ nodeSelector:
 #            operator: In
 #            values:
 #            - master
+# -- Kubernetes Affinty; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core
 affinity: {}
 
-# expects input structure as per specification https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core
+# List of Kubernetes Tolerations, if required; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core
 # for example:
 #   tolerations:
 #   - key: foo.bar.com/role
 #     operator: Equal
 #     value: master
 #     effect: NoSchedule
+# -- List of Kubernetes Tolerations; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core
 tolerations: []
 
-# expects input structure as per specification https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core
+# List of Kubernetes TopologySpreadConstraints; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core
 # for example:
 #   topologySpreadConstraints:
 #   - maxSkew: 2
@@ -114,7 +117,9 @@ tolerations: []
 #     whenUnsatisfiable: ScheduleAnyway
 #     labelSelector:
 #       matchLabels:
-#         app: trust-manager
+#         app.kubernetes.io/instance: cert-manager
+#         app.kubernetes.io/component: controller
+# -- List of Kubernetes TopologySpreadConstraints; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core
 topologySpreadConstraints: []
 
 crds:
