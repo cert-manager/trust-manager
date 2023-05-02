@@ -63,7 +63,7 @@ func Test_syncTarget(t *testing.T) {
 		withJKS bool
 		// Expect the configmap to exist at the end of the sync.
 		expExists bool
-		// Expect jks to exist in the configmap at the end of the sync.
+		// Expect JKS to exist in the configmap at the end of the sync.
 		expJKS   bool
 		expEvent string
 		// Expect the owner reference of the configmap to point to the bundle.
@@ -78,7 +78,7 @@ func Test_syncTarget(t *testing.T) {
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
-		"if object doesn't exist with jks, expect update": {
+		"if object doesn't exist with JKS, expect update": {
 			object:            nil,
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
 			selector:          labelEverything,
@@ -152,7 +152,7 @@ func Test_syncTarget(t *testing.T) {
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
-		"if object exists with owner but without jks, expect update": {
+		"if object exists with owner but without JKS, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      bundleName,
@@ -200,7 +200,7 @@ func Test_syncTarget(t *testing.T) {
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
-		"if object exists with owner but wrong jks key, expect update": {
+		"if object exists with owner but wrong JKS key, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      bundleName,
@@ -251,7 +251,7 @@ func Test_syncTarget(t *testing.T) {
 			expOwnerReference: true,
 			expNeedsUpdate:    false,
 		},
-		"if object exists without jks, expect update": {
+		"if object exists without JKS, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      bundleName,
@@ -422,11 +422,11 @@ func Test_syncTarget(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			clientBuilder := fakeclient.NewClientBuilder().
-				WithScheme(trustapi.GlobalScheme)
+			clientBuilder := fakeclient.NewClientBuilder().WithScheme(trustapi.GlobalScheme)
 			if test.object != nil {
 				clientBuilder.WithRuntimeObjects(test.object)
 			}
+
 			fakeclient := clientBuilder.Build()
 			fakerecorder := record.NewFakeRecorder(1)
 
@@ -436,6 +436,7 @@ func Test_syncTarget(t *testing.T) {
 			if test.withJKS {
 				spec.Target.AdditionalFormats = &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: jksKey}}
 			}
+
 			needsUpdate, err := b.syncTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       spec,
@@ -469,14 +470,19 @@ func Test_syncTarget(t *testing.T) {
 
 				if test.expJKS {
 					reader := bytes.NewReader(jksData)
+
 					ks := jks.New()
 					err := ks.Load(reader, []byte(defaultJKSPassword))
 					assert.Nil(t, err)
+
 					entryNames := ks.Aliases()
+
 					assert.Len(t, entryNames, 1)
 					assert.True(t, ks.IsTrustedCertificateEntry(entryNames[0]))
+
 					// Safe to ignore errors here, we've tested that it's present and a TrustedCertificateEntry
 					cert, _ := ks.GetTrustedCertificateEntry(entryNames[0])
+
 					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
 					p, _ := pem.Decode([]byte(data))
 					assert.Equal(t, p.Bytes, cert.Certificate.Content)

@@ -152,20 +152,22 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 	return string(data), nil
 }
 
-func encodeJKS(trustbundle string) ([]byte, error) {
-	remaining := []byte(trustbundle)
+func encodeJKS(trustBundle string) ([]byte, error) {
+	remaining := []byte(trustBundle)
 	ks := jks.New(jks.WithOrderedAliases())
-
 	for len(remaining) > 0 {
 		var p *pem.Block
+
 		p, remaining = pem.Decode([]byte(remaining))
 		if p == nil {
 			break
 		}
+
 		c, err := x509.ParseCertificate(p.Bytes)
 		if err != nil {
 			return []byte{}, err
 		}
+
 		ks.SetTrustedCertificateEntry(c.Issuer.String(), jks.TrustedCertificateEntry{
 			CreationTime: c.NotBefore,
 			Certificate: jks.Certificate{
