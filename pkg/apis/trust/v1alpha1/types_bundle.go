@@ -95,6 +95,7 @@ type BundleTarget struct {
 	// ConfigMap is the target ConfigMap in Namespaces that all Bundle source
 	// data will be synced to.
 	ConfigMap *KeySelector `json:"configMap,omitempty"`
+
 	// AdditionalFormats specifies any additional formats to write to the target
 	// +optional
 	AdditionalFormats *AdditionalFormats `json:"additionalFormats,omitempty"`
