@@ -1,4 +1,4 @@
-# Copyright 2022 The cert-manager Authors.
+# Copyright 2023 The cert-manager Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ OS     ?= $(shell go env GOOS)
 
 HELM_VERSION ?= 3.10.3
 KUBEBUILDER_TOOLS_VERISON ?= 1.25.0
+BOILERSUITE_VERSION ?= v0.1.0
 GINKGO_VERSION ?= $(shell grep "github.com/onsi/ginkgo/v2" go.mod | awk '{print $$NF}')
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
 
@@ -70,8 +71,8 @@ lint: vet verify-boilerplate verify-helm-docs
 verify: depend build test ## tests and builds trust-manager
 
 .PHONY: verify-boilerplate
-verify-boilerplate:
-	./hack/verify-boilerplate.sh
+verify-boilerplate: | $(BINDIR)/boilersuite
+	$(BINDIR)/boilersuite .
 
 .PHONY: vet
 vet:
@@ -189,7 +190,7 @@ $(BINDIR)/deepcopy-gen: | $(BINDIR)
 $(BINDIR)/controller-gen: | $(BINDIR)
 	go build -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
 
-$(BINDIR)/ginkgo: $(BINDIR)/ginkgo-$(GINKGO_VERSION)/ginkgo
+$(BINDIR)/ginkgo: $(BINDIR)/ginkgo-$(GINKGO_VERSION)/ginkgo | $(BINDIR)
 	cp -f $< $@
 
 $(BINDIR)/ginkgo-$(GINKGO_VERSION): | $(BINDIR)
@@ -197,6 +198,12 @@ $(BINDIR)/ginkgo-$(GINKGO_VERSION): | $(BINDIR)
 
 $(BINDIR)/ginkgo-$(GINKGO_VERSION)/ginkgo: | $(BINDIR)
 	GOBIN=$(dir $@) go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
+
+$(BINDIR)/boilersuite: $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION)/boilersuite | $(BINDIR)
+	cp -f $< $@
+
+$(BINDIR)/boilersuite-$(BOILERSUITE_VERSION)/boilersuite: | $(BINDIR)
+	GOBIN=$(dir $@) go install github.com/cert-manager/boilersuite@$(BOILERSUITE_VERSION)
 
 $(BINDIR)/kind: | $(BINDIR)
 	go build -o $(BINDIR)/kind sigs.k8s.io/kind
