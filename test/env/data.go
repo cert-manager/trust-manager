@@ -17,6 +17,7 @@ limitations under the License.
 package env
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -24,6 +25,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -287,4 +289,33 @@ func EventuallyBundleHasSyncedAllNamespacesStartsWith(ctx context.Context, cl cl
 	).WithArguments(
 		ctx, cl, bundleName, startingData,
 	).Should(BeNil(), fmt.Sprintf("checking bundle %s has synced to all namespaces with correct starting data", bundleName))
+}
+
+// CheckJKSFileSynced ensures that the given JKS data
+func CheckJKSFileSynced(jksData []byte, expectedPassword string, expectedCertPEMData string) error {
+	reader := bytes.NewReader(jksData)
+
+	ks := jks.New()
+
+	err := ks.Load(reader, []byte(expectedPassword))
+	if err != nil {
+		return err
+	}
+
+	expectedCertList, err := util.ValidateAndSplitPEMBundle([]byte(expectedCertPEMData))
+	if err != nil {
+		return fmt.Errorf("invalid PEM data passed to CheckJKSFileSynced: %s", err)
+	}
+
+	// TODO: check that the cert content matches expectedCertPEMData exactly, not just
+	// that the count is the same
+
+	aliasCount := len(ks.Aliases())
+	expectedPEMCount := len(expectedCertList)
+
+	if aliasCount != expectedPEMCount {
+		return fmt.Errorf("expected %d certificates in JKS but found %d", expectedPEMCount, aliasCount)
+	}
+
+	return nil
 }

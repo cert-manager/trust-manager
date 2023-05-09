@@ -23,6 +23,10 @@ import (
 )
 
 const (
+	// NB: TestCertificate1 is expected to have the following properties:
+	// 1. Same Subject as TestCertificate2
+	// 2. Self signed (issuer == subject)
+	// There are tests to assert these properties.
 	// Certificate:
 	//     Data:
 	//         Version: 3 (0x2)
@@ -67,6 +71,10 @@ MEUCIQCeN2/Z7jSJJK7m7kcZ/UgJIqbzKS1ktycUQ50+dhqNogIgaTYRjIxZFJ3u
 VhGzjAqH8YyuEObapwh4bTZkapwoDZQ=
 -----END CERTIFICATE-----`
 
+	// NB: TestCertificate2 is expected to have the following properties:
+	// 1. Same Subject as TestCertificate1
+	// 2. Self signed (issuer == subject)
+	// There are tests to assert these properties.
 	// Certificate:
 	//     Data:
 	//         Version: 3 (0x2)
