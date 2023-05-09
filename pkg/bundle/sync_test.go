@@ -750,7 +750,7 @@ func Test_jksAlias(t *testing.T) {
 		t.Fatalf("Dummy certificate TestCertificate1 couldn't be parsed: %s", err)
 	}
 
-	alias := jksAlias(cert)
+	alias := jksAlias(cert.Raw, cert.Subject.String())
 
 	expectedAlias := "548b988f|CN=cmct-test-root,O=cert-manager"
 

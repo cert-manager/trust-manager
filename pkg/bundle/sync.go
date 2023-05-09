@@ -177,6 +177,8 @@ func encodeJKS(trustBundle string, password []byte) ([]byte, error) {
 			return nil, fmt.Errorf("got invalid cert when trying to encode JKS: %w", err)
 		}
 
+		alias := jksAlias(c.Raw, c.Subject.String())
+
 		// Note on CreationTime:
 		// Debian's JKS trust store sets the creation time to match the time that certs are added to the
 		// trust store (i.e., it's effectively time.Now() at the instant the file is generated).
@@ -185,8 +187,6 @@ func encodeJKS(trustBundle string, password []byte) ([]byte, error) {
 		// - Using something from the cert being added (e.g. NotBefore / NotAfter)
 		// - Using a fixed time (i.e. unix epoch)
 		// We use NotBefore here, arbitrarily.
-
-		alias := jksAlias(c)
 
 		err = ks.SetTrustedCertificateEntry(alias, jks.TrustedCertificateEntry{
 			CreationTime: c.NotBefore,
@@ -212,13 +212,14 @@ func encodeJKS(trustBundle string, password []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// jksAlias creates a JKS-safe alias for the given certificate, such that
-// any two certificates will have a different aliases unless they're
-// identical in every way.
-// This unique alias fixes an issue where we used the Issuer field as an
-// alias, leading to different certs being treated as identical.
-func jksAlias(cert *x509.Certificate) string {
-	certHashBytes := sha256.Sum256(cert.Raw)
+// jksAlias creates a JKS-safe alias for the given DER-encoded certificate, such that
+// any two certificates will have a different aliases unless they're identical in every way.
+// This unique alias fixes an issue where we used the Issuer field as an alias, leading to
+// different certs being treated as identical.
+// The friendlyName is included in the alias as a UX feature when examining JKS files using a
+// tool like `keytool`.
+func jksAlias(derData []byte, friendlyName string) string {
+	certHashBytes := sha256.Sum256(derData)
 	certHash := hex.EncodeToString(certHashBytes[:])
 
 	// Since certHash is the part which actually distinguishes between two
@@ -226,7 +227,7 @@ func jksAlias(cert *x509.Certificate) string {
 	// with a really long subject is added. Not sure what the upper limit
 	// for length actually is, but it shouldn't matter here.
 
-	return certHash[:8] + "|" + cert.Subject.String()
+	return certHash[:8] + "|" + friendlyName
 }
 
 // syncTarget syncs the given data to the target ConfigMap in the given namespace.
