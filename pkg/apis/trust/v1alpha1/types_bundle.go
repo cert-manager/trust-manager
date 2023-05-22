@@ -108,6 +108,8 @@ type BundleTarget struct {
 
 // AdditionalFormats specifies any additional formats to write to the target
 type AdditionalFormats struct {
+	// JKS requests a JKS-formatted binary trust bundle to be written to the target.
+	// The bundle is created with the hardcoded password "changeit".
 	JKS *KeySelector `json:"jks,omitempty"`
 }
 
@@ -125,8 +127,7 @@ type SourceObjectKeySelector struct {
 	// Name is the name of the source object in the trust Namespace.
 	Name string `json:"name"`
 
-	// KeySelector is the key of the entry in the objects' `data` field to be
-	// referenced.
+	// KeySelector is the key of the entry in the objects' `data` field to be referenced.
 	KeySelector `json:",inline"`
 }
 
