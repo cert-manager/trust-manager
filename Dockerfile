@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Build the trust binary
-FROM docker.io/library/golang:1.19 as builder
+FROM docker.io/library/golang:1.20 as builder
 
 ARG GOPROXY
 
