@@ -50,7 +50,7 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 		return fmt.Errorf("failed to create client: %w", err)
 	}
 
-	// opts.Namespace will always be set as trust-manage is currently always
+	// opts.Namespace will always be set as trust-manager is currently always
 	// scoped to a single trust namespace.
 	// TODO: validate somewhere higher up that this does not get set to ""
 	namespaces := []string{opts.Namespace}
@@ -138,7 +138,7 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 		// Watch all Namespaces. Cache whole Namespaces to include Phase Status.
 		// Reconcile all Bundles on a Namespace change.
 		WatchesRawSource(&source.Informer{Informer: namespaceInformer}, handler.EnqueueRequestsFromMapFunc(
-			func(_ context.Context, obj client.Object) []reconcile.Request {
+			func(ctx context.Context, obj client.Object) []reconcile.Request {
 				// If an error happens here and we do nothing, we run the risk of
 				// leaving a Namespace behind when syncing.
 				// Exiting error is the safest option, as it will force a resync on
@@ -157,7 +157,7 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 		// Watch ConfigMaps in trust Namespace. Only cache metadata.
 		// Reconcile Bundles who reference a modified source ConfigMap.
 		WatchesRawSource(&source.Informer{Informer: configMapInformer}, handler.EnqueueRequestsFromMapFunc(
-			func(_ context.Context, obj client.Object) []reconcile.Request {
+			func(ctx context.Context, obj client.Object) []reconcile.Request {
 				// If an error happens here and we do nothing, we run the risk of
 				// having trust Bundles out of sync with this source or target
 				// ConfigMap.
@@ -187,7 +187,7 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 		// Watch Secrets in trust Namespace. Only cache metadata.
 		// Reconcile Bundles who reference a modified source Secret.
 		WatchesRawSource(&source.Informer{Informer: secretInformer}, handler.EnqueueRequestsFromMapFunc(
-			func(_ context.Context, obj client.Object) []reconcile.Request {
+			func(ctx context.Context, obj client.Object) []reconcile.Request {
 				// If an error happens here and we do nothing, we run the risk of
 				// having trust Bundles out of sync with this source Secret.
 				// Exiting error is the safest option, as it will force a resync on
