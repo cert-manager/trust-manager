@@ -62,7 +62,9 @@ image: | $(BINDIR) ## build docker image targeting all supported platforms
 
 .PHONY: chart
 chart: | $(BINDIR)/helm $(BINDIR)/chart
-	$(BINDIR)/helm package --app-version=$(RELEASE_VERSION) --version=$(RELEASE_VERSION) --destination "$(BINDIR)/chart" ./deploy/charts/trust
+	# WARNING: This command is manually changed to always install the versions below, since we shouldn't need to generate further versions
+	# of the cert-manager-trust chart which was deprecated in favour of trust-manager.
+	$(BINDIR)/helm package --app-version=v0.2.0 --version=v0.2.1 --destination "$(BINDIR)/chart" ./deploy/charts/trust
 
 .PHONY: verify-helm-docs
 verify-helm-docs: | $(BINDIR)/helm-docs
