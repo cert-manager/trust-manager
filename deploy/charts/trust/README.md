@@ -1,10 +1,12 @@
 # cert-manager-trust
 
-![Version: v0.2.0](https://img.shields.io/badge/Version-v0.2.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.2.0](https://img.shields.io/badge/AppVersion-v0.2.0-informational?style=flat-square)
+> **:exclamation: This Helm Chart is deprecated!**
 
-A Helm chart for cert-manager-trust
+![Version: v0.2.1](https://img.shields.io/badge/Version-v0.2.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.2.0](https://img.shields.io/badge/AppVersion-v0.2.0-informational?style=flat-square)
 
-**Homepage:** <https://github.com/cert-manager/trust>
+DEPRECATED: The old name for trust-manager. Use the 'trust-manager' chart instead.
+
+**Homepage:** <https://github.com/cert-manager/trust-manager>
 
 ## Maintainers
 
@@ -14,7 +16,7 @@ A Helm chart for cert-manager-trust
 
 ## Source Code
 
-* <https://github.com/cert-manager/trust>
+* <https://github.com/cert-manager/trust-manager>
 
 ## Values
 

@@ -1,0 +1,18 @@
+**************
+* DEPRECATED *
+**************
+
+'cert-manager-trust' has been renamed to 'trust-manager'.
+
+No further releases will be made under this old, deprecated name.
+
+Use 'trust-manager' instead and get all kinds of useful features including:
+
+- Support for publicly trusted certificate bundles
+- JKS support
+- Much improved validation and error checking
+- And much more!
+
+**************
+* DEPRECATED *
+**************
