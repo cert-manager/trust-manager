@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2/klogr"
@@ -57,7 +56,7 @@ func Test_Reconcile(t *testing.T) {
 	)
 
 	var (
-		sourceConfigMap runtime.Object = &corev1.ConfigMap{
+		sourceConfigMap client.Object = &corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      sourceConfigMapName,
@@ -67,7 +66,7 @@ func Test_Reconcile(t *testing.T) {
 				"configmap-key": dummy.TestCertificate1,
 			},
 		}
-		sourceSecret runtime.Object = &corev1.Secret{
+		sourceSecret client.Object = &corev1.Secret{
 			TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      sourceSecretName,
@@ -98,7 +97,7 @@ func Test_Reconcile(t *testing.T) {
 
 		baseBundleOwnerRef = []metav1.OwnerReference{*metav1.NewControllerRef(baseBundle, trustapi.SchemeGroupVersion.WithKind("Bundle"))}
 
-		namespaces = []runtime.Object{
+		namespaces = []client.Object{
 			&corev1.Namespace{TypeMeta: metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"}, ObjectMeta: metav1.ObjectMeta{Name: trustNamespace}},
 			&corev1.Namespace{TypeMeta: metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"}, ObjectMeta: metav1.ObjectMeta{Name: "ns-1"}},
 			&corev1.Namespace{TypeMeta: metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"}, ObjectMeta: metav1.ObjectMeta{Name: "ns-2"}},
@@ -116,24 +115,31 @@ func Test_Reconcile(t *testing.T) {
 	)
 
 	tests := map[string]struct {
-		existingObjects         []runtime.Object
+		existingSecrets         []client.Object
+		existingConfigMaps      []client.Object
+		existingNamespaces      []client.Object
+		existingBundles         []client.Object
 		configureDefaultPackage bool
 		expResult               ctrl.Result
 		expError                bool
-		expObjects              []runtime.Object
+		expObjects              []client.Object
 		expEvent                string
 	}{
 		"if no bundle exists, should return nothing": {
-			existingObjects: append(namespaces, sourceConfigMap, sourceSecret),
-			expResult:       ctrl.Result{},
-			expError:        false,
-			expObjects:      append(namespaces, sourceConfigMap, sourceSecret),
-			expEvent:        "",
+			existingSecrets:    []client.Object{sourceSecret},
+			existingConfigMaps: []client.Object{sourceConfigMap},
+			existingNamespaces: namespaces,
+			expResult:          ctrl.Result{},
+			expError:           false,
+			expObjects:         append(namespaces, sourceConfigMap, sourceSecret),
+			expEvent:           "",
 		},
 		"if Bundle references a ConfigMap which does not exist, update with 'not found'": {
-			existingObjects: append(namespaces, sourceSecret, gen.BundleFrom(baseBundle)),
-			expResult:       ctrl.Result{},
-			expError:        false,
+			existingSecrets:    []client.Object{sourceSecret},
+			existingNamespaces: namespaces,
+			existingBundles:    []client.Object{gen.BundleFrom(baseBundle)},
+			expResult:          ctrl.Result{},
+			expError:           false,
 			expObjects: append(namespaces, sourceSecret,
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1001"),
@@ -152,11 +158,12 @@ func Test_Reconcile(t *testing.T) {
 			expEvent: `Warning SourceNotFound Bundle source was not found: failed to retrieve bundle from source: configmaps "source-configmap" not found`,
 		},
 		"if Bundle references a ConfigMap whose key doesn't exist, update with 'not found'": {
-			existingObjects: append(namespaces,
-				&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: sourceConfigMapName}},
-				sourceSecret, gen.BundleFrom(baseBundle)),
-			expResult: ctrl.Result{},
-			expError:  false,
+			existingSecrets:    []client.Object{sourceSecret},
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: sourceConfigMapName}}},
+			existingBundles:    []client.Object{gen.BundleFrom(baseBundle)},
+			expResult:          ctrl.Result{},
+			expError:           false,
 			expObjects: append(namespaces, sourceSecret,
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
@@ -179,9 +186,11 @@ func Test_Reconcile(t *testing.T) {
 			expEvent: `Warning SourceNotFound Bundle source was not found: failed to retrieve bundle from source: no data found in ConfigMap trust-namespace/source-configmap at key "configmap-key"`,
 		},
 		"if Bundle references a Secret which does not exist, update with 'not found'": {
-			existingObjects: append(namespaces, sourceConfigMap, gen.BundleFrom(baseBundle)),
-			expResult:       ctrl.Result{},
-			expError:        false,
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap},
+			existingBundles:    []client.Object{gen.BundleFrom(baseBundle)},
+			expResult:          ctrl.Result{},
+			expError:           false,
 			expObjects: append(namespaces, sourceConfigMap,
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1001"),
@@ -200,11 +209,12 @@ func Test_Reconcile(t *testing.T) {
 			expEvent: `Warning SourceNotFound Bundle source was not found: failed to retrieve bundle from source: secrets "source-secret" not found`,
 		},
 		"if Bundle references a Secret whose key doesn't exist, update with 'not found'": {
-			existingObjects: append(namespaces, sourceConfigMap,
-				&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: sourceSecretName}},
-				gen.BundleFrom(baseBundle)),
-			expResult: ctrl.Result{},
-			expError:  false,
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap},
+			existingSecrets:    []client.Object{&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: sourceSecretName}}},
+			existingBundles:    []client.Object{gen.BundleFrom(baseBundle)},
+			expResult:          ctrl.Result{},
+			expError:           false,
 			expObjects: append(namespaces, sourceConfigMap,
 				&corev1.Secret{
 					TypeMeta:   metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
@@ -227,21 +237,23 @@ func Test_Reconcile(t *testing.T) {
 			expEvent: `Warning SourceNotFound Bundle source was not found: failed to retrieve bundle from source: no data found in Secret trust-namespace/source-secret at key "secret-key"`,
 		},
 		"if Bundle Status Target doesn't match the Spec Target, delete old targets and update": {
-			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
-				gen.BundleFrom(baseBundle,
-					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "old-target"}}}),
-				),
-				&corev1.ConfigMap{
-					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
-					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name}, Data: map[string]string{"A": "B", "old-target": "foo"},
-				},
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap, &corev1.ConfigMap{
+				TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name}, Data: map[string]string{"A": "B", "old-target": "foo"},
+			},
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name}, Data: map[string]string{"A": "B", "old-target": "foo"},
-				},
-			),
-			expResult: ctrl.Result{},
-			expError:  false,
+				}},
+			existingBundles: []client.Object{
+				gen.BundleFrom(baseBundle,
+					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "old-target"}}}),
+				),
+			},
+			existingSecrets: []client.Object{sourceSecret},
+			expResult:       ctrl.Result{},
+			expError:        false,
 			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1001"),
@@ -259,14 +271,8 @@ func Test_Reconcile(t *testing.T) {
 			expEvent: "Normal DeleteOldTarget Deleting old targets as Bundle target has been modified",
 		},
 		"if Bundle Status Target doesn't match the Spec Target, delete all old targets and update": {
-			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
-				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
-					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{
-						ConfigMap:         &trustapi.KeySelector{Key: "old-target"},
-						AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}},
-					}}),
-				),
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap,
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name}, Data: map[string]string{"A": "B", "old-target": "foo"}, BinaryData: map[string][]byte{"target.jks": []byte("foo")},
@@ -274,8 +280,16 @@ func Test_Reconcile(t *testing.T) {
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name}, Data: map[string]string{"A": "B", "old-target": "foo"}, BinaryData: map[string][]byte{"target.jks": []byte("foo")},
-				},
-			),
+				}},
+			existingSecrets: []client.Object{sourceSecret},
+			existingBundles: []client.Object{
+				gen.BundleFrom(baseBundle,
+					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
+					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{
+						ConfigMap:         &trustapi.KeySelector{Key: "old-target"},
+						AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}},
+					}}),
+				)},
 			expResult: ctrl.Result{},
 			expError:  false,
 			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
@@ -299,14 +313,8 @@ func Test_Reconcile(t *testing.T) {
 			expEvent: "Normal DeleteOldTarget Deleting old targets as Bundle target has been modified",
 		},
 		"if Bundle Status Target.AdditionalFormats.JKS doesn't match the Spec Target.AdditionalFormats.JKS, delete old targets and update": {
-			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
-				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
-					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{
-						ConfigMap:         &trustapi.KeySelector{Key: targetKey},
-						AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "old-target.jks"}},
-					}}),
-				),
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap,
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name}, Data: map[string]string{"A": "B", targetKey: "foo"}, BinaryData: map[string][]byte{"old-target.jks": []byte("foo")},
@@ -315,7 +323,17 @@ func Test_Reconcile(t *testing.T) {
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name}, Data: map[string]string{"A": "B", targetKey: "foo"}, BinaryData: map[string][]byte{"old-target.jks": []byte("foo")},
 				},
-			),
+			},
+			existingSecrets: []client.Object{sourceSecret},
+			existingBundles: []client.Object{
+				gen.BundleFrom(baseBundle,
+					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
+					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{
+						ConfigMap:         &trustapi.KeySelector{Key: targetKey},
+						AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "old-target.jks"}},
+					}}),
+				),
+			},
 			expResult: ctrl.Result{},
 			expError:  false,
 			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
@@ -339,9 +357,12 @@ func Test_Reconcile(t *testing.T) {
 			expEvent: "Normal DeleteOldTarget Deleting old targets as Bundle target has been modified",
 		},
 		"if Bundle not synced everywhere, sync and update Synced": {
-			existingObjects: append(namespaces, sourceConfigMap, sourceSecret, gen.BundleFrom(baseBundle)),
-			expResult:       ctrl.Result{},
-			expError:        false,
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap},
+			existingSecrets:    []client.Object{sourceSecret},
+			existingBundles:    []client.Object{gen.BundleFrom(baseBundle)},
+			expResult:          ctrl.Result{},
+			expError:           false,
 			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1001"),
@@ -378,15 +399,18 @@ func Test_Reconcile(t *testing.T) {
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
 		"if Bundle not synced everywhere, sync except Namespaces that are terminating and update Synced": {
-			existingObjects: append(namespaces, sourceConfigMap, sourceSecret, gen.BundleFrom(baseBundle),
+			existingNamespaces: append(namespaces,
 				&corev1.Namespace{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Name: "random-namespace"},
 					Status:     corev1.NamespaceStatus{Phase: corev1.NamespaceTerminating},
 				},
 			),
-			expResult: ctrl.Result{},
-			expError:  false,
+			existingConfigMaps: []client.Object{sourceConfigMap},
+			existingSecrets:    []client.Object{sourceSecret},
+			existingBundles:    []client.Object{gen.BundleFrom(baseBundle)},
+			expResult:          ctrl.Result{},
+			expError:           false,
 			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1001"),
@@ -421,9 +445,7 @@ func Test_Reconcile(t *testing.T) {
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
 		"if Bundle not synced everywhere, sync except Namespaces that don't match labels and update Synced": {
-			existingObjects: append(namespaces, sourceConfigMap, sourceSecret, gen.BundleFrom(baseBundle,
-				gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}),
-			),
+			existingNamespaces: append(namespaces,
 				&corev1.Namespace{
 					TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{
@@ -439,6 +461,10 @@ func Test_Reconcile(t *testing.T) {
 					},
 				},
 			),
+			existingConfigMaps: []client.Object{sourceConfigMap},
+			existingSecrets:    []client.Object{sourceSecret},
+			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
+				gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}))},
 			expResult: ctrl.Result{},
 			expError:  false,
 			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
@@ -476,9 +502,8 @@ func Test_Reconcile(t *testing.T) {
 			expEvent: "Normal Synced Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar]]",
 		},
 		"if Bundle not synced everywhere, sync except Namespaces that don't match labels and update Synced. Should delete ConfigMaps in wrong namespaces.": {
-			existingObjects: append(namespaces, sourceConfigMap, sourceSecret, gen.BundleFrom(baseBundle,
-				gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}),
-			),
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap,
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
@@ -494,7 +519,10 @@ func Test_Reconcile(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef, ResourceVersion: "1"},
 					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
-			),
+			},
+			existingSecrets: []client.Object{sourceSecret},
+			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
+				gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}))},
 			expResult: ctrl.Result{},
 			expError:  false,
 			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
@@ -522,7 +550,23 @@ func Test_Reconcile(t *testing.T) {
 			expEvent: "Normal Synced Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar]]",
 		},
 		"if Bundle synced but doesn't have owner reference, should sync and update": {
-			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap,
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
+				},
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
+				},
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
+				},
+			},
+			existingSecrets: []client.Object{sourceSecret},
+			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleStatus(trustapi.BundleStatus{
 						Target: &trustapi.BundleTarget{
@@ -538,21 +582,8 @@ func Test_Reconcile(t *testing.T) {
 								ObservedGeneration: bundleGeneration - 1,
 							},
 						},
-					}),
-				),
-				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name},
-					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
-				},
-				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name},
-					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
-				},
-				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name},
-					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
-				},
-			),
+					})),
+			},
 			expResult: ctrl.Result{},
 			expError:  false,
 			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
@@ -591,7 +622,9 @@ func Test_Reconcile(t *testing.T) {
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
 		"if Bundle synced but doesn't have condition, should add condition": {
-			existingObjects: append(namespaces, sourceConfigMap, sourceSecret, gen.BundleFrom(baseBundle),
+			existingNamespaces: namespaces,
+			existingSecrets:    []client.Object{sourceSecret},
+			existingConfigMaps: []client.Object{sourceConfigMap,
 				&corev1.ConfigMap{
 					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
@@ -607,9 +640,10 @@ func Test_Reconcile(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
 					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
 				},
-			),
-			expResult: ctrl.Result{},
-			expError:  false,
+			},
+			existingBundles: []client.Object{gen.BundleFrom(baseBundle)},
+			expResult:       ctrl.Result{},
+			expError:        false,
 			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1001"),
@@ -646,7 +680,23 @@ func Test_Reconcile(t *testing.T) {
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
 		"if Bundle synced, should do nothing": {
-			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap,
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
+				},
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
+				},
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
+				},
+			},
+			existingSecrets: []client.Object{sourceSecret},
+			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleStatus(trustapi.BundleStatus{
 						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
@@ -662,19 +712,8 @@ func Test_Reconcile(t *testing.T) {
 						},
 					}),
 				),
-				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
-					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
-				},
-				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
-					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
-				},
-				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
-					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
-				},
-			),
+			},
+
 			expResult: ctrl.Result{},
 			expError:  false,
 			expObjects: append(namespaces, sourceConfigMap, sourceSecret,
@@ -713,10 +752,12 @@ func Test_Reconcile(t *testing.T) {
 			expEvent: "",
 		},
 		"if Bundle references default CAs but it wasn't configured at startup, update with error": {
-			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
-				gen.BundleFrom(baseBundle, gen.AppendBundleUsesDefaultPackage())),
-			expResult: ctrl.Result{},
-			expError:  false,
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap},
+			existingSecrets:    []client.Object{sourceSecret},
+			existingBundles:    []client.Object{gen.BundleFrom(baseBundle, gen.AppendBundleUsesDefaultPackage())},
+			expResult:          ctrl.Result{},
+			expError:           false,
 			expObjects: append(namespaces, sourceConfigMap,
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleResourceVersion("1001"),
@@ -736,7 +777,23 @@ func Test_Reconcile(t *testing.T) {
 			expEvent: `Warning SourceNotFound Bundle source was not found: failed to retrieve bundle from source: no default package was specified when trust-manager was started; default CAs not available`,
 		},
 		"if Bundle references the configured default CAs, update targets with the CAs and ensure Bundle status references the configured default package version": {
-			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap,
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
+				},
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
+				},
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
+					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
+				},
+			},
+			existingSecrets: []client.Object{sourceSecret},
+			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
 					gen.AppendBundleUsesDefaultPackage(),
 					gen.SetBundleStatus(trustapi.BundleStatus{
@@ -753,19 +810,7 @@ func Test_Reconcile(t *testing.T) {
 						},
 					}),
 				),
-				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
-					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
-				},
-				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-1", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
-					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
-				},
-				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
-					Data:       map[string]string{targetKey: dummy.DefaultJoinedCerts()},
-				},
-			),
+			},
 			configureDefaultPackage: true,
 			expResult:               ctrl.Result{},
 			expError:                false,
@@ -807,23 +852,8 @@ func Test_Reconcile(t *testing.T) {
 			expEvent: `Normal Synced Successfully synced Bundle to all namespaces`,
 		},
 		"if Bundle removes reference to default package, remove version from Bundle Status and update targets": {
-			existingObjects: append(namespaces, sourceConfigMap, sourceSecret,
-				gen.BundleFrom(baseBundle,
-					gen.SetBundleStatus(trustapi.BundleStatus{
-						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
-						Conditions: []trustapi.BundleCondition{
-							{
-								Type:               trustapi.BundleConditionSynced,
-								Status:             corev1.ConditionTrue,
-								LastTransitionTime: fixedmetatime,
-								Reason:             "Synced",
-								Message:            "Successfully synced Bundle to all namespaces",
-								ObservedGeneration: bundleGeneration,
-							},
-						},
-						DefaultCAPackageVersion: pointer.String(testDefaultPackage.StringID()),
-					}),
-				),
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap,
 				&corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
 					Data:       map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)},
@@ -836,7 +866,24 @@ func Test_Reconcile(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns-2", Name: baseBundle.Name, OwnerReferences: baseBundleOwnerRef},
 					Data:       map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)},
 				},
-			),
+			},
+			existingSecrets: []client.Object{sourceSecret},
+			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
+				gen.SetBundleStatus(trustapi.BundleStatus{
+					Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
+					Conditions: []trustapi.BundleCondition{
+						{
+							Type:               trustapi.BundleConditionSynced,
+							Status:             corev1.ConditionTrue,
+							LastTransitionTime: fixedmetatime,
+							Reason:             "Synced",
+							Message:            "Successfully synced Bundle to all namespaces",
+							ObservedGeneration: bundleGeneration,
+						},
+					},
+					DefaultCAPackageVersion: pointer.String(testDefaultPackage.StringID()),
+				}),
+			)},
 			configureDefaultPackage: true,
 			expResult:               ctrl.Result{},
 			expError:                false,
@@ -882,7 +929,12 @@ func Test_Reconcile(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			fakeclient := fakeclient.NewClientBuilder().
 				WithScheme(trustapi.GlobalScheme).
-				WithRuntimeObjects(test.existingObjects...).
+				WithObjects(test.existingConfigMaps...).
+				WithObjects(test.existingBundles...).
+				WithObjects(test.existingNamespaces...).
+				WithObjects(test.existingSecrets...).
+				WithStatusSubresource(test.existingNamespaces...).
+				WithStatusSubresource(test.existingBundles...).
 				Build()
 
 			fakerecorder := record.NewFakeRecorder(1)
