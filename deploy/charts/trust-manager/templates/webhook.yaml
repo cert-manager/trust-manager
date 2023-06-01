@@ -49,4 +49,4 @@ webhooks:
       service:
         name: {{ include "trust-manager.name" . }}
         namespace: {{ .Release.Namespace | quote }}
-        path: /validate
+        path: /validate-trust-cert-manager-io-v1alpha1-bundle
