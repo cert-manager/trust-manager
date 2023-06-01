@@ -65,29 +65,9 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 	// Once the above linked design gets implemented, we should be able to
 	// use a single cache again.
 	sourceCache, err := cache.New(mgr.GetConfig(), cache.Options{
-		Scheme:    mgr.GetScheme(),
-		Mapper:    mgr.GetRESTMapper(),
-		Namespace: opts.Namespace,
-
-		// These transforms are used as a safety check to ensure that only
-		// resources of the expected types are cached.
-		TransformByObject: map[client.Object]toolscache.TransformFunc{
-			new(corev1.Namespace): func(obj any) (any, error) {
-				return obj, nil
-			},
-			new(trustapi.Bundle): func(obj any) (any, error) {
-				return obj, nil
-			},
-			new(corev1.Secret): func(obj any) (any, error) {
-				return obj, nil
-			},
-			new(corev1.ConfigMap): func(obj any) (any, error) {
-				return obj, nil
-			},
-		},
-		DefaultTransform: func(obj any) (any, error) {
-			return nil, fmt.Errorf("object %T not supported by target cache", obj)
-		},
+		Scheme:     mgr.GetScheme(),
+		Mapper:     mgr.GetRESTMapper(),
+		Namespaces: namespaces,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create source cache: %w", err)
