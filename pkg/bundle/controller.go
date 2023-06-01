@@ -52,6 +52,18 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 		return fmt.Errorf("failed to create client: %w", err)
 	}
 
+	// opts.Namespace will always be set as trust-manage is currently always
+	// scoped to a single trust namespace.
+	// TODO: validate somewhere higher up that this does not get set to ""
+	namespaces := []string{opts.Namespace}
+	// sourceCache is an additional, namespace-scoped cache. We also have
+	// the cache that is created by default for the c/r manager which is not
+	// namespace scoped. Having the double cache setup is required to be
+	// able to scope RBAC for Secrets to a single namespace. See discussion
+	// about this  here
+	// https://github.com/kubernetes-sigs/controller-runtime/pull/2261#discussion_r1211640590
+	// Once the above linked design gets implemented, we should be able to
+	// use a single cache again.
 	sourceCache, err := cache.New(mgr.GetConfig(), cache.Options{
 		Scheme:    mgr.GetScheme(),
 		Mapper:    mgr.GetRESTMapper(),
