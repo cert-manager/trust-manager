@@ -23,10 +23,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -52,30 +50,22 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 		return fmt.Errorf("failed to create client: %w", err)
 	}
 
+	// opts.Namespace will always be set as trust-manager is currently always
+	// scoped to a single trust namespace.
+	// TODO: validate somewhere higher up that this does not get set to ""
+	namespaces := []string{opts.Namespace}
+	// sourceCache is an additional, namespace-scoped cache. We also have
+	// the cache that is created by default for the c/r manager which is not
+	// namespace scoped. Having the double cache setup is required to be
+	// able to scope RBAC for Secrets to a single namespace. See discussion
+	// about this  here
+	// https://github.com/kubernetes-sigs/controller-runtime/pull/2261#discussion_r1211640590
+	// Once the above linked design gets implemented, we should be able to
+	// use a single cache again.
 	sourceCache, err := cache.New(mgr.GetConfig(), cache.Options{
-		Scheme:    mgr.GetScheme(),
-		Mapper:    mgr.GetRESTMapper(),
-		Namespace: opts.Namespace,
-
-		// These transforms are used as a safety check to ensure that only
-		// resources of the expected types are cached.
-		TransformByObject: map[client.Object]toolscache.TransformFunc{
-			new(corev1.Namespace): func(obj any) (any, error) {
-				return obj, nil
-			},
-			new(trustapi.Bundle): func(obj any) (any, error) {
-				return obj, nil
-			},
-			new(corev1.Secret): func(obj any) (any, error) {
-				return obj, nil
-			},
-			new(corev1.ConfigMap): func(obj any) (any, error) {
-				return obj, nil
-			},
-		},
-		DefaultTransform: func(obj any) (any, error) {
-			return nil, fmt.Errorf("object %T not supported by target cache", obj)
-		},
+		Scheme:     mgr.GetScheme(),
+		Mapper:     mgr.GetRESTMapper(),
+		Namespaces: namespaces,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create source cache: %w", err)
@@ -103,28 +93,52 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 		b.Options.Log.Info("successfully loaded default package from filesystem", "path", b.Options.DefaultPackageLocation)
 	}
 
+	// This informer setup allow us to use the informers from the auxiliary,
+	// namespace-scoped cache to trigger event handlers of the bundle
+	// controller.
+	// We sync Secrets to the auxiliary, namespace scoped cache rather than
+	// the cache that gets created with the c/r manager. This is a temporary
+	// fix to allow us to scope down RBAC for Secrets. See
+	// https://github.com/kubernetes-sigs/controller-runtime/pull/2261#discussion_r1211640590
+	// for context.
+	// For convenience, we also sync ConfigMaps, Namespaces and Bundles to
+	// the same cache as that allows us to use a single cache client to GET
+	// all these cached resources inside reconcile loop.
+
+	configMapInformer, err := sourceCache.GetInformer(ctx, &corev1.ConfigMap{})
+	if err != nil {
+		return fmt.Errorf("error creating ConfigMaps informer from namespace-scoped cache: %w", err)
+	}
+	secretInformer, err := sourceCache.GetInformer(ctx, &corev1.Secret{})
+	if err != nil {
+		return fmt.Errorf("error creating Secrets informer from namespace-scoped cache: %w", err)
+	}
+	bundleInformer, err := sourceCache.GetInformer(ctx, &trustapi.Bundle{})
+	if err != nil {
+		return fmt.Errorf("error creating Bundle informer from namespace-scoped cache: %w", err)
+	}
+	namespaceInformer, err := sourceCache.GetInformer(ctx, &corev1.Namespace{})
+	if err != nil {
+		return fmt.Errorf("error creating Bundle informer from namespace-scoped cache: %w", err)
+	}
+
 	// Only reconcile config maps that match the well known name
 	if err := ctrl.NewControllerManagedBy(mgr).
 		Named("bundles").
 
 		////// Targets //////
 
-		// Reconcile over owned ConfigMaps in all Namespaces. Only cache metadata.
-		// These ConfigMaps will be Bundle Targets
-		Watches(&source.Kind{Type: new(corev1.ConfigMap)}, &handler.EnqueueRequestForOwner{
-			OwnerType:    new(trustapi.Bundle),
-			IsController: true,
-		}, builder.OnlyMetadata).
-
-		////// Sources //////
+		// Reconcile a Bundle on events against a ConfigMap that it
+		// owns. Only cache ConfigMap metadata.
+		WatchesMetadata(&corev1.ConfigMap{}, handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &trustapi.Bundle{}, handler.OnlyControllerOwner())).
 
 		// Reconcile trust.cert-manager.io Bundles
-		Watches(source.NewKindWithCache(new(trustapi.Bundle), sourceCache), &handler.EnqueueRequestForObject{}).
+		WatchesRawSource(&source.Informer{Informer: bundleInformer}, &handler.EnqueueRequestForObject{}).
 
 		// Watch all Namespaces. Cache whole Namespaces to include Phase Status.
 		// Reconcile all Bundles on a Namespace change.
-		Watches(source.NewKindWithCache(new(corev1.Namespace), sourceCache), handler.EnqueueRequestsFromMapFunc(
-			func(obj client.Object) []reconcile.Request {
+		WatchesRawSource(&source.Informer{Informer: namespaceInformer}, handler.EnqueueRequestsFromMapFunc(
+			func(ctx context.Context, obj client.Object) []reconcile.Request {
 				// If an error happens here and we do nothing, we run the risk of
 				// leaving a Namespace behind when syncing.
 				// Exiting error is the safest option, as it will force a resync on
@@ -142,8 +156,8 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 
 		// Watch ConfigMaps in trust Namespace. Only cache metadata.
 		// Reconcile Bundles who reference a modified source ConfigMap.
-		Watches(source.NewKindWithCache(new(corev1.ConfigMap), sourceCache), handler.EnqueueRequestsFromMapFunc(
-			func(obj client.Object) []reconcile.Request {
+		WatchesRawSource(&source.Informer{Informer: configMapInformer}, handler.EnqueueRequestsFromMapFunc(
+			func(ctx context.Context, obj client.Object) []reconcile.Request {
 				// If an error happens here and we do nothing, we run the risk of
 				// having trust Bundles out of sync with this source or target
 				// ConfigMap.
@@ -172,8 +186,8 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 
 		// Watch Secrets in trust Namespace. Only cache metadata.
 		// Reconcile Bundles who reference a modified source Secret.
-		Watches(source.NewKindWithCache(new(corev1.Secret), sourceCache), handler.EnqueueRequestsFromMapFunc(
-			func(obj client.Object) []reconcile.Request {
+		WatchesRawSource(&source.Informer{Informer: secretInformer}, handler.EnqueueRequestsFromMapFunc(
+			func(ctx context.Context, obj client.Object) []reconcile.Request {
 				// If an error happens here and we do nothing, we run the risk of
 				// having trust Bundles out of sync with this source Secret.
 				// Exiting error is the safest option, as it will force a resync on

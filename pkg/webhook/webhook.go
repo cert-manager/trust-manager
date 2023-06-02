@@ -17,9 +17,13 @@ limitations under the License.
 package webhook
 
 import (
+	"fmt"
+
 	"github.com/go-logr/logr"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 )
 
 // Options are options for running the wehook.
@@ -28,10 +32,16 @@ type Options struct {
 }
 
 // Register the webhook endpoints against the Manager.
-func Register(mgr manager.Manager, opts Options) {
+func Register(mgr manager.Manager, opts Options) error {
 	opts.Log.Info("registering webhook endpoints")
-
 	validator := &validator{log: opts.Log.WithName("validation")}
-	mgr.GetWebhookServer().Register("/validate", &webhook.Admission{Handler: validator})
-	mgr.AddReadyzCheck("validator", validator.check)
+	err := builder.WebhookManagedBy(mgr).
+		For(&trustapi.Bundle{}).
+		WithValidator(validator).
+		Complete()
+	if err != nil {
+		return fmt.Errorf("error registering webhook: %v", err)
+	}
+	mgr.AddReadyzCheck("validator", mgr.GetWebhookServer().StartedChecker())
+	return nil
 }
