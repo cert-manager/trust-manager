@@ -105,9 +105,12 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 				unionCount++
 			}
 
-			if source.UseDefaultCAs != nil && *source.UseDefaultCAs {
+			if source.UseDefaultCAs != nil {
 				unionCount++
-				defaultCAsCount++
+
+				if *source.UseDefaultCAs {
+					defaultCAsCount++
+				}
 			}
 
 			if unionCount != 1 {

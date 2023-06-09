@@ -80,7 +80,11 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 		case source.InLine != nil:
 			sourceData = *source.InLine
 
-		case source.UseDefaultCAs != nil && *source.UseDefaultCAs:
+		case source.UseDefaultCAs != nil:
+			if *source.UseDefaultCAs == false {
+				continue
+			}
+
 			if b.defaultPackage == nil {
 				err = notFoundError{fmt.Errorf("no default package was specified when trust-manager was started; default CAs not available")}
 			} else {
