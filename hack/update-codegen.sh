@@ -43,7 +43,7 @@ for GVs in ${GROUPS_WITH_VERSIONS}; do
 done
 
 echo "Generating deepcopy funcs"
-${BIN_DIR}/deepcopy-gen --input-dirs "$(codegen::join , "${FQ_APIS[@]}")" -O zz_generated.deepcopy --bounding-dirs "${APIS_PKG}" -h $BOILERPLATE
+${BIN_DIR}/deepcopy-gen --input-dirs "$(codegen::join , "${FQ_APIS[@]}")" -O zz_generated.deepcopy --bounding-dirs "${APIS_PKG}" --trim-path-prefix="$TRUST_DISTRIBUTION_PKG" -h $BOILERPLATE
 
 echo "Generating CRDs in ./deploy/crds"
 ${BIN_DIR}/controller-gen crd schemapatch:manifests=./deploy/crds output:dir=./deploy/crds paths=./pkg/apis/...
