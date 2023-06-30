@@ -23,7 +23,12 @@ defaultPackageImage:
   tag: "20210119.0"
   # -- imagePullPolicy for the default package image
   pullPolicy: IfNotPresent
-
+# Kubernetes pod level securityContext: see https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+# for example:
+#   podSecurityContext:
+#     seccompProfile:
+#       type: RuntimeDefault
+podSecurityContext: {}
 app:
   # -- Verbosity of trust logging; takes a value from 1-5, with higher being more verbose
   logLevel: 1

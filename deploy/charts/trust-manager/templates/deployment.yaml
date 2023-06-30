@@ -16,6 +16,8 @@ spec:
         app: {{ include "trust-manager.name" . }}
     spec:
       serviceAccountName: {{ include "trust-manager.name" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       {{- if .Values.defaultPackage.enabled }}
       initContainers:
       - name: cert-manager-package-debian
