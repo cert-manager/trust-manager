@@ -105,10 +105,7 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 		bundles = append(bundles, string(sanitizedBundle))
 	}
 
-	// NB: bundles should never be empty here, since ValidateAndSanitizePEMBundle errors when a bundle source
-	// contains no valid certificates. Plus, the webhook validation should confirm that there's at least one source
-	// defined to avoid otherwise empty bundles.
-	// Still, just in case, we check and return an error in case somehow an empty bundle snuck through.
+	// NB: empty bundles are not valid so check and return an error if one somehow snuck through.
 
 	if len(bundles) == 0 {
 		return bundleData{}, fmt.Errorf("couldn't find any valid certificates in bundle")
