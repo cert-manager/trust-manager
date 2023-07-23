@@ -65,67 +65,71 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 		warnings admission.Warnings
 		path     = field.NewPath("spec")
 	)
-	if len(bundle.Spec.Sources) == 0 {
-		el = append(el, field.Forbidden(path.Child("sources"), "must define at least one source"))
-	} else {
-		path := path.Child("sources")
 
-		defaultCAsCount := 0
+	sourceCount := 0
+	defaultCAsCount := 0
 
-		for i, source := range bundle.Spec.Sources {
-			path := path.Child("[" + strconv.Itoa(i) + "]")
+	for i, source := range bundle.Spec.Sources {
+		path := path.Child("sources").Child("[" + strconv.Itoa(i) + "]")
 
-			unionCount := 0
+		unionCount := 0
 
-			if configMap := source.ConfigMap; configMap != nil {
-				path := path.Child("configMap")
-				unionCount++
+		if configMap := source.ConfigMap; configMap != nil {
+			path := path.Child("configMap")
+			sourceCount++
+			unionCount++
 
-				if len(configMap.Name) == 0 {
-					el = append(el, field.Invalid(path.Child("name"), configMap.Name, "source configMap name must be defined"))
-				}
-				if len(configMap.Key) == 0 {
-					el = append(el, field.Invalid(path.Child("key"), configMap.Key, "source configMap key must be defined"))
-				}
+			if len(configMap.Name) == 0 {
+				el = append(el, field.Invalid(path.Child("name"), configMap.Name, "source configMap name must be defined"))
 			}
-
-			if secret := source.Secret; secret != nil {
-				path := path.Child("secret")
-				unionCount++
-
-				if len(secret.Name) == 0 {
-					el = append(el, field.Invalid(path.Child("name"), secret.Name, "source secret name must be defined"))
-				}
-				if len(secret.Key) == 0 {
-					el = append(el, field.Invalid(path.Child("key"), secret.Key, "source secret key must be defined"))
-				}
-			}
-
-			if source.InLine != nil {
-				unionCount++
-			}
-
-			if source.UseDefaultCAs != nil {
-				unionCount++
-
-				if *source.UseDefaultCAs {
-					defaultCAsCount++
-				}
-			}
-
-			if unionCount != 1 {
-				el = append(el, field.Forbidden(
-					path, fmt.Sprintf("must define exactly one source type for each item but found %d defined types", unionCount),
-				))
+			if len(configMap.Key) == 0 {
+				el = append(el, field.Invalid(path.Child("key"), configMap.Key, "source configMap key must be defined"))
 			}
 		}
 
-		if defaultCAsCount > 1 {
+		if secret := source.Secret; secret != nil {
+			path := path.Child("secret")
+			sourceCount++
+			unionCount++
+
+			if len(secret.Name) == 0 {
+				el = append(el, field.Invalid(path.Child("name"), secret.Name, "source secret name must be defined"))
+			}
+			if len(secret.Key) == 0 {
+				el = append(el, field.Invalid(path.Child("key"), secret.Key, "source secret key must be defined"))
+			}
+		}
+
+		if source.InLine != nil {
+			sourceCount++
+			unionCount++
+		}
+
+		if source.UseDefaultCAs != nil {
+			defaultCAsCount++
+			unionCount++
+
+			if *source.UseDefaultCAs {
+				sourceCount++
+			}
+		}
+
+		if unionCount != 1 {
 			el = append(el, field.Forbidden(
-				path,
-				fmt.Sprintf("must request default CAs either once or not at all but got %d requests", defaultCAsCount),
+				path, fmt.Sprintf("must define exactly one source type for each item but found %d defined types", unionCount),
 			))
 		}
+	}
+
+	if sourceCount == 0 {
+		el = append(el, field.Forbidden(path.Child("sources"), "must define at least one source"))
+	}
+
+	if defaultCAsCount > 1 {
+		el = append(el, field.Forbidden(
+			path.Child("sources"),
+			fmt.Sprintf("must request default CAs either once or not at all but got %d requests", defaultCAsCount),
+		))
 	}
 
 	if target := bundle.Spec.Target.ConfigMap; target != nil {
