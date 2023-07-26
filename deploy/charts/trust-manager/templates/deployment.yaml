@@ -36,8 +36,10 @@ spec:
             - ALL
           readOnlyRootFilesystem: true
           runAsNonRoot: true
+          {{- if .Values.app.securityContext.seccompProfileEnabled }}
           seccompProfile:
             type: RuntimeDefault
+          {{- end }}
       {{- end }}
       containers:
       - name: {{ include "trust-manager.name" . }}
