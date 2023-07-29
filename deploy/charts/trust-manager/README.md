@@ -46,7 +46,9 @@ Kubernetes: `>= 1.22.0-0`
 | defaultPackageImage.pullPolicy | string | `"IfNotPresent"` | imagePullPolicy for the default package image |
 | defaultPackageImage.repository | string | `"quay.io/jetstack/cert-manager-package-debian"` | Repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles. |
 | defaultPackageImage.tag | string | `"20210119.0"` | Tag for the default package image |
+| image.digest | string | `nil` | Target image digest. Will override any tag if set. |
 | image.pullPolicy | string | `"IfNotPresent"` | Kubernetes imagePullPolicy on Deployment. |
+| image.registry | string | `nil` | Target image registry. Will be prepended to the target image repositry if set. |
 | image.repository | string | `"quay.io/jetstack/trust-manager"` | Target image repository. |
 | image.tag | string | `"v0.6.0"` | Target image version tag. |
 | imagePullSecrets | list | `[]` | For Private docker registries, authentication is needed. Registry secrets are applied to the service account |

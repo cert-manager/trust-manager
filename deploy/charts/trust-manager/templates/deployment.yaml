@@ -41,7 +41,9 @@ spec:
       {{- end }}
       containers:
       - name: {{ include "trust-manager.name" . }}
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        {{- with .Values.image }}
+        image: "{{- if .registry -}}{{ .registry }}/{{- end -}}{{ .repository }}{{- if (.digest) -}} @{{ .digest }}{{- else -}}:{{ .tag }}{{- end -}}"
+        {{- end }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - containerPort: {{ .Values.app.webhook.port }}
