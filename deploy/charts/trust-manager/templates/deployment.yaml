@@ -12,9 +12,15 @@ spec:
       app: {{ include "trust-manager.name" . }}
   template:
     metadata:
-      {{- with .Values.app.podAnnotations }}
+      {{- if or .Values.app.podAnnotations .Values.app.webhook.tls.helmCert.enabled }}
       annotations:
-        {{- toYaml . | nindent 8 }}
+        {{- if .Values.app.podAnnotations }}
+        {{- toYaml .Values.app.podAnnotations | nindent 8 }}
+        {{- end }}
+        {{- if .Values.app.webhook.tls.helmCert.enabled }}
+        {{- /* When using a helm cert, the cert will be regenerated every time the chart is updated. When that happens, we need to restart the pods in the deployment to ensure the new cert is picked up. */}}
+        rollme-due-to-helm-cert: {{ randAlphaNum 5 | quote }}
+        {{- end }}
       {{- end }}
       labels:
         app: {{ include "trust-manager.name" . }}

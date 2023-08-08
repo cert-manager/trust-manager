@@ -401,6 +401,13 @@ Sets the families that should be supported and the order in which they should be
 
 The nodePort set on the Service used by the webhook.
 
+#### **app.webhook.tls.helmCert.enabled** ~ `bool`
+> Default value:
+> ```yaml
+> false
+> ```
+
+Whether to issue a webhook cert using Helm, which removes the need to install cert-manager. Helm-issued certificates can be challenging to rotate and maintain, and the issued cert will have a duration of 10 years and be modified when trust-manager is updated. It's safer and easier to rely on cert-manager for issuing the webhook cert - avoid using Helm-generated certs in production.
 #### **app.webhook.tls.approverPolicy.enabled** ~ `bool`
 > Default value:
 > ```yaml

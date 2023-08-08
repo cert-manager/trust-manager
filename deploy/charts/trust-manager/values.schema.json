@@ -366,6 +366,9 @@
       "properties": {
         "approverPolicy": {
           "$ref": "#/$defs/helm-values.app.webhook.tls.approverPolicy"
+        },
+        "helmCert": {
+          "$ref": "#/$defs/helm-values.app.webhook.tls.helmCert"
         }
       },
       "type": "object"
@@ -398,6 +401,20 @@
     "helm-values.app.webhook.tls.approverPolicy.enabled": {
       "default": false,
       "description": "Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this.",
+      "type": "boolean"
+    },
+    "helm-values.app.webhook.tls.helmCert": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "$ref": "#/$defs/helm-values.app.webhook.tls.helmCert.enabled"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.app.webhook.tls.helmCert.enabled": {
+      "default": false,
+      "description": "Whether to issue a webhook cert using Helm, which removes the need to install cert-manager. Helm-issued certificates can be challenging to rotate and maintain, and the issued cert will have a duration of 10 years and be modified when trust-manager is updated. It's safer and easier to rely on cert-manager for issuing the webhook cert - avoid using Helm-generated certs in production.",
       "type": "boolean"
     },
     "helm-values.commonLabels": {
