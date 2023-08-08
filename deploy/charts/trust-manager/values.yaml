@@ -68,6 +68,9 @@ app:
       type: ClusterIP
 
     tls:
+      # -- Whether to issue an "isolated" cert, which removes the requirement for cert-manager to be installed by using Helm to issue a webhook certificate.
+      issueIsolatedCert: false
+
       approverPolicy:
         # -- Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this.
         enabled: false

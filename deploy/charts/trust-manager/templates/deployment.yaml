@@ -14,6 +14,15 @@ spec:
     metadata:
       labels:
         app: {{ include "trust-manager.name" . }}
+{{ if .Values.app.webhook.tls.issueIsolatedCert }}
+{{- /*
+When using an isolated cert the cert will be regenerated every time the chart is updated.
+
+When that happens, we need to restart the pods in the deployment to ensure the new cert is picked up.
+*/}}
+      annotations:
+        rollme-due-to-isolated-cert: {{ randAlphaNum 5 | quote }}
+{{ end }}
     spec:
       serviceAccountName: {{ include "trust-manager.name" . }}
       {{- if .Values.defaultPackage.enabled }}

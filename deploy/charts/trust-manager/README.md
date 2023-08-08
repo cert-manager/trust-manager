@@ -41,6 +41,7 @@ Kubernetes: `>= 1.22.0-0`
 | app.webhook.timeoutSeconds | int | `5` | Timeout of webhook HTTP request. |
 | app.webhook.tls.approverPolicy.certManagerNamespace | string | `"cert-manager"` | Namespace in which cert-manager was installed. Only used if approverPolicy has been enabled. |
 | app.webhook.tls.approverPolicy.enabled | bool | `false` | Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this. |
+| app.webhook.tls.issueIsolatedCert | bool | `false` | Whether to issue an "isolated" cert, which removes the requirement for cert-manager to be installed by using Helm to issue a webhook certificate. |
 | crds.enabled | bool | `true` | Whether or not to install the crds. |
 | defaultPackage.enabled | bool | `true` | Whether to load the default trust package during pod initialization and include it in main container args. This container enables the 'useDefaultCAs' source on Bundles. |
 | defaultPackageImage.pullPolicy | string | `"IfNotPresent"` | imagePullPolicy for the default package image |
