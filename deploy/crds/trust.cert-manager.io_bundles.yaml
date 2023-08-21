@@ -101,7 +101,7 @@ spec:
                       type: object
                       properties:
                         jks:
-                          description: KeySelector is a reference to a key for some map data object.
+                          description: JKS requests a JKS-formatted binary trust bundle to be written to the target. The bundle is created with the hardcoded password "changeit".
                           type: object
                           required:
                             - key
@@ -173,7 +173,7 @@ spec:
                       type: object
                       properties:
                         jks:
-                          description: KeySelector is a reference to a key for some map data object.
+                          description: JKS requests a JKS-formatted binary trust bundle to be written to the target. The bundle is created with the hardcoded password "changeit".
                           type: object
                           required:
                             - key
