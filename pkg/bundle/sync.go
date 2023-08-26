@@ -155,10 +155,18 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 	return string(data), nil
 }
 
+type binaryDataEncoder interface {
+	encode(trustBundle string) ([]byte, error)
+}
+
+type jksEncoder struct {
+	password []byte
+}
+
 // encodeJKS creates a binary JKS file from the given PEM-encoded trust bundle and password.
 // Note that the password is not treated securely; JKS files generally seem to expect a password
 // to exist and so we have the option for one.
-func encodeJKS(trustBundle string, password []byte) ([]byte, error) {
+func (e jksEncoder) encode(trustBundle string) ([]byte, error) {
 	remaining := []byte(trustBundle)
 
 	// WithOrderedAliases ensures that trusted certs are added to the JKS file in order,
@@ -168,7 +176,7 @@ func encodeJKS(trustBundle string, password []byte) ([]byte, error) {
 	for len(remaining) > 0 {
 		var p *pem.Block
 
-		p, remaining = pem.Decode([]byte(remaining))
+		p, remaining = pem.Decode(remaining)
 		if p == nil {
 			break
 		}
@@ -178,7 +186,7 @@ func encodeJKS(trustBundle string, password []byte) ([]byte, error) {
 			return nil, fmt.Errorf("got invalid cert when trying to encode JKS: %w", err)
 		}
 
-		alias := jksAlias(c.Raw, c.Subject.String())
+		alias := e.alias(c.Raw, c.Subject.String())
 
 		// Note on CreationTime:
 		// Debian's JKS trust store sets the creation time to match the time that certs are added to the
@@ -205,7 +213,7 @@ func encodeJKS(trustBundle string, password []byte) ([]byte, error) {
 
 	buf := &bytes.Buffer{}
 
-	err := ks.Store(buf, password)
+	err := ks.Store(buf, e.password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create JKS file: %w", err)
 	}
@@ -219,7 +227,7 @@ func encodeJKS(trustBundle string, password []byte) ([]byte, error) {
 // different certs being treated as identical.
 // The friendlyName is included in the alias as a UX feature when examining JKS files using a
 // tool like `keytool`.
-func jksAlias(derData []byte, friendlyName string) string {
+func (e jksEncoder) alias(derData []byte, friendlyName string) string {
 	certHashBytes := sha256.Sum256(derData)
 	certHash := hex.EncodeToString(certHashBytes[:])
 
@@ -242,7 +250,6 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 	data string,
 ) (bool, error) {
 	target := bundle.Spec.Target
-	var binData *[]byte
 
 	if target.ConfigMap == nil {
 		return false, errors.New("target not defined")
@@ -253,13 +260,11 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 	var configMap corev1.ConfigMap
 	err := b.targetDirectClient.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: bundle.Name}, &configMap)
 
+	var binData map[string]binaryDataEncoder
 	if target.AdditionalFormats != nil && target.AdditionalFormats.JKS != nil {
-		j, err := encodeJKS(data, []byte(DefaultJKSPassword))
-		if err != nil {
-			return false, err
+		binData = map[string]binaryDataEncoder{
+			target.AdditionalFormats.JKS.Key: &jksEncoder{password: []byte(DefaultJKSPassword)},
 		}
-
-		binData = &j
 	}
 
 	// If the ConfigMap doesn't exist yet, create it.
@@ -282,10 +287,9 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 			},
 		}
 
-		if binData != nil {
-			configMap.BinaryData = map[string][]byte{
-				target.AdditionalFormats.JKS.Key: *binData,
-			}
+		err = b.syncBinData(&configMap, data, binData)
+		if err != nil {
+			return false, err
 		}
 
 		return true, b.targetDirectClient.Create(ctx, &configMap)
@@ -315,28 +319,27 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 		needsUpdate = true
 	}
 
-	needsJKS := false
-	if target.AdditionalFormats != nil && target.AdditionalFormats.JKS != nil {
-		if _, ok := configMap.BinaryData[target.AdditionalFormats.JKS.Key]; !ok {
-			needsJKS = true
+	needsBinDataUpdate := func() bool {
+		for k := range binData {
+			if _, ok := configMap.BinaryData[k]; !ok {
+				return true
+			}
 		}
+		return false
 	}
 
 	// If PEM not present, or if JKS required and not present, or configmap PEM doesn't match
 	// Generated JKS is not deterministic - best we can do here is update if the pem cert has
 	// changed (hence not checking if JKS matches)
-	if cmdata, ok := configMap.Data[target.ConfigMap.Key]; !ok || needsJKS || cmdata != data {
+	if cmdata, ok := configMap.Data[target.ConfigMap.Key]; !ok || cmdata != data || needsBinDataUpdate() {
 		if configMap.Data == nil {
 			configMap.Data = make(map[string]string)
 		}
-
 		configMap.Data[target.ConfigMap.Key] = data
-		if binData != nil {
-			if configMap.BinaryData == nil {
-				configMap.BinaryData = make(map[string][]byte)
-			}
 
-			configMap.BinaryData[target.AdditionalFormats.JKS.Key] = *binData
+		err = b.syncBinData(&configMap, data, binData)
+		if err != nil {
+			return false, err
 		}
 
 		needsUpdate = true
@@ -354,4 +357,19 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 	log.V(2).Info("synced bundle to namespace")
 
 	return true, nil
+}
+
+func (b *bundle) syncBinData(configMap *corev1.ConfigMap, data string, binData map[string]binaryDataEncoder) error {
+	for k, encoder := range binData {
+		encoded, err := encoder.encode(data)
+		if err != nil {
+			return err
+		}
+
+		if configMap.BinaryData == nil {
+			configMap.BinaryData = make(map[string][]byte, len(binData))
+		}
+		configMap.BinaryData[k] = encoded
+	}
+	return nil
 }
