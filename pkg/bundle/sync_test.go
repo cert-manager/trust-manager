@@ -36,6 +36,7 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"software.sslmate.com/src/go-pkcs12"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
@@ -49,6 +50,7 @@ func Test_syncTarget(t *testing.T) {
 		bundleName = "test-bundle"
 		key        = "trust.pem"
 		jksKey     = "trust.jks"
+		pkcs12Key  = "trust.p12"
 		data       = dummy.TestCertificate1
 	)
 
@@ -62,11 +64,15 @@ func Test_syncTarget(t *testing.T) {
 		selector  func(t *testing.T) labels.Selector
 		// Add JKS to AdditionalFormats
 		withJKS bool
+		// Add PKCS12 to AdditionalFormats
+		withPKCS12 bool
 		// Expect the configmap to exist at the end of the sync.
 		expExists bool
 		// Expect JKS to exist in the configmap at the end of the sync.
-		expJKS   bool
-		expEvent string
+		expJKS bool
+		// Expect PKCS12 to exist in the configmap at the end of the sync.
+		expPKCS12 bool
+		expEvent  string
 		// Expect the owner reference of the configmap to point to the bundle.
 		expOwnerReference bool
 		expNeedsUpdate    bool
@@ -86,6 +92,16 @@ func Test_syncTarget(t *testing.T) {
 			withJKS:           true,
 			expExists:         true,
 			expJKS:            true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object doesn't exist with PKCS12, expect update": {
+			object:            nil,
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			selector:          labelEverything,
+			withPKCS12:        true,
+			expExists:         true,
+			expPKCS12:         true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
@@ -178,6 +194,31 @@ func Test_syncTarget(t *testing.T) {
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
+		"if object exists with owner but without PKCS12, expect update": {
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bundleName,
+					Namespace: "test-namespace",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         pointer.Bool(true),
+							BlockOwnerDeletion: pointer.Bool(true),
+						},
+					},
+				},
+				Data: map[string]string{key: data},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			selector:          labelEverything,
+			withPKCS12:        true,
+			expExists:         true,
+			expPKCS12:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
 		"if object exists with owner but wrong key, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -229,6 +270,34 @@ func Test_syncTarget(t *testing.T) {
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
+		"if object exists with owner but wrong PKCS12 key, expect update": {
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bundleName,
+					Namespace: "test-namespace",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         pointer.Bool(true),
+							BlockOwnerDeletion: pointer.Bool(true),
+						},
+					},
+				},
+				Data: map[string]string{key: data},
+				BinaryData: map[string][]byte{
+					"wrong-key": []byte(data),
+				},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			selector:          labelEverything,
+			withPKCS12:        true,
+			expExists:         true,
+			expPKCS12:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
 		"if object exists with correct data, expect no update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -274,6 +343,31 @@ func Test_syncTarget(t *testing.T) {
 			withJKS:           true,
 			expExists:         true,
 			expJKS:            true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object exists without PKCS12, expect update": {
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bundleName,
+					Namespace: "test-namespace",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         pointer.Bool(true),
+							BlockOwnerDeletion: pointer.Bool(true),
+						},
+					},
+				},
+				Data: map[string]string{key: data},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			selector:          labelEverything,
+			withPKCS12:        true,
+			expExists:         true,
+			expPKCS12:         true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
@@ -433,9 +527,17 @@ func Test_syncTarget(t *testing.T) {
 
 			b := &bundle{targetDirectClient: fakeclient, recorder: fakerecorder}
 
-			spec := trustapi.BundleSpec{Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: key}}}
+			spec := trustapi.BundleSpec{
+				Target: trustapi.BundleTarget{
+					ConfigMap:         &trustapi.KeySelector{Key: key},
+					AdditionalFormats: &trustapi.AdditionalFormats{},
+				},
+			}
 			if test.withJKS {
-				spec.Target.AdditionalFormats = &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: jksKey}}
+				spec.Target.AdditionalFormats.JKS = &trustapi.KeySelector{Key: jksKey}
+			}
+			if test.withPKCS12 {
+				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12Key}
 			}
 
 			needsUpdate, err := b.syncTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
@@ -487,6 +589,19 @@ func Test_syncTarget(t *testing.T) {
 					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
 					p, _ := pem.Decode([]byte(data))
 					assert.Equal(t, p.Bytes, cert.Certificate.Content)
+				}
+
+				pkcs12Data, pkcs12Exists := configMap.BinaryData[pkcs12Key]
+				assert.Equal(t, test.expPKCS12, pkcs12Exists)
+
+				if test.expPKCS12 {
+					cas, err := pkcs12.DecodeTrustStore(pkcs12Data, DefaultPKCS12Password)
+					assert.Nil(t, err)
+					assert.Len(t, cas, 1)
+
+					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
+					p, _ := pem.Decode([]byte(data))
+					assert.Equal(t, p.Bytes, cas[0].Raw)
 				}
 			}
 
@@ -733,7 +848,7 @@ func Test_encodeJKSAliases(t *testing.T) {
 	}
 }
 
-func Test_jksAlias(t *testing.T) {
+func Test_certAlias(t *testing.T) {
 	// We might not ever rely on aliases being stable, but this test seeks
 	// to enforce stability for now. It'll be easy to remove.
 
@@ -750,7 +865,7 @@ func Test_jksAlias(t *testing.T) {
 		t.Fatalf("Dummy certificate TestCertificate1 couldn't be parsed: %s", err)
 	}
 
-	alias := jksEncoder{}.alias(cert.Raw, cert.Subject.String())
+	alias := certAlias(cert.Raw, cert.Subject.String())
 
 	expectedAlias := "548b988f|CN=cmct-test-root,O=cert-manager"
 

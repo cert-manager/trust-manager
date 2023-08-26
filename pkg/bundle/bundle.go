@@ -140,8 +140,13 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 			}
 
 			delete(configMap.Data, bundle.Status.Target.ConfigMap.Key)
-			if bundle.Status.Target.AdditionalFormats != nil && bundle.Status.Target.AdditionalFormats.JKS != nil {
-				delete(configMap.BinaryData, bundle.Status.Target.AdditionalFormats.JKS.Key)
+			if bundle.Status.Target.AdditionalFormats != nil {
+				if bundle.Status.Target.AdditionalFormats.JKS != nil {
+					delete(configMap.BinaryData, bundle.Status.Target.AdditionalFormats.JKS.Key)
+				}
+				if bundle.Status.Target.AdditionalFormats.PKCS12 != nil {
+					delete(configMap.BinaryData, bundle.Status.Target.AdditionalFormats.PKCS12.Key)
+				}
 			}
 
 			if err := b.targetDirectClient.Update(ctx, configMap); err != nil {

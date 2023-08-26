@@ -145,9 +145,21 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 		el = append(el, field.Invalid(path.Child("target", "configMap"), configMap, "target configMap must be defined"))
 	} else if len(configMap.Key) == 0 {
 		el = append(el, field.Invalid(path.Child("target", "configMap", "key"), configMap.Key, "target configMap key must be defined"))
-	} else if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.JKS != nil {
-		if bundle.Spec.Target.AdditionalFormats.JKS.Key == configMap.Key {
-			el = append(el, field.Invalid(path.Child("target", "additionalFormats", "jks", "key"), bundle.Spec.Target.AdditionalFormats.JKS.Key, "target JKS key must be different to configMap key"))
+	} else if bundle.Spec.Target.AdditionalFormats != nil {
+		targetKeys := map[string]struct{}{
+			configMap.Key: {},
+		}
+		formats := map[string]*trustapi.KeySelector{
+			"jks":    bundle.Spec.Target.AdditionalFormats.JKS,
+			"pkcs12": bundle.Spec.Target.AdditionalFormats.PKCS12,
+		}
+		for f, selector := range formats {
+			if selector != nil {
+				if _, ok := targetKeys[selector.Key]; ok {
+					el = append(el, field.Invalid(path.Child("target", "additionalFormats", f, "key"), selector.Key, "key must be unique in target configMap"))
+				}
+				targetKeys[selector.Key] = struct{}{}
+			}
 		}
 	}
 
