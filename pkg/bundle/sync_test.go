@@ -712,7 +712,7 @@ func Test_encodeJKSAliases(t *testing.T) {
 
 	password := []byte(DefaultJKSPassword)
 
-	jksFile, err := encodeJKS(bundle, password)
+	jksFile, err := jksEncoder{password: password}.encode(bundle)
 	if err != nil {
 		t.Fatalf("didn't expect an error but got: %s", err)
 	}
@@ -750,7 +750,7 @@ func Test_jksAlias(t *testing.T) {
 		t.Fatalf("Dummy certificate TestCertificate1 couldn't be parsed: %s", err)
 	}
 
-	alias := jksAlias(cert.Raw, cert.Subject.String())
+	alias := jksEncoder{}.alias(cert.Raw, cert.Subject.String())
 
 	expectedAlias := "548b988f|CN=cmct-test-root,O=cert-manager"
 
