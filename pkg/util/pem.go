@@ -92,3 +92,31 @@ func ValidateAndSplitPEMBundle(data []byte) ([][]byte, error) {
 
 	return certificates, nil
 }
+
+// DecodeX509CertificateChainBytes will decode a PEM encoded x509 Certificate chain.
+func DecodeX509CertificateChainBytes(certBytes []byte) ([]*x509.Certificate, error) {
+	var certs []*x509.Certificate
+
+	var block *pem.Block
+
+	for {
+		// decode the tls certificate pem
+		block, certBytes = pem.Decode(certBytes)
+		if block == nil {
+			break
+		}
+
+		// parse the tls certificate
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing TLS certificate: %s", err.Error())
+		}
+		certs = append(certs, cert)
+	}
+
+	if len(certs) == 0 {
+		return nil, fmt.Errorf("error decoding certificate PEM block")
+	}
+
+	return certs, nil
+}

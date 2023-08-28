@@ -265,7 +265,31 @@ func Test_validate(t *testing.T) {
 					},
 				},
 			},
-			expErr: pointer.String("spec.target.additionalFormats.jks.key: Invalid value: \"bar\": target JKS key must be different to configMap key"),
+			expErr: pointer.String("spec.target.additionalFormats.jks.key: Invalid value: \"bar\": key must be unique in target configMap"),
+		},
+		"a Bundle with a duplicate target PKCS12 key should fail validation and return a denied response": {
+			bundle: &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{Name: "testing"},
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{InLine: pointer.String("foo")},
+					},
+					Target: trustapi.BundleTarget{
+						AdditionalFormats: &trustapi.AdditionalFormats{
+							PKCS12: &trustapi.KeySelector{
+								Key: "bar",
+							},
+						},
+						ConfigMap: &trustapi.KeySelector{
+							Key: "bar",
+						},
+						NamespaceSelector: &trustapi.NamespaceSelector{
+							MatchLabels: map[string]string{"foo": "bar"},
+						},
+					},
+				},
+			},
+			expErr: pointer.String("spec.target.additionalFormats.pkcs12.key: Invalid value: \"bar\": key must be unique in target configMap"),
 		},
 		"valid Bundle": {
 			bundle: &trustapi.Bundle{
@@ -307,6 +331,30 @@ func Test_validate(t *testing.T) {
 						AdditionalFormats: &trustapi.AdditionalFormats{
 							JKS: &trustapi.KeySelector{
 								Key: "bar.jks",
+							},
+						},
+						ConfigMap: &trustapi.KeySelector{
+							Key: "bar",
+						},
+						NamespaceSelector: &trustapi.NamespaceSelector{
+							MatchLabels: map[string]string{"foo": "bar"},
+						},
+					},
+				},
+			},
+			expErr: nil,
+		},
+		"valid Bundle with PKCS12": {
+			bundle: &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{Name: "testing"},
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{InLine: pointer.String("foo")},
+					},
+					Target: trustapi.BundleTarget{
+						AdditionalFormats: &trustapi.AdditionalFormats{
+							PKCS12: &trustapi.KeySelector{
+								Key: "bar.p12",
 							},
 						},
 						ConfigMap: &trustapi.KeySelector{
