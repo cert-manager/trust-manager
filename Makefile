@@ -23,9 +23,8 @@ BINDIR ?= $(CURDIR)/bin
 ARCH   ?= $(shell go env GOARCH)
 OS     ?= $(shell go env GOOS)
 
-HELM_VERSION ?= 3.10.3
-KUBEBUILDER_TOOLS_VERISON ?= 1.25.0
-BOILERSUITE_VERSION ?= v0.1.0
+HELM_VERSION ?= 3.12.3
+KUBEBUILDER_TOOLS_VERISON ?= 1.28.0
 GINKGO_VERSION ?= $(shell grep "github.com/onsi/ginkgo/v2" go.mod | awk '{print $$NF}')
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
 
@@ -182,31 +181,30 @@ $(BINDIR)/validate-trust-package: cmd/validate-trust-package/main.go pkg/fspkg/p
 	CGO_ENABLED=0 go build -o $@ $<
 
 .PHONY: depend
-depend: $(BINDIR)/deepcopy-gen $(BINDIR)/controller-gen $(BINDIR)/ginkgo $(BINDIR)/kubectl $(BINDIR)/kind $(BINDIR)/helm $(BINDIR)/kubebuilder/bin/kube-apiserver
+depend: $(BINDIR)/deepcopy-gen
+depend: $(BINDIR)/controller-gen
+depend: $(BINDIR)/boilersuite
+depend: $(BINDIR)/kind
+depend: $(BINDIR)/helm-docs
+depend: $(BINDIR)/helm
+depend: $(BINDIR)/ginkgo
+depend: $(BINDIR)/kubectl
+depend: $(BINDIR)/kubebuilder/bin/kube-apiserver
 
 $(BINDIR)/deepcopy-gen: | $(BINDIR)
-	go build -o $@ k8s.io/code-generator/cmd/deepcopy-gen
+	cd hack/tools && go build -o $@ k8s.io/code-generator/cmd/deepcopy-gen
 
 $(BINDIR)/controller-gen: | $(BINDIR)
-	go build -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
+	cd hack/tools && go build -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
 
-$(BINDIR)/ginkgo: $(BINDIR)/ginkgo-$(GINKGO_VERSION)/ginkgo | $(BINDIR)
-	cp -f $< $@
-
-$(BINDIR)/ginkgo-$(GINKGO_VERSION): | $(BINDIR)
-	mkdir -p $@
-
-$(BINDIR)/ginkgo-$(GINKGO_VERSION)/ginkgo: | $(BINDIR)
-	GOBIN=$(dir $@) go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
-
-$(BINDIR)/boilersuite: $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION)/boilersuite | $(BINDIR)
-	cp -f $< $@
-
-$(BINDIR)/boilersuite-$(BOILERSUITE_VERSION)/boilersuite: | $(BINDIR)
-	GOBIN=$(dir $@) go install github.com/cert-manager/boilersuite@$(BOILERSUITE_VERSION)
+$(BINDIR)/boilersuite: | $(BINDIR)
+	cd hack/tools && go build -o $@ github.com/cert-manager/boilersuite
 
 $(BINDIR)/kind: | $(BINDIR)
-	go build -o $(BINDIR)/kind sigs.k8s.io/kind
+	cd hack/tools && go build -o $@ sigs.k8s.io/kind
+
+$(BINDIR)/helm-docs: | $(BINDIR)
+	cd hack/tools && go build -o $@ github.com/norwoodj/helm-docs/cmd/helm-docs
 
 $(BINDIR)/helm: $(BINDIR)/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz | $(BINDIR)
 	tar xfO $< $(OS)-$(ARCH)/helm > $@
@@ -215,8 +213,11 @@ $(BINDIR)/helm: $(BINDIR)/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz | $(BINDIR)
 $(BINDIR)/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz: | $(BINDIR)
 	curl -o $@ -LO "https://get.helm.sh/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz"
 
-$(BINDIR)/helm-docs: | $(BINDIR)
-	cd hack/tools && go build -o $@ github.com/norwoodj/helm-docs/cmd/helm-docs
+$(BINDIR)/ginkgo: $(BINDIR)/ginkgo-$(GINKGO_VERSION)/ginkgo | $(BINDIR)
+	cp -f $< $@
+
+$(BINDIR)/ginkgo-$(GINKGO_VERSION)/ginkgo: | $(BINDIR)
+	GOBIN=$(dir $@) go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
 
 $(BINDIR)/kubectl: | $(BINDIR)
 	curl -o $@ -LO "https://storage.googleapis.com/kubernetes-release/release/$(shell curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$(OS)/$(ARCH)/kubectl"
@@ -226,7 +227,7 @@ $(BINDIR)/kubebuilder/bin/kube-apiserver: | $(BINDIR)/kubebuilder
 	curl -sSLo $(BINDIR)/envtest-bins.tar.gz "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$(KUBEBUILDER_TOOLS_VERISON)-$(OS)-$(ARCH).tar.gz"
 	tar -C $(BINDIR)/kubebuilder --strip-components=1 -zvxf $(BINDIR)/envtest-bins.tar.gz
 
-$(BINDIR) $(BINDIR)/kubebuilder $(BINDIR)/chart:
+$(BINDIR) $(BINDIR)/kubebuilder $(BINDIR)/chart $(BINDIR)/ginkgo-$(GINKGO_VERSION):
 	@mkdir -p $@
 
 _FORCE:

@@ -85,7 +85,7 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 			sourceData = *source.InLine
 
 		case source.UseDefaultCAs != nil:
-			if *source.UseDefaultCAs == false {
+			if !*source.UseDefaultCAs {
 				continue
 			}
 
@@ -123,7 +123,7 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 // configMapBundle returns the data in the source ConfigMap within the trust Namespace.
 func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObjectKeySelector) (string, error) {
 	var configMap corev1.ConfigMap
-	err := b.sourceLister.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &configMap)
+	err := b.client.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &configMap)
 	if apierrors.IsNotFound(err) {
 		return "", notFoundError{err}
 	}
@@ -143,7 +143,7 @@ func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObject
 // secretBundle returns the data in the target Secret within the trust Namespace.
 func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKeySelector) (string, error) {
 	var secret corev1.Secret
-	err := b.sourceLister.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &secret)
+	err := b.client.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &secret)
 	if apierrors.IsNotFound(err) {
 		return "", notFoundError{err}
 	}
@@ -274,7 +274,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 	matchNamespace := namespaceSelector.Matches(labels.Set(namespace.Labels))
 
 	var configMap corev1.ConfigMap
-	err := b.targetDirectClient.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: bundle.Name}, &configMap)
+	err := b.client.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: bundle.Name}, &configMap)
 
 	var binData map[string]binaryDataEncoder
 	if target.AdditionalFormats != nil {
@@ -312,7 +312,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 			return false, err
 		}
 
-		return true, b.targetDirectClient.Create(ctx, &configMap)
+		return true, b.client.Create(ctx, &configMap)
 	}
 
 	if err != nil {
@@ -324,7 +324,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 		// The ConfigMap is owned by this controller- delete it.
 		if metav1.IsControlledBy(&configMap, bundle) {
 			log.V(2).Info("deleting bundle from Namespace since namespaceSelector does not match")
-			return true, b.targetDirectClient.Delete(ctx, &configMap)
+			return true, b.client.Delete(ctx, &configMap)
 		}
 		// The ConfigMap isn't owned by us, so we shouldn't delete it. Return that
 		// we did nothing.
@@ -370,7 +370,7 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 		return false, nil
 	}
 
-	if err := b.targetDirectClient.Update(ctx, &configMap); err != nil {
+	if err := b.client.Update(ctx, &configMap); err != nil {
 		return true, fmt.Errorf("failed to update configmap %s/%s with bundle: %w", namespace, bundle.Name, err)
 	}
 
