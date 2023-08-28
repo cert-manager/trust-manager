@@ -20,30 +20,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-TRUST_DISTRIBUTION_PKG="github.com/cert-manager/trust-manager"
-BOILERPLATE="hack/boilerplate/boilerplate.go.txt"
-
-APIS_PKG="$TRUST_DISTRIBUTION_PKG/pkg/apis"
-GROUPS_WITH_VERSIONS="trust:v1alpha1"
-
 SCRIPT_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 BIN_DIR=${SCRIPT_ROOT}/bin
-
-function codegen::join() { local IFS="$1"; shift; echo "$*"; }
-
-# enumerate group versions
-FQ_APIS=() # e.g. k8s.io/api/apps/v1
-for GVs in ${GROUPS_WITH_VERSIONS}; do
-  IFS=: read -r G Vs <<<"${GVs}"
-
-  # enumerate versions
-  for V in ${Vs//,/ }; do
-    FQ_APIS+=("${APIS_PKG}/${G}/${V}")
-  done
-done
-
-echo "Generating deepcopy funcs"
-${BIN_DIR}/deepcopy-gen --input-dirs "$(codegen::join , "${FQ_APIS[@]}")" -O zz_generated.deepcopy --bounding-dirs "${APIS_PKG}" --trim-path-prefix="$TRUST_DISTRIBUTION_PKG" -h $BOILERPLATE
 
 echo "Generating CRDs in ./deploy/crds"
 ${BIN_DIR}/controller-gen crd schemapatch:manifests=./deploy/crds output:dir=./deploy/crds paths=./pkg/apis/...

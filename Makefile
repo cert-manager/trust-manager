@@ -17,6 +17,7 @@ SHELL := /usr/bin/env bash
 .SHELLFLAGS := -uo pipefail -c
 .DEFAULT_GOAL := help
 .DELETE_ON_ERROR:
+FORCE:
 
 BINDIR ?= $(CURDIR)/bin
 
@@ -64,10 +65,17 @@ integration-test: depend  ## runs integration tests, defined as tests which requ
 	KUBEBUILDER_ASSETS=$(BINDIR)/kubebuilder/bin go test -v ./test/integration/...
 
 .PHONY: lint
-lint: vet verify-boilerplate verify-helm-docs
+lint: vet verify-boilerplate
+
+# Run the supplied make target argument in a temporary workspace and diff the results.
+verify-%: FORCE
+	./hack/util/verify.sh $(MAKE) -s $*
 
 .PHONY: verify
-verify: depend build test ## tests and builds trust-manager
+verify: ## build, test and verify generate tagets
+verify: depend build test
+verify: verify-generate
+verify: verify-update-helm-docs
 
 .PHONY: verify-boilerplate
 verify-boilerplate: | $(BINDIR)/boilersuite
@@ -82,7 +90,16 @@ build: | $(BINDIR) ## build trust
 	CGO_ENABLED=0 go build -o $(BINDIR)/trust-manager ./cmd/trust-manager
 
 .PHONY: generate
-generate: depend ## generate code
+generate: depend generate-deepcopy generate-manifests
+
+.PHONY: generate-deepcopy
+generate-deepcopy: ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+generate-deepcopy: | $(BINDIR)/controller-gen
+	$(BINDIR)/controller-gen object:headerFile="hack/boilerplate/boilerplate.go.txt" paths="./..."
+
+.PHONY: generate-manifests
+generate-manifests: ## Generate CustomResourceDefinition objects.
+generate-manifests: | $(BINDIR)/controller-gen
 	./hack/update-codegen.sh
 
 # See wait-for-buildx.sh for an explanation of why it's needed
@@ -111,10 +128,6 @@ kind-load: local-images | $(BINDIR)/kind  ## same as local-images but also run "
 .PHONY: chart
 chart: | $(BINDIR)/helm $(BINDIR)/chart
 	$(BINDIR)/helm package --app-version=$(RELEASE_VERSION) --version=$(RELEASE_VERSION) --destination "$(BINDIR)/chart" ./deploy/charts/trust-manager
-
-.PHONY: verify-helm-docs
-verify-helm-docs: | $(BINDIR)/helm-docs
-	./hack/verify-helm-docs.sh $(BINDIR)/helm-docs
 
 .PHONY: update-helm-docs
 update-helm-docs: | $(BINDIR)/helm-docs  ## update Helm README, generated from other Helm files
@@ -181,7 +194,6 @@ $(BINDIR)/validate-trust-package: cmd/validate-trust-package/main.go pkg/fspkg/p
 	CGO_ENABLED=0 go build -o $@ $<
 
 .PHONY: depend
-depend: $(BINDIR)/deepcopy-gen
 depend: $(BINDIR)/controller-gen
 depend: $(BINDIR)/boilersuite
 depend: $(BINDIR)/kind
@@ -190,9 +202,6 @@ depend: $(BINDIR)/helm
 depend: $(BINDIR)/ginkgo
 depend: $(BINDIR)/kubectl
 depend: $(BINDIR)/kubebuilder/bin/kube-apiserver
-
-$(BINDIR)/deepcopy-gen: | $(BINDIR)
-	cd hack/tools && go build -o $@ k8s.io/code-generator/cmd/deepcopy-gen
 
 $(BINDIR)/controller-gen: | $(BINDIR)
 	cd hack/tools && go build -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
