@@ -71,7 +71,7 @@ roleRef:
   name: trust-manager-policy-role
 subjects:
 - kind: ServiceAccount
-  name: cert-manager
+  name: {{ .Values.app.webhook.tls.approverPolicy.certManagerServiceAccount }}
   namespace: {{ .Values.app.webhook.tls.approverPolicy.certManagerNamespace }}
 
 {{ end }}
