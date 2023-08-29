@@ -22,10 +22,16 @@ import (
 	"net/http"
 
 	"github.com/spf13/cobra"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	ctrlwebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/cert-manager/trust-manager/cmd/trust-manager/app/options"
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
@@ -60,6 +66,9 @@ func NewCommand() *cobra.Command {
 			}
 
 			mlog := opts.Logr.WithName("manager")
+
+			ctrl.SetLogger(mlog)
+
 			eventBroadcaster := record.NewBroadcaster()
 			eventBroadcaster.StartLogging(func(format string, args ...any) { mlog.V(3).Info(fmt.Sprintf(format, args...)) })
 			eventBroadcaster.StartRecordingToSink(&clientv1.EventSinkImpl{Interface: cl.CoreV1().Events("")})
@@ -73,11 +82,41 @@ func NewCommand() *cobra.Command {
 				LeaderElectionReleaseOnCancel: true,
 				ReadinessEndpointName:         opts.ReadyzPath,
 				HealthProbeBindAddress:        fmt.Sprintf("0.0.0.0:%d", opts.ReadyzPort),
-				Port:                          opts.Webhook.Port,
-				Host:                          opts.Webhook.Host,
-				CertDir:                       opts.Webhook.CertDir,
-				MetricsBindAddress:            fmt.Sprintf("0.0.0.0:%d", opts.MetricsPort),
-				Logger:                        mlog,
+				WebhookServer: ctrlwebhook.NewServer(ctrlwebhook.Options{
+					Port:    opts.Webhook.Port,
+					Host:    opts.Webhook.Host,
+					CertDir: opts.Webhook.CertDir,
+				}),
+				Metrics: server.Options{
+					BindAddress: fmt.Sprintf("0.0.0.0:%d", opts.MetricsPort),
+				},
+				Logger: mlog,
+				Cache: cache.Options{
+					ReaderFailOnMissingInformer: true,
+					ByObject: map[client.Object]cache.ByObject{
+						&trustapi.Bundle{}:  {},
+						&corev1.Namespace{}: {},
+						&corev1.Secret{}: {
+							// Only cache full Secrets in the "watched" namespace.
+							Namespaces: map[string]cache.Config{
+								opts.Bundle.Namespace: {},
+							},
+						},
+						&corev1.ConfigMap{}: {
+							// Only cache full ConfigMaps in the "watched" namespace.
+							Namespaces: map[string]cache.Config{
+								opts.Bundle.Namespace: {},
+							},
+						},
+						// Only cache partial metadata for targets.
+						&metav1.PartialObjectMetadata{
+							TypeMeta: metav1.TypeMeta{
+								APIVersion: "v1",
+								Kind:       "ConfigMap",
+							},
+						}: {},
+					},
+				},
 			})
 			if err != nil {
 				return fmt.Errorf("failed to create manager: %w", err)

@@ -940,10 +940,9 @@ func Test_Reconcile(t *testing.T) {
 			fakerecorder := record.NewFakeRecorder(1)
 
 			b := &bundle{
-				targetDirectClient: fakeclient,
-				sourceLister:       fakeclient,
-				recorder:           fakerecorder,
-				clock:              fixedclock,
+				client:   fakeclient,
+				recorder: fakerecorder,
+				clock:    fixedclock,
 				Options: Options{
 					Log:       klogr.New(),
 					Namespace: trustNamespace,
@@ -970,8 +969,7 @@ func Test_Reconcile(t *testing.T) {
 			}
 			assert.Equal(t, test.expEvent, event)
 
-			for _, expectedObject := range test.expObjects {
-				expObj := expectedObject.(client.Object)
+			for _, expObj := range test.expObjects {
 				var actual client.Object
 				switch expObj.(type) {
 				case *corev1.Secret:

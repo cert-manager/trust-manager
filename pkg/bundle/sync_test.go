@@ -525,7 +525,7 @@ func Test_syncTarget(t *testing.T) {
 			fakeclient := clientBuilder.Build()
 			fakerecorder := record.NewFakeRecorder(1)
 
-			b := &bundle{targetDirectClient: fakeclient, recorder: fakerecorder}
+			b := &bundle{client: fakeclient, recorder: fakerecorder}
 
 			spec := trustapi.BundleSpec{
 				Target: trustapi.BundleTarget{
@@ -792,8 +792,7 @@ func Test_buildSourceBundle(t *testing.T) {
 				Build()
 
 			b := &bundle{
-				targetDirectClient: fakeclient,
-				sourceLister:       fakeclient,
+				client: fakeclient,
 				defaultPackage: &fspkg.Package{
 					Name:    "testpkg",
 					Version: "123",
