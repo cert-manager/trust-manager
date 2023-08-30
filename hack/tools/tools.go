@@ -25,7 +25,6 @@ package bin
 import (
 	_ "github.com/cert-manager/boilersuite"
 	_ "github.com/norwoodj/helm-docs/cmd/helm-docs"
-	_ "k8s.io/code-generator/cmd/deepcopy-gen"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
 	_ "sigs.k8s.io/kind"
 )

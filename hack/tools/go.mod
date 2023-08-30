@@ -5,7 +5,6 @@ go 1.20
 require (
 	github.com/cert-manager/boilersuite v0.1.0
 	github.com/norwoodj/helm-docs v1.11.1
-	k8s.io/code-generator v0.28.1
 	sigs.k8s.io/controller-tools v0.13.0
 	sigs.k8s.io/kind v0.20.0
 )
@@ -61,7 +60,6 @@ require (
 	k8s.io/api v0.28.0 // indirect
 	k8s.io/apiextensions-apiserver v0.28.0 // indirect
 	k8s.io/apimachinery v0.28.0 // indirect
-	k8s.io/gengo v0.0.0-20220902162205-c0856e24416d // indirect
 	k8s.io/helm v2.14.3+incompatible // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 	k8s.io/utils v0.0.0-20230406110748-d93618cff8a2 // indirect
