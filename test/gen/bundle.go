@@ -18,7 +18,7 @@ package gen
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 )
@@ -88,6 +88,6 @@ func SetBundleTargetNamespaceSelectorMatchLabels(matchLabels map[string]string) 
 // AppendBundleUsesDefaultPackage appends a source to the bundle which requests the default bundle package.
 func AppendBundleUsesDefaultPackage() BundleModifier {
 	return func(bundle *trustapi.Bundle) {
-		bundle.Spec.Sources = append(bundle.Spec.Sources, trustapi.BundleSource{UseDefaultCAs: pointer.Bool(true)})
+		bundle.Spec.Sources = append(bundle.Spec.Sources, trustapi.BundleSource{UseDefaultCAs: ptr.To(true)})
 	}
 }

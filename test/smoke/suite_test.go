@@ -26,7 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2/klogr"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
@@ -86,7 +86,7 @@ var _ = Describe("Smoke", func() {
 		By("Ensuring targets update when an InLine source is updated")
 		Expect(cl.Get(ctx, client.ObjectKey{Name: testBundle.Name}, testBundle)).NotTo(HaveOccurred())
 
-		testBundle.Spec.Sources[2].InLine = pointer.String(dummy.TestCertificate2)
+		testBundle.Spec.Sources[2].InLine = ptr.To(dummy.TestCertificate2)
 
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
@@ -97,7 +97,7 @@ var _ = Describe("Smoke", func() {
 		By("Ensuring targets update when default CAs are requested")
 		Expect(cl.Get(ctx, client.ObjectKey{Name: testBundle.Name}, testBundle)).NotTo(HaveOccurred())
 
-		testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{UseDefaultCAs: pointer.Bool(true)})
+		testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{UseDefaultCAs: ptr.To(true)})
 
 		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
