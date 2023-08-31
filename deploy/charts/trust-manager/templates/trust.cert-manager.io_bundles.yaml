@@ -170,6 +170,9 @@ spec:
                       type:
                         description: Type of the condition, known values are (`Synced`).
                         type: string
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
                 defaultCAVersion:
                   description: DefaultCAPackageVersion, if set and non-empty, indicates the version information which was retrieved when the set of default CAs was requested in the bundle source. This should only be set if useDefaultCAs was set to "true" on a source, and will be the same for the same version of a bundle with identical certificates.
                   type: string

@@ -142,10 +142,12 @@ type BundleStatus struct {
 	// Target is the current Target that the Bundle is attempting or has
 	// completed syncing the source data to.
 	// +optional
-	Target *BundleTarget `json:"target"`
+	Target *BundleTarget `json:"target,omitempty"`
 
 	// List of status conditions to indicate the status of the Bundle.
 	// Known condition types are `Bundle`.
+	// +listType=map
+	// +listMapKey=type
 	// +optional
 	Conditions []BundleCondition `json:"conditions,omitempty"`
 
@@ -153,6 +155,7 @@ type BundleStatus struct {
 	// which was retrieved when the set of default CAs was requested in the bundle
 	// source. This should only be set if useDefaultCAs was set to "true" on a source,
 	// and will be the same for the same version of a bundle with identical certificates.
+	// +optional
 	DefaultCAPackageVersion *string `json:"defaultCAVersion,omitempty"`
 }
 
