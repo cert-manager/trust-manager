@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -163,7 +162,7 @@ type BundleCondition struct {
 	Type BundleConditionType `json:"type"`
 
 	// Status of the condition, one of ('True', 'False', 'Unknown').
-	Status corev1.ConditionStatus `json:"status"`
+	Status metav1.ConditionStatus `json:"status"`
 
 	// LastTransitionTime is the timestamp corresponding to the last status
 	// change of this condition.

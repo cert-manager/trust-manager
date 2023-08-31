@@ -159,12 +159,17 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	// If any source is not found, update the Bundle status to an unready state.
 	if errors.As(err, &notFoundError{}) {
 		log.Error(err, "bundle source was not found")
-		b.setBundleCondition(&bundle, trustapi.BundleCondition{
-			Type:    trustapi.BundleConditionSynced,
-			Status:  corev1.ConditionFalse,
-			Reason:  "SourceNotFound",
-			Message: "Bundle source was not found: " + err.Error(),
-		})
+		b.setBundleCondition(
+			bundle.Status.Conditions,
+			&bundle.Status.Conditions,
+			trustapi.BundleCondition{
+				Type:               trustapi.BundleConditionSynced,
+				Status:             metav1.ConditionFalse,
+				Reason:             "SourceNotFound",
+				Message:            "Bundle source was not found: " + err.Error(),
+				ObservedGeneration: bundle.Generation,
+			},
+		)
 
 		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SourceNotFound", "Bundle source was not found: %s", err)
 		return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
@@ -191,12 +196,17 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 			log.Error(err, "failed sync bundle to target namespace")
 			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncTargetFailed", "Failed to sync target in Namespace %q: %s", namespace.Name, err)
 
-			b.setBundleCondition(&bundle, trustapi.BundleCondition{
-				Type:    trustapi.BundleConditionSynced,
-				Status:  corev1.ConditionFalse,
-				Reason:  "SyncTargetFailed",
-				Message: fmt.Sprintf("Failed to sync bundle to namespace %q: %s", namespace.Name, err),
-			})
+			b.setBundleCondition(
+				bundle.Status.Conditions,
+				&bundle.Status.Conditions,
+				trustapi.BundleCondition{
+					Type:               trustapi.BundleConditionSynced,
+					Status:             metav1.ConditionFalse,
+					Reason:             "SyncTargetFailed",
+					Message:            fmt.Sprintf("Failed to sync bundle to namespace %q: %s", namespace.Name, err),
+					ObservedGeneration: bundle.Generation,
+				},
+			)
 
 			return ctrl.Result{Requeue: true}, b.client.Status().Update(ctx, &bundle)
 		}
@@ -212,7 +222,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		needsUpdate = true
 	}
 
-	if b.setBundleStatusDefaultCAVersion(&bundle, resolvedBundle.defaultCAPackageStringID) {
+	if b.setBundleStatusDefaultCAVersion(&bundle.Status, resolvedBundle.defaultCAPackageStringID) {
 		needsUpdate = true
 	}
 
@@ -222,19 +232,24 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	}
 
 	syncedCondition := trustapi.BundleCondition{
-		Type:    trustapi.BundleConditionSynced,
-		Status:  corev1.ConditionTrue,
-		Reason:  "Synced",
-		Message: message,
+		Type:               trustapi.BundleConditionSynced,
+		Status:             metav1.ConditionTrue,
+		Reason:             "Synced",
+		Message:            message,
+		ObservedGeneration: bundle.Generation,
 	}
 
-	if !needsUpdate && bundleHasCondition(&bundle, syncedCondition) {
+	if !needsUpdate && bundleHasCondition(bundle.Status.Conditions, syncedCondition) {
 		return ctrl.Result{}, nil
 	}
 
 	log.V(2).Info("successfully synced bundle")
 
-	b.setBundleCondition(&bundle, syncedCondition)
+	b.setBundleCondition(
+		bundle.Status.Conditions,
+		&bundle.Status.Conditions,
+		syncedCondition,
+	)
 
 	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", message)
 
