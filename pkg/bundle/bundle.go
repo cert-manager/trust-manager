@@ -236,13 +236,14 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	}
 
 	syncedCondition := trustapi.BundleCondition{
-		Type:    trustapi.BundleConditionSynced,
-		Status:  metav1.ConditionTrue,
-		Reason:  "Synced",
-		Message: message,
+		Type:               trustapi.BundleConditionSynced,
+		Status:             metav1.ConditionTrue,
+		Reason:             "Synced",
+		Message:            message,
+		ObservedGeneration: bundle.Generation,
 	}
 
-	if !needsUpdate && bundleHasCondition(&bundle, syncedCondition) {
+	if !needsUpdate && bundleHasCondition(bundle.Status.Conditions, syncedCondition) {
 		return ctrl.Result{}, nil
 	}
 
@@ -251,13 +252,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	b.setBundleCondition(
 		bundle.Status.Conditions,
 		&bundle.Status.Conditions,
-		trustapi.BundleCondition{
-			Type:               syncedCondition.Type,
-			Status:             syncedCondition.Status,
-			Reason:             syncedCondition.Reason,
-			Message:            syncedCondition.Message,
-			ObservedGeneration: bundle.Generation,
-		},
+		syncedCondition,
 	)
 
 	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", message)

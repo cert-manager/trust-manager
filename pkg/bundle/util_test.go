@@ -41,43 +41,34 @@ func Test_bundleHasCondition(t *testing.T) {
 	}{
 		"no existing conditions returns no matching condition": {
 			existingConditions: []trustapi.BundleCondition{},
-			newCondition:       trustapi.BundleCondition{Reason: "A"},
+			newCondition:       trustapi.BundleCondition{Reason: "A", ObservedGeneration: bundleGeneration},
 			expectHasCondition: false,
 		},
 		"an existing condition which doesn't match the current condition should return false": {
 			existingConditions: []trustapi.BundleCondition{{Reason: "B"}},
-			newCondition:       trustapi.BundleCondition{Reason: "A"},
+			newCondition:       trustapi.BundleCondition{Reason: "A", ObservedGeneration: bundleGeneration},
 			expectHasCondition: false,
 		},
 		"an existing condition which shares the same condition but is an older generation should return false": {
 			existingConditions: []trustapi.BundleCondition{{Reason: "A", ObservedGeneration: bundleGeneration - 1}},
-			newCondition:       trustapi.BundleCondition{Reason: "A"},
+			newCondition:       trustapi.BundleCondition{Reason: "A", ObservedGeneration: bundleGeneration},
 			expectHasCondition: false,
 		},
 		"an existing condition which shares the same condition and generation should return true": {
 			existingConditions: []trustapi.BundleCondition{{Reason: "A", ObservedGeneration: bundleGeneration}},
-			newCondition:       trustapi.BundleCondition{Reason: "A"},
+			newCondition:       trustapi.BundleCondition{Reason: "A", ObservedGeneration: bundleGeneration},
 			expectHasCondition: true,
 		},
 		"an existing condition with a different LastTransitionTime should return true still": {
 			existingConditions: []trustapi.BundleCondition{{Reason: "A", ObservedGeneration: bundleGeneration, LastTransitionTime: &metav1.Time{Time: fixedTime.Add(-time.Second)}}},
-			newCondition:       trustapi.BundleCondition{Reason: "A"},
+			newCondition:       trustapi.BundleCondition{Reason: "A", ObservedGeneration: bundleGeneration},
 			expectHasCondition: true,
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			bundle := &trustapi.Bundle{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: bundleGeneration,
-				},
-				Status: trustapi.BundleStatus{
-					Conditions: test.existingConditions,
-				},
-			}
-
-			hasCondition := bundleHasCondition(bundle, test.newCondition)
+			hasCondition := bundleHasCondition(test.existingConditions, test.newCondition)
 			if hasCondition != test.expectHasCondition {
 				t.Errorf("unexpected has condition, exp=%t got=%t", test.expectHasCondition, hasCondition)
 			}
