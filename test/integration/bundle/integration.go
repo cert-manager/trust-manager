@@ -44,8 +44,13 @@ var _ = BeforeSuite(func() {
 
 	_, err := env.Start()
 	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		env = nil // prevent AfterSuite from trying to stop it
+	}
 })
 
 var _ = AfterSuite(func() {
-	Expect(env.Stop()).NotTo(HaveOccurred())
+	if env == nil {
+		Expect(env.Stop()).NotTo(HaveOccurred())
+	}
 })

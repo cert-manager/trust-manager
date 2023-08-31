@@ -20,6 +20,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var BundleKind = "Bundle"
+
+var BundleLabelKey = "trust.cert-manager.io/bundle"
+var BundleHashAnnotationKey = "trust.cert-manager.io/hash"
+
 // +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="Target",type="string",JSONPath=".status.target.configMap.key",description="Bundle Target Key"
 // +kubebuilder:printcolumn:name="Synced",type="string",JSONPath=`.status.conditions[?(@.type == "Synced")].status`,description="Bundle has been synced"

@@ -27,12 +27,16 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/clock"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
 
@@ -57,6 +61,10 @@ type bundle struct {
 	// a cache-backed Kubernetes client
 	client client.Client
 
+	// targetCache is a cache.Cache that holds cached ConfigMap
+	// resources that are used as targets for Bundles.
+	targetCache client.Reader
+
 	// defaultPackage holds the loaded 'default' certificate package, if one was specified
 	// at startup.
 	defaultPackage *fspkg.Package
@@ -69,12 +77,39 @@ type bundle struct {
 
 	// Options holds options for the Bundle controller.
 	Options
+
+	// patchResourceOverwrite allows use to override the patchResource function
+	// it is used for testing purposes
+	patchResourceOverwrite func(ctx context.Context, obj interface{}) error
 }
 
 // Reconcile is the top level function for reconciling over synced Bundles.
 // Reconcile will be called whenever a Bundle event happens, or whenever any
 // related resource event to that bundle occurs.
 func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	result, statusPatch, resultErr := b.reconcileBundle(ctx, req)
+	if statusPatch != nil {
+		con, patch, err := ssa_client.GenerateBundleStatusPatch(req.Name, req.Namespace, statusPatch)
+		if err != nil {
+			err = fmt.Errorf("failed to generate bundle patch: %w", err)
+			return ctrl.Result{}, utilerrors.NewAggregate([]error{resultErr, err})
+		}
+
+		if err := b.client.Status().Patch(ctx, con, patch, &client.SubResourcePatchOptions{
+			PatchOptions: client.PatchOptions{
+				FieldManager: fieldManager,
+				Force:        ptr.To(true),
+			},
+		}); err != nil {
+			err = fmt.Errorf("failed to apply bundle patch: %w", err)
+			return ctrl.Result{}, utilerrors.NewAggregate([]error{resultErr, err})
+		}
+	}
+
+	return result, resultErr
+}
+
+func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result ctrl.Result, statusPatch *trustapi.BundleStatus, returnedErr error) {
 	log := b.Log.WithValues("bundle", req.NamespacedName.Name)
 	log.V(2).Info("syncing bundle")
 
@@ -82,77 +117,33 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	err := b.client.Get(ctx, req.NamespacedName, &bundle)
 	if apierrors.IsNotFound(err) {
 		log.V(2).Info("bundle no longer exists, ignoring")
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, nil, nil
 	}
 
 	if err != nil {
 		log.Error(err, "failed to get bundle")
-		return ctrl.Result{}, fmt.Errorf("failed to get %q: %s", req.NamespacedName, err)
+		return ctrl.Result{}, nil, fmt.Errorf("failed to get %q: %s", req.NamespacedName, err)
 	}
 
-	namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
-	if err != nil {
-		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceSelectorError", "Failed to build namespace match labels selector: %s", err)
-		return ctrl.Result{}, fmt.Errorf("failed to build NamespaceSelector: %w", err)
-	}
-
-	var namespaceList corev1.NamespaceList
-	if err := b.client.List(ctx, &namespaceList); err != nil {
-		log.Error(err, "failed to list namespaces")
-		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceListError", "Failed to list namespaces: %s", err)
-		return ctrl.Result{}, fmt.Errorf("failed to list Namespaces: %w", err)
-	}
-
-	// If the target has changed on the Spec, delete the old targets first.
-	if bundle.Status.Target != nil && !apiequality.Semantic.DeepEqual(*bundle.Status.Target, bundle.Spec.Target) {
-		log.Info("deleting old targets", "old_target", bundle.Status.Target)
-		b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "DeleteOldTarget", "Deleting old targets as Bundle target has been modified")
-
-		for _, namespace := range namespaceList.Items {
-			configMap := &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      bundle.Name,
-					Namespace: namespace.Name,
-				},
-			}
-
-			err := b.client.Get(ctx, client.ObjectKeyFromObject(configMap), configMap)
-
-			// Ignore ConfigMaps that have not been created yet, as they will be
-			// created later on in the sync.
-			if apierrors.IsNotFound(err) {
-				continue
-			}
-
-			if err != nil {
-				log.Error(err, "failed to get target ConfigMap")
-				b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "TargetGetError", "Failed to get target ConfigMap: %s", err)
-				return ctrl.Result{}, fmt.Errorf("failed to get target ConfigMap: %w", err)
-			}
-
-			delete(configMap.Data, bundle.Status.Target.ConfigMap.Key)
-			if bundle.Status.Target.AdditionalFormats != nil {
-				if bundle.Status.Target.AdditionalFormats.JKS != nil {
-					delete(configMap.BinaryData, bundle.Status.Target.AdditionalFormats.JKS.Key)
-				}
-				if bundle.Status.Target.AdditionalFormats.PKCS12 != nil {
-					delete(configMap.BinaryData, bundle.Status.Target.AdditionalFormats.PKCS12.Key)
-				}
-			}
-
-			if err := b.client.Update(ctx, configMap); err != nil {
-				log.Error(err, "failed to delete old ConfigMap target key")
-				b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "TargetUpdateError", "Failed to remove old key from ConfigMap target: %s", err)
-				return ctrl.Result{}, fmt.Errorf("failed to delete old ConfigMap target key: %w", err)
-			}
-
-			log.V(2).Info("deleted old target key", "old_target", bundle.Status.Target, "namespace", namespace.Name)
+	// MIGRATION: If we are upgrading from a version of trust-manager that did use Update to set
+	// the Bundle status, we need to ensure that we do remove the old status fields in case we apply.
+	needsMigration := false
+	for _, mf := range bundle.ManagedFields {
+		if mf.Manager == fieldManager && mf.Operation == metav1.ManagedFieldsOperationUpdate && mf.Subresource == "status" {
+			needsMigration = true
 		}
-
-		// Return with update here, so targets are synced on the next Reconcile.
-		bundle.Status.Target = &bundle.Spec.Target
-		return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
 	}
+
+	if needsMigration {
+		log.V(2).Info("migrating bundle status")
+		if err := b.migrateToApply(ctx, &bundle, ptr.To("status")); err != nil {
+			log.Error(err, "failed to migrate bundle status")
+			return ctrl.Result{}, nil, fmt.Errorf("failed to migrate bundle status: %w", err)
+		}
+		return ctrl.Result{}, nil, nil
+	}
+
+	statusPatch = &trustapi.BundleStatus{}
 
 	resolvedBundle, err := b.buildSourceBundle(ctx, &bundle)
 
@@ -161,7 +152,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		log.Error(err, "bundle source was not found")
 		b.setBundleCondition(
 			bundle.Status.Conditions,
-			&bundle.Status.Conditions,
+			&statusPatch.Conditions,
 			trustapi.BundleCondition{
 				Type:               trustapi.BundleConditionSynced,
 				Status:             metav1.ConditionFalse,
@@ -172,43 +163,122 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		)
 
 		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SourceNotFound", "Bundle source was not found: %s", err)
-		return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
+
+		return ctrl.Result{}, statusPatch, nil
 	}
 
 	if err != nil {
 		log.Error(err, "failed to build source bundle")
 		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SourceBuildError", "Failed to build bundle sources: %s", err)
-		return ctrl.Result{}, fmt.Errorf("failed to build bundle source: %w", err)
+		return ctrl.Result{}, nil, fmt.Errorf("failed to build bundle source: %w", err)
+	}
+
+	statusPatch.Target = &bundle.Spec.Target
+
+	targetResources := map[types.NamespacedName]bool{}
+
+	namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
+	if err != nil {
+		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceSelectorError", "Failed to build namespace match labels selector: %s", err)
+		return ctrl.Result{}, nil, fmt.Errorf("failed to build NamespaceSelector: %w", err)
+	}
+
+	// Find all desired targetResources.
+	{
+		var namespaceList corev1.NamespaceList
+		if err := b.client.List(ctx, &namespaceList, &client.ListOptions{
+			LabelSelector: namespaceSelector,
+		}); err != nil {
+			log.Error(err, "failed to list namespaces")
+			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceListError", "Failed to list namespaces: %s", err)
+			return ctrl.Result{}, nil, fmt.Errorf("failed to list Namespaces: %w", err)
+		}
+		for _, namespace := range namespaceList.Items {
+			namespaceLog := log.WithValues("namespace", namespace.Name)
+
+			// Don't reconcile target for Namespaces that are being terminated.
+			if namespace.Status.Phase == corev1.NamespaceTerminating {
+				namespaceLog.V(2).WithValues("phase", corev1.NamespaceTerminating).Info("skipping sync for namespace as it is terminating")
+				continue
+			}
+
+			targetResources[types.NamespacedName{
+				Name:      bundle.Name,
+				Namespace: namespace.Name,
+			}] = true
+		}
+	}
+
+	// Find all old existing ConfigMap targetResources.
+	{
+		configMapList := &metav1.PartialObjectMetadataList{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "v1",
+				Kind:       "ConfigMap",
+			},
+		}
+		err := b.targetCache.List(ctx, configMapList, &client.ListOptions{
+			LabelSelector: labels.SelectorFromSet(map[string]string{
+				trustapi.BundleLabelKey: bundle.Name,
+			}),
+		})
+		if err != nil {
+			log.Error(err, "failed to list configmaps")
+			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "ConfigMapListError", "Failed to list configmaps: %s", err)
+			return ctrl.Result{}, nil, fmt.Errorf("failed to list ConfigMaps: %w", err)
+		}
+
+		for _, configMap := range configMapList.Items {
+			key := types.NamespacedName{
+				Name:      configMap.Name,
+				Namespace: configMap.Namespace,
+			}
+
+			configmapLog := log.WithValues("configmap", key)
+
+			if _, ok := targetResources[key]; ok {
+				// This ConfigMap is still a target, so we don't need to remove it.
+				continue
+			}
+
+			// Don't reconcile target for ConfigMaps that are being deleted.
+			if configMap.GetDeletionTimestamp() != nil {
+				configmapLog.V(2).WithValues("deletionTimestamp", configMap.GetDeletionTimestamp()).Info("skipping sync for configmap as it is being deleted")
+				continue
+			}
+
+			if !metav1.IsControlledBy(&configMap, &bundle) {
+				configmapLog.V(2).Info("skipping sync for configmap as it is not controlled by bundle")
+				continue
+			}
+
+			targetResources[key] = false
+		}
 	}
 
 	var needsUpdate bool
-	for _, namespace := range namespaceList.Items {
-		log = log.WithValues("namespace", namespace.Name)
 
-		// Don't reconcile target for Namespaces that are being terminated.
-		if namespace.Status.Phase == corev1.NamespaceTerminating {
-			log.V(2).WithValues("phase", corev1.NamespaceTerminating).Info("skipping sync for namespace as it is terminating")
-			continue
-		}
+	for target, shouldExist := range targetResources {
+		targetLog := log.WithValues("target", target)
 
-		synced, err := b.syncTarget(ctx, log, &bundle, namespaceSelector, &namespace, resolvedBundle.data)
+		synced, err := b.syncTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle.data, shouldExist)
 		if err != nil {
-			log.Error(err, "failed sync bundle to target namespace")
-			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncTargetFailed", "Failed to sync target in Namespace %q: %s", namespace.Name, err)
+			targetLog.Error(err, "failed sync bundle to target namespace")
+			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncTargetFailed", "Failed to sync target in Namespace %q: %s", target.Namespace, err)
 
 			b.setBundleCondition(
 				bundle.Status.Conditions,
-				&bundle.Status.Conditions,
+				&statusPatch.Conditions,
 				trustapi.BundleCondition{
 					Type:               trustapi.BundleConditionSynced,
 					Status:             metav1.ConditionFalse,
 					Reason:             "SyncTargetFailed",
-					Message:            fmt.Sprintf("Failed to sync bundle to namespace %q: %s", namespace.Name, err),
+					Message:            fmt.Sprintf("Failed to sync bundle to namespace %q: %s", target.Namespace, err),
 					ObservedGeneration: bundle.Generation,
 				},
 			)
 
-			return ctrl.Result{Requeue: true}, b.client.Status().Update(ctx, &bundle)
+			return ctrl.Result{Requeue: true}, statusPatch, nil
 		}
 
 		if synced {
@@ -218,11 +288,10 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	}
 
 	if bundle.Status.Target == nil || !apiequality.Semantic.DeepEqual(*bundle.Status.Target, bundle.Spec.Target) {
-		bundle.Status.Target = &bundle.Spec.Target
 		needsUpdate = true
 	}
 
-	if b.setBundleStatusDefaultCAVersion(&bundle.Status, resolvedBundle.defaultCAPackageStringID) {
+	if b.setBundleStatusDefaultCAVersion(statusPatch, resolvedBundle.defaultCAPackageStringID) {
 		needsUpdate = true
 	}
 
@@ -240,20 +309,20 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	}
 
 	if !needsUpdate && bundleHasCondition(bundle.Status.Conditions, syncedCondition) {
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, nil, nil
 	}
 
 	log.V(2).Info("successfully synced bundle")
 
 	b.setBundleCondition(
 		bundle.Status.Conditions,
-		&bundle.Status.Conditions,
+		&statusPatch.Conditions,
 		syncedCondition,
 	)
 
 	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", message)
 
-	return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
+	return ctrl.Result{}, statusPatch, nil
 }
 
 func (b *bundle) bundleTargetNamespaceSelector(bundleObj *trustapi.Bundle) (labels.Selector, error) {

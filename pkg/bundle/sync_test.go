@@ -19,31 +19,61 @@ package bundle
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
+	"sync"
 	"testing"
 
+	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/selection"
+	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
+	metav1applyconfig "k8s.io/client-go/applyconfigurations/meta/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/ptr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/structured-merge-diff/fieldpath"
 	"software.sslmate.com/src/go-pkcs12"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/test/dummy"
-
-	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 )
+
+func managedFieldEntries(fields []string, dataFields []string) []metav1.ManagedFieldsEntry {
+	fieldset := fieldpath.NewSet()
+	for _, property := range fields {
+		fieldset.Insert(
+			fieldpath.MakePathOrDie("data", property),
+		)
+	}
+	for _, property := range dataFields {
+		fieldset.Insert(
+			fieldpath.MakePathOrDie("binaryData", property),
+		)
+	}
+
+	jsonFieldSet, err := fieldset.ToJSON()
+	if err != nil {
+		panic(err)
+	}
+
+	return []metav1.ManagedFieldsEntry{
+		{
+			Manager:   "trust-manager",
+			Operation: metav1.ManagedFieldsOperationApply,
+			FieldsV1: &metav1.FieldsV1{
+				Raw: jsonFieldSet,
+			},
+		},
+	}
+}
 
 func Test_syncTarget(t *testing.T) {
 	const (
@@ -53,15 +83,12 @@ func Test_syncTarget(t *testing.T) {
 		pkcs12Key  = "trust.p12"
 		data       = dummy.TestCertificate1
 	)
-
-	labelEverything := func(*testing.T) labels.Selector {
-		return labels.Everything()
-	}
+	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
 
 	tests := map[string]struct {
-		object    runtime.Object
-		namespace corev1.Namespace
-		selector  func(t *testing.T) labels.Selector
+		object      runtime.Object
+		namespace   corev1.Namespace
+		shouldExist bool
 		// Add JKS to AdditionalFormats
 		withJKS bool
 		// Add PKCS12 to AdditionalFormats
@@ -80,7 +107,7 @@ func Test_syncTarget(t *testing.T) {
 		"if object doesn't exist, expect update": {
 			object:            nil,
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:          labelEverything,
+			shouldExist:       true,
 			expExists:         true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
@@ -88,7 +115,7 @@ func Test_syncTarget(t *testing.T) {
 		"if object doesn't exist with JKS, expect update": {
 			object:            nil,
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:          labelEverything,
+			shouldExist:       true,
 			withJKS:           true,
 			expExists:         true,
 			expJKS:            true,
@@ -98,7 +125,7 @@ func Test_syncTarget(t *testing.T) {
 		"if object doesn't exist with PKCS12, expect update": {
 			object:            nil,
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:          labelEverything,
+			shouldExist:       true,
 			withPKCS12:        true,
 			expExists:         true,
 			expPKCS12:         true,
@@ -106,20 +133,34 @@ func Test_syncTarget(t *testing.T) {
 			expNeedsUpdate:    true,
 		},
 		"if object exists but without data or owner, expect update": {
-			object:            &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: bundleName, Namespace: "test-namespace"}},
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:          bundleName,
+					Namespace:     "test-namespace",
+					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					ManagedFields: managedFieldEntries(nil, nil),
+				},
+			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:          labelEverything,
+			shouldExist:       true,
 			expExists:         true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
 		"if object exists with data but no owner, expect update": {
 			object: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{Name: bundleName, Namespace: "test-namespace"},
-				Data:       map[string]string{key: data},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:          bundleName,
+					Namespace:     "test-namespace",
+					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string]string{key: data},
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:          labelEverything,
+			shouldExist:       true,
 			expExists:         true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
@@ -127,8 +168,10 @@ func Test_syncTarget(t *testing.T) {
 		"if object exists with owner but no data, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bundleName,
-					Namespace: "test-namespace",
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -141,7 +184,7 @@ func Test_syncTarget(t *testing.T) {
 				},
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:          labelEverything,
+			shouldExist:       true,
 			expExists:         true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
@@ -149,8 +192,10 @@ func Test_syncTarget(t *testing.T) {
 		"if object exists with owner but wrong data, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bundleName,
-					Namespace: "test-namespace",
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: "wrong hash"},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -160,11 +205,12 @@ func Test_syncTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: "wrong data"},
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:          labelEverything,
+			shouldExist:       true,
 			expExists:         true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
@@ -172,8 +218,10 @@ func Test_syncTarget(t *testing.T) {
 		"if object exists with owner but without JKS, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bundleName,
-					Namespace: "test-namespace",
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -183,11 +231,12 @@ func Test_syncTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:          labelEverything,
+			shouldExist:       true,
 			withJKS:           true,
 			expExists:         true,
 			expJKS:            true,
@@ -197,8 +246,10 @@ func Test_syncTarget(t *testing.T) {
 		"if object exists with owner but without PKCS12, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bundleName,
-					Namespace: "test-namespace",
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -208,11 +259,12 @@ func Test_syncTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:          labelEverything,
+			shouldExist:       true,
 			withPKCS12:        true,
 			expExists:         true,
 			expPKCS12:         true,
@@ -222,8 +274,10 @@ func Test_syncTarget(t *testing.T) {
 		"if object exists with owner but wrong key, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bundleName,
-					Namespace: "test-namespace",
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -233,11 +287,12 @@ func Test_syncTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
+					ManagedFields: managedFieldEntries([]string{"wrong key"}, nil),
 				},
-				Data: map[string]string{"wrong key": data},
+				BinaryData: map[string][]byte{"wrong key": []byte(data)},
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:          labelEverything,
+			shouldExist:       true,
 			expExists:         true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
@@ -245,8 +300,10 @@ func Test_syncTarget(t *testing.T) {
 		"if object exists with owner but wrong JKS key, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bundleName,
-					Namespace: "test-namespace",
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -256,14 +313,15 @@ func Test_syncTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
+					ManagedFields: managedFieldEntries([]string{key}, []string{"wrong key"}),
 				},
-				Data: map[string]string{key: data},
 				BinaryData: map[string][]byte{
+					key:         []byte(data),
 					"wrong-key": []byte(data),
 				},
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:          labelEverything,
+			shouldExist:       true,
 			withJKS:           true,
 			expExists:         true,
 			expJKS:            true,
@@ -273,8 +331,10 @@ func Test_syncTarget(t *testing.T) {
 		"if object exists with owner but wrong PKCS12 key, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bundleName,
-					Namespace: "test-namespace",
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -284,14 +344,15 @@ func Test_syncTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
+					ManagedFields: managedFieldEntries([]string{key, "wrong key"}, nil),
 				},
-				Data: map[string]string{key: data},
-				BinaryData: map[string][]byte{
-					"wrong-key": []byte(data),
+				Data: map[string]string{
+					key:         data,
+					"wrong-key": data,
 				},
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:          labelEverything,
+			shouldExist:       true,
 			withPKCS12:        true,
 			expExists:         true,
 			expPKCS12:         true,
@@ -301,8 +362,10 @@ func Test_syncTarget(t *testing.T) {
 		"if object exists with correct data, expect no update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bundleName,
-					Namespace: "test-namespace",
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -312,11 +375,12 @@ func Test_syncTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:          labelEverything,
+			shouldExist:       true,
 			expExists:         true,
 			expOwnerReference: true,
 			expNeedsUpdate:    false,
@@ -324,8 +388,10 @@ func Test_syncTarget(t *testing.T) {
 		"if object exists without JKS, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bundleName,
-					Namespace: "test-namespace",
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -335,11 +401,12 @@ func Test_syncTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:          labelEverything,
+			shouldExist:       true,
 			withJKS:           true,
 			expExists:         true,
 			expJKS:            true,
@@ -349,8 +416,10 @@ func Test_syncTarget(t *testing.T) {
 		"if object exists without PKCS12, expect update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bundleName,
-					Namespace: "test-namespace",
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -360,22 +429,25 @@ func Test_syncTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:          labelEverything,
+			shouldExist:       true,
 			withPKCS12:        true,
 			expExists:         true,
 			expPKCS12:         true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
-		"if object exists with correct data and some extra data and owner, expect no update": {
+		"if object exists with correct data and some extra data (not owned by our fieldmanager) and owner, expect no update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bundleName,
-					Namespace: "test-namespace",
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -392,11 +464,15 @@ func Test_syncTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
 				},
-				Data: map[string]string{key: data, "another-key": "another-data"},
+				Data: map[string]string{
+					key:           data,
+					"another-key": "another-data",
+				},
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
-			selector:          labelEverything,
+			shouldExist:       true,
 			expExists:         true,
 			expOwnerReference: true,
 			expNeedsUpdate:    false,
@@ -407,11 +483,7 @@ func Test_syncTarget(t *testing.T) {
 				Name:   "test-namespace",
 				Labels: map[string]string{"foo": "bar"},
 			}},
-			selector: func(t *testing.T) labels.Selector {
-				req, err := labels.NewRequirement("foo", selection.Equals, []string{"bar"})
-				assert.NoError(t, err)
-				return labels.NewSelector().Add(*req)
-			},
+			shouldExist:       true,
 			expExists:         true,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
@@ -422,11 +494,7 @@ func Test_syncTarget(t *testing.T) {
 				Name:   "test-namespace",
 				Labels: map[string]string{"bar": "foo"},
 			}},
-			selector: func(t *testing.T) labels.Selector {
-				req, err := labels.NewRequirement("foo", selection.Equals, []string{"bar"})
-				assert.NoError(t, err)
-				return labels.NewSelector().Add(*req)
-			},
+			shouldExist:       false,
 			expExists:         false,
 			expOwnerReference: true,
 			expNeedsUpdate:    false,
@@ -434,8 +502,10 @@ func Test_syncTarget(t *testing.T) {
 		"if object exists with correct data and labels match, expect no update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bundleName,
-					Namespace: "test-namespace",
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -445,6 +515,7 @@ func Test_syncTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
@@ -452,11 +523,7 @@ func Test_syncTarget(t *testing.T) {
 				Name:   "test-namespace",
 				Labels: map[string]string{"foo": "bar"},
 			}},
-			selector: func(t *testing.T) labels.Selector {
-				req, err := labels.NewRequirement("foo", selection.Equals, []string{"bar"})
-				assert.NoError(t, err)
-				return labels.NewSelector().Add(*req)
-			},
+			shouldExist:       true,
 			expExists:         true,
 			expOwnerReference: true,
 			expNeedsUpdate:    false,
@@ -464,8 +531,10 @@ func Test_syncTarget(t *testing.T) {
 		"if object exists with correct data but labels don't match, expect deletion": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bundleName,
-					Namespace: "test-namespace",
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -475,6 +544,7 @@ func Test_syncTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
@@ -482,20 +552,19 @@ func Test_syncTarget(t *testing.T) {
 				Name:   "test-namespace",
 				Labels: map[string]string{"bar": "foo"},
 			}},
-			selector: func(t *testing.T) labels.Selector {
-				req, err := labels.NewRequirement("foo", selection.Equals, []string{"bar"})
-				assert.NoError(t, err)
-				return labels.NewSelector().Add(*req)
-			},
+			shouldExist:       false,
 			expExists:         false,
 			expOwnerReference: false,
 			expNeedsUpdate:    true,
 		},
-		"if object exists and labels don't match, but controller doesn't have ownership, expect no update": {
+		"if object exists and labels don't match, expect empty patch": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      bundleName,
-					Namespace: "test-namespace",
+					Name:          bundleName,
+					Namespace:     "test-namespace",
+					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
@@ -503,21 +572,20 @@ func Test_syncTarget(t *testing.T) {
 				Name:   "test-namespace",
 				Labels: map[string]string{"bar": "foo"},
 			}},
-			selector: func(t *testing.T) labels.Selector {
-				req, err := labels.NewRequirement("foo", selection.Equals, []string{"bar"})
-				assert.NoError(t, err)
-				return labels.NewSelector().Add(*req)
-			},
-			expExists:         true,
+			shouldExist:       false,
+			expExists:         false,
 			expOwnerReference: false,
-			expNeedsUpdate:    false,
-			expEvent:          "Warning NotOwned ConfigMap is not owned by trust.cert-manager.io so ignoring",
+			expNeedsUpdate:    true,
 		},
 	}
 
 	for name, test := range tests {
+		test := test
 		t.Run(name, func(t *testing.T) {
-			clientBuilder := fakeclient.NewClientBuilder().WithScheme(trustapi.GlobalScheme)
+			t.Parallel()
+
+			clientBuilder := fakeclient.NewClientBuilder().
+				WithScheme(trustapi.GlobalScheme)
 			if test.object != nil {
 				clientBuilder.WithRuntimeObjects(test.object)
 			}
@@ -525,7 +593,23 @@ func Test_syncTarget(t *testing.T) {
 			fakeclient := clientBuilder.Build()
 			fakerecorder := record.NewFakeRecorder(1)
 
-			b := &bundle{client: fakeclient, recorder: fakerecorder}
+			var (
+				logMutex        sync.Mutex
+				resourcePatches []interface{}
+			)
+
+			b := &bundle{
+				client:      fakeclient,
+				targetCache: fakeclient,
+				recorder:    fakerecorder,
+				patchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
+					logMutex.Lock()
+					defer logMutex.Unlock()
+
+					resourcePatches = append(resourcePatches, obj)
+					return nil
+				},
+			}
 
 			spec := trustapi.BundleSpec{
 				Target: trustapi.BundleTarget{
@@ -543,32 +627,40 @@ func Test_syncTarget(t *testing.T) {
 			needsUpdate, err := b.syncTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       spec,
-			}, test.selector(t), &test.namespace, data)
+			}, bundleName, test.namespace.Name, data, test.shouldExist)
 			assert.NoError(t, err)
 
 			assert.Equalf(t, test.expNeedsUpdate, needsUpdate, "unexpected needsUpdate, exp=%t got=%t", test.expNeedsUpdate, needsUpdate)
 
-			var configMap corev1.ConfigMap
-			err = fakeclient.Get(context.TODO(), client.ObjectKey{Namespace: test.namespace.Name, Name: bundleName}, &configMap)
-			assert.Equalf(t, test.expExists, !apierrors.IsNotFound(err), "unexpected is not found: %v", err)
+			if len(resourcePatches) > 1 {
+				t.Fatalf("expected only one patch, got %d", len(resourcePatches))
+			}
 
-			if test.expExists {
-				assert.Equalf(t, data, configMap.Data[key], "unexpected data on ConfigMap: exp=%s:%s got=%v", key, data, configMap.Data)
+			if len(resourcePatches) == 1 {
+				configmap := resourcePatches[0].(*coreapplyconfig.ConfigMapApplyConfiguration)
 
-				expectedOwnerReference := metav1.OwnerReference{
-					Kind:               "Bundle",
-					APIVersion:         "trust.cert-manager.io/v1alpha1",
-					Name:               bundleName,
-					Controller:         ptr.To(true),
-					BlockOwnerDeletion: ptr.To(true),
-				}
-				if test.expOwnerReference {
-					assert.Equalf(t, expectedOwnerReference, configMap.OwnerReferences[0], "unexpected data on ConfigMap: exp=%s:%s got=%v", key, data, configMap.Data)
+				if test.expExists {
+					assert.Equal(t, data, configmap.Data[key])
 				} else {
-					assert.NotContains(t, configMap.OwnerReferences, expectedOwnerReference)
+					assert.Equal(t, 0, len(configmap.BinaryData))
 				}
 
-				jksData, jksExists := configMap.BinaryData[jksKey]
+				expectedOwnerReference := metav1applyconfig.
+					OwnerReference().
+					WithAPIVersion(trustapi.SchemeGroupVersion.String()).
+					WithKind(trustapi.BundleKind).
+					WithName(bundleName).
+					WithUID("").
+					WithBlockOwnerDeletion(true).
+					WithController(true)
+
+				if test.expOwnerReference {
+					assert.Equal(t, expectedOwnerReference, &configmap.OwnerReferences[0])
+				} else {
+					assert.NotContains(t, configmap.OwnerReferences, expectedOwnerReference)
+				}
+
+				jksData, jksExists := configmap.BinaryData[jksKey]
 				assert.Equal(t, test.expJKS, jksExists)
 
 				if test.expJKS {
@@ -591,7 +683,7 @@ func Test_syncTarget(t *testing.T) {
 					assert.Equal(t, p.Bytes, cert.Certificate.Content)
 				}
 
-				pkcs12Data, pkcs12Exists := configMap.BinaryData[pkcs12Key]
+				pkcs12Data, pkcs12Exists := configmap.BinaryData[pkcs12Key]
 				assert.Equal(t, test.expPKCS12, pkcs12Exists)
 
 				if test.expPKCS12 {
@@ -785,7 +877,10 @@ func Test_buildSourceBundle(t *testing.T) {
 	}
 
 	for name, test := range tests {
+		test := test
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			fakeclient := fakeclient.NewClientBuilder().
 				WithRuntimeObjects(test.objects...).
 				WithScheme(trustapi.GlobalScheme).

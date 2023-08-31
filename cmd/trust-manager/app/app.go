@@ -23,6 +23,8 @@ import (
 
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/kubernetes"
 	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -113,6 +115,28 @@ func NewCommand() *cobra.Command {
 				return fmt.Errorf("failed to create manager: %w", err)
 			}
 
+			targetCache, err := cache.New(mgr.GetConfig(), cache.Options{
+				HTTPClient:                  mgr.GetHTTPClient(),
+				Scheme:                      mgr.GetScheme(),
+				Mapper:                      mgr.GetRESTMapper(),
+				ReaderFailOnMissingInformer: true,
+				DefaultLabelSelector: func() labels.Selector {
+					targetRequirement, err := labels.NewRequirement(trustapi.BundleLabelKey, selection.Exists, nil)
+					if err != nil {
+						panic(fmt.Errorf("failed to create target label requirement: %w", err))
+					}
+
+					return labels.NewSelector().Add(*targetRequirement)
+				}(),
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create target cache: %w", err)
+			}
+
+			if err := mgr.Add(targetCache); err != nil {
+				return fmt.Errorf("failed to add target cache to manager: %w", err)
+			}
+
 			// Add readiness check that the manager's informers have been synced.
 			mgr.AddReadyzCheck("informers_synced", func(req *http.Request) error {
 				if mgr.GetCache().WaitForCacheSync(req.Context()) {
@@ -124,7 +148,7 @@ func NewCommand() *cobra.Command {
 			ctx := ctrl.SetupSignalHandler()
 
 			// Add Bundle controller to manager.
-			if err := bundle.AddBundleController(ctx, mgr, opts.Bundle); err != nil {
+			if err := bundle.AddBundleController(ctx, mgr, opts.Bundle, targetCache); err != nil {
 				return fmt.Errorf("failed to register Bundle controller: %w", err)
 			}
 
