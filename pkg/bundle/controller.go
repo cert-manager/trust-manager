@@ -22,6 +22,7 @@ import (
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -83,6 +84,8 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 		// Reconcile all Bundles on a Namespace change.
 		Watches(&corev1.Namespace{}, handler.EnqueueRequestsFromMapFunc(
 			func(ctx context.Context, obj client.Object) []reconcile.Request {
+				ns := obj.(*corev1.Namespace)
+
 				// If an error happens here and we do nothing, we run the risk of
 				// leaving a Namespace behind when syncing.
 				// Exiting error is the safest option, as it will force a resync on
@@ -91,6 +94,17 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 
 				var requests []reconcile.Request
 				for _, bundle := range bundleList.Items {
+					namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
+					if err != nil {
+						// We have an invalid selector, so we can skip this Bundle.
+						continue
+					}
+
+					if !namespaceSelector.Matches(labels.Set(ns.Labels)) {
+						// This Bundle does not target this Namespace.
+						continue
+					}
+
 					requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: bundle.Name}})
 				}
 

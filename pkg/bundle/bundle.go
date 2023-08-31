@@ -90,13 +90,10 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		return ctrl.Result{}, fmt.Errorf("failed to get %q: %s", req.NamespacedName, err)
 	}
 
-	namespaceSelector := labels.Everything()
-	if nsSelector := bundle.Spec.Target.NamespaceSelector; nsSelector != nil && nsSelector.MatchLabels != nil {
-		namespaceSelector, err = metav1.LabelSelectorAsSelector(&metav1.LabelSelector{MatchLabels: nsSelector.MatchLabels})
-		if err != nil {
-			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceSelectorError", "Failed to build namespace match labels selector: %s", err)
-			return ctrl.Result{}, fmt.Errorf("failed to build NamespaceSelector: %w", err)
-		}
+	namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
+	if err != nil {
+		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceSelectorError", "Failed to build namespace match labels selector: %s", err)
+		return ctrl.Result{}, fmt.Errorf("failed to build NamespaceSelector: %w", err)
 	}
 
 	var namespaceList corev1.NamespaceList
@@ -220,9 +217,8 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	}
 
 	message := "Successfully synced Bundle to all namespaces"
-	if nsSelector := bundle.Spec.Target.NamespaceSelector; nsSelector != nil && nsSelector.MatchLabels != nil {
-		message = fmt.Sprintf("Successfully synced Bundle to namespaces with selector [matchLabels:%v]",
-			nsSelector.MatchLabels)
+	if !namespaceSelector.Empty() {
+		message = fmt.Sprintf("Successfully synced Bundle to namespaces that match this label selector: %s", namespaceSelector)
 	}
 
 	syncedCondition := trustapi.BundleCondition{
@@ -243,4 +239,14 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", message)
 
 	return ctrl.Result{}, b.client.Status().Update(ctx, &bundle)
+}
+
+func (b *bundle) bundleTargetNamespaceSelector(bundleObj *trustapi.Bundle) (labels.Selector, error) {
+	nsSelector := bundleObj.Spec.Target.NamespaceSelector
+
+	if nsSelector == nil || nsSelector.MatchLabels == nil {
+		return labels.Everything(), nil
+	}
+
+	return metav1.LabelSelectorAsSelector(&metav1.LabelSelector{MatchLabels: nsSelector.MatchLabels})
 }
