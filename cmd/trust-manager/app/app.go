@@ -23,7 +23,6 @@ import (
 
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -103,18 +102,10 @@ func NewCommand() *cobra.Command {
 							},
 						},
 						&corev1.ConfigMap{}: {
-							// Only cache full ConfigMaps in the "watched" namespace.
-							Namespaces: map[string]cache.Config{
-								opts.Bundle.Namespace: {},
-							},
+							// Watch full config maps across all namespaces.
+							// TODO: create a seperate cache for targets and sources and only
+							// cache full config maps for the sources.
 						},
-						// Only cache partial metadata for targets.
-						&metav1.PartialObjectMetadata{
-							TypeMeta: metav1.TypeMeta{
-								APIVersion: "v1",
-								Kind:       "ConfigMap",
-							},
-						}: {},
 					},
 				},
 			})
