@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2/klogr"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"software.sslmate.com/src/go-pkcs12"
@@ -134,8 +134,8 @@ func Test_syncTarget(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         pointer.Bool(true),
-							BlockOwnerDeletion: pointer.Bool(true),
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
 				},
@@ -156,8 +156,8 @@ func Test_syncTarget(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         pointer.Bool(true),
-							BlockOwnerDeletion: pointer.Bool(true),
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
 				},
@@ -179,8 +179,8 @@ func Test_syncTarget(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         pointer.Bool(true),
-							BlockOwnerDeletion: pointer.Bool(true),
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
 				},
@@ -204,8 +204,8 @@ func Test_syncTarget(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         pointer.Bool(true),
-							BlockOwnerDeletion: pointer.Bool(true),
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
 				},
@@ -229,8 +229,8 @@ func Test_syncTarget(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         pointer.Bool(true),
-							BlockOwnerDeletion: pointer.Bool(true),
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
 				},
@@ -252,8 +252,8 @@ func Test_syncTarget(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         pointer.Bool(true),
-							BlockOwnerDeletion: pointer.Bool(true),
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
 				},
@@ -280,8 +280,8 @@ func Test_syncTarget(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         pointer.Bool(true),
-							BlockOwnerDeletion: pointer.Bool(true),
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
 				},
@@ -308,8 +308,8 @@ func Test_syncTarget(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         pointer.Bool(true),
-							BlockOwnerDeletion: pointer.Bool(true),
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
 				},
@@ -331,8 +331,8 @@ func Test_syncTarget(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         pointer.Bool(true),
-							BlockOwnerDeletion: pointer.Bool(true),
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
 				},
@@ -356,8 +356,8 @@ func Test_syncTarget(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         pointer.Bool(true),
-							BlockOwnerDeletion: pointer.Bool(true),
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
 				},
@@ -381,15 +381,15 @@ func Test_syncTarget(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         pointer.Bool(true),
-							BlockOwnerDeletion: pointer.Bool(true),
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
 						},
 						{
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               "another-bundle",
-							Controller:         pointer.Bool(true),
-							BlockOwnerDeletion: pointer.Bool(true),
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
 				},
@@ -441,8 +441,8 @@ func Test_syncTarget(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         pointer.Bool(true),
-							BlockOwnerDeletion: pointer.Bool(true),
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
 				},
@@ -471,8 +471,8 @@ func Test_syncTarget(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         pointer.Bool(true),
-							BlockOwnerDeletion: pointer.Bool(true),
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
 				},
@@ -559,8 +559,8 @@ func Test_syncTarget(t *testing.T) {
 					Kind:               "Bundle",
 					APIVersion:         "trust.cert-manager.io/v1alpha1",
 					Name:               bundleName,
-					Controller:         pointer.Bool(true),
-					BlockOwnerDeletion: pointer.Bool(true),
+					Controller:         ptr.To(true),
+					BlockOwnerDeletion: ptr.To(true),
 				}
 				if test.expOwnerReference {
 					assert.Equalf(t, expectedOwnerReference, configMap.OwnerReferences[0], "unexpected data on ConfigMap: exp=%s:%s got=%v", key, data, configMap.Data)
@@ -632,7 +632,7 @@ func Test_buildSourceBundle(t *testing.T) {
 		},
 		"if single InLine source defined with newlines, should trim and return": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
-				{InLine: pointer.String(dummy.TestCertificate1 + "\n" + dummy.TestCertificate2 + "\n\n")},
+				{InLine: ptr.To(dummy.TestCertificate1 + "\n" + dummy.TestCertificate2 + "\n\n")},
 			}}},
 			objects:          []runtime.Object{},
 			expData:          dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2),
@@ -640,7 +640,7 @@ func Test_buildSourceBundle(t *testing.T) {
 			expNotFoundError: false,
 		},
 		"if single DefaultPackage source defined, should return": {
-			bundle:           &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{{UseDefaultCAs: pointer.Bool(true)}}}},
+			bundle:           &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{{UseDefaultCAs: ptr.To(true)}}}},
 			objects:          []runtime.Object{},
 			expData:          dummy.JoinCerts(dummy.TestCertificate5),
 			expError:         false,
@@ -679,7 +679,7 @@ func Test_buildSourceBundle(t *testing.T) {
 		"if ConfigMap and InLine source, return concatenated data": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
 				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
-				{InLine: pointer.String(dummy.TestCertificate2)},
+				{InLine: ptr.To(dummy.TestCertificate2)},
 			}}},
 			objects: []runtime.Object{&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
@@ -722,7 +722,7 @@ func Test_buildSourceBundle(t *testing.T) {
 		"if Secret and InLine source, return concatenated data": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
 				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", KeySelector: trustapi.KeySelector{Key: "key"}}},
-				{InLine: pointer.String(dummy.TestCertificate1)},
+				{InLine: ptr.To(dummy.TestCertificate1)},
 			}}},
 			objects: []runtime.Object{&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
@@ -735,7 +735,7 @@ func Test_buildSourceBundle(t *testing.T) {
 		"if Secret, ConfigmMap and InLine source, return concatenated data": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{Sources: []trustapi.BundleSource{
 				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
-				{InLine: pointer.String(dummy.TestCertificate3)},
+				{InLine: ptr.To(dummy.TestCertificate3)},
 				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", KeySelector: trustapi.KeySelector{Key: "key"}}},
 			}}},
 			objects: []runtime.Object{

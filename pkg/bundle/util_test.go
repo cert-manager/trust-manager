@@ -24,7 +24,7 @@ import (
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fakeclock "k8s.io/utils/clock/testing"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 )
@@ -235,7 +235,7 @@ func Test_setBundleStatusDefaultCAVersion(t *testing.T) {
 		"requiredID empty but status populated; should update": {
 			inputBundle: trustapi.Bundle{
 				Status: trustapi.BundleStatus{
-					DefaultCAPackageVersion: pointer.String("abc123"),
+					DefaultCAPackageVersion: ptr.To("abc123"),
 				},
 			},
 			requiredID:                      "",
@@ -245,7 +245,7 @@ func Test_setBundleStatusDefaultCAVersion(t *testing.T) {
 		"requiredID empty but status populated but empty; should update": {
 			inputBundle: trustapi.Bundle{
 				Status: trustapi.BundleStatus{
-					DefaultCAPackageVersion: pointer.String(""),
+					DefaultCAPackageVersion: ptr.To(""),
 				},
 			},
 			requiredID:                      "",
@@ -269,27 +269,27 @@ func Test_setBundleStatusDefaultCAVersion(t *testing.T) {
 				},
 			},
 			requiredID:                      "abc123",
-			expectedDefaultCAPackageVersion: pointer.String("abc123"),
+			expectedDefaultCAPackageVersion: ptr.To("abc123"),
 			expectUpdate:                    true,
 		},
 		"requiredID not empty and status populated but incorrect; should update": {
 			inputBundle: trustapi.Bundle{
 				Status: trustapi.BundleStatus{
-					DefaultCAPackageVersion: pointer.String("def456"),
+					DefaultCAPackageVersion: ptr.To("def456"),
 				},
 			},
 			requiredID:                      "abc123",
-			expectedDefaultCAPackageVersion: pointer.String("abc123"),
+			expectedDefaultCAPackageVersion: ptr.To("abc123"),
 			expectUpdate:                    true,
 		},
 		"requiredID not empty and status populated currectly; should not update": {
 			inputBundle: trustapi.Bundle{
 				Status: trustapi.BundleStatus{
-					DefaultCAPackageVersion: pointer.String("abc123"),
+					DefaultCAPackageVersion: ptr.To("abc123"),
 				},
 			},
 			requiredID:                      "abc123",
-			expectedDefaultCAPackageVersion: pointer.String("abc123"),
+			expectedDefaultCAPackageVersion: ptr.To("abc123"),
 			expectUpdate:                    false,
 		},
 	}

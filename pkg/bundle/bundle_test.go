@@ -29,7 +29,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2/klogr"
 	fakeclock "k8s.io/utils/clock/testing"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -89,7 +89,7 @@ func Test_Reconcile(t *testing.T) {
 				Sources: []trustapi.BundleSource{
 					{ConfigMap: &trustapi.SourceObjectKeySelector{Name: sourceConfigMapName, KeySelector: trustapi.KeySelector{Key: sourceConfigMapKey}}},
 					{Secret: &trustapi.SourceObjectKeySelector{Name: sourceSecretName, KeySelector: trustapi.KeySelector{Key: sourceSecretKey}}},
-					{InLine: pointer.String(dummy.TestCertificate3)},
+					{InLine: ptr.To(dummy.TestCertificate3)},
 				},
 				Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 			},
@@ -830,7 +830,7 @@ func Test_Reconcile(t *testing.T) {
 								ObservedGeneration: bundleGeneration,
 							},
 						},
-						DefaultCAPackageVersion: pointer.String(testDefaultPackage.StringID()),
+						DefaultCAPackageVersion: ptr.To(testDefaultPackage.StringID()),
 					}),
 				),
 				&corev1.ConfigMap{
@@ -881,7 +881,7 @@ func Test_Reconcile(t *testing.T) {
 							ObservedGeneration: bundleGeneration,
 						},
 					},
-					DefaultCAPackageVersion: pointer.String(testDefaultPackage.StringID()),
+					DefaultCAPackageVersion: ptr.To(testDefaultPackage.StringID()),
 				}),
 			)},
 			configureDefaultPackage: true,
