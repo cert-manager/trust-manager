@@ -146,7 +146,7 @@ func Test_Reconcile(t *testing.T) {
 					gen.SetBundleStatus(trustapi.BundleStatus{Conditions: []trustapi.BundleCondition{
 						{
 							Type:               trustapi.BundleConditionSynced,
-							Status:             corev1.ConditionFalse,
+							Status:             metav1.ConditionFalse,
 							Reason:             "SourceNotFound",
 							Message:            `Bundle source was not found: failed to retrieve bundle from source: configmaps "source-configmap" not found`,
 							ObservedGeneration: bundleGeneration,
@@ -174,7 +174,7 @@ func Test_Reconcile(t *testing.T) {
 					gen.SetBundleStatus(trustapi.BundleStatus{Conditions: []trustapi.BundleCondition{
 						{
 							Type:               trustapi.BundleConditionSynced,
-							Status:             corev1.ConditionFalse,
+							Status:             metav1.ConditionFalse,
 							Reason:             "SourceNotFound",
 							Message:            `Bundle source was not found: failed to retrieve bundle from source: no data found in ConfigMap trust-namespace/source-configmap at key "configmap-key"`,
 							ObservedGeneration: bundleGeneration,
@@ -197,7 +197,7 @@ func Test_Reconcile(t *testing.T) {
 					gen.SetBundleStatus(trustapi.BundleStatus{Conditions: []trustapi.BundleCondition{
 						{
 							Type:               trustapi.BundleConditionSynced,
-							Status:             corev1.ConditionFalse,
+							Status:             metav1.ConditionFalse,
 							Reason:             "SourceNotFound",
 							Message:            `Bundle source was not found: failed to retrieve bundle from source: secrets "source-secret" not found`,
 							ObservedGeneration: bundleGeneration,
@@ -225,7 +225,7 @@ func Test_Reconcile(t *testing.T) {
 					gen.SetBundleStatus(trustapi.BundleStatus{Conditions: []trustapi.BundleCondition{
 						{
 							Type:               trustapi.BundleConditionSynced,
-							Status:             corev1.ConditionFalse,
+							Status:             metav1.ConditionFalse,
 							Reason:             "SourceNotFound",
 							Message:            `Bundle source was not found: failed to retrieve bundle from source: no data found in Secret trust-namespace/source-secret at key "secret-key"`,
 							ObservedGeneration: bundleGeneration,
@@ -371,7 +371,7 @@ func Test_Reconcile(t *testing.T) {
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
-								Status:             corev1.ConditionTrue,
+								Status:             metav1.ConditionTrue,
 								LastTransitionTime: fixedmetatime,
 								Reason:             "Synced",
 								Message:            "Successfully synced Bundle to all namespaces",
@@ -418,7 +418,7 @@ func Test_Reconcile(t *testing.T) {
 						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 						Conditions: []trustapi.BundleCondition{{
 							Type:               trustapi.BundleConditionSynced,
-							Status:             corev1.ConditionTrue,
+							Status:             metav1.ConditionTrue,
 							LastTransitionTime: fixedmetatime,
 							Reason:             "Synced",
 							Message:            "Successfully synced Bundle to all namespaces",
@@ -480,7 +480,7 @@ func Test_Reconcile(t *testing.T) {
 						},
 						Conditions: []trustapi.BundleCondition{{
 							Type:               trustapi.BundleConditionSynced,
-							Status:             corev1.ConditionTrue,
+							Status:             metav1.ConditionTrue,
 							LastTransitionTime: &metav1.Time{Time: fixedclock.Now().Local()},
 							Reason:             "Synced",
 							Message:            "Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar]]",
@@ -538,7 +538,7 @@ func Test_Reconcile(t *testing.T) {
 						},
 						Conditions: []trustapi.BundleCondition{{
 							Type:               trustapi.BundleConditionSynced,
-							Status:             corev1.ConditionTrue,
+							Status:             metav1.ConditionTrue,
 							LastTransitionTime: &metav1.Time{Time: fixedclock.Now().Local()},
 							Reason:             "Synced",
 							Message:            "Successfully synced Bundle to namespaces with selector [matchLabels:map[foo:bar]]",
@@ -575,7 +575,7 @@ func Test_Reconcile(t *testing.T) {
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
-								Status:             corev1.ConditionTrue,
+								Status:             metav1.ConditionTrue,
 								LastTransitionTime: fixedmetatime,
 								Reason:             "Synced",
 								Message:            "Successfully synced Bundle to all namespaces",
@@ -594,7 +594,7 @@ func Test_Reconcile(t *testing.T) {
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
-								Status:             corev1.ConditionTrue,
+								Status:             metav1.ConditionTrue,
 								LastTransitionTime: fixedmetatime,
 								Reason:             "Synced",
 								Message:            "Successfully synced Bundle to all namespaces",
@@ -652,7 +652,7 @@ func Test_Reconcile(t *testing.T) {
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
-								Status:             corev1.ConditionTrue,
+								Status:             metav1.ConditionTrue,
 								LastTransitionTime: fixedmetatime,
 								Reason:             "Synced",
 								Message:            "Successfully synced Bundle to all namespaces",
@@ -703,7 +703,7 @@ func Test_Reconcile(t *testing.T) {
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
-								Status:             corev1.ConditionTrue,
+								Status:             metav1.ConditionTrue,
 								LastTransitionTime: fixedmetatime,
 								Reason:             "Synced",
 								Message:            "Successfully synced Bundle to all namespaces",
@@ -724,7 +724,7 @@ func Test_Reconcile(t *testing.T) {
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
-								Status:             corev1.ConditionTrue,
+								Status:             metav1.ConditionTrue,
 								LastTransitionTime: fixedmetatime,
 								Reason:             "Synced",
 								Message:            "Successfully synced Bundle to all namespaces",
@@ -764,7 +764,7 @@ func Test_Reconcile(t *testing.T) {
 					gen.SetBundleStatus(trustapi.BundleStatus{Conditions: []trustapi.BundleCondition{
 						{
 							Type:               trustapi.BundleConditionSynced,
-							Status:             corev1.ConditionFalse,
+							Status:             metav1.ConditionFalse,
 							Reason:             "SourceNotFound",
 							Message:            `Bundle source was not found: failed to retrieve bundle from source: no default package was specified when trust-manager was started; default CAs not available`,
 							ObservedGeneration: bundleGeneration,
@@ -801,7 +801,7 @@ func Test_Reconcile(t *testing.T) {
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
-								Status:             corev1.ConditionTrue,
+								Status:             metav1.ConditionTrue,
 								LastTransitionTime: fixedmetatime,
 								Reason:             "Synced",
 								Message:            "Successfully synced Bundle to all namespaces",
@@ -823,7 +823,7 @@ func Test_Reconcile(t *testing.T) {
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
-								Status:             corev1.ConditionTrue,
+								Status:             metav1.ConditionTrue,
 								LastTransitionTime: fixedmetatime,
 								Reason:             "Synced",
 								Message:            "Successfully synced Bundle to all namespaces",
@@ -874,7 +874,7 @@ func Test_Reconcile(t *testing.T) {
 					Conditions: []trustapi.BundleCondition{
 						{
 							Type:               trustapi.BundleConditionSynced,
-							Status:             corev1.ConditionTrue,
+							Status:             metav1.ConditionTrue,
 							LastTransitionTime: fixedmetatime,
 							Reason:             "Synced",
 							Message:            "Successfully synced Bundle to all namespaces",
@@ -895,7 +895,7 @@ func Test_Reconcile(t *testing.T) {
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
-								Status:             corev1.ConditionTrue,
+								Status:             metav1.ConditionTrue,
 								LastTransitionTime: fixedmetatime,
 								Reason:             "Synced",
 								Message:            "Successfully synced Bundle to all namespaces",

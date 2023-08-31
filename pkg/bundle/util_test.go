@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fakeclock "k8s.io/utils/clock/testing"
@@ -103,14 +102,14 @@ func Test_setBundleCondition(t *testing.T) {
 			existingConditions: []trustapi.BundleCondition{},
 			newCondition: trustapi.BundleCondition{
 				Type:    "A",
-				Status:  corev1.ConditionTrue,
+				Status:  metav1.ConditionTrue,
 				Reason:  "B",
 				Message: "C",
 			},
 			expectedConditions: []trustapi.BundleCondition{
 				{
 					Type:               "A",
-					Status:             corev1.ConditionTrue,
+					Status:             metav1.ConditionTrue,
 					Reason:             "B",
 					Message:            "C",
 					LastTransitionTime: fixedmetatime,
@@ -122,7 +121,7 @@ func Test_setBundleCondition(t *testing.T) {
 			existingConditions: []trustapi.BundleCondition{{Type: "B"}},
 			newCondition: trustapi.BundleCondition{
 				Type:    "A",
-				Status:  corev1.ConditionTrue,
+				Status:  metav1.ConditionTrue,
 				Reason:  "B",
 				Message: "C",
 			},
@@ -130,7 +129,7 @@ func Test_setBundleCondition(t *testing.T) {
 				{Type: "B"},
 				{
 					Type:               "A",
-					Status:             corev1.ConditionTrue,
+					Status:             metav1.ConditionTrue,
 					Reason:             "B",
 					Message:            "C",
 					LastTransitionTime: fixedmetatime,
@@ -143,7 +142,7 @@ func Test_setBundleCondition(t *testing.T) {
 				{Type: "B"},
 				{
 					Type:               "A",
-					Status:             corev1.ConditionFalse,
+					Status:             metav1.ConditionFalse,
 					Reason:             "B",
 					Message:            "C",
 					LastTransitionTime: fixedmetatime,
@@ -152,7 +151,7 @@ func Test_setBundleCondition(t *testing.T) {
 			},
 			newCondition: trustapi.BundleCondition{
 				Type:    "A",
-				Status:  corev1.ConditionTrue,
+				Status:  metav1.ConditionTrue,
 				Reason:  "B",
 				Message: "C",
 			},
@@ -160,7 +159,7 @@ func Test_setBundleCondition(t *testing.T) {
 				{Type: "B"},
 				{
 					Type:               "A",
-					Status:             corev1.ConditionTrue,
+					Status:             metav1.ConditionTrue,
 					Reason:             "B",
 					Message:            "C",
 					LastTransitionTime: fixedmetatime,
@@ -173,7 +172,7 @@ func Test_setBundleCondition(t *testing.T) {
 				{Type: "B"},
 				{
 					Type:               "A",
-					Status:             corev1.ConditionTrue,
+					Status:             metav1.ConditionTrue,
 					Reason:             "B",
 					Message:            "C",
 					LastTransitionTime: &metav1.Time{Time: fixedTime.Add(-time.Second)},
@@ -182,7 +181,7 @@ func Test_setBundleCondition(t *testing.T) {
 			},
 			newCondition: trustapi.BundleCondition{
 				Type:    "A",
-				Status:  corev1.ConditionTrue,
+				Status:  metav1.ConditionTrue,
 				Reason:  "B",
 				Message: "C",
 			},
@@ -190,7 +189,7 @@ func Test_setBundleCondition(t *testing.T) {
 				{Type: "B"},
 				{
 					Type:               "A",
-					Status:             corev1.ConditionTrue,
+					Status:             metav1.ConditionTrue,
 					Reason:             "B",
 					Message:            "C",
 					LastTransitionTime: &metav1.Time{Time: fixedTime.Add(-time.Second)},
@@ -212,7 +211,18 @@ func Test_setBundleCondition(t *testing.T) {
 				},
 			}
 
-			b.setBundleCondition(bundle, test.newCondition)
+			b.setBundleCondition(
+				bundle.Status.Conditions,
+				&bundle.Status.Conditions,
+				trustapi.BundleCondition{
+					Type:               test.newCondition.Type,
+					Status:             test.newCondition.Status,
+					Reason:             test.newCondition.Reason,
+					Message:            test.newCondition.Message,
+					ObservedGeneration: bundle.Generation,
+				},
+			)
+
 			if !apiequality.Semantic.DeepEqual(bundle.Status.Conditions, test.expectedConditions) {
 				t.Errorf("unexpected resulting conditions, exp=%v got=%v", test.expectedConditions, bundle.Status.Conditions)
 			}
@@ -295,10 +305,13 @@ func Test_setBundleStatusDefaultCAVersion(t *testing.T) {
 	}
 
 	for name, test := range tests {
+		test := test
 		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
 			b := &bundle{clock: fixedclock}
 
-			shouldUpdate := b.setBundleStatusDefaultCAVersion(&test.inputBundle, test.requiredID)
+			shouldUpdate := b.setBundleStatusDefaultCAVersion(&test.inputBundle.Status, test.requiredID)
 
 			if shouldUpdate != test.expectUpdate {
 				t.Errorf("expected shouldUpdate=%v got=%v", test.expectUpdate, shouldUpdate)

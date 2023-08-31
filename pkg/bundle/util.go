@@ -44,52 +44,72 @@ func bundleHasCondition(bundle *trustapi.Bundle, condition trustapi.BundleCondit
 
 // setBundleCondition updates the bundle with the given condition.
 // Will overwrite any existing condition of the same type.
-// ObservedGeneration of the condition will be set to the Generation of the
-// bundle object.
 // LastTransitionTime will not be updated if an existing condition of the same
 // Type and Status already exists.
-func (b *bundle) setBundleCondition(bundle *trustapi.Bundle, condition trustapi.BundleCondition) {
-	condition.LastTransitionTime = &metav1.Time{Time: b.clock.Now()}
-	condition.ObservedGeneration = bundle.Generation
+func (b *bundle) setBundleCondition(
+	existingConditions []trustapi.BundleCondition,
+	patchConditions *[]trustapi.BundleCondition,
+	newCondition trustapi.BundleCondition,
+) trustapi.BundleCondition {
+	newCondition.LastTransitionTime = &metav1.Time{Time: b.clock.Now()}
 
-	var updatedConditions []trustapi.BundleCondition
-	for _, existingCondition := range bundle.Status.Conditions {
-		// Ignore any existing conditions which don't match the incoming type and
-		// add back to set.
-		if existingCondition.Type != condition.Type {
-			updatedConditions = append(updatedConditions, existingCondition)
+	// Reset the LastTransitionTime if the status hasn't changed
+	for _, cond := range existingConditions {
+		if cond.Type != newCondition.Type {
 			continue
 		}
 
-		// If the status is the same, don't modify the last transaction time
-		if existingCondition.Status == condition.Status {
-			condition.LastTransitionTime = existingCondition.LastTransitionTime
+		// If this update doesn't contain a state transition, we don't update
+		// the conditions LastTransitionTime to Now()
+		if cond.Status == newCondition.Status {
+			newCondition.LastTransitionTime = cond.LastTransitionTime
 		}
 	}
 
-	bundle.Status.Conditions = append(updatedConditions, condition)
+	// Search through existing conditions
+	for idx, cond := range *patchConditions {
+		// Skip unrelated conditions
+		if cond.Type != newCondition.Type {
+			continue
+		}
+
+		// Overwrite the existing condition
+		(*patchConditions)[idx] = newCondition
+
+		return newCondition
+	}
+
+	// If we've not found an existing condition of this type, we simply insert
+	// the new condition into the slice.
+	*patchConditions = append(*patchConditions, newCondition)
+
+	return newCondition
 }
 
 // setBundleStatusDefaultCAVersion ensures that the given Bundle's Status correctly
 // reflects the defaultCAVersion represented by requiredID.
 // Returns true if the bundle status needs updating.
-func (b *bundle) setBundleStatusDefaultCAVersion(bundle *trustapi.Bundle, requiredID string) bool {
-	currentVersion := bundle.Status.DefaultCAPackageVersion
+func (b *bundle) setBundleStatusDefaultCAVersion(
+	bundleStatus *trustapi.BundleStatus,
+	requiredID string,
+) bool {
+	currentVersion := bundleStatus.DefaultCAPackageVersion
 
-	if len(requiredID) == 0 {
-		if currentVersion != nil {
-			bundle.Status.DefaultCAPackageVersion = nil
-			return true
-		}
-
+	// If both are empty, we don't need to update
+	if len(requiredID) == 0 && currentVersion == nil {
 		return false
 	}
 
-	// If we're here, requiredID is not empty and we need to confirm that currentVersion
-	// matches it
+	// If requiredID is empty, we need to update if currentVersion is not
+	if len(requiredID) == 0 && currentVersion != nil {
+		bundleStatus.DefaultCAPackageVersion = nil
+		return true
+	}
 
+	// If requiredID is not empty, we need to update if currentVersion is empty or
+	// if currentVersion is not equal to requiredID
 	if currentVersion == nil || *currentVersion != requiredID {
-		bundle.Status.DefaultCAPackageVersion = &requiredID
+		bundleStatus.DefaultCAPackageVersion = &requiredID
 		return true
 	}
 

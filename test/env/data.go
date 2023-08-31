@@ -161,7 +161,7 @@ func checkBundleSyncedInternal(ctx context.Context, cl client.Client, bundleName
 	}
 
 	for _, condition := range bundle.Status.Conditions {
-		if condition.Status == corev1.ConditionTrue && bundle.Generation == condition.ObservedGeneration {
+		if condition.Status == metav1.ConditionTrue && bundle.Generation == condition.ObservedGeneration {
 			return nil
 		}
 	}
