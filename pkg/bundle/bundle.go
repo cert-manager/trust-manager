@@ -91,7 +91,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	if statusPatch != nil {
 		con, patch, err := ssa_client.GenerateBundleStatusPatch(req.Name, req.Namespace, statusPatch)
 		if err != nil {
-			err = fmt.Errorf("failed to generate bundle patch: %w", err)
+			err = fmt.Errorf("failed to generate bundle status patch: %w", err)
 			return ctrl.Result{}, utilerrors.NewAggregate([]error{resultErr, err})
 		}
 
@@ -101,7 +101,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 				Force:        ptr.To(true),
 			},
 		}); err != nil {
-			err = fmt.Errorf("failed to apply bundle patch: %w", err)
+			err = fmt.Errorf("failed to apply bundle status patch: %w", err)
 			return ctrl.Result{}, utilerrors.NewAggregate([]error{resultErr, err})
 		}
 	}
@@ -136,7 +136,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 
 	if needsMigration {
 		log.V(2).Info("migrating bundle status")
-		if err := b.migrateToApply(ctx, &bundle, ptr.To("status")); err != nil {
+		if err := b.migrateToApply(ctx, &bundle, "status"); err != nil {
 			log.Error(err, "failed to migrate bundle status")
 			return ctrl.Result{}, nil, fmt.Errorf("failed to migrate bundle status: %w", err)
 		}

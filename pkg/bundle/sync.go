@@ -402,7 +402,7 @@ func (b *bundle) syncTarget(
 		}
 
 		if needsMigration {
-			if err := b.migrateToApply(ctx, configMap, ptr.To("")); err != nil {
+			if err := b.migrateToApply(ctx, configMap, ""); err != nil {
 				return false, fmt.Errorf("failed to migrate ConfigMap %s/%s to Apply: %w", namespace, name, err)
 			}
 		}
@@ -487,11 +487,9 @@ func (b *bundle) patchResource(ctx context.Context, obj interface{}) error {
 		return fmt.Errorf("failed to generate patch: %w", err)
 	}
 
-	err = b.client.Patch(ctx, configMap, patch, &client.SubResourcePatchOptions{
-		PatchOptions: client.PatchOptions{
-			FieldManager: fieldManager,
-			Force:        ptr.To(true),
-		},
+	err = b.client.Patch(ctx, configMap, patch, &client.PatchOptions{
+		FieldManager: fieldManager,
+		Force:        ptr.To(true),
 	})
 	if err != nil {
 		return err
@@ -509,11 +507,11 @@ func (b *bundle) patchResource(ctx context.Context, obj interface{}) error {
 // fields from the Update operation to the Apply operation. This is required
 // to ensure that the apply operations will also remove fields that were
 // created by the Update operation.
-func (b *bundle) migrateToApply(ctx context.Context, obj client.Object, subresource *string) error {
+func (b *bundle) migrateToApply(ctx context.Context, obj client.Object, subresource string) error {
 	managedFields := obj.GetManagedFields()
 
 	for i, mf := range managedFields {
-		if mf.Manager != fieldManager || mf.Operation != metav1.ManagedFieldsOperationUpdate || (subresource != nil && mf.Subresource != *subresource) {
+		if mf.Manager != fieldManager || mf.Operation != metav1.ManagedFieldsOperationUpdate || mf.Subresource != subresource {
 			continue
 		}
 
