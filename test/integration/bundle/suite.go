@@ -19,6 +19,7 @@ package test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -110,7 +111,7 @@ var _ = Describe("Integration", func() {
 
 		mgrStopped = make(chan struct{})
 
-		Expect(bundle.AddBundleController(ctx, mgr, opts)).NotTo(HaveOccurred())
+		Expect(bundle.AddBundleController(ctx, mgr, opts, mgr.GetCache())).NotTo(HaveOccurred())
 
 		By("Running Bundle controller")
 		go func() {
@@ -434,6 +435,54 @@ var _ = Describe("Integration", func() {
 		// confirm that the new namespace now contains the bundle
 		Eventually(func() error {
 			return testenv.CheckBundleSynced(ctx, cl, testBundle.Name, testNamespace.Name, expectedData)
+		}, eventuallyTimeout, eventuallyPollInterval).Should(BeNil(), "checking that bundle was re-added to newly labelled namespace")
+	})
+
+	It("should migrate bundle from CSA to SSA", func() {
+		Expect(cl.Get(ctx, client.ObjectKeyFromObject(testBundle), testBundle)).ToNot(HaveOccurred())
+		testBundle.Status = trustapi.BundleStatus{
+			Target: &trustapi.BundleTarget{
+				ConfigMap: &trustapi.KeySelector{
+					Key: "OLD_KEY",
+				},
+			},
+			DefaultCAPackageVersion: ptr.To("OLD_VERSION"),
+			Conditions: []trustapi.BundleCondition{
+				{
+					Type:   "OLD_CONDITION",
+					Status: metav1.ConditionTrue,
+				},
+			},
+		}
+
+		Expect(cl.Status().Update(ctx, testBundle, &client.SubResourceUpdateOptions{
+			UpdateOptions: client.UpdateOptions{
+				FieldManager: "trust-manager",
+			},
+		})).NotTo(HaveOccurred())
+
+		Eventually(func() error {
+			err := cl.Get(ctx, client.ObjectKeyFromObject(testBundle), testBundle)
+
+			if err != nil {
+				return err
+			}
+
+			if testBundle.Status.Target.ConfigMap != nil && testBundle.Status.Target.ConfigMap.Key == "OLD_KEY" {
+				return fmt.Errorf("target still present")
+			}
+
+			if testBundle.Status.DefaultCAPackageVersion != nil && *testBundle.Status.DefaultCAPackageVersion == "OLD_VERSION" {
+				return fmt.Errorf("default package version still present")
+			}
+
+			for _, condition := range testBundle.Status.Conditions {
+				if condition.Type == "OLD_CONDITION" {
+					return fmt.Errorf("condition still present")
+				}
+			}
+
+			return nil
 		}, eventuallyTimeout, eventuallyPollInterval).Should(BeNil(), "checking that bundle was re-added to newly labelled namespace")
 	})
 })

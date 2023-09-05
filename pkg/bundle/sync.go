@@ -31,11 +31,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/sets"
+	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/structured-merge-diff/fieldpath"
 	"software.sslmate.com/src/go-pkcs12"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
 	"github.com/cert-manager/trust-manager/pkg/util"
 )
 
@@ -49,6 +54,8 @@ const (
 	// By password-less, it means the certificates are not encrypted, and it contains no MacData for integrity check.
 	DefaultPKCS12Password = ""
 )
+
+const fieldManager = "trust-manager"
 
 type notFoundError struct{ error }
 
@@ -140,7 +147,7 @@ func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObject
 	return data, nil
 }
 
-// secretBundle returns the data in the target Secret within the trust Namespace.
+// secretBundle returns the data in the source Secret within the trust Namespace.
 func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKeySelector) (string, error) {
 	var secret corev1.Secret
 	err := b.client.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &secret)
@@ -157,10 +164,6 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 	}
 
 	return string(data), nil
-}
-
-type binaryDataEncoder interface {
-	encode(trustBundle string) ([]byte, error)
 }
 
 type jksEncoder struct {
@@ -259,119 +262,181 @@ func (e pkcs12Encoder) encode(trustBundle string) ([]byte, error) {
 // The name of the ConfigMap is the same as the Bundle.
 // Ensures the ConfigMap is owned by the given Bundle, and the data is up to date.
 // Returns true if the ConfigMap has been created or was updated.
-func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
+func (b *bundle) syncTarget(
+	ctx context.Context,
+	log logr.Logger,
 	bundle *trustapi.Bundle,
-	namespaceSelector labels.Selector,
-	namespace *corev1.Namespace,
+	name string,
+	namespace string,
 	data string,
+	shouldExist bool,
 ) (bool, error) {
-	target := bundle.Spec.Target
+	configMap := &metav1.PartialObjectMetadata{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+	}
+	err := b.targetCache.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, configMap)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return false, fmt.Errorf("failed to get ConfigMap %s/%s: %w", namespace, name, err)
+	}
 
+	// If the ConfigMap exists, but the Bundle is being deleted, delete the ConfigMap.
+	if apierrors.IsNotFound(err) && !shouldExist {
+		return false, nil
+	}
+
+	// If the ConfigMap should not exist, but it does, delete it.
+	if !apierrors.IsNotFound(err) && !shouldExist {
+		// apply empty patch to remove the key
+		configMapPatch := coreapplyconfig.
+			ConfigMap(name, namespace).
+			WithLabels(map[string]string{
+				trustapi.BundleLabelKey: bundle.Name,
+			}).
+			WithOwnerReferences(
+				v1.OwnerReference().
+					WithAPIVersion(trustapi.SchemeGroupVersion.String()).
+					WithKind(trustapi.BundleKind).
+					WithName(bundle.GetName()).
+					WithUID(bundle.GetUID()).
+					WithBlockOwnerDeletion(true).
+					WithController(true),
+			)
+
+		if err = b.patchResource(ctx, configMapPatch); err != nil {
+			return false, fmt.Errorf("failed to patch configMap %s/%s: %w", namespace, bundle.Name, err)
+		}
+
+		return true, nil
+	}
+
+	target := bundle.Spec.Target
 	if target.ConfigMap == nil {
 		return false, errors.New("target not defined")
 	}
 
-	matchNamespace := namespaceSelector.Matches(labels.Set(namespace.Labels))
+        // Generated JKS is not deterministic - best we can do here is update if the pem cert has
+	// changed (hence not checking if JKS matches)
+	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
+	configmapData := map[string]string{
+		target.ConfigMap.Key: data,
+	}
+	configmapBinData := map[string][]byte{}
 
-	var configMap corev1.ConfigMap
-	err := b.client.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: bundle.Name}, &configMap)
-
-	var binData map[string]binaryDataEncoder
 	if target.AdditionalFormats != nil {
-		binData = make(map[string]binaryDataEncoder, 2)
 		if target.AdditionalFormats.JKS != nil {
-			binData[target.AdditionalFormats.JKS.Key] = &jksEncoder{password: []byte(DefaultJKSPassword)}
+			encoded, err := jksEncoder{password: []byte(DefaultJKSPassword)}.encode(data)
+			if err != nil {
+				return false, fmt.Errorf("failed to encode JKS: %w", err)
+			}
+
+			configmapBinData[target.AdditionalFormats.JKS.Key] = encoded
 		}
+
 		if target.AdditionalFormats.PKCS12 != nil {
-			binData[target.AdditionalFormats.PKCS12.Key] = &pkcs12Encoder{password: DefaultPKCS12Password}
+			encoded, err := pkcs12Encoder{password: DefaultPKCS12Password}.encode(data)
+			if err != nil {
+				return false, fmt.Errorf("failed to encode PKCS12: %w", err)
+			}
+
+			configmapBinData[target.AdditionalFormats.PKCS12.Key] = encoded
 		}
 	}
 
-	// If the ConfigMap doesn't exist yet, create it.
-	if apierrors.IsNotFound(err) {
-		// If the namespace doesn't match selector we do nothing since we don't
-		// want to create it, and it also doesn't exist.
-		if !matchNamespace {
-			log.V(4).Info("ignoring namespace as it doesn't match selector", "labels", namespace.Labels)
-			return false, nil
+	// If the ConfigMap doesn't exist, create it.
+	needsPatch := apierrors.IsNotFound(err)
+	if !needsPatch {
+		if !metav1.IsControlledBy(configMap, bundle) {
+			needsPatch = true
 		}
 
-		configMap = corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:            bundle.Name,
-				Namespace:       namespace.Name,
-				OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(bundle, trustapi.SchemeGroupVersion.WithKind("Bundle"))},
-			},
-			Data: map[string]string{
-				target.ConfigMap.Key: data,
-			},
+		if configMap.Labels[trustapi.BundleLabelKey] != bundle.Name {
+			needsPatch = true
 		}
 
-		err = b.syncBinData(&configMap, data, binData)
-		if err != nil {
-			return false, err
+		if configMap.Annotations[trustapi.BundleHashAnnotationKey] != dataHash {
+			needsPatch = true
 		}
 
-		return true, b.client.Create(ctx, &configMap)
-	}
+		{
+			properties, err := listManagedProperties(configMap, fieldManager, "data")
+			if err != nil {
+				return false, fmt.Errorf("failed to list managed properties: %w", err)
+			}
 
-	if err != nil {
-		return false, fmt.Errorf("failed to get configmap %s/%s: %w", namespace, bundle.Name, err)
-	}
+			expectedProperties := sets.New[string](target.ConfigMap.Key)
 
-	// Here, the config map exists, but the selector doesn't match the namespace.
-	if !matchNamespace {
-		// The ConfigMap is owned by this controller- delete it.
-		if metav1.IsControlledBy(&configMap, bundle) {
-			log.V(2).Info("deleting bundle from Namespace since namespaceSelector does not match")
-			return true, b.client.Delete(ctx, &configMap)
-		}
-		// The ConfigMap isn't owned by us, so we shouldn't delete it. Return that
-		// we did nothing.
-		b.recorder.Eventf(&configMap, corev1.EventTypeWarning, "NotOwned", "ConfigMap is not owned by trust.cert-manager.io so ignoring")
-		return false, nil
-	}
-
-	var needsUpdate bool
-	// If ConfigMap is missing OwnerReference, add it back.
-	if !metav1.IsControlledBy(&configMap, bundle) {
-		configMap.OwnerReferences = append(configMap.OwnerReferences, *metav1.NewControllerRef(bundle, trustapi.SchemeGroupVersion.WithKind("Bundle")))
-		needsUpdate = true
-	}
-
-	needsBinDataUpdate := func() bool {
-		for k := range binData {
-			if _, ok := configMap.BinaryData[k]; !ok {
-				return true
+			if !properties.Equal(expectedProperties) {
+				needsPatch = true
 			}
 		}
-		return false
-	}
 
-	// If PEM not present, or if JKS required and not present, or configmap PEM doesn't match
-	// Generated JKS is not deterministic - best we can do here is update if the pem cert has
-	// changed (hence not checking if JKS matches)
-	if cmdata, ok := configMap.Data[target.ConfigMap.Key]; !ok || cmdata != data || needsBinDataUpdate() {
-		if configMap.Data == nil {
-			configMap.Data = make(map[string]string)
+		{
+			properties, err := listManagedProperties(configMap, fieldManager, "binaryData")
+			if err != nil {
+				return false, fmt.Errorf("failed to list managed properties: %w", err)
+			}
+
+			expectedProperties := sets.New[string]()
+
+			if target.AdditionalFormats != nil && target.AdditionalFormats.JKS != nil {
+				expectedProperties.Insert(target.AdditionalFormats.JKS.Key)
+			}
+
+			if target.AdditionalFormats != nil && target.AdditionalFormats.PKCS12 != nil {
+				expectedProperties.Insert(target.AdditionalFormats.PKCS12.Key)
+			}
+
+			if !properties.Equal(expectedProperties) {
+				needsPatch = true
+			}
 		}
-		configMap.Data[target.ConfigMap.Key] = data
 
-		err = b.syncBinData(&configMap, data, binData)
-		if err != nil {
-			return false, err
+		// Check if we need to migrate the ConfigMap managed fields to the Apply field operation
+		needsMigration := false
+		for _, mf := range configMap.ManagedFields {
+			if mf.Manager == fieldManager && mf.Operation == metav1.ManagedFieldsOperationUpdate {
+				needsMigration = true
+				needsPatch = true
+			}
 		}
 
-		needsUpdate = true
+		if needsMigration {
+			if err := b.migrateToApply(ctx, configMap, ""); err != nil {
+				return false, fmt.Errorf("failed to migrate ConfigMap %s/%s to Apply: %w", namespace, name, err)
+			}
+		}
 	}
 
 	// Exit early if no update is needed
-	if !needsUpdate {
+	if !needsPatch {
 		return false, nil
 	}
 
-	if err := b.client.Update(ctx, &configMap); err != nil {
-		return true, fmt.Errorf("failed to update configmap %s/%s with bundle: %w", namespace, bundle.Name, err)
+	configMapPatch := coreapplyconfig.
+		ConfigMap(name, namespace).
+		WithLabels(map[string]string{
+			trustapi.BundleLabelKey: bundle.Name,
+		}).
+		WithAnnotations(map[string]string{
+			trustapi.BundleHashAnnotationKey: dataHash,
+		}).
+		WithOwnerReferences(
+			v1.OwnerReference().
+				WithAPIVersion(trustapi.SchemeGroupVersion.String()).
+				WithKind(trustapi.BundleKind).
+				WithName(bundle.GetName()).
+				WithUID(bundle.GetUID()).
+				WithBlockOwnerDeletion(true).
+				WithController(true),
+		).
+		WithData(configmapData).
+		WithBinaryData(configmapBinData)
+
+	if err = b.patchResource(ctx, configMapPatch); err != nil {
+		return false, fmt.Errorf("failed to patch configMap %s/%s: %w", namespace, bundle.Name, err)
 	}
 
 	log.V(2).Info("synced bundle to namespace")
@@ -379,17 +444,83 @@ func (b *bundle) syncTarget(ctx context.Context, log logr.Logger,
 	return true, nil
 }
 
-func (b *bundle) syncBinData(configMap *corev1.ConfigMap, data string, binData map[string]binaryDataEncoder) error {
-	for k, encoder := range binData {
-		encoded, err := encoder.encode(data)
-		if err != nil {
-			return err
+func listManagedProperties(configmap *metav1.PartialObjectMetadata, fieldManager string, fieldName string) (sets.Set[string], error) {
+	properties := sets.New[string]()
+
+	for _, managedField := range configmap.ManagedFields {
+		// If the managed field isn't owned by the cert-manager controller, ignore.
+		if managedField.Manager != fieldManager || managedField.FieldsV1 == nil {
+			continue
 		}
 
-		if configMap.BinaryData == nil {
-			configMap.BinaryData = make(map[string][]byte, len(binData))
+		// Decode the managed field.
+		var fieldset fieldpath.Set
+		if err := fieldset.FromJSON(bytes.NewReader(managedField.FieldsV1.Raw)); err != nil {
+			return nil, err
 		}
-		configMap.BinaryData[k] = encoded
+
+		// Extract the labels and annotations of the managed fields.
+		configmapData := fieldset.Children.Descend(fieldpath.PathElement{
+			FieldName: ptr.To(fieldName),
+		})
+
+		// Gather the properties on the managed fields. Remove the '.'
+		// prefix which appears on managed field keys.
+		configmapData.Iterate(func(path fieldpath.Path) {
+			properties.Insert(strings.TrimPrefix(path.String(), "."))
+		})
 	}
+
+	return properties, nil
+}
+
+func (b *bundle) patchResource(ctx context.Context, obj interface{}) error {
+	if b.patchResourceOverwrite != nil {
+		return b.patchResourceOverwrite(ctx, obj)
+	}
+
+	applyConfig, ok := obj.(*coreapplyconfig.ConfigMapApplyConfiguration)
+	if !ok {
+		return fmt.Errorf("expected *coreapplyconfig.ConfigMapApplyConfiguration, got %T", obj)
+	}
+
+	configMap, patch, err := ssa_client.GenerateConfigMapPatch(applyConfig)
+	if err != nil {
+		return fmt.Errorf("failed to generate patch: %w", err)
+	}
+
+	err = b.client.Patch(ctx, configMap, patch, &client.PatchOptions{
+		FieldManager: fieldManager,
+		Force:        ptr.To(true),
+	})
+	if err != nil {
+		return err
+	}
+
+	// If the configMap is empty, delete it
+	if len(configMap.Data) == 0 && len(configMap.BinaryData) == 0 {
+		return b.client.Delete(ctx, configMap)
+	}
+
 	return nil
+}
+
+// MIGRATION: This is a migration function that migrates the ownership of
+// fields from the Update operation to the Apply operation. This is required
+// to ensure that the apply operations will also remove fields that were
+// created by the Update operation.
+func (b *bundle) migrateToApply(ctx context.Context, obj client.Object, subresource string) error {
+	managedFields := obj.GetManagedFields()
+
+	for i, mf := range managedFields {
+		if mf.Manager != fieldManager || mf.Operation != metav1.ManagedFieldsOperationUpdate || mf.Subresource != subresource {
+			continue
+		}
+
+		managedFields[i].Operation = metav1.ManagedFieldsOperationApply
+	}
+
+	obj.SetManagedFields(managedFields)
+
+	return b.client.Update(ctx, obj)
 }

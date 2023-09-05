@@ -27,10 +27,12 @@ import (
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
@@ -41,12 +43,18 @@ import (
 // The Bundle controller will reconcile Bundles on Bundle events, as well as
 // when any related resource event in the Bundle source and target.
 // The controller will only cache metadata for ConfigMaps and Secrets.
-func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options) error {
+func AddBundleController(
+	ctx context.Context,
+	mgr manager.Manager,
+	opts Options,
+	targetCache cache.Cache,
+) error {
 	b := &bundle{
-		client:   mgr.GetClient(),
-		recorder: mgr.GetEventRecorderFor("bundles"),
-		clock:    clock.RealClock{},
-		Options:  opts,
+		client:      mgr.GetClient(),
+		targetCache: targetCache,
+		recorder:    mgr.GetEventRecorderFor("bundles"),
+		clock:       clock.RealClock{},
+		Options:     opts,
 	}
 
 	if b.Options.DefaultPackageLocation != "" {
@@ -68,12 +76,16 @@ func AddBundleController(ctx context.Context, mgr manager.Manager, opts Options)
 
 		// Reconcile a Bundle on events against a ConfigMap that it
 		// owns. Only cache ConfigMap metadata.
-		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestForOwner(
-			mgr.GetScheme(),
-			mgr.GetRESTMapper(),
-			&trustapi.Bundle{},
-			handler.OnlyControllerOwner(),
-		), builder.OnlyMetadata).
+		WatchesRawSource(
+			source.Kind(targetCache, &corev1.ConfigMap{}),
+			handler.EnqueueRequestForOwner(
+				mgr.GetScheme(),
+				mgr.GetRESTMapper(),
+				&trustapi.Bundle{},
+				handler.OnlyControllerOwner(),
+			),
+			builder.OnlyMetadata,
+		).
 
 		////// Sources //////
 
