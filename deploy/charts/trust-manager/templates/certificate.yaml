@@ -35,7 +35,6 @@ apiVersion: policy.cert-manager.io/v1alpha1
 kind: CertificateRequestPolicy
 metadata:
   name: trust-manager-policy
-  namespace: {{ .Release.Namespace }}
 spec:
   allowed:
     dnsNames:
