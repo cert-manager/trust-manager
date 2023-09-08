@@ -11,7 +11,7 @@ image:
   registry:
 
   # -- Target image version tag.
-  tag: v0.6.0
+  tag: v0.7.0-alpha.0
 
   # -- Target image digest. Will override any tag if set.
   digest:

@@ -1,6 +1,6 @@
 # trust-manager
 
-![Version: v0.6.0](https://img.shields.io/badge/Version-v0.6.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.6.0](https://img.shields.io/badge/AppVersion-v0.6.0-informational?style=flat-square)
+![Version: v0.7.0-alpha.0](https://img.shields.io/badge/Version-v0.7.0--alpha.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.7.0-alpha.0](https://img.shields.io/badge/AppVersion-v0.7.0--alpha.0-informational?style=flat-square)
 
 trust-manager is the easiest way to manage TLS trust bundles in Kubernetes and OpenShift clusters
 
@@ -50,7 +50,7 @@ Kubernetes: `>= 1.25.0`
 | image.pullPolicy | string | `"IfNotPresent"` | Kubernetes imagePullPolicy on Deployment. |
 | image.registry | string | `nil` | Target image registry. Will be prepended to the target image repositry if set. |
 | image.repository | string | `"quay.io/jetstack/trust-manager"` | Target image repository. |
-| image.tag | string | `"v0.6.0"` | Target image version tag. |
+| image.tag | string | `"v0.7.0-alpha.0"` | Target image version tag. |
 | imagePullSecrets | list | `[]` | For Private docker registries, authentication is needed. Registry secrets are applied to the service account |
 | nodeSelector | object | `{"kubernetes.io/os":"linux"}` | Configure the nodeSelector; defaults to any Linux node (trust-manager doesn't support Windows nodes) |
 | replicaCount | int | `1` | Number of replicas of trust to run. |
