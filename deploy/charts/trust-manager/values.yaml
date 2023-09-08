@@ -111,6 +111,9 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
+# -- Configure the priority class of the pod; see https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
+priorityClassName: ""
+
 # -- Configure the nodeSelector; defaults to any Linux node (trust-manager doesn't support Windows nodes)
 nodeSelector:
   kubernetes.io/os: linux

@@ -56,6 +56,7 @@ Kubernetes: `>= 1.25.0-0`
 | image.tag | string | `nil` | Target image version tag. Defaults to the chart's appVersion. |
 | imagePullSecrets | list | `[]` | For Private docker registries, authentication is needed. Registry secrets are applied to the service account |
 | nodeSelector | object | `{"kubernetes.io/os":"linux"}` | Configure the nodeSelector; defaults to any Linux node (trust-manager doesn't support Windows nodes) |
+| priorityClassName | string | `""` | Configure the priority class of the pod; see https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass |
 | replicaCount | int | `1` | Number of replicas of trust-manager to run. |
 | resources | object | `{}` |  |
 | tolerations | list | `[]` | List of Kubernetes Tolerations; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core |
