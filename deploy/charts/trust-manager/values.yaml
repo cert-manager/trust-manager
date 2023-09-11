@@ -10,11 +10,14 @@ image:
   # -- Target image registry. Will be prepended to the target image repositry if set.
   registry:
 
-  # -- Target image version tag.
-  tag: v0.7.0-alpha.0
+  # -- Target image version tag. Defaults to the chart's appVersion.
+  tag:
 
   # -- Target image digest. Will override any tag if set.
+  # for example:
+  # digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
   digest:
+
   # -- Kubernetes imagePullPolicy on Deployment.
   pullPolicy: IfNotPresent
 
@@ -25,8 +28,17 @@ defaultPackage:
 defaultPackageImage:
   # -- Repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles.
   repository: quay.io/jetstack/cert-manager-package-debian
+  # -- Target image registry. Will be prepended to the target image repositry if set.
+  registry:
+
   # -- Tag for the default package image
   tag: "20210119.0"
+
+  # -- Target image digest. Will override any tag if set.
+  # for example:
+  # digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
+  digest:
+
   # -- imagePullPolicy for the default package image
   pullPolicy: IfNotPresent
 
