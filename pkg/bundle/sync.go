@@ -55,7 +55,11 @@ const (
 	DefaultPKCS12Password = ""
 )
 
-const fieldManager = "trust-manager"
+const (
+	// oldFieldManager is the field manager that was used by trust-manager before the migration to the Apply field manager.
+	oldFieldManager = "Go-http-client"
+	fieldManager    = "trust-manager"
+)
 
 type notFoundError struct{ error }
 
@@ -317,7 +321,7 @@ func (b *bundle) syncTarget(
 		return false, errors.New("target not defined")
 	}
 
-        // Generated JKS is not deterministic - best we can do here is update if the pem cert has
+	// Generated JKS is not deterministic - best we can do here is update if the pem cert has
 	// changed (hence not checking if JKS matches)
 	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
 	configmapData := map[string]string{
@@ -394,18 +398,13 @@ func (b *bundle) syncTarget(
 			}
 		}
 
-		// Check if we need to migrate the ConfigMap managed fields to the Apply field operation
-		needsMigration := false
-		for _, mf := range configMap.ManagedFields {
-			if mf.Manager == fieldManager && mf.Operation == metav1.ManagedFieldsOperationUpdate {
-				needsMigration = true
-				needsPatch = true
-			}
-		}
-
-		if needsMigration {
-			if err := b.migrateToApply(ctx, configMap, ""); err != nil {
+		if bundle.Status.Target != nil && bundle.Status.Target.ConfigMap != nil {
+			// Check if we need to migrate the ConfigMap managed fields to the Apply field operation
+			if didMigrate, err := b.migrateConfigMapToApply(ctx, configMap, bundle.Status.Target.ConfigMap.Key); err != nil {
 				return false, fmt.Errorf("failed to migrate ConfigMap %s/%s to Apply: %w", namespace, name, err)
+			} else if didMigrate {
+				log.V(2).Info("migrated configmap from CSA to SSA")
+				needsPatch = true
 			}
 		}
 	}
@@ -509,18 +508,63 @@ func (b *bundle) patchResource(ctx context.Context, obj interface{}) error {
 // fields from the Update operation to the Apply operation. This is required
 // to ensure that the apply operations will also remove fields that were
 // created by the Update operation.
-func (b *bundle) migrateToApply(ctx context.Context, obj client.Object, subresource string) error {
-	managedFields := obj.GetManagedFields()
+func (b *bundle) migrateConfigMapToApply(ctx context.Context, obj client.Object, key string) (bool, error) {
+	// isOldConfigMapManagedFieldsEntry returns a function that checks if the given ManagedFieldsEntry is an old
+	// ConfigMap managed fields entry. We use this to check if we need to migrate the ConfigMap managed fields to
+	// the Apply field operation.
+	// Because oldFieldManager is not unique, we also check that the managed fields contains the data key we know was
+	// set by trust-manager (bundle.Status.Target.ConfigMap.Key).
+	isOldConfigMapManagedFieldsEntry := func(mf *metav1.ManagedFieldsEntry) bool {
+		if mf.Manager != oldFieldManager || mf.Operation != metav1.ManagedFieldsOperationUpdate || mf.Subresource != "" {
+			return false
+		}
 
+		if mf.FieldsV1 == nil || mf.FieldsV1.Raw == nil {
+			return false
+		}
+
+		var fieldset fieldpath.Set
+		if err := fieldset.FromJSON(bytes.NewReader(mf.FieldsV1.Raw)); err != nil {
+			return false // in case we cannot parse the fieldset, we assume it's not an old target
+		}
+
+		return fieldset.Has([]fieldpath.PathElement{
+			{
+				FieldName: ptr.To("data"),
+			},
+			{
+				FieldName: ptr.To(key),
+			},
+		})
+	}
+
+	needsUpdate := false
+	for _, mf := range obj.GetManagedFields() {
+		if !isOldConfigMapManagedFieldsEntry(&mf) {
+			continue
+		}
+		needsUpdate = true
+	}
+	if !needsUpdate {
+		return false, nil
+	}
+
+	var cm corev1.ConfigMap
+	if err := b.directClient.Get(ctx, client.ObjectKeyFromObject(obj), &cm); err != nil {
+		return false, err
+	}
+
+	managedFields := cm.GetManagedFields()
 	for i, mf := range managedFields {
-		if mf.Manager != fieldManager || mf.Operation != metav1.ManagedFieldsOperationUpdate || mf.Subresource != subresource {
+		if !isOldConfigMapManagedFieldsEntry(&mf) {
 			continue
 		}
 
+		needsUpdate = true
 		managedFields[i].Operation = metav1.ManagedFieldsOperationApply
+		managedFields[i].Manager = fieldManager
 	}
 
-	obj.SetManagedFields(managedFields)
-
-	return b.client.Update(ctx, obj)
+	cm.SetManagedFields(managedFields)
+	return true, b.directClient.Update(ctx, &cm)
 }
