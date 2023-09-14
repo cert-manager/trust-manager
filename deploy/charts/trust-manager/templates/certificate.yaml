@@ -35,7 +35,6 @@ apiVersion: policy.cert-manager.io/v1alpha1
 kind: CertificateRequestPolicy
 metadata:
   name: trust-manager-policy
-  namespace: {{ .Release.Namespace }}
 spec:
   allowed:
     dnsNames:
@@ -71,7 +70,7 @@ roleRef:
   name: trust-manager-policy-role
 subjects:
 - kind: ServiceAccount
-  name: cert-manager
+  name: {{ .Values.app.webhook.tls.approverPolicy.certManagerServiceAccount }}
   namespace: {{ .Values.app.webhook.tls.approverPolicy.certManagerNamespace }}
 
 {{ end }}

@@ -78,8 +78,11 @@ app:
         # -- Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this.
         enabled: false
 
-        # -- Namespace in which cert-manager was installed. Only used if approverPolicy has been enabled.
+        # -- Namespace in which cert-manager was installed. Only used if app.webhook.tls.approverPolicy.enabled is true
         certManagerNamespace: "cert-manager"
+
+        # -- Name of cert-manager's ServiceAccount. Only used if app.webhook.tls.approverPolicy.enabled is true
+        certManagerServiceAccount: "cert-manager"
 
 
   securityContext:
