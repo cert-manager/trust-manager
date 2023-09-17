@@ -110,3 +110,6 @@ spec:
         secret:
           defaultMode: 420
           secretName: {{ include "trust-manager.name" . }}-tls
+      {{- if .Values.app.hostNetwork }}
+      hostNetwork: true
+      {{- end }}
