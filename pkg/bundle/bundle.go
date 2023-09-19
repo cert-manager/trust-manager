@@ -61,6 +61,9 @@ type bundle struct {
 	// a cache-backed Kubernetes client
 	client client.Client
 
+	// a direct Kubernetes client (only used for CSA to CSA migration)
+	directClient client.Client
+
 	// targetCache is a cache.Cache that holds cached ConfigMap
 	// resources that are used as targets for Bundles.
 	targetCache client.Reader
@@ -127,20 +130,11 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 
 	// MIGRATION: If we are upgrading from a version of trust-manager that did use Update to set
 	// the Bundle status, we need to ensure that we do remove the old status fields in case we apply.
-	needsMigration := false
-	for _, mf := range bundle.ManagedFields {
-		if mf.Manager == fieldManager && mf.Operation == metav1.ManagedFieldsOperationUpdate && mf.Subresource == "status" {
-			needsMigration = true
-		}
-	}
-
-	if needsMigration {
-		log.V(2).Info("migrating bundle status")
-		if err := b.migrateToApply(ctx, &bundle, "status"); err != nil {
-			log.Error(err, "failed to migrate bundle status")
-			return ctrl.Result{}, nil, fmt.Errorf("failed to migrate bundle status: %w", err)
-		}
-		return ctrl.Result{}, nil, nil
+	if didMigrate, err := b.migrateBundleStatusToApply(ctx, &bundle); err != nil {
+		log.Error(err, "failed to migrate bundle status")
+		return ctrl.Result{}, nil, fmt.Errorf("failed to migrate bundle status: %w", err)
+	} else if didMigrate {
+		log.V(2).Info("migrated bundle status from CSA to SSA")
 	}
 
 	statusPatch = &trustapi.BundleStatus{}
@@ -333,4 +327,37 @@ func (b *bundle) bundleTargetNamespaceSelector(bundleObj *trustapi.Bundle) (labe
 	}
 
 	return metav1.LabelSelectorAsSelector(&metav1.LabelSelector{MatchLabels: nsSelector.MatchLabels})
+}
+
+// MIGRATION: This is a migration function that migrates the ownership of
+// fields from the Update operation to the Apply operation. This is required
+// to ensure that the apply operations will also remove fields that were
+// created by the Update operation.
+func (b *bundle) migrateBundleStatusToApply(ctx context.Context, obj client.Object) (bool, error) {
+	// isOldBundleStatusManagedFieldsEntry returns true if the given ManagedFieldsEntry is
+	// an entry that was created by the old fieldManager and is an update to the status
+	// subresource. We need to check for this as we need to migrate the entry to the new
+	// fieldManager.
+	isOldBundleStatusManagedFieldsEntry := func(mf *metav1.ManagedFieldsEntry) bool {
+		return mf.Manager == oldFieldManager && mf.Operation == metav1.ManagedFieldsOperationUpdate && mf.Subresource == "status"
+	}
+
+	needsUpdate := false
+	managedFields := obj.GetManagedFields()
+	for i, mf := range managedFields {
+		if !isOldBundleStatusManagedFieldsEntry(&mf) {
+			continue
+		}
+
+		needsUpdate = true
+		managedFields[i].Operation = metav1.ManagedFieldsOperationApply
+		managedFields[i].Manager = fieldManager
+	}
+
+	if !needsUpdate {
+		return false, nil
+	}
+
+	obj.SetManagedFields(managedFields)
+	return true, b.directClient.Update(ctx, obj)
 }

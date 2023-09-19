@@ -457,7 +457,7 @@ var _ = Describe("Integration", func() {
 
 		Expect(cl.Status().Update(ctx, testBundle, &client.SubResourceUpdateOptions{
 			UpdateOptions: client.UpdateOptions{
-				FieldManager: "trust-manager",
+				FieldManager: "Go-http-client",
 			},
 		})).NotTo(HaveOccurred())
 
@@ -469,21 +469,66 @@ var _ = Describe("Integration", func() {
 			}
 
 			if testBundle.Status.Target.ConfigMap != nil && testBundle.Status.Target.ConfigMap.Key == "OLD_KEY" {
-				return fmt.Errorf("target still present")
+				return fmt.Errorf("old target still present")
 			}
 
 			if testBundle.Status.DefaultCAPackageVersion != nil && *testBundle.Status.DefaultCAPackageVersion == "OLD_VERSION" {
-				return fmt.Errorf("default package version still present")
+				return fmt.Errorf("old package version still present")
 			}
 
 			for _, condition := range testBundle.Status.Conditions {
 				if condition.Type == "OLD_CONDITION" {
-					return fmt.Errorf("condition still present")
+					return fmt.Errorf("old condition still present")
 				}
 			}
 
 			return nil
 		}, eventuallyTimeout, eventuallyPollInterval).Should(BeNil(), "checking that bundle was re-added to newly labelled namespace")
+	})
+
+	It("should migrate configmap from CSA to SSA", func() {
+		oldKey := testBundle.Spec.Target.ConfigMap.Key
+		newKey := "NEW_KEY"
+
+		// Create a new namespace for this test; GenerateName will populate the name after creation
+		// We use GenerateName to create a new uniquely-named namespace that shouldn't clash with any of
+		// the existing ones.
+		testNamespace := corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "trust-bundle-integration-ns-",
+			},
+		}
+		Expect(cl.Create(ctx, &testNamespace)).NotTo(HaveOccurred())
+
+		expectedData := dummy.DefaultJoinedCerts()
+
+		// confirm all namespaces - including the new one - have the expected data
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+
+		var cm corev1.ConfigMap
+		Expect(cl.Get(ctx, client.ObjectKey{Namespace: testNamespace.Name, Name: testBundle.Name}, &cm)).NotTo(HaveOccurred())
+
+		// Simulate a CSA configmap by setting the managed fields to the "CSA" values
+		for i, mf := range cm.ManagedFields {
+			if mf.Manager != "trust-manager" || mf.Operation != "Apply" || mf.Subresource != "" {
+				continue
+			}
+
+			cm.ManagedFields[i].Manager = "Go-http-client"
+			cm.ManagedFields[i].Operation = "Update"
+		}
+
+		Expect(cl.Update(ctx, &cm)).NotTo(HaveOccurred())
+
+		testBundle.Spec.Target.ConfigMap.Key = newKey
+		Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
+
+		// confirm all namespaces - including the new one - have the expected data
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+
+		Expect(cl.Get(ctx, client.ObjectKey{Namespace: testNamespace.Name, Name: testBundle.Name}, &cm)).NotTo(HaveOccurred())
+
+		Expect(cm.Data).To(Not(HaveKey(oldKey)))
 	})
 })
 
