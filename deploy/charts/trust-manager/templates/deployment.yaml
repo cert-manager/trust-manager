@@ -19,7 +19,7 @@ spec:
       {{- if .Values.defaultPackage.enabled }}
       initContainers:
       - name: cert-manager-package-debian
-        image: "{{ .Values.defaultPackageImage.repository }}:{{ .Values.defaultPackageImage.tag }}"
+        image: "{{ template "image" (tuple .Values.defaultPackageImage "missing") }}"
         imagePullPolicy: {{ .Values.defaultPackageImage.pullPolicy }}
         args:
           - "/copyandmaybepause"
@@ -41,9 +41,7 @@ spec:
       {{- end }}
       containers:
       - name: {{ include "trust-manager.name" . }}
-        {{- with .Values.image }}
-        image: "{{- if .registry -}}{{ .registry }}/{{- end -}}{{ .repository }}{{- if (.digest) -}} @{{ .digest }}{{- else -}}:{{ .tag }}{{- end -}}"
-        {{- end }}
+        image: "{{ template "image" (tuple .Values.image $.Chart.AppVersion) }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - containerPort: {{ .Values.app.webhook.port }}

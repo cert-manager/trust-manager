@@ -44,14 +44,16 @@ Kubernetes: `>= 1.25.0`
 | app.webhook.tls.approverPolicy.enabled | bool | `false` | Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this. |
 | crds.enabled | bool | `true` | Whether or not to install the crds. |
 | defaultPackage.enabled | bool | `true` | Whether to load the default trust package during pod initialization and include it in main container args. This container enables the 'useDefaultCAs' source on Bundles. |
+| defaultPackageImage.digest | string | `nil` | Target image digest. Will override any tag if set. for example: digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20 |
 | defaultPackageImage.pullPolicy | string | `"IfNotPresent"` | imagePullPolicy for the default package image |
+| defaultPackageImage.registry | string | `nil` | Target image registry. Will be prepended to the target image repositry if set. |
 | defaultPackageImage.repository | string | `"quay.io/jetstack/cert-manager-package-debian"` | Repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles. |
 | defaultPackageImage.tag | string | `"20210119.0"` | Tag for the default package image |
-| image.digest | string | `nil` | Target image digest. Will override any tag if set. |
+| image.digest | string | `nil` | Target image digest. Will override any tag if set. for example: digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20 |
 | image.pullPolicy | string | `"IfNotPresent"` | Kubernetes imagePullPolicy on Deployment. |
 | image.registry | string | `nil` | Target image registry. Will be prepended to the target image repositry if set. |
 | image.repository | string | `"quay.io/jetstack/trust-manager"` | Target image repository. |
-| image.tag | string | `"v0.7.0-alpha.0"` | Target image version tag. |
+| image.tag | string | `nil` | Target image version tag. Defaults to the chart's appVersion. |
 | imagePullSecrets | list | `[]` | For Private docker registries, authentication is needed. Registry secrets are applied to the service account |
 | nodeSelector | object | `{"kubernetes.io/os":"linux"}` | Configure the nodeSelector; defaults to any Linux node (trust-manager doesn't support Windows nodes) |
 | replicaCount | int | `1` | Number of replicas of trust to run. |
