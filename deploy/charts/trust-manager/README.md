@@ -18,7 +18,7 @@ trust-manager is the easiest way to manage TLS trust bundles in Kubernetes and O
 
 ## Requirements
 
-Kubernetes: `>= 1.25.0`
+Kubernetes: `>= 1.25.0-0`
 
 ## Values
 
