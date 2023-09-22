@@ -6,7 +6,7 @@ description: trust-manager is the easiest way to manage TLS trust bundles in Kub
 
 home: https://github.com/cert-manager/trust-manager
 
-kubeVersion: ">= 1.25.0-0"
+kubeVersion: ">= 1.25.0-0"  # The -0 is required for EKS: https://github.com/helm/helm/issues/10375
 
 maintainers:
 - name: cert-manager-maintainers
