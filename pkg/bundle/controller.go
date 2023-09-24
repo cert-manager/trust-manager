@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -104,102 +105,50 @@ func AddBundleController(
 
 		// Watch all Namespaces. Cache whole Namespaces to include Phase Status.
 		// Reconcile all Bundles on a Namespace change.
-		Watches(&corev1.Namespace{}, handler.EnqueueRequestsFromMapFunc(
-			func(ctx context.Context, obj client.Object) []reconcile.Request {
-				ns := obj.(*corev1.Namespace)
-
-				// If an error happens here and we do nothing, we run the risk of
-				// leaving a Namespace behind when syncing.
-				// Exiting error is the safest option, as it will force a resync on
-				// all Bundles on start.
-				bundleList := b.mustBundleList(ctx)
-
-				var requests []reconcile.Request
-				for _, bundle := range bundleList.Items {
-					namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
-					if err != nil {
-						// We have an invalid selector, so we can skip this Bundle.
-						continue
-					}
-
-					if !namespaceSelector.Matches(labels.Set(ns.Labels)) {
-						// This Bundle does not target this Namespace.
-						continue
-					}
-
-					requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: bundle.Name}})
+		Watches(&corev1.Namespace{}, b.enqueueRequestsFromBundleFunc(
+			func(obj client.Object, bundle trustapi.Bundle) bool {
+				namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
+				if err != nil {
+					// We have an invalid selector, so we can skip this Bundle.
+					return false
 				}
 
-				return requests
-			},
-		)).
+				return namespaceSelector.Matches(labels.Set(obj.GetLabels()))
+			})).
 
 		// Watch ConfigMaps in trust Namespace.
 		// Reconcile Bundles who reference a modified source ConfigMap.
-		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(
-			func(ctx context.Context, obj client.Object) []reconcile.Request {
-				if obj.GetNamespace() != b.Options.Namespace {
-					return nil
-				}
+		Watches(&corev1.ConfigMap{}, b.enqueueRequestsFromBundleFunc(
+			func(obj client.Object, bundle trustapi.Bundle) bool {
+				for _, source := range bundle.Spec.Sources {
+					if source.ConfigMap == nil {
+						continue
+					}
 
-				// If an error happens here and we do nothing, we run the risk of
-				// having trust Bundles out of sync with this source or target
-				// ConfigMap.
-				// Exiting error is the safest option, as it will force a resync on
-				// all Bundles on start.
-				bundleList := b.mustBundleList(ctx)
-
-				var requests []reconcile.Request
-				for _, bundle := range bundleList.Items {
-					for _, source := range bundle.Spec.Sources {
-						if source.ConfigMap == nil {
-							continue
-						}
-
-						// Bundle references this ConfigMap as a source. Add to request.
-						if source.ConfigMap.Name == obj.GetName() {
-							requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: bundle.Name}})
-							break
-						}
+					// Bundle references this ConfigMap as a source. Add to request.
+					if source.ConfigMap.Name == obj.GetName() {
+						return true
 					}
 				}
-
-				return requests
-			},
-		)).
+				return false
+			}), builder.WithPredicates(inNamespacePredicate(b.Options.Namespace))).
 
 		// Watch Secrets in trust Namespace.
 		// Reconcile Bundles who reference a modified source Secret.
-		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(
-			func(ctx context.Context, obj client.Object) []reconcile.Request {
-				if obj.GetNamespace() != b.Options.Namespace {
-					return nil
-				}
+		Watches(&corev1.Secret{}, b.enqueueRequestsFromBundleFunc(
+			func(obj client.Object, bundle trustapi.Bundle) bool {
+				for _, source := range bundle.Spec.Sources {
+					if source.Secret == nil {
+						continue
+					}
 
-				// If an error happens here and we do nothing, we run the risk of
-				// having trust Bundles out of sync with this source Secret.
-				// Exiting error is the safest option, as it will force a resync on
-				// all Bundles on start.
-				bundleList := b.mustBundleList(ctx)
-
-				var requests []reconcile.Request
-				for _, bundle := range bundleList.Items {
-					for _, source := range bundle.Spec.Sources {
-						if source.Secret == nil {
-							continue
-						}
-
-						// Bundle references this Secret as a source. Add to request.
-						if source.Secret.Name == obj.GetName() {
-							requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: bundle.Name}})
-							break
-						}
+					// Bundle references this Secret as a source. Add to request.
+					if source.Secret.Name == obj.GetName() {
+						return true
 					}
 				}
-
-				return requests
-			},
-		)).
+				return false
+			}), builder.WithPredicates(inNamespacePredicate(b.Options.Namespace))).
 
 		// Complete controller.
 		Complete(b); err != nil {
@@ -207,6 +156,30 @@ func AddBundleController(
 	}
 
 	return nil
+}
+
+// enqueueRequestsFromBundleFunc returns an event handler for watching Bundle dependants.
+// It will invoke the provided function for all Bundles and trigger a Bundle reconcile if the
+// functions returns true.
+func (b *bundle) enqueueRequestsFromBundleFunc(fn func(obj client.Object, bundle trustapi.Bundle) bool) handler.EventHandler {
+	return handler.EnqueueRequestsFromMapFunc(
+		func(ctx context.Context, obj client.Object) []reconcile.Request {
+			// If an error happens here, and we do nothing, we run the risk of
+			// having trust Bundles out of sync with resource dependants.
+			// Exiting error is the safest option, as it will force a re-sync on
+			// all Bundles on start.
+			bundleList := b.mustBundleList(ctx)
+
+			var requests []reconcile.Request
+			for _, bundle := range bundleList.Items {
+				if fn(obj, bundle) {
+					requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{Name: bundle.Name}})
+				}
+			}
+
+			return requests
+		},
+	)
 }
 
 // mustBundleList will return a BundleList of all Bundles in the cluster. If an
@@ -219,4 +192,11 @@ func (b *bundle) mustBundleList(ctx context.Context) *trustapi.BundleList {
 	}
 
 	return &bundleList
+}
+
+// inNamespacePredicate creates an event filter predicate for resources in namespace.
+func inNamespacePredicate(namespace string) predicate.Predicate {
+	return predicate.NewPredicateFuncs(func(object client.Object) bool {
+		return object.GetNamespace() == namespace
+	})
 }
