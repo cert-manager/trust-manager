@@ -16,8 +16,8 @@ maintainers:
 sources:
 - https://github.com/cert-manager/trust-manager
 
-appVersion: v0.7.0-alpha.0
-version: v0.7.0-alpha.0
+appVersion: v0.7.0-alpha.1
+version: v0.7.0-alpha.1
 
 annotations:
   artifacthub.io/prerelease: "false"
