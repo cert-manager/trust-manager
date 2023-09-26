@@ -1020,10 +1020,9 @@ func Test_Reconcile(t *testing.T) {
 			)
 
 			b := &bundle{
-				client:      fakeclient,
-				targetCache: fakeclient,
-				recorder:    fakerecorder,
-				clock:       fixedclock,
+				client:   fakeclient,
+				recorder: fakerecorder,
+				clock:    fixedclock,
 				Options: Options{
 					Log:       klogr.New(),
 					Namespace: trustNamespace,

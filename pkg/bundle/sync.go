@@ -281,7 +281,7 @@ func (b *bundle) syncTarget(
 			APIVersion: "v1",
 		},
 	}
-	err := b.targetCache.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, configMap)
+	err := b.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, configMap)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return false, fmt.Errorf("failed to get ConfigMap %s/%s: %w", namespace, name, err)
 	}

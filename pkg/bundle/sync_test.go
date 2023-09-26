@@ -599,9 +599,8 @@ func Test_syncTarget(t *testing.T) {
 			)
 
 			b := &bundle{
-				client:      fakeclient,
-				targetCache: fakeclient,
-				recorder:    fakerecorder,
+				client:   fakeclient,
+				recorder: fakerecorder,
 				patchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
 					logMutex.Lock()
 					defer logMutex.Unlock()

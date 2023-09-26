@@ -23,8 +23,7 @@ import (
 
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -95,46 +94,32 @@ func NewCommand() *cobra.Command {
 				Cache: cache.Options{
 					ReaderFailOnMissingInformer: true,
 					ByObject: map[client.Object]cache.ByObject{
+						// Cache metadata for ConfigMaps cluster-wide
+						&metav1.PartialObjectMetadata{
+							TypeMeta: metav1.TypeMeta{
+								Kind:       "ConfigMap",
+								APIVersion: "v1",
+							},
+						}: {},
 						&trustapi.Bundle{}:  {},
 						&corev1.Namespace{}: {},
+						&corev1.ConfigMap{}: {
+							// Only cache full ConfigMaps in the "watched" namespace.
+							Namespaces: map[string]cache.Config{
+								opts.Bundle.Namespace: {},
+							},
+						},
 						&corev1.Secret{}: {
 							// Only cache full Secrets in the "watched" namespace.
 							Namespaces: map[string]cache.Config{
 								opts.Bundle.Namespace: {},
 							},
 						},
-						&corev1.ConfigMap{}: {
-							// Watch full config maps across all namespaces.
-							// TODO: create a seperate cache for targets and sources and only
-							// cache full config maps for the sources.
-						},
 					},
 				},
 			})
 			if err != nil {
 				return fmt.Errorf("failed to create manager: %w", err)
-			}
-
-			targetCache, err := cache.New(mgr.GetConfig(), cache.Options{
-				HTTPClient:                  mgr.GetHTTPClient(),
-				Scheme:                      mgr.GetScheme(),
-				Mapper:                      mgr.GetRESTMapper(),
-				ReaderFailOnMissingInformer: true,
-				DefaultLabelSelector: func() labels.Selector {
-					targetRequirement, err := labels.NewRequirement(trustapi.BundleLabelKey, selection.Exists, nil)
-					if err != nil {
-						panic(fmt.Errorf("failed to create target label requirement: %w", err))
-					}
-
-					return labels.NewSelector().Add(*targetRequirement)
-				}(),
-			})
-			if err != nil {
-				return fmt.Errorf("failed to create target cache: %w", err)
-			}
-
-			if err := mgr.Add(targetCache); err != nil {
-				return fmt.Errorf("failed to add target cache to manager: %w", err)
 			}
 
 			// Add readiness check that the manager's informers have been synced.
@@ -148,7 +133,7 @@ func NewCommand() *cobra.Command {
 			ctx := ctrl.SetupSignalHandler()
 
 			// Add Bundle controller to manager.
-			if err := bundle.AddBundleController(ctx, mgr, opts.Bundle, targetCache); err != nil {
+			if err := bundle.AddBundleController(ctx, mgr, opts.Bundle); err != nil {
 				return fmt.Errorf("failed to register Bundle controller: %w", err)
 			}
 

@@ -111,7 +111,7 @@ var _ = Describe("Integration", func() {
 
 		mgrStopped = make(chan struct{})
 
-		Expect(bundle.AddBundleController(ctx, mgr, opts, mgr.GetCache())).NotTo(HaveOccurred())
+		Expect(bundle.AddBundleController(ctx, mgr, opts)).NotTo(HaveOccurred())
 
 		By("Running Bundle controller")
 		go func() {

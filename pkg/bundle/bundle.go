@@ -64,10 +64,6 @@ type bundle struct {
 	// a direct Kubernetes client (only used for CSA to CSA migration)
 	directClient client.Client
 
-	// targetCache is a cache.Cache that holds cached ConfigMap
-	// resources that are used as targets for Bundles.
-	targetCache client.Reader
-
 	// defaultPackage holds the loaded 'default' certificate package, if one was specified
 	// at startup.
 	defaultPackage *fspkg.Package
@@ -211,7 +207,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 				Kind:       "ConfigMap",
 			},
 		}
-		err := b.targetCache.List(ctx, configMapList, &client.ListOptions{
+		err := b.client.List(ctx, configMapList, &client.ListOptions{
 			LabelSelector: labels.SelectorFromSet(map[string]string{
 				trustapi.BundleLabelKey: bundle.Name,
 			}),

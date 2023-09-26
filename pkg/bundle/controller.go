@@ -27,13 +27,11 @@ import (
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
@@ -48,7 +46,6 @@ func AddBundleController(
 	ctx context.Context,
 	mgr manager.Manager,
 	opts Options,
-	targetCache cache.Cache,
 ) error {
 	directClient, err := client.New(mgr.GetConfig(), client.Options{
 		HTTPClient: mgr.GetHTTPClient(),
@@ -62,7 +59,6 @@ func AddBundleController(
 	b := &bundle{
 		client:       mgr.GetClient(),
 		directClient: directClient,
-		targetCache:  targetCache,
 		recorder:     mgr.GetEventRecorderFor("bundles"),
 		clock:        clock.RealClock{},
 		Options:      opts,
@@ -87,21 +83,12 @@ func AddBundleController(
 
 		// Reconcile a Bundle on events against a ConfigMap that it
 		// owns. Only cache ConfigMap metadata.
-		WatchesRawSource(
-			source.Kind(targetCache, &corev1.ConfigMap{}),
-			handler.EnqueueRequestForOwner(
-				mgr.GetScheme(),
-				mgr.GetRESTMapper(),
-				&trustapi.Bundle{},
-				handler.OnlyControllerOwner(),
-			),
-			builder.OnlyMetadata,
-		).
+		Owns(&corev1.ConfigMap{}, builder.OnlyMetadata).
 
 		////// Sources //////
 
 		// Reconcile trust.cert-manager.io Bundles
-		Watches(&trustapi.Bundle{}, &handler.EnqueueRequestForObject{}).
+		For(&trustapi.Bundle{}).
 
 		// Watch all Namespaces. Cache whole Namespaces to include Phase Status.
 		// Reconcile all Bundles on a Namespace change.
