@@ -97,16 +97,18 @@ func NewCommand() *cobra.Command {
 					ByObject: map[client.Object]cache.ByObject{
 						&trustapi.Bundle{}:  {},
 						&corev1.Namespace{}: {},
+						&corev1.ConfigMap{}: {
+							// Only cache full ConfigMaps in the "watched" namespace.
+							// Target configmaps have a dedicated cache
+							Namespaces: map[string]cache.Config{
+								opts.Bundle.Namespace: {},
+							},
+						},
 						&corev1.Secret{}: {
 							// Only cache full Secrets in the "watched" namespace.
 							Namespaces: map[string]cache.Config{
 								opts.Bundle.Namespace: {},
 							},
-						},
-						&corev1.ConfigMap{}: {
-							// Watch full config maps across all namespaces.
-							// TODO: create a seperate cache for targets and sources and only
-							// cache full config maps for the sources.
 						},
 					},
 				},
