@@ -339,7 +339,9 @@ func (b *bundle) migrateBundleStatusToApply(ctx context.Context, obj client.Obje
 	// subresource. We need to check for this as we need to migrate the entry to the new
 	// fieldManager.
 	isOldBundleStatusManagedFieldsEntry := func(mf *metav1.ManagedFieldsEntry) bool {
-		return mf.Manager == oldFieldManager && mf.Operation == metav1.ManagedFieldsOperationUpdate && mf.Subresource == "status"
+		return (mf.Manager == fieldManager || mf.Manager == crRegressionFieldManager) &&
+			mf.Operation == metav1.ManagedFieldsOperationUpdate &&
+			mf.Subresource == "status"
 	}
 
 	needsUpdate := false
