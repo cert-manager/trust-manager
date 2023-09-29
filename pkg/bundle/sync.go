@@ -56,9 +56,12 @@ const (
 )
 
 const (
-	// oldFieldManager is the field manager that was used by trust-manager before the migration to the Apply field manager.
-	oldFieldManager = "Go-http-client"
-	fieldManager    = "trust-manager"
+	// crRegressionFieldManager is the field manager that was introduced by a regression in controller-runtime
+	// version 0.15.0; fixed in 15.1 and 0.16.0: https://github.com/kubernetes-sigs/controller-runtime/pull/2435
+	// trust-manager 0.6.0 was released with this regression in controller-runtime, which means that we have to
+	// take extra care when migrating from CSA to SSA.
+	crRegressionFieldManager = "Go-http-client"
+	fieldManager             = "trust-manager"
 )
 
 type notFoundError struct{ error }
@@ -512,10 +515,12 @@ func (b *bundle) migrateConfigMapToApply(ctx context.Context, obj client.Object,
 	// isOldConfigMapManagedFieldsEntry returns a function that checks if the given ManagedFieldsEntry is an old
 	// ConfigMap managed fields entry. We use this to check if we need to migrate the ConfigMap managed fields to
 	// the Apply field operation.
-	// Because oldFieldManager is not unique, we also check that the managed fields contains the data key we know was
+	// Because crRegressionFieldManager is not unique, we also check that the managed fields contains the data key we know was
 	// set by trust-manager (bundle.Status.Target.ConfigMap.Key).
 	isOldConfigMapManagedFieldsEntry := func(mf *metav1.ManagedFieldsEntry) bool {
-		if mf.Manager != oldFieldManager || mf.Operation != metav1.ManagedFieldsOperationUpdate || mf.Subresource != "" {
+		if (mf.Manager != fieldManager && mf.Manager != crRegressionFieldManager) ||
+			mf.Operation != metav1.ManagedFieldsOperationUpdate ||
+			mf.Subresource != "" {
 			return false
 		}
 
