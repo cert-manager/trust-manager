@@ -14,6 +14,7 @@ keywords:
   - cert-manager
   - tls
   - trust bundles
+  - trust anchor
 
 maintainers:
 - name: cert-manager-maintainers
