@@ -1,4 +1,4 @@
-# -- Number of replicas of trust to run.
+# -- Number of replicas of trust-manager to run.
 replicaCount: 1
 
 # -- For Private docker registries, authentication is needed. Registry secrets are applied to the service account
@@ -43,7 +43,7 @@ defaultPackageImage:
   pullPolicy: IfNotPresent
 
 app:
-  # -- Verbosity of trust logging; takes a value from 1-5, with higher being more verbose
+  # -- Verbosity of trust-manager logging; takes a value from 1-5, with higher being more verbose
   logLevel: 1
 
   metrics:
@@ -64,9 +64,9 @@ app:
         labels: {}
 
   readinessProbe:
-    # -- Container port on which to expose trust HTTP readiness probe using default network interface.
+    # -- Container port on which to expose trust-manager HTTP readiness probe using default network interface.
     port: 6060
-    # -- Path on which to expose trust HTTP readiness probe using default network interface.
+    # -- Path on which to expose trust-manager HTTP readiness probe using default network interface.
     path: "/readyz"
 
   trust:
