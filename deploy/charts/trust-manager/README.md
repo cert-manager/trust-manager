@@ -58,5 +58,8 @@ Kubernetes: `>= 1.25.0-0`
 | nodeSelector | object | `{"kubernetes.io/os":"linux"}` | Configure the nodeSelector; defaults to any Linux node (trust-manager doesn't support Windows nodes) |
 | replicaCount | int | `1` | Number of replicas of trust-manager to run. |
 | resources | object | `{}` |  |
+| secretTargets.authorizedSecrets | list | `[]` | A list of secret names which trust-manager will be permitted to read and write across all namespaces.     These will be the only allowable Secrets that can be used as targets.     If the list is empty, trust-manager will not be able to write to secrets and will only be able to    read secrets in the trust namespace for use as sources. |
+| secretTargets.authorizedSecretsAll | bool | `false` | If set to true, grant read/write permission to all secrets across the cluster. Use with caution!    When set, ignores authorizedSecrets list setting. |
+| secretTargets.enabled | bool | `false` | If set to true, enable writing trust bundles to Kubernetes Secrets as a target.    trust-manager can only write to secrets which are explicitly allowed.    - see either authorizedSecrets or authorizedSecretsAll. |
 | tolerations | list | `[]` | List of Kubernetes Tolerations; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core |
 | topologySpreadConstraints | list | `[]` | List of Kubernetes TopologySpreadConstraints; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core |

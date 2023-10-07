@@ -177,7 +177,12 @@ ensure-cert-manager: ensure-kind $(BINDIR)/kubeconfig.yaml | $(BINDIR)/helm-$(HE
 .PHONY: ensure-trust-manager
 ensure-trust-manager: ensure-kind kind-load ensure-cert-manager | $(BINDIR)/helm-$(HELM_VERSION)/helm  ## ensure trust-manager is available on cluster, built from local checkout
 	$(BINDIR)/helm-$(HELM_VERSION)/helm uninstall --kubeconfig $(BINDIR)/kubeconfig.yaml -n cert-manager trust-manager || :
-	$(BINDIR)/helm-$(HELM_VERSION)/helm upgrade --kubeconfig $(BINDIR)/kubeconfig.yaml -i -n cert-manager trust-manager deploy/charts/trust-manager/. --set image.tag=latest --set defaultTrustPackage.tag=latest$(DEBIAN_TRUST_PACKAGE_SUFFIX) --set app.logLevel=2 --wait
+	$(BINDIR)/helm-$(HELM_VERSION)/helm upgrade --kubeconfig $(BINDIR)/kubeconfig.yaml -i -n cert-manager trust-manager deploy/charts/trust-manager/. \
+		--set image.tag=latest \
+		--set defaultTrustPackage.tag=latest$(DEBIAN_TRUST_PACKAGE_SUFFIX) \
+		--set app.logLevel=2 \
+		--set secretTargets.enabled=true --set secretTargets.authorizedSecretsAll=true \
+		--wait
 
 # When running in our CI environment the Docker network's subnet choice
 # causees issues with routing.

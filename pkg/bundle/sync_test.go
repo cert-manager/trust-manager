@@ -46,6 +46,14 @@ import (
 	"github.com/cert-manager/trust-manager/test/dummy"
 )
 
+const (
+	bundleName = "test-bundle"
+	key        = "trust.pem"
+	jksKey     = "trust.jks"
+	pkcs12Key  = "trust.p12"
+	data       = dummy.TestCertificate1
+)
+
 func managedFieldEntries(fields []string, dataFields []string) []metav1.ManagedFieldsEntry {
 	fieldset := fieldpath.NewSet()
 	for _, property := range fields {
@@ -75,14 +83,7 @@ func managedFieldEntries(fields []string, dataFields []string) []metav1.ManagedF
 	}
 }
 
-func Test_syncTarget(t *testing.T) {
-	const (
-		bundleName = "test-bundle"
-		key        = "trust.pem"
-		jksKey     = "trust.jks"
-		pkcs12Key  = "trust.p12"
-		data       = dummy.TestCertificate1
-	)
+func Test_syncConfigMapTarget(t *testing.T) {
 	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
 
 	tests := map[string]struct {
@@ -624,7 +625,7 @@ func Test_syncTarget(t *testing.T) {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12Key}
 			}
 
-			needsUpdate, err := b.syncTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
+			needsUpdate, err := b.syncConfigMapTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       spec,
 			}, bundleName, test.namespace.Name, data, test.shouldExist)
@@ -684,6 +685,634 @@ func Test_syncTarget(t *testing.T) {
 				}
 
 				pkcs12Data, pkcs12Exists := configmap.BinaryData[pkcs12Key]
+				assert.Equal(t, test.expPKCS12, pkcs12Exists)
+
+				if test.expPKCS12 {
+					cas, err := pkcs12.DecodeTrustStore(pkcs12Data, DefaultPKCS12Password)
+					assert.Nil(t, err)
+					assert.Len(t, cas, 1)
+
+					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
+					p, _ := pem.Decode([]byte(data))
+					assert.Equal(t, p.Bytes, cas[0].Raw)
+				}
+			}
+
+			var event string
+			select {
+			case event = <-fakerecorder.Events:
+			default:
+			}
+			assert.Equal(t, test.expEvent, event)
+		})
+	}
+}
+
+func Test_syncSecretTarget(t *testing.T) {
+	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
+	const (
+		bundleName = "test-bundle"
+		key        = "key"
+		data       = dummy.TestCertificate1
+	)
+
+	tests := map[string]struct {
+		object      runtime.Object
+		namespace   corev1.Namespace
+		shouldExist bool
+		// Add JKS to AdditionalFormats
+		withJKS bool
+		// Add PKCS12 to AdditionalFormats
+		withPKCS12 bool
+		// Expect the secret to exist at the end of the sync.
+		expExists bool
+		// Expect JKS to exist in the secret at the end of the sync.
+		expJKS bool
+		// Expect PKCS12 to exist in the secret at the end of the sync.
+		expPKCS12 bool
+		expEvent  string
+		// Expect the owner reference of the secret to point to the bundle.
+		expOwnerReference bool
+		expNeedsUpdate    bool
+	}{
+		"if object doesn't exist, expect update": {
+			object:            nil,
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:       true,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object doesn't exist with JKS, expect update": {
+			object:            nil,
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:       true,
+			withJKS:           true,
+			expExists:         true,
+			expJKS:            true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object doesn't exist with PKCS12, expect update": {
+			object:            nil,
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:       true,
+			withPKCS12:        true,
+			expExists:         true,
+			expPKCS12:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object exists but without data or owner, expect update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:          bundleName,
+					Namespace:     "test-namespace",
+					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					ManagedFields: managedFieldEntries(nil, nil),
+				},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:       true,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object exists with data but no owner, expect update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:          bundleName,
+					Namespace:     "test-namespace",
+					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string][]byte{key: []byte(data)},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:       true,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object exists with owner but no data, expect update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+				},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:       true,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object exists with owner but wrong data, expect update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: "wrong hash"},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string][]byte{key: []byte("wrong data")},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:       true,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object exists with owner but without JKS, expect update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string][]byte{key: []byte(data)},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:       true,
+			withJKS:           true,
+			expExists:         true,
+			expJKS:            true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object exists with owner but without PKCS12, expect update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string][]byte{key: []byte(data)},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:       true,
+			withPKCS12:        true,
+			expExists:         true,
+			expPKCS12:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object exists with owner but wrong key, expect update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: managedFieldEntries([]string{"wrong key"}, nil),
+				},
+				Data: map[string][]byte{"wrong key": []byte(data)},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:       true,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object exists with owner but wrong JKS key, expect update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: managedFieldEntries([]string{key}, []string{"wrong key"}),
+				},
+				Data: map[string][]byte{
+					key:         []byte(data),
+					"wrong-key": []byte(data),
+				},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:       true,
+			withJKS:           true,
+			expExists:         true,
+			expJKS:            true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object exists with owner but wrong PKCS12 key, expect update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: managedFieldEntries([]string{key, "wrong key"}, nil),
+				},
+				Data: map[string][]byte{
+					key:         []byte(data),
+					"wrong-key": []byte(data),
+				},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:       true,
+			withPKCS12:        true,
+			expExists:         true,
+			expPKCS12:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object exists with correct data, expect no update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string][]byte{key: []byte(data)},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:       true,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    false,
+		},
+		"if object exists without JKS, expect update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string][]byte{key: []byte(data)},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:       true,
+			withJKS:           true,
+			expExists:         true,
+			expJKS:            true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object exists without PKCS12, expect update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string][]byte{key: []byte(data)},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:       true,
+			withPKCS12:        true,
+			expExists:         true,
+			expPKCS12:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object exists with correct data and some extra data (not owned by our fieldmanager) and owner, expect no update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               "another-bundle",
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string][]byte{
+					key:           []byte(data),
+					"another-key": []byte("another-data"),
+				},
+			},
+			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:       true,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    false,
+		},
+		"if object doesn't exist and labels match, expect update": {
+			object: nil,
+			namespace: corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name:   "test-namespace",
+				Labels: map[string]string{"foo": "bar"},
+			}},
+			shouldExist:       true,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    true,
+		},
+		"if object doesn't exist and labels don't match, don't expect update": {
+			object: nil,
+			namespace: corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name:   "test-namespace",
+				Labels: map[string]string{"bar": "foo"},
+			}},
+			shouldExist:       false,
+			expExists:         false,
+			expOwnerReference: true,
+			expNeedsUpdate:    false,
+		},
+		"if object exists with correct data and labels match, expect no update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string][]byte{key: []byte(data)},
+			},
+			namespace: corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name:   "test-namespace",
+				Labels: map[string]string{"foo": "bar"},
+			}},
+			shouldExist:       true,
+			expExists:         true,
+			expOwnerReference: true,
+			expNeedsUpdate:    false,
+		},
+		"if object exists with correct data but labels don't match, expect deletion": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string][]byte{key: []byte(data)},
+			},
+			namespace: corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name:   "test-namespace",
+				Labels: map[string]string{"bar": "foo"},
+			}},
+			shouldExist:       false,
+			expExists:         false,
+			expOwnerReference: false,
+			expNeedsUpdate:    true,
+		},
+		"if object exists and labels don't match, expect empty patch": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:          bundleName,
+					Namespace:     "test-namespace",
+					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string][]byte{key: []byte(data)},
+			},
+			namespace: corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name:   "test-namespace",
+				Labels: map[string]string{"bar": "foo"},
+			}},
+			shouldExist:       false,
+			expExists:         false,
+			expOwnerReference: false,
+			expNeedsUpdate:    true,
+		},
+	}
+
+	for name, test := range tests {
+		test := test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			clientBuilder := fakeclient.NewClientBuilder().
+				WithScheme(trustapi.GlobalScheme)
+			if test.object != nil {
+				clientBuilder.WithRuntimeObjects(test.object)
+			}
+
+			fakeclient := clientBuilder.Build()
+			fakerecorder := record.NewFakeRecorder(1)
+
+			var (
+				logMutex        sync.Mutex
+				resourcePatches []interface{}
+			)
+
+			b := &bundle{
+				client:      fakeclient,
+				targetCache: fakeclient,
+				recorder:    fakerecorder,
+				patchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
+					logMutex.Lock()
+					defer logMutex.Unlock()
+
+					resourcePatches = append(resourcePatches, obj)
+					return nil
+				},
+			}
+
+			spec := trustapi.BundleSpec{
+				Target: trustapi.BundleTarget{
+					Secret:            &trustapi.KeySelector{Key: key},
+					AdditionalFormats: &trustapi.AdditionalFormats{},
+				},
+			}
+			if test.withJKS {
+				spec.Target.AdditionalFormats.JKS = &trustapi.KeySelector{Key: jksKey}
+			}
+			if test.withPKCS12 {
+				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12Key}
+			}
+
+			needsUpdate, err := b.syncSecretTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
+				Spec:       spec,
+			}, bundleName, test.namespace.Name, data, test.shouldExist)
+			assert.NoError(t, err)
+
+			assert.Equalf(t, test.expNeedsUpdate, needsUpdate, "unexpected needsUpdate, exp=%t got=%t", test.expNeedsUpdate, needsUpdate)
+
+			if len(resourcePatches) > 1 {
+				t.Fatalf("expected only one patch, got %d", len(resourcePatches))
+			}
+
+			if len(resourcePatches) == 1 {
+				secret := resourcePatches[0].(*coreapplyconfig.SecretApplyConfiguration)
+
+				if test.expExists {
+					assert.Equal(t, data, string(secret.Data[key]))
+				}
+
+				expectedOwnerReference := metav1applyconfig.
+					OwnerReference().
+					WithAPIVersion(trustapi.SchemeGroupVersion.String()).
+					WithKind(trustapi.BundleKind).
+					WithName(bundleName).
+					WithUID("").
+					WithBlockOwnerDeletion(true).
+					WithController(true)
+
+				if test.expOwnerReference {
+					assert.Equal(t, expectedOwnerReference, &secret.OwnerReferences[0])
+				} else {
+					assert.NotContains(t, secret.OwnerReferences, expectedOwnerReference)
+				}
+
+				jksData, jksExists := secret.Data[jksKey]
+				assert.Equal(t, test.expJKS, jksExists)
+
+				if test.expJKS {
+					reader := bytes.NewReader(jksData)
+
+					ks := jks.New()
+					err := ks.Load(reader, []byte(DefaultJKSPassword))
+					assert.Nil(t, err)
+
+					entryNames := ks.Aliases()
+
+					assert.Len(t, entryNames, 1)
+					assert.True(t, ks.IsTrustedCertificateEntry(entryNames[0]))
+
+					// Safe to ignore errors here, we've tested that it's present and a TrustedCertificateEntry
+					cert, _ := ks.GetTrustedCertificateEntry(entryNames[0])
+
+					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
+					p, _ := pem.Decode([]byte(data))
+					assert.Equal(t, p.Bytes, cert.Certificate.Content)
+				}
+
+				pkcs12Data, pkcs12Exists := secret.Data[pkcs12Key]
 				assert.Equal(t, test.expPKCS12, pkcs12Exists)
 
 				if test.expPKCS12 {

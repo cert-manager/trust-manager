@@ -98,6 +98,11 @@ type BundleTarget struct {
 	// data will be synced to.
 	ConfigMap *KeySelector `json:"configMap,omitempty"`
 
+	// Secret is the target Secret that all Bundle source data will be synced to.
+	// Using Secrets as targets is only supported if enabled at trust-manager startup.
+	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
+	Secret *KeySelector `json:"secret,omitempty"`
+
 	// AdditionalFormats specifies any additional formats to write to the target
 	// +optional
 	AdditionalFormats *AdditionalFormats `json:"additionalFormats,omitempty"`
