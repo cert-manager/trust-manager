@@ -26,7 +26,13 @@ OS     ?= $(shell go env GOOS)
 
 HELM_VERSION ?= 3.12.3
 KUBEBUILDER_TOOLS_VERISON ?= 1.28.0
+KUBECTL_VERSION ?= 1.28.2
+KIND_VERSION ?= $(shell grep "sigs.k8s.io/kind" go.mod | awk '{print $$NF}')
 GINKGO_VERSION ?= $(shell grep "github.com/onsi/ginkgo/v2" go.mod | awk '{print $$NF}')
+HELM_DOCS_VERSION ?= $(shell grep "github.com/norwoodj/helm-docs" hack/tools/go.mod | awk '{print $$NF}')
+BOILERSUITE_VERSION ?= $(shell grep "github.com/cert-manager/boilersuite" hack/tools/go.mod | awk '{print $$NF}')
+CONTROLLER_TOOLS_VERSION ?= $(shell grep "sigs.k8s.io/controller-tools" hack/tools/go.mod | awk '{print $$NF}')
+
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
 
 RELEASE_VERSION ?= v0.7.0-alpha.1
@@ -61,8 +67,8 @@ unit-test:  ## runs unit tests, defined as any test which doesn't require extern
 	go test -v ./pkg/... ./cmd/...
 
 .PHONY: integration-test
-integration-test: depend  ## runs integration tests, defined as tests which require external setup (but not full end-to-end tests)
-	KUBEBUILDER_ASSETS=$(BINDIR)/kubebuilder/bin go test -v ./test/integration/...
+integration-test: | $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/kube-apiserver $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/etcd ## runs integration tests, defined as tests which require external setup (but not full end-to-end tests)
+	KUBEBUILDER_ASSETS=$(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON) go test -v ./test/integration/...
 
 .PHONY: lint
 lint: vet verify-boilerplate
@@ -78,15 +84,15 @@ verify: verify-generate
 verify: verify-update-helm-docs
 
 .PHONY: verify-boilerplate
-verify-boilerplate: | $(BINDIR)/boilersuite
-	$(BINDIR)/boilersuite .
+verify-boilerplate: | $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION)/boilersuite
+	$(BINDIR)/boilersuite-$(BOILERSUITE_VERSION)/boilersuite .
 
 .PHONY: vet
 vet:
 	go vet ./...
 
 .PHONY: build
-build: | $(BINDIR) ## build trust
+build: | $(BINDIR) ## build trust-manager
 	CGO_ENABLED=0 go build -o $(BINDIR)/trust-manager ./cmd/trust-manager
 
 .PHONY: generate
@@ -94,13 +100,13 @@ generate: depend generate-deepcopy generate-manifests
 
 .PHONY: generate-deepcopy
 generate-deepcopy: ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-generate-deepcopy: | $(BINDIR)/controller-gen
-	$(BINDIR)/controller-gen object:headerFile="hack/boilerplate/boilerplate.go.txt" paths="./..."
+generate-deepcopy: | $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)/controller-gen
+	$(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)/controller-gen object:headerFile="hack/boilerplate/boilerplate.go.txt" paths="./..."
 
 .PHONY: generate-manifests
 generate-manifests: ## Generate CustomResourceDefinition objects.
-generate-manifests: | $(BINDIR)/controller-gen
-	./hack/update-codegen.sh
+generate-manifests: $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)/controller-gen
+	./hack/update-codegen.sh $<
 
 # See wait-for-buildx.sh for an explanation of why it's needed
 .PHONY: provision-buildx
@@ -119,19 +125,19 @@ image: trust-manager-save trust-package-debian-save | $(BINDIR) ## build docker 
 local-images: trust-manager-load trust-package-debian-load  ## build container images for only amd64 and load into docker
 
 .PHONY: kind-load
-kind-load: local-images | $(BINDIR)/kind  ## same as local-images but also run "kind load docker-image"
-	$(BINDIR)/kind load docker-image \
+kind-load: local-images | $(BINDIR)/kind-$(KIND_VERSION)/kind  ## same as local-images but also run "kind load docker-image"
+	$(BINDIR)/kind-$(KIND_VERSION)/kind load docker-image \
 		--name trust \
 		$(CONTAINER_REGISTRY)/trust-manager:latest \
 		$(CONTAINER_REGISTRY)/cert-manager-package-debian:latest$(DEBIAN_TRUST_PACKAGE_SUFFIX)
 
 .PHONY: chart
-chart: | $(BINDIR)/helm $(BINDIR)/chart
-	$(BINDIR)/helm package --app-version=$(RELEASE_VERSION) --version=$(RELEASE_VERSION) --destination "$(BINDIR)/chart" ./deploy/charts/trust-manager
+chart: | $(BINDIR)/helm-$(HELM_VERSION)/helm $(BINDIR)/chart
+	$(BINDIR)/helm-$(HELM_VERSION)/helm package --app-version=$(RELEASE_VERSION) --version=$(RELEASE_VERSION) --destination "$(BINDIR)/chart" ./deploy/charts/trust-manager
 
 .PHONY: update-helm-docs
-update-helm-docs: | $(BINDIR)/helm-docs  ## update Helm README, generated from other Helm files
-	./hack/update-helm-docs.sh $(BINDIR)/helm-docs
+update-helm-docs: | $(BINDIR)/helm-docs-$(HELM_DOCS_VERSION)/helm-docs  ## update Helm README, generated from other Helm files
+	./hack/update-helm-docs.sh $(BINDIR)/helm-docs-$(HELM_DOCS_VERSION)/helm-docs
 
 .PHONY: clean
 clean: ## clean up created files
@@ -143,15 +149,15 @@ clean: ## clean up created files
 demo: ensure-kind kind-load ensure-cert-manager ensure-trust-manager $(BINDIR)/kubeconfig.yaml  ## ensure a cluster ready for a smoke test or local testing
 
 .PHONY: smoke
-smoke: demo  ## ensure local cluster exists, deploy trust-manager and run smoke tests
-	$(BINDIR)/ginkgo -procs 1 test/smoke/ -- --kubeconfig-path $(BINDIR)/kubeconfig.yaml
+smoke: demo | $(BINDIR)/ginkgo-$(GINKGO_VERSION)/ginkgo  ## ensure local cluster exists, deploy trust-manager and run smoke tests
+	$(BINDIR)/ginkgo-$(GINKGO_VERSION)/ginkgo -procs 1 test/smoke/ -- --kubeconfig-path $(BINDIR)/kubeconfig.yaml
 
-$(BINDIR)/kubeconfig.yaml: depend ensure-ci-docker-network _FORCE test/kind-cluster.yaml | $(BINDIR)
-	@if $(BINDIR)/kind get clusters | grep -q "^trust$$"; then \
+$(BINDIR)/kubeconfig.yaml: ensure-ci-docker-network _FORCE test/kind-cluster.yaml | $(BINDIR)/kind-$(KIND_VERSION)/kind
+	@if $(BINDIR)/kind-$(KIND_VERSION)/kind get clusters | grep -q "^trust$$"; then \
 		echo "cluster already exists, not trying to create"; \
-		$(BINDIR)/kind get kubeconfig --name trust > $@ && chmod 600 $@; \
+		$(BINDIR)/kind-$(KIND_VERSION)/kind get kubeconfig --name trust > $@ && chmod 600 $@; \
 	else \
-		$(BINDIR)/kind create cluster --config test/kind-cluster.yaml --kubeconfig $@ && chmod 600 $@; \
+		$(BINDIR)/kind-$(KIND_VERSION)/kind create cluster --config test/kind-cluster.yaml --kubeconfig $@ && chmod 600 $@; \
 		echo -e "$(_RED)kind cluster 'trust' was created; to access it, pass '--kubeconfig  $(BINDIR)/kubeconfig.yaml' to kubectl/helm$(_END)"; \
 		sleep 2; \
 	fi
@@ -160,18 +166,18 @@ $(BINDIR)/kubeconfig.yaml: depend ensure-ci-docker-network _FORCE test/kind-clus
 ensure-kind: $(BINDIR)/kubeconfig.yaml  ## create a trust-manager kind cluster, if one doesn't already exist
 
 .PHONY: ensure-cert-manager
-ensure-cert-manager: depend ensure-kind $(BINDIR)/kubeconfig.yaml  ## ensure cert-manager is installed on cluster for testing
-	@if $(BINDIR)/helm --kubeconfig $(BINDIR)/kubeconfig.yaml list --short --namespace cert-manager --selector name=cert-manager | grep -q cert-manager; then \
+ensure-cert-manager: ensure-kind $(BINDIR)/kubeconfig.yaml | $(BINDIR)/helm-$(HELM_VERSION)/helm  ## ensure cert-manager is installed on cluster for testing
+	@if $(BINDIR)/helm-$(HELM_VERSION)/helm --kubeconfig $(BINDIR)/kubeconfig.yaml list --short --namespace cert-manager --selector name=cert-manager | grep -q cert-manager; then \
 		echo "cert-manager already installed, not trying to reinstall"; \
 	else \
-		$(BINDIR)/helm repo add jetstack https://charts.jetstack.io --force-update; \
-		$(BINDIR)/helm upgrade --kubeconfig $(BINDIR)/kubeconfig.yaml -i --create-namespace -n cert-manager cert-manager jetstack/cert-manager --set installCRDs=true --wait; \
+		$(BINDIR)/helm-$(HELM_VERSION)/helm repo add jetstack https://charts.jetstack.io --force-update; \
+		$(BINDIR)/helm-$(HELM_VERSION)/helm upgrade --kubeconfig $(BINDIR)/kubeconfig.yaml -i --create-namespace -n cert-manager cert-manager jetstack/cert-manager --set installCRDs=true --wait; \
 	fi
 
 .PHONY: ensure-trust-manager
-ensure-trust-manager: depend ensure-kind kind-load ensure-cert-manager  ## ensure trust-manager is available on cluster, built from local checkout
-	$(BINDIR)/helm uninstall --kubeconfig $(BINDIR)/kubeconfig.yaml -n cert-manager trust-manager || :
-	$(BINDIR)/helm upgrade --kubeconfig $(BINDIR)/kubeconfig.yaml -i -n cert-manager trust-manager deploy/charts/trust-manager/. --set image.tag=latest --set defaultTrustPackage.tag=latest$(DEBIAN_TRUST_PACKAGE_SUFFIX) --set app.logLevel=2 --wait
+ensure-trust-manager: ensure-kind kind-load ensure-cert-manager | $(BINDIR)/helm-$(HELM_VERSION)/helm  ## ensure trust-manager is available on cluster, built from local checkout
+	$(BINDIR)/helm-$(HELM_VERSION)/helm uninstall --kubeconfig $(BINDIR)/kubeconfig.yaml -n cert-manager trust-manager || :
+	$(BINDIR)/helm-$(HELM_VERSION)/helm upgrade --kubeconfig $(BINDIR)/kubeconfig.yaml -i -n cert-manager trust-manager deploy/charts/trust-manager/. --set image.tag=latest --set defaultTrustPackage.tag=latest$(DEBIAN_TRUST_PACKAGE_SUFFIX) --set app.logLevel=2 --wait
 
 # When running in our CI environment the Docker network's subnet choice
 # causees issues with routing.
@@ -194,49 +200,50 @@ $(BINDIR)/validate-trust-package: cmd/validate-trust-package/main.go pkg/fspkg/p
 	CGO_ENABLED=0 go build -o $@ $<
 
 .PHONY: depend
-depend: $(BINDIR)/controller-gen
-depend: $(BINDIR)/boilersuite
-depend: $(BINDIR)/kind
-depend: $(BINDIR)/helm-docs
-depend: $(BINDIR)/helm
-depend: $(BINDIR)/ginkgo
-depend: $(BINDIR)/kubectl
-depend: $(BINDIR)/kubebuilder/bin/kube-apiserver
+depend: $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)/controller-gen
+depend: $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION)/boilersuite
+depend: $(BINDIR)/kind-$(KIND_VERSION)/kind
+depend: $(BINDIR)/helm-docs-$(HELM_DOCS_VERSION)/helm-docs
+depend: $(BINDIR)/helm-$(HELM_VERSION)/helm
+depend: $(BINDIR)/ginkgo-$(GINKGO_VERSION)/ginkgo
+depend: $(BINDIR)/kubectl-$(KUBECTL_VERSION)/kubectl
+depend: $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/kube-apiserver
+depend: $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/etcd
 
-$(BINDIR)/controller-gen: | $(BINDIR)
+$(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)/controller-gen: | $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)
 	cd hack/tools && go build -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
 
-$(BINDIR)/boilersuite: | $(BINDIR)
+$(BINDIR)/boilersuite-$(BOILERSUITE_VERSION)/boilersuite: | $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION)
 	cd hack/tools && go build -o $@ github.com/cert-manager/boilersuite
 
-$(BINDIR)/kind: | $(BINDIR)
+$(BINDIR)/kind-$(KIND_VERSION)/kind: | $(BINDIR)/kind-$(KIND_VERSION)
 	cd hack/tools && go build -o $@ sigs.k8s.io/kind
 
-$(BINDIR)/helm-docs: | $(BINDIR)
+$(BINDIR)/helm-docs-$(HELM_DOCS_VERSION)/helm-docs: | $(BINDIR)/helm-docs-$(HELM_DOCS_VERSION)
 	cd hack/tools && go build -o $@ github.com/norwoodj/helm-docs/cmd/helm-docs
 
-$(BINDIR)/helm: $(BINDIR)/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz | $(BINDIR)
-	tar xfO $< $(OS)-$(ARCH)/helm > $@
-	chmod +x $@
+$(BINDIR)/helm-$(HELM_VERSION)/helm: $(BINDIR)/helm-$(HELM_VERSION)/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz | $(BINDIR)
+	tar xfO $< $(OS)-$(ARCH)/helm > $@ && chmod +x $@
 
-$(BINDIR)/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz: | $(BINDIR)
+$(BINDIR)/helm-$(HELM_VERSION)/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz: | $(BINDIR)/helm-$(HELM_VERSION)
 	curl -o $@ -LO "https://get.helm.sh/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz"
-
-$(BINDIR)/ginkgo: $(BINDIR)/ginkgo-$(GINKGO_VERSION)/ginkgo | $(BINDIR)
-	cp -f $< $@
 
 $(BINDIR)/ginkgo-$(GINKGO_VERSION)/ginkgo: | $(BINDIR)
 	GOBIN=$(dir $@) go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
 
-$(BINDIR)/kubectl: | $(BINDIR)
-	curl -o $@ -LO "https://storage.googleapis.com/kubernetes-release/release/$(shell curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/$(OS)/$(ARCH)/kubectl"
-	chmod +x $@
+$(BINDIR)/kubectl-$(KUBECTL_VERSION)/kubectl: | $(BINDIR)/kubectl-$(KUBECTL_VERSION)
+	curl -o $@ -L "https://storage.googleapis.com/kubernetes-release/release/v$(KUBECTL_VERSION)/bin/$(OS)/$(ARCH)/kubectl" && chmod +x $@
 
-$(BINDIR)/kubebuilder/bin/kube-apiserver: | $(BINDIR)/kubebuilder
-	curl -sSLo $(BINDIR)/envtest-bins.tar.gz "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$(KUBEBUILDER_TOOLS_VERISON)-$(OS)-$(ARCH).tar.gz"
-	tar -C $(BINDIR)/kubebuilder --strip-components=1 -zvxf $(BINDIR)/envtest-bins.tar.gz
+$(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/etcd: $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/envtest-bins.tar.gz | $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)
+	tar xfO $< kubebuilder/bin/etcd > $@ && chmod +x $@
 
-$(BINDIR) $(BINDIR)/kubebuilder $(BINDIR)/chart $(BINDIR)/ginkgo-$(GINKGO_VERSION):
+$(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/kube-apiserver: $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/envtest-bins.tar.gz | $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)
+	tar xfO $< kubebuilder/bin/kube-apiserver > $@ && chmod +x $@
+
+$(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/envtest-bins.tar.gz: | $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)
+	curl -sSL -o $@ "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$(KUBEBUILDER_TOOLS_VERISON)-$(OS)-$(ARCH).tar.gz"
+
+$(BINDIR) $(BINDIR)/kubectl-$(KUBECTL_VERSION) $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON) $(BINDIR)/chart $(BINDIR)/ginkgo-$(GINKGO_VERSION) $(BINDIR)/helm-$(HELM_VERSION) $(BINDIR)/helm-docs-$(HELM_DOCS_VERSION) $(BINDIR)/kind-$(KIND_VERSION) $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION) $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION):
 	@mkdir -p $@
 
 _FORCE:

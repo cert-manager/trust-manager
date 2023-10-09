@@ -29,6 +29,7 @@ COPY make/ make/
 # Copy the go source files
 COPY cmd/ cmd/
 COPY pkg/ pkg/
+COPY hack/ hack/
 
 RUN GOPROXY=$GOPROXY go mod download
 
