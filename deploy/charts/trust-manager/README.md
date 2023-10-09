@@ -25,14 +25,14 @@ Kubernetes: `>= 1.25.0-0`
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Kubernetes Affinty; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core |
-| app.logLevel | int | `1` | Verbosity of trust logging; takes a value from 1-5, with higher being more verbose |
+| app.logLevel | int | `1` | Verbosity of trust-manager logging; takes a value from 1-5, with higher being more verbose |
 | app.metrics.port | int | `9402` | Port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'. |
 | app.metrics.service | object | `{"enabled":true,"servicemonitor":{"enabled":false,"interval":"10s","labels":{},"prometheusInstance":"default","scrapeTimeout":"5s"},"type":"ClusterIP"}` | Service to expose metrics endpoint. |
 | app.metrics.service.enabled | bool | `true` | Create a Service resource to expose metrics endpoint. |
 | app.metrics.service.servicemonitor | object | `{"enabled":false,"interval":"10s","labels":{},"prometheusInstance":"default","scrapeTimeout":"5s"}` | ServiceMonitor resource for this Service. |
 | app.metrics.service.type | string | `"ClusterIP"` | Service type to expose metrics. |
-| app.readinessProbe.path | string | `"/readyz"` | Path on which to expose trust HTTP readiness probe using default network interface. |
-| app.readinessProbe.port | int | `6060` | Container port on which to expose trust HTTP readiness probe using default network interface. |
+| app.readinessProbe.path | string | `"/readyz"` | Path on which to expose trust-manager HTTP readiness probe using default network interface. |
+| app.readinessProbe.port | int | `6060` | Container port on which to expose trust-manager HTTP readiness probe using default network interface. |
 | app.securityContext.seccompProfileEnabled | bool | `true` | If false, disables the default seccomp profile, which might be required to run on certain platforms |
 | app.trust.namespace | string | `"cert-manager"` | Namespace used as trust source. Note that the namespace _must_ exist before installing trust-manager. |
 | app.webhook.host | string | `"0.0.0.0"` | Host that the webhook listens on. |
@@ -56,7 +56,7 @@ Kubernetes: `>= 1.25.0-0`
 | image.tag | string | `nil` | Target image version tag. Defaults to the chart's appVersion. |
 | imagePullSecrets | list | `[]` | For Private docker registries, authentication is needed. Registry secrets are applied to the service account |
 | nodeSelector | object | `{"kubernetes.io/os":"linux"}` | Configure the nodeSelector; defaults to any Linux node (trust-manager doesn't support Windows nodes) |
-| replicaCount | int | `1` | Number of replicas of trust to run. |
+| replicaCount | int | `1` | Number of replicas of trust-manager to run. |
 | resources | object | `{}` |  |
 | tolerations | list | `[]` | List of Kubernetes Tolerations; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core |
 | topologySpreadConstraints | list | `[]` | List of Kubernetes TopologySpreadConstraints; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core |
