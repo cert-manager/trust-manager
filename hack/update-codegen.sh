@@ -20,11 +20,15 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-SCRIPT_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
-BIN_DIR=${SCRIPT_ROOT}/bin
+if [[ -z "${1:-}"  ]]; then
+	echo "usage: $0 <path-to-controller-gen>" >&2
+	exit 1
+fi
+
+CONTROLLER_GEN=$(realpath "$1")
 
 echo "Generating CRDs in ./deploy/crds"
-${BIN_DIR}/controller-gen crd schemapatch:manifests=./deploy/crds output:dir=./deploy/crds paths=./pkg/apis/...
+$CONTROLLER_GEN crd schemapatch:manifests=./deploy/crds output:dir=./deploy/crds paths=./pkg/apis/...
 
 echo "Updating CRDs with helm templating, writing to ./deploy/charts/trust-manager/templates"
 for i in $(ls ./deploy/crds); do
