@@ -43,6 +43,7 @@ Kubernetes: `>= 1.25.0-0`
 | app.webhook.tls.approverPolicy.certManagerNamespace | string | `"cert-manager"` | Namespace in which cert-manager was installed. Only used if app.webhook.tls.approverPolicy.enabled is true |
 | app.webhook.tls.approverPolicy.certManagerServiceAccount | string | `"cert-manager"` | Name of cert-manager's ServiceAccount. Only used if app.webhook.tls.approverPolicy.enabled is true |
 | app.webhook.tls.approverPolicy.enabled | bool | `false` | Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this. |
+| app.webhook.tls.issueIsolatedCert | bool | `false` | Whether to issue an "isolated" cert, which removes the requirement for cert-manager to be installed by using Helm to issue a webhook certificate. |
 | crds.enabled | bool | `true` | Whether or not to install the crds. |
 | defaultPackage.enabled | bool | `true` | Whether to load the default trust package during pod initialization and include it in main container args. This container enables the 'useDefaultCAs' source on Bundles. |
 | defaultPackageImage.digest | string | `nil` | Target image digest. Will override any tag if set. for example: digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20 |
