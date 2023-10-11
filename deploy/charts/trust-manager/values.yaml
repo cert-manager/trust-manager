@@ -96,6 +96,8 @@ app:
         # -- Name of cert-manager's ServiceAccount. Only used if app.webhook.tls.approverPolicy.enabled is true
         certManagerServiceAccount: "cert-manager"
 
+    # -- Specifies if the app should be started in hostNetwork mode. Required for use in some managed kubernetes clusters (such as AWS EKS) with custom CNI.
+    hostNetwork: false
 
   securityContext:
     # -- If false, disables the default seccomp profile, which might be required to run on certain platforms

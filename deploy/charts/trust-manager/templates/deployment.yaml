@@ -110,3 +110,8 @@ spec:
         secret:
           defaultMode: 420
           secretName: {{ include "trust-manager.name" . }}-tls
+      {{- if .Values.app.webhook.hostNetwork }}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
+

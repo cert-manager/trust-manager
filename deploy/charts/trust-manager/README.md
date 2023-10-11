@@ -36,6 +36,7 @@ Kubernetes: `>= 1.25.0-0`
 | app.securityContext.seccompProfileEnabled | bool | `true` | If false, disables the default seccomp profile, which might be required to run on certain platforms |
 | app.trust.namespace | string | `"cert-manager"` | Namespace used as trust source. Note that the namespace _must_ exist before installing trust-manager. |
 | app.webhook.host | string | `"0.0.0.0"` | Host that the webhook listens on. |
+| app.webhook.hostNetwork | bool | `false` | Specifies if the app should be started in hostNetwork mode. Required for use in some managed kubernetes clusters (such as AWS EKS) with custom CNI. |
 | app.webhook.port | int | `6443` | Port that the webhook listens on. |
 | app.webhook.service | object | `{"type":"ClusterIP"}` | Type of Kubernetes Service used by the Webhook |
 | app.webhook.timeoutSeconds | int | `5` | Timeout of webhook HTTP request. |
