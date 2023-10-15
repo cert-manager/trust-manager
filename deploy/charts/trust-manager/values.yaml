@@ -1,6 +1,11 @@
 # -- Number of replicas of trust-manager to run.
 replicaCount: 1
 
+# -- The namespace to install trust-manager into.
+# If not set, the namespace of the release will be used.
+# This is helpful when installing trust-manager as a chart dependency (sub chart)
+namespace: ""
+
 # -- For Private docker registries, authentication is needed. Registry secrets are applied to the service account
 imagePullSecrets: []
 

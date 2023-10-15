@@ -56,6 +56,7 @@ Kubernetes: `>= 1.25.0-0`
 | image.repository | string | `"quay.io/jetstack/trust-manager"` | Target image repository. |
 | image.tag | string | `nil` | Target image version tag. Defaults to the chart's appVersion. |
 | imagePullSecrets | list | `[]` | For Private docker registries, authentication is needed. Registry secrets are applied to the service account |
+| namespace | string | `""` | The namespace to install trust-manager into. If not set, the namespace of the release will be used. This is helpful when installing trust-manager as a chart dependency (sub chart) |
 | nodeSelector | object | `{"kubernetes.io/os":"linux"}` | Configure the nodeSelector; defaults to any Linux node (trust-manager doesn't support Windows nodes) |
 | replicaCount | int | `1` | Number of replicas of trust-manager to run. |
 | resources | object | `{}` |  |
