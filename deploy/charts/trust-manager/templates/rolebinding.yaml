@@ -12,4 +12,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: {{ include "trust-manager.name" . }}
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ include "trust-manager.namespace" . }}

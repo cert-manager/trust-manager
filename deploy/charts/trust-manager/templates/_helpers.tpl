@@ -39,3 +39,15 @@ See https://github.com/cert-manager/cert-manager/issues/6329 for a list of linke
 {{- if .digest -}}{{ printf "@%s" .digest }}{{- else -}}{{ printf ":%s" (default $defaultTag .tag) }}{{- end -}}
 {{- end }}
 {{- end }}
+
+{{/*
+Namespace for all resources to be installed into
+If not defined in values file then the helm release namespace is used
+By default this is not set so the helm release namespace will be used
+
+This gets around an problem within helm discussed here
+https://github.com/helm/helm/issues/5358
+*/}}
+{{- define "trust-manager.namespace" -}}
+    {{ .Values.namespace | default .Release.Namespace }}
+{{- end -}}
