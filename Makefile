@@ -89,7 +89,12 @@ generate: depend ## generate code
 # See wait-for-buildx.sh for an explanation of why it's needed
 .PHONY: provision-buildx
 provision-buildx:  ## set up docker buildx for multiarch building
+ifeq ($(OS), linux)
+	# This step doesn't work on macOS and doesn't seem to be required (at least with docker desktop)
+	# It did seem to be needed in Linux, at least in certain configurations when running on amd64
+	# TODO: it might be preferable to move away from docker buildx in the long term to avoid the dependency on Docker
 	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+endif
 	docker buildx rm $(BUILDX_BUILDER) &>/dev/null || :
 	./hack/wait-for-buildx.sh $(BUILDX_BUILDER) gone
 	docker buildx create --name $(BUILDX_BUILDER) --driver docker-container --use
