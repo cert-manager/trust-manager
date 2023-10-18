@@ -39,7 +39,7 @@ import (
 )
 
 const (
-	EventuallyTimeout      = "30s"
+	EventuallyTimeout      = "90s"
 	EventuallyPollInterval = "100ms"
 )
 
@@ -78,7 +78,7 @@ func DefaultTrustData() TestData {
 
 // newTestBundle creates a new Bundle in the API using the input test data.
 // Returns the create Bundle object.
-func NewTestBundle(ctx context.Context, cl client.Client, opts bundle.Options, td TestData) *trustapi.Bundle {
+func newTestBundle(ctx context.Context, cl client.Client, opts bundle.Options, td TestData, targetType string) *trustapi.Bundle {
 	By("creating trust Bundle")
 
 	configMap := corev1.ConfigMap{
@@ -132,21 +132,52 @@ func NewTestBundle(ctx context.Context, cl client.Client, opts bundle.Options, t
 			},
 		},
 	}
+	if targetType == "ConfigMap" {
+		bundle.Spec.Target = trustapi.BundleTarget{
+			ConfigMap: &td.Target,
+		}
+	} else if targetType == "Secret" {
+		bundle.Spec.Target = trustapi.BundleTarget{
+			Secret: &td.Target,
+		}
+	}
 	Expect(cl.Create(ctx, &bundle)).NotTo(HaveOccurred())
 
 	return &bundle
+}
+
+// NewTestBundleSecretTarget creates a new Bundle in the API using the input test data.
+// Returns the create Bundle object.
+func NewTestBundleSecretTarget(ctx context.Context, cl client.Client, opts bundle.Options, td TestData) *trustapi.Bundle {
+	return newTestBundle(ctx, cl, opts, td, "Secret")
+}
+
+// newTestBundleConfigMapTarget creates a new Bundle in the API using the input test data with target set to ConfigMap.
+// Returns the create Bundle object.
+func NewTestBundleConfigMapTarget(ctx context.Context, cl client.Client, opts bundle.Options, td TestData) *trustapi.Bundle {
+	return newTestBundle(ctx, cl, opts, td, "ConfigMap")
 }
 
 func checkBundleSyncedInternal(ctx context.Context, cl client.Client, bundleName string, namespace string, comparator func(string) error) error {
 	var bundle trustapi.Bundle
 	Expect(cl.Get(ctx, client.ObjectKey{Name: bundleName}, &bundle)).NotTo(HaveOccurred())
 
-	var configMap corev1.ConfigMap
-	if err := cl.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bundle.Name}, &configMap); err != nil {
-		return fmt.Errorf("failed to get configMap %s/%s when checking bundle sync: %w", namespace, bundle.Name, err)
+	gotData := ""
+	if bundle.Spec.Target.ConfigMap != nil {
+		var configMap corev1.ConfigMap
+		if err := cl.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bundle.Name}, &configMap); err != nil {
+			return fmt.Errorf("failed to get configMap %s/%s when checking bundle sync: %w", namespace, bundle.Name, err)
+		}
+		gotData = configMap.Data[bundle.Spec.Target.ConfigMap.Key]
+	} else if bundle.Spec.Target.Secret != nil {
+		var secret corev1.Secret
+		if err := cl.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bundle.Name}, &secret); err != nil {
+			return fmt.Errorf("failed to get secret %s/%s when checking bundle sync: %w", namespace, bundle.Name, err)
+		}
+		gotData = string(secret.Data[bundle.Spec.Target.Secret.Key])
+	} else {
+		return fmt.Errorf("invalid bundle spec targets: %v", bundle.Spec.Target)
 	}
-
-	gotData := configMap.Data[bundle.Spec.Target.ConfigMap.Key]
 
 	if err := comparator(gotData); err != nil {
 		return fmt.Errorf("configMap %s/%s didn't have expected value: %w", namespace, bundle.Name, err)

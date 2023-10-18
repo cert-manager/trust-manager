@@ -265,11 +265,11 @@ func (e pkcs12Encoder) encode(trustBundle string) ([]byte, error) {
 	return pkcs12.EncodeTrustStoreEntries(rand.Reader, entries, e.password)
 }
 
-// syncTarget syncs the given data to the target ConfigMap in the given namespace.
+// syncConfigMapTarget syncs the given data to the target ConfigMap in the given namespace.
 // The name of the ConfigMap is the same as the Bundle.
 // Ensures the ConfigMap is owned by the given Bundle, and the data is up to date.
 // Returns true if the ConfigMap has been created or was updated.
-func (b *bundle) syncTarget(
+func (b *bundle) syncConfigMapTarget(
 	ctx context.Context,
 	log logr.Logger,
 	bundle *trustapi.Bundle,
@@ -331,90 +331,18 @@ func (b *bundle) syncTarget(
 		target.ConfigMap.Key: data,
 	}
 	configmapBinData := map[string][]byte{}
-
-	if target.AdditionalFormats != nil {
-		if target.AdditionalFormats.JKS != nil {
-			encoded, err := jksEncoder{password: []byte(DefaultJKSPassword)}.encode(data)
-			if err != nil {
-				return false, fmt.Errorf("failed to encode JKS: %w", err)
-			}
-
-			configmapBinData[target.AdditionalFormats.JKS.Key] = encoded
-		}
-
-		if target.AdditionalFormats.PKCS12 != nil {
-			encoded, err := pkcs12Encoder{password: DefaultPKCS12Password}.encode(data)
-			if err != nil {
-				return false, fmt.Errorf("failed to encode PKCS12: %w", err)
-			}
-
-			configmapBinData[target.AdditionalFormats.PKCS12.Key] = encoded
-		}
+	if err := populateAdditionalFormatData(data, target, configmapBinData); err != nil {
+		return false, err
 	}
 
 	// If the ConfigMap doesn't exist, create it.
-	needsPatch := apierrors.IsNotFound(err)
-	if !needsPatch {
-		if !metav1.IsControlledBy(configMap, bundle) {
-			needsPatch = true
+	if !apierrors.IsNotFound(err) {
+		// Exit early if no update is needed
+		if exit, err := b.needsUpdate(ctx, log, configMap, bundle, dataHash); err != nil {
+			return false, err
+		} else if !exit {
+			return false, nil
 		}
-
-		if configMap.Labels[trustapi.BundleLabelKey] != bundle.Name {
-			needsPatch = true
-		}
-
-		if configMap.Annotations[trustapi.BundleHashAnnotationKey] != dataHash {
-			needsPatch = true
-		}
-
-		{
-			properties, err := listManagedProperties(configMap, fieldManager, "data")
-			if err != nil {
-				return false, fmt.Errorf("failed to list managed properties: %w", err)
-			}
-
-			expectedProperties := sets.New[string](target.ConfigMap.Key)
-
-			if !properties.Equal(expectedProperties) {
-				needsPatch = true
-			}
-		}
-
-		{
-			properties, err := listManagedProperties(configMap, fieldManager, "binaryData")
-			if err != nil {
-				return false, fmt.Errorf("failed to list managed properties: %w", err)
-			}
-
-			expectedProperties := sets.New[string]()
-
-			if target.AdditionalFormats != nil && target.AdditionalFormats.JKS != nil {
-				expectedProperties.Insert(target.AdditionalFormats.JKS.Key)
-			}
-
-			if target.AdditionalFormats != nil && target.AdditionalFormats.PKCS12 != nil {
-				expectedProperties.Insert(target.AdditionalFormats.PKCS12.Key)
-			}
-
-			if !properties.Equal(expectedProperties) {
-				needsPatch = true
-			}
-		}
-
-		if bundle.Status.Target != nil && bundle.Status.Target.ConfigMap != nil {
-			// Check if we need to migrate the ConfigMap managed fields to the Apply field operation
-			if didMigrate, err := b.migrateConfigMapToApply(ctx, configMap, bundle.Status.Target.ConfigMap.Key); err != nil {
-				return false, fmt.Errorf("failed to migrate ConfigMap %s/%s to Apply: %w", namespace, name, err)
-			} else if didMigrate {
-				log.V(2).Info("migrated configmap from CSA to SSA")
-				needsPatch = true
-			}
-		}
-	}
-
-	// Exit early if no update is needed
-	if !needsPatch {
-		return false, nil
 	}
 
 	configMapPatch := coreapplyconfig.
@@ -441,9 +369,195 @@ func (b *bundle) syncTarget(
 		return false, fmt.Errorf("failed to patch configMap %s/%s: %w", namespace, bundle.Name, err)
 	}
 
-	log.V(2).Info("synced bundle to namespace")
+	log.V(2).Info("synced bundle to namespace for target ConfigMap")
 
 	return true, nil
+}
+
+// syncSecretTarget syncs the given data to the target Secret in the given namespace.
+// The name of the Secret is the same as the Bundle.
+// Ensures the Secret is owned by the given Bundle, and the data is up to date.
+// Returns true if the Secret has been created or was updated.
+func (b *bundle) syncSecretTarget(
+	ctx context.Context,
+	log logr.Logger,
+	bundle *trustapi.Bundle,
+	name string,
+	namespace string,
+	data string,
+	shouldExist bool,
+) (bool, error) {
+	secret := &metav1.PartialObjectMetadata{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+	}
+	err := b.targetCache.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, secret)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return false, fmt.Errorf("failed to get Secret %s/%s: %w", namespace, name, err)
+	}
+
+	// If the target obj exists, but the Bundle is being deleted, delete the Secret.
+	if apierrors.IsNotFound(err) && !shouldExist {
+		return false, nil
+	}
+
+	// If the Secret should not exist, but it does, delete it.
+	if !apierrors.IsNotFound(err) && !shouldExist {
+		// apply empty patch to remove the key
+		secretPatch := coreapplyconfig.
+			Secret(name, namespace).
+			WithLabels(map[string]string{
+				trustapi.BundleLabelKey: bundle.Name,
+			}).
+			WithOwnerReferences(
+				v1.OwnerReference().
+					WithAPIVersion(trustapi.SchemeGroupVersion.String()).
+					WithKind(trustapi.BundleKind).
+					WithName(bundle.GetName()).
+					WithUID(bundle.GetUID()).
+					WithBlockOwnerDeletion(true).
+					WithController(true),
+			)
+
+		if err = b.patchSecretResource(ctx, secretPatch); err != nil {
+			return false, fmt.Errorf("failed to patch secret %s/%s: %w", namespace, bundle.Name, err)
+		}
+
+		return true, nil
+	}
+
+	target := bundle.Spec.Target
+	if target.Secret == nil {
+		return false, errors.New("target not defined")
+	}
+
+	// Generated JKS is not deterministic - best we can do here is update if the pem cert has
+	// changed (hence not checking if JKS matches)
+	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
+	targetData := map[string][]byte{
+		target.Secret.Key: []byte(data),
+	}
+
+	if additionalFormatsErr := populateAdditionalFormatData(data, target, targetData); additionalFormatsErr != nil {
+		return false, err
+	}
+
+	// If the Secret doesn't exist, create it.
+	if !apierrors.IsNotFound(err) {
+		// Exit early if no update is needed
+		if exit, err := b.needsUpdate(ctx, log, secret, bundle, dataHash); err != nil {
+			return false, err
+		} else if !exit {
+			return false, nil
+		}
+	}
+
+	secretPatch := coreapplyconfig.
+		Secret(name, namespace).
+		WithLabels(map[string]string{
+			trustapi.BundleLabelKey: bundle.Name,
+		}).
+		WithAnnotations(map[string]string{
+			trustapi.BundleHashAnnotationKey: dataHash,
+		}).
+		WithOwnerReferences(
+			v1.OwnerReference().
+				WithAPIVersion(trustapi.SchemeGroupVersion.String()).
+				WithKind(trustapi.BundleKind).
+				WithName(bundle.GetName()).
+				WithUID(bundle.GetUID()).
+				WithBlockOwnerDeletion(true).
+				WithController(true),
+		).
+		WithData(targetData)
+
+	if err = b.patchSecretResource(ctx, secretPatch); err != nil {
+		return false, fmt.Errorf("failed to patch Secret %s/%s: %w", namespace, bundle.Name, err)
+	}
+
+	log.V(2).Info("synced bundle to namespace for target secret")
+
+	return true, nil
+}
+
+func populateAdditionalFormatData(data string, target trustapi.BundleTarget, targetMap map[string][]byte) error {
+	if target.AdditionalFormats != nil {
+		if target.AdditionalFormats.JKS != nil {
+			encoded, err := jksEncoder{password: []byte(DefaultJKSPassword)}.encode(data)
+			if err != nil {
+				return fmt.Errorf("failed to encode JKS: %w", err)
+			}
+			targetMap[target.AdditionalFormats.JKS.Key] = encoded
+		}
+
+		if target.AdditionalFormats.PKCS12 != nil {
+			encoded, err := pkcs12Encoder{password: DefaultPKCS12Password}.encode(data)
+			if err != nil {
+				return fmt.Errorf("failed to encode PKCS12: %w", err)
+			}
+			targetMap[target.AdditionalFormats.PKCS12.Key] = encoded
+		}
+	}
+	return nil
+}
+
+func (b *bundle) needsUpdate(ctx context.Context, log logr.Logger, obj *metav1.PartialObjectMetadata, bundle *trustapi.Bundle, dataHash string) (bool, error) {
+	needsUpdate := false
+	if !metav1.IsControlledBy(obj, bundle) {
+		needsUpdate = true
+	}
+
+	if obj.GetLabels()[trustapi.BundleLabelKey] != bundle.Name {
+		needsUpdate = true
+	}
+
+	if obj.GetAnnotations()[trustapi.BundleHashAnnotationKey] != dataHash {
+		needsUpdate = true
+	}
+
+	{
+		properties, err := listManagedProperties(obj, fieldManager, "data")
+		if err != nil {
+			return false, fmt.Errorf("failed to list managed properties: %w", err)
+		}
+
+		key := ""
+		targetType := obj.TypeMeta.Kind
+		if targetType == "ConfigMap" {
+			key = bundle.Spec.Target.ConfigMap.Key
+		} else if targetType == "Secret" {
+			key = bundle.Spec.Target.Secret.Key
+		} else {
+			return false, fmt.Errorf("unknown targetType: %s", targetType)
+		}
+		expectedProperties := sets.New[string](key)
+		if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.JKS != nil {
+			expectedProperties.Insert(bundle.Spec.Target.AdditionalFormats.JKS.Key)
+		}
+
+		if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.PKCS12 != nil {
+			expectedProperties.Insert(bundle.Spec.Target.AdditionalFormats.PKCS12.Key)
+		}
+
+		if !properties.Equal(expectedProperties) {
+			needsUpdate = true
+		}
+
+		if targetType == "ConfigMap" {
+			if bundle.Status.Target != nil && bundle.Status.Target.ConfigMap != nil {
+				// Check if we need to migrate the ConfigMap managed fields to the Apply field operation
+				if didMigrate, err := b.migrateConfigMapToApply(ctx, obj, bundle.Status.Target.ConfigMap.Key); err != nil {
+					return false, fmt.Errorf("failed to migrate ConfigMap %s/%s to Apply: %w", obj.Namespace, obj.Name, err)
+				} else if didMigrate {
+					log.V(2).Info("migrated configmap from CSA to SSA")
+					needsUpdate = true
+				}
+			}
+		}
+	}
+	return needsUpdate, nil
 }
 
 func listManagedProperties(configmap *metav1.PartialObjectMetadata, fieldManager string, fieldName string) (sets.Set[string], error) {
@@ -502,6 +616,37 @@ func (b *bundle) patchResource(ctx context.Context, obj interface{}) error {
 	// If the configMap is empty, delete it
 	if len(configMap.Data) == 0 && len(configMap.BinaryData) == 0 {
 		return b.client.Delete(ctx, configMap)
+	}
+
+	return nil
+}
+
+func (b *bundle) patchSecretResource(ctx context.Context, obj interface{}) error {
+	if b.patchResourceOverwrite != nil {
+		return b.patchResourceOverwrite(ctx, obj)
+	}
+
+	applyConfig, ok := obj.(*coreapplyconfig.SecretApplyConfiguration)
+	if !ok {
+		return fmt.Errorf("expected *coreapplyconfig.ConfigMapApplyConfiguration, got %T", obj)
+	}
+
+	secret, patch, err := ssa_client.GenerateSecretPatch(applyConfig)
+	if err != nil {
+		return fmt.Errorf("failed to generate patch: %w", err)
+	}
+
+	err = b.client.Patch(ctx, secret, patch, &client.PatchOptions{
+		FieldManager: fieldManager,
+		Force:        ptr.To(true),
+	})
+	if err != nil {
+		return err
+	}
+
+	// If the secret is empty, delete it
+	if len(secret.Data) == 0 {
+		return b.client.Delete(ctx, secret)
 	}
 
 	return nil

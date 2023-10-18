@@ -45,6 +45,29 @@ func (v *validator) ValidateCreate(ctx context.Context, obj runtime.Object) (adm
 }
 
 func (v *validator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	oldBundle, ok := oldObj.(*trustapi.Bundle)
+	if !ok {
+		return nil, fmt.Errorf("expected a Bundle, but got a %T", oldBundle)
+	}
+	newBundle, ok := newObj.(*trustapi.Bundle)
+	if !ok {
+		return nil, fmt.Errorf("expected a Bundle, but got a %T", newBundle)
+	}
+
+	var (
+		el   field.ErrorList
+		path = field.NewPath("spec")
+	)
+	// Target removal are not allowed.
+	if oldBundle.Spec.Target.ConfigMap != nil && newBundle.Spec.Target.ConfigMap == nil {
+		el = append(el, field.Invalid(path.Child("target", "configmap"), "", "target configMap removal is not allowed"))
+		return nil, el.ToAggregate()
+	}
+	// Target removal are not allowed.
+	if oldBundle.Spec.Target.Secret != nil && newBundle.Spec.Target.Secret == nil {
+		el = append(el, field.Invalid(path.Child("target", "secret"), "", "target secret removal is not allowed"))
+		return nil, el.ToAggregate()
+	}
 	return v.validate(ctx, newObj)
 }
 
@@ -141,13 +164,28 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 		}
 	}
 
-	if configMap := bundle.Spec.Target.ConfigMap; configMap == nil {
-		el = append(el, field.Invalid(path.Child("target", "configMap"), configMap, "target configMap must be defined"))
-	} else if len(configMap.Key) == 0 {
+	configMap := bundle.Spec.Target.ConfigMap
+	secret := bundle.Spec.Target.Secret
+
+	if configMap == nil && secret == nil {
+		el = append(el, field.Invalid(path.Child("target"), bundle.Spec.Target, "must define at least one target"))
+	}
+
+	if configMap != nil && len(configMap.Key) == 0 {
 		el = append(el, field.Invalid(path.Child("target", "configMap", "key"), configMap.Key, "target configMap key must be defined"))
-	} else if bundle.Spec.Target.AdditionalFormats != nil {
-		targetKeys := map[string]struct{}{
-			configMap.Key: {},
+	}
+
+	if secret != nil && len(secret.Key) == 0 {
+		el = append(el, field.Invalid(path.Child("target", "secret", "key"), configMap.Key, "target secret key must be defined"))
+	}
+
+	if bundle.Spec.Target.AdditionalFormats != nil {
+		targetKeys := map[string]struct{}{}
+		if configMap != nil {
+			targetKeys[configMap.Key] = struct{}{}
+		}
+		if secret != nil {
+			targetKeys[secret.Key] = struct{}{}
 		}
 		formats := map[string]*trustapi.KeySelector{
 			"jks":    bundle.Spec.Target.AdditionalFormats.JKS,

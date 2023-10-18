@@ -225,6 +225,11 @@ func (in *BundleTarget) DeepCopyInto(out *BundleTarget) {
 		*out = new(KeySelector)
 		**out = **in
 	}
+	if in.Secret != nil {
+		in, out := &in.Secret, &out.Secret
+		*out = new(KeySelector)
+		**out = **in
+	}
 	if in.AdditionalFormats != nil {
 		in, out := &in.AdditionalFormats, &out.AdditionalFormats
 		*out = new(AdditionalFormats)

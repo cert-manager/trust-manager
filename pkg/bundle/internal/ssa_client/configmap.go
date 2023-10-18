@@ -47,3 +47,26 @@ func GenerateConfigMapPatch(
 
 	return configmap, applyPatch{encodedPatch}, nil
 }
+
+func GenerateSecretPatch(
+	secretPatch *coreapplyconfig.SecretApplyConfiguration,
+) (*corev1.Secret, client.Patch, error) {
+	if secretPatch == nil || secretPatch.Name == nil || secretPatch.Namespace == nil {
+		panic("secretPatch must be non-nil and have a name and namespace")
+	}
+
+	// This object is used to deduce the name & namespace + unmarshall the return value in
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      *secretPatch.Name,
+			Namespace: *secretPatch.Namespace,
+		},
+	}
+
+	encodedPatch, err := json.Marshal(secretPatch)
+	if err != nil {
+		return secret, nil, err
+	}
+
+	return secret, applyPatch{encodedPatch}, nil
+}

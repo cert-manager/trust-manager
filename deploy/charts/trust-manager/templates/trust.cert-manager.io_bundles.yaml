@@ -136,6 +136,15 @@ spec:
                           type: object
                           additionalProperties:
                             type: string
+                    secret:
+                      description: Secret is the target Secret that all Bundle source data will be synced to. Using Secrets as targets is only supported if enabled at trust-manager startup. By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
+                      type: object
+                      required:
+                        - key
+                      properties:
+                        key:
+                          description: Key is the key of the entry in the object's `data` field to be used.
+                          type: string
             status:
               description: Status of the Bundle. This is set and managed automatically.
               type: object
@@ -220,6 +229,15 @@ spec:
                           type: object
                           additionalProperties:
                             type: string
+                    secret:
+                      description: Secret is the target Secret that all Bundle source data will be synced to. Using Secrets as targets is only supported if enabled at trust-manager startup. By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
+                      type: object
+                      required:
+                        - key
+                      properties:
+                        key:
+                          description: Key is the key of the entry in the object's `data` field to be used.
+                          type: string
       served: true
       storage: true
       subresources:

@@ -33,9 +33,6 @@ import (
 )
 
 func Test_validate(t *testing.T) {
-	var (
-		nilKeySelector *trustapi.KeySelector
-	)
 	tests := map[string]struct {
 		bundle      runtime.Object
 		expErr      *string
@@ -51,7 +48,7 @@ func Test_validate(t *testing.T) {
 			},
 			expErr: ptr.To(field.ErrorList{
 				field.Forbidden(field.NewPath("spec", "sources"), "must define at least one source"),
-				field.Invalid(field.NewPath("spec", "target", "configMap"), nilKeySelector, "target configMap must be defined"),
+				field.Invalid(field.NewPath("spec", "target"), trustapi.BundleTarget{}, "must define at least one target"),
 			}.ToAggregate().Error()),
 		},
 		"sources with multiple types defined in items": {
@@ -374,6 +371,58 @@ func Test_validate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			v := &validator{log: klogr.New()}
 			gotWarnings, gotErr := v.validate(context.TODO(), test.bundle)
+			if test.expErr == nil && gotErr != nil {
+				t.Errorf("got an unexpected error: %v", gotErr)
+			} else if test.expErr != nil && (gotErr == nil || *test.expErr != gotErr.Error()) {
+				t.Errorf("wants error: %v got: %v", *test.expErr, gotErr)
+			}
+			assert.Equal(t, test.expWarnings, gotWarnings)
+
+		})
+	}
+}
+
+func Test_validate_update(t *testing.T) {
+	tests := map[string]struct {
+		oldBundle   runtime.Object
+		newBundle   runtime.Object
+		expErr      *string
+		expWarnings admission.Warnings
+	}{
+		"if the target configmap is removed during update": {
+			oldBundle: &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{Name: "testing"},
+				Spec: trustapi.BundleSpec{
+					Target: trustapi.BundleTarget{
+						ConfigMap: &trustapi.KeySelector{
+							Key: "bar",
+						},
+					},
+				},
+			},
+			newBundle: &trustapi.Bundle{},
+			expErr:    ptr.To("spec.target.configmap: Invalid value: \"\": target configMap removal is not allowed"),
+		},
+		"if the target secret is removed during update": {
+			oldBundle: &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{Name: "testing"},
+				Spec: trustapi.BundleSpec{
+					Target: trustapi.BundleTarget{
+						Secret: &trustapi.KeySelector{
+							Key: "bar",
+						},
+					},
+				},
+			},
+			newBundle: &trustapi.Bundle{},
+			expErr:    ptr.To("spec.target.secret: Invalid value: \"\": target secret removal is not allowed"),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			v := &validator{log: klogr.New()}
+			gotWarnings, gotErr := v.ValidateUpdate(context.TODO(), test.oldBundle, test.newBundle)
 			if test.expErr == nil && gotErr != nil {
 				t.Errorf("got an unexpected error: %v", gotErr)
 			} else if test.expErr != nil && (gotErr == nil || *test.expErr != gotErr.Error()) {

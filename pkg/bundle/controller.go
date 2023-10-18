@@ -98,6 +98,19 @@ func AddBundleController(
 			builder.OnlyMetadata,
 		).
 
+		// Reconcile a Bundle on events against a Secret that it
+		// owns. Only cache Secret metadata.
+		WatchesRawSource(
+			source.Kind(targetCache, &corev1.Secret{}),
+			handler.EnqueueRequestForOwner(
+				mgr.GetScheme(),
+				mgr.GetRESTMapper(),
+				&trustapi.Bundle{},
+				handler.OnlyControllerOwner(),
+			),
+			builder.OnlyMetadata,
+		).
+
 		////// Sources //////
 
 		// Reconcile trust.cert-manager.io Bundles

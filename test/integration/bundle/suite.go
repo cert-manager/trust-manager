@@ -129,7 +129,7 @@ var _ = Describe("Integration", func() {
 
 		By("Creating Bundle for test")
 		testData = testenv.DefaultTrustData()
-		testBundle = testenv.NewTestBundle(ctx, cl, opts, testData)
+		testBundle = testenv.NewTestBundleConfigMapTarget(ctx, cl, opts, testData)
 
 		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.DefaultJoinedCerts())
 
