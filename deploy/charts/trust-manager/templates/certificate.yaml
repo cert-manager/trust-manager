@@ -18,6 +18,7 @@ metadata:
   labels:
 {{ include "trust-manager.labels" . | indent 4 }}
 spec:
+  commonName: "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc"
   dnsNames:
   - "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc"
   secretName: {{ include "trust-manager.name" . }}-tls
@@ -37,6 +38,9 @@ metadata:
   name: trust-manager-policy
 spec:
   allowed:
+    commonName:
+      value: "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc"
+      required: true
     dnsNames:
       values: ["{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc"]
       required: true
