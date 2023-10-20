@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM docker.io/library/golang:1.19 as gobuild
+FROM docker.io/library/golang:1.21 as gobuild
 
 ARG GOPROXY
 
