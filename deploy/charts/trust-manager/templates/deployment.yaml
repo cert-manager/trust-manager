@@ -89,6 +89,9 @@ spec:
           seccompProfile:
             type: RuntimeDefault
           {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: "{{ . }}"
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

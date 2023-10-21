@@ -58,6 +58,7 @@ Kubernetes: `>= 1.25.0-0`
 | imagePullSecrets | list | `[]` | For Private docker registries, authentication is needed. Registry secrets are applied to the service account |
 | namespace | string | `""` | The namespace to install trust-manager into. If not set, the namespace of the release will be used. This is helpful when installing trust-manager as a chart dependency (sub chart) |
 | nodeSelector | object | `{"kubernetes.io/os":"linux"}` | Configure the nodeSelector; defaults to any Linux node (trust-manager doesn't support Windows nodes) |
+| priorityClassName | string | `""` | Configure the priority class of the pod; see https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass |
 | replicaCount | int | `1` | Number of replicas of trust-manager to run. |
 | resources | object | `{}` |  |
 | secretTargets.authorizedSecrets | list | `[]` | A list of secret names which trust-manager will be permitted to read and write across all namespaces. These will be the only allowable Secrets that can be used as targets. If the list is empty (and authorizedSecretsAll is false), trust-manager will not be able to write to secrets and will only be able to read secrets in the trust namespace for use as sources. |
