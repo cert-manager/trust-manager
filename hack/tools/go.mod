@@ -1,6 +1,6 @@
 module github.com/cert-manager/tools/hack/tools
 
-go 1.21.3
+go 1.21
 
 require (
 	github.com/cert-manager/boilersuite v0.1.0
