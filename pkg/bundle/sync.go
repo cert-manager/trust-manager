@@ -312,8 +312,8 @@ func (b *bundle) syncConfigMapTarget(
 					WithController(true),
 			)
 
-		if err = b.patchResource(ctx, configMapPatch); err != nil {
-			return false, fmt.Errorf("failed to patch configMap %s/%s: %w", namespace, bundle.Name, err)
+		if err = b.patchConfigMapResource(ctx, configMapPatch); err != nil {
+			return false, fmt.Errorf("failed to patch ConfigMap %s/%s: %w", namespace, bundle.Name, err)
 		}
 
 		return true, nil
@@ -365,8 +365,8 @@ func (b *bundle) syncConfigMapTarget(
 		WithData(configmapData).
 		WithBinaryData(configmapBinData)
 
-	if err = b.patchResource(ctx, configMapPatch); err != nil {
-		return false, fmt.Errorf("failed to patch configMap %s/%s: %w", namespace, bundle.Name, err)
+	if err = b.patchConfigMapResource(ctx, configMapPatch); err != nil {
+		return false, fmt.Errorf("failed to patch ConfigMap %s/%s: %w", namespace, bundle.Name, err)
 	}
 
 	log.V(2).Info("synced bundle to namespace for target ConfigMap")
@@ -477,7 +477,7 @@ func (b *bundle) syncSecretTarget(
 		return false, fmt.Errorf("failed to patch Secret %s/%s: %w", namespace, bundle.Name, err)
 	}
 
-	log.V(2).Info("synced bundle to namespace for target secret")
+	log.V(2).Info("synced bundle to namespace for target Secret")
 
 	return true, nil
 }
@@ -590,14 +590,9 @@ func listManagedProperties(configmap *metav1.PartialObjectMetadata, fieldManager
 	return properties, nil
 }
 
-func (b *bundle) patchResource(ctx context.Context, obj interface{}) error {
+func (b *bundle) patchConfigMapResource(ctx context.Context, applyConfig *coreapplyconfig.ConfigMapApplyConfiguration) error {
 	if b.patchResourceOverwrite != nil {
-		return b.patchResourceOverwrite(ctx, obj)
-	}
-
-	applyConfig, ok := obj.(*coreapplyconfig.ConfigMapApplyConfiguration)
-	if !ok {
-		return fmt.Errorf("expected *coreapplyconfig.ConfigMapApplyConfiguration, got %T", obj)
+		return b.patchResourceOverwrite(ctx, applyConfig)
 	}
 
 	configMap, patch, err := ssa_client.GenerateConfigMapPatch(applyConfig)
@@ -621,14 +616,9 @@ func (b *bundle) patchResource(ctx context.Context, obj interface{}) error {
 	return nil
 }
 
-func (b *bundle) patchSecretResource(ctx context.Context, obj interface{}) error {
+func (b *bundle) patchSecretResource(ctx context.Context, applyConfig *coreapplyconfig.SecretApplyConfiguration) error {
 	if b.patchResourceOverwrite != nil {
-		return b.patchResourceOverwrite(ctx, obj)
-	}
-
-	applyConfig, ok := obj.(*coreapplyconfig.SecretApplyConfiguration)
-	if !ok {
-		return fmt.Errorf("expected *coreapplyconfig.ConfigMapApplyConfiguration, got %T", obj)
+		return b.patchResourceOverwrite(ctx, applyConfig)
 	}
 
 	secret, patch, err := ssa_client.GenerateSecretPatch(applyConfig)
