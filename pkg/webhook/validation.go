@@ -164,6 +164,15 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 		}
 	}
 
+	if target := bundle.Spec.Target.Secret; target != nil {
+		path := path.Child("sources")
+		for i, source := range bundle.Spec.Sources {
+			if source.Secret != nil && source.Secret.Name == bundle.Name && source.Secret.Key == target.Key {
+				el = append(el, field.Forbidden(path.Child(fmt.Sprintf("[%d]", i), "secret", source.Secret.Name, source.Secret.Key), "cannot define the same source as target"))
+			}
+		}
+	}
+
 	configMap := bundle.Spec.Target.ConfigMap
 	secret := bundle.Spec.Target.Secret
 
@@ -176,7 +185,7 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 	}
 
 	if secret != nil && len(secret.Key) == 0 {
-		el = append(el, field.Invalid(path.Child("target", "secret", "key"), configMap.Key, "target secret key must be defined"))
+		el = append(el, field.Invalid(path.Child("target", "secret", "key"), secret.Key, "target secret key must be defined"))
 	}
 
 	if bundle.Spec.Target.AdditionalFormats != nil {
