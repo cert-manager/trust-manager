@@ -56,7 +56,7 @@ rules:
   - ""
   resources:
   - "secrets"
-  verbs: ["list", "watch", "get"]
+  verbs: ["get", "list", "watch"]
 - apiGroups:
   - ""
   resources:
