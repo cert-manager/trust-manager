@@ -313,7 +313,7 @@ func (b *bundle) syncConfigMapTarget(
 			)
 
 		if err = b.patchConfigMapResource(ctx, configMapPatch); err != nil {
-			return false, fmt.Errorf("failed to patch configMap %s/%s: %w", namespace, bundle.Name, err)
+			return false, fmt.Errorf("failed to patch ConfigMap %s/%s: %w", namespace, bundle.Name, err)
 		}
 
 		return true, nil
