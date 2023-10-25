@@ -56,12 +56,12 @@ rules:
   - ""
   resources:
   - "secrets"
-  verbs: ["list", "watch"]
+  verbs: ["list", "watch", "get"]
 - apiGroups:
   - ""
   resources:
   - "secrets"
-  verbs: ["get", "create", "patch", "delete"]
+  verbs: ["create", "patch", "delete"]
   resourceNames: {{ .Values.secretTargets.authorizedSecrets | toYaml | nindent 2 }}
 {{- end -}}
 {{- end -}}
