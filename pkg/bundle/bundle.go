@@ -169,7 +169,18 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 
 	statusPatch.Target = &bundle.Spec.Target
 
-	targetResources := map[types.NamespacedName]bool{}
+	type targetKind string
+	const (
+		configMapTarget targetKind = "ConfigMap"
+		secretTarget    targetKind = "Secret"
+	)
+
+	type targetResource struct {
+		Kind targetKind
+		types.NamespacedName
+	}
+
+	targetResources := map[targetResource]bool{}
 
 	namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
 	if err != nil {
@@ -196,15 +207,22 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 				continue
 			}
 
-			targetResources[types.NamespacedName{
+			namespacedName := types.NamespacedName{
 				Name:      bundle.Name,
 				Namespace: namespace.Name,
-			}] = true
+			}
+
+			if bundle.Spec.Target.Secret != nil {
+				targetResources[targetResource{Kind: secretTarget, NamespacedName: namespacedName}] = true
+			}
+			if bundle.Spec.Target.ConfigMap != nil {
+				targetResources[targetResource{Kind: configMapTarget, NamespacedName: namespacedName}] = true
+			}
 		}
 	}
 
 	// Find all old existing ConfigMap targetResources.
-	if bundle.Spec.Target.ConfigMap != nil {
+	{
 		configMapList := &metav1.PartialObjectMetadataList{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "v1",
@@ -223,9 +241,12 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		}
 
 		for _, configMap := range configMapList.Items {
-			key := types.NamespacedName{
-				Name:      configMap.Name,
-				Namespace: configMap.Namespace,
+			key := targetResource{
+				Kind: configMapTarget,
+				NamespacedName: types.NamespacedName{
+					Name:      configMap.Name,
+					Namespace: configMap.Namespace,
+				},
 			}
 
 			configmapLog := log.WithValues("configmap", key)
@@ -251,7 +272,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 	}
 
 	// Find all old existing Secret targetResources.
-	if bundle.Spec.Target.Secret != nil {
+	{
 		secretLists := &metav1.PartialObjectMetadataList{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "v1",
@@ -270,9 +291,12 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		}
 
 		for _, secret := range secretLists.Items {
-			key := types.NamespacedName{
-				Name:      secret.Name,
-				Namespace: secret.Namespace,
+			key := targetResource{
+				Kind: secretTarget,
+				NamespacedName: types.NamespacedName{
+					Name:      secret.Name,
+					Namespace: secret.Namespace,
+				},
 			}
 
 			secretLog := log.WithValues("secret", key)
@@ -304,7 +328,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		var cmSynced, secretSynced bool
 		var err error
 
-		if bundle.Spec.Target.ConfigMap != nil {
+		if target.Kind == configMapTarget {
 			cmSynced, err = b.syncConfigMapTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle.data, shouldExist)
 			if err != nil {
 				targetLog.Error(err, "failed sync bundle to ConfigMap target namespace")
@@ -326,7 +350,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 			}
 		}
 
-		if bundle.Spec.Target.Secret != nil {
+		if target.Kind == secretTarget {
 			secretSynced, err = b.syncSecretTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle.data, shouldExist)
 			if err != nil {
 				targetLog.Error(err, "failed sync bundle to Secret target namespace")

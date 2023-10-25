@@ -131,7 +131,7 @@ func Test_Reconcile(t *testing.T) {
 			Bundle:  dummy.TestCertificate5,
 		}
 
-		configmapPatch = func(name, namespace string, data map[string]string, binData map[string][]byte, key *string) *coreapplyconfig.ConfigMapApplyConfiguration {
+		configMapPatch = func(name, namespace string, data map[string]string, binData map[string][]byte, key *string) *coreapplyconfig.ConfigMapApplyConfiguration {
 			annotations := map[string]string{}
 			if key != nil {
 				annotations[trustapi.BundleHashAnnotationKey] = fmt.Sprintf("%x", sha256.Sum256([]byte(data[*key])))
@@ -154,6 +154,35 @@ func Test_Reconcile(t *testing.T) {
 				).
 				WithData(data).
 				WithBinaryData(binData)
+		}
+
+		secretPatch = func(name, namespace string, data map[string]string, key *string) *coreapplyconfig.SecretApplyConfiguration {
+			annotations := map[string]string{}
+			if key != nil {
+				annotations[trustapi.BundleHashAnnotationKey] = fmt.Sprintf("%x", sha256.Sum256([]byte(data[*key])))
+			}
+
+			binaryData := map[string][]byte{}
+			for k, v := range data {
+				binaryData[k] = []byte(v)
+			}
+
+			return coreapplyconfig.
+				Secret(name, namespace).
+				WithLabels(map[string]string{
+					trustapi.BundleLabelKey: baseBundle.GetName(),
+				}).
+				WithAnnotations(annotations).
+				WithOwnerReferences(
+					v1.OwnerReference().
+						WithAPIVersion(trustapi.SchemeGroupVersion.String()).
+						WithKind(trustapi.BundleKind).
+						WithName(baseBundle.GetName()).
+						WithUID(baseBundle.GetUID()).
+						WithBlockOwnerDeletion(true).
+						WithController(true),
+				).
+				WithData(binaryData)
 		}
 
 		targetConfigMap = func(namespace string, data map[string]string, binData map[string][]byte, key *string, withOwnerRef bool) *corev1.ConfigMap {
@@ -191,6 +220,42 @@ func Test_Reconcile(t *testing.T) {
 			}
 
 			return configmap
+		}
+
+		targetSecret = func(namespace string, data map[string]string, key *string, withOwnerRef bool) *corev1.Secret {
+			annotations := map[string]string{}
+			if key != nil {
+				annotations[trustapi.BundleHashAnnotationKey] = fmt.Sprintf("%x", sha256.Sum256([]byte(data[*key])))
+			}
+
+			dataEntries := make([]string, 0, len(data))
+			for k := range data {
+				dataEntries = append(dataEntries, k)
+			}
+
+			binaryData := map[string][]byte{}
+			for k, v := range data {
+				binaryData[k] = []byte(v)
+			}
+
+			secret := &corev1.Secret{
+				TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace:       namespace,
+					Name:            baseBundle.Name,
+					Labels:          baseBundleLabels,
+					Annotations:     annotations,
+					OwnerReferences: baseBundleOwnerRef,
+					ManagedFields:   managedFieldEntries(dataEntries, nil),
+				},
+				Data: binaryData,
+			}
+
+			if !withOwnerRef {
+				secret.OwnerReferences = nil
+			}
+
+			return secret
 		}
 	)
 
@@ -287,7 +352,7 @@ func Test_Reconcile(t *testing.T) {
 			}},
 			expEvent: `Warning SourceNotFound Bundle source was not found: failed to retrieve bundle from source: no data found in Secret trust-namespace/source-secret at key "secret-key"`,
 		},
-		"if Bundle Target changes, delete old targets and update": {
+		"if Bundle configMap Target changes, delete old targets and update": {
 			existingNamespaces: namespaces,
 			existingConfigMaps: []client.Object{sourceConfigMap,
 				targetConfigMap(
@@ -320,12 +385,68 @@ func Test_Reconcile(t *testing.T) {
 			expResult:       ctrl.Result{},
 			expError:        false,
 			expPatches: []interface{}{
-				configmapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
 				Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
+				Conditions: []trustapi.BundleCondition{
+					{
+						Type:               trustapi.BundleConditionSynced,
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: fixedmetatime,
+						Reason:             "Synced",
+						Message:            "Successfully synced Bundle to all namespaces",
+						ObservedGeneration: bundleGeneration,
+					},
+				},
+			},
+			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
+		},
+		"if Bundle secret Target changes, delete old targets and update": {
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap},
+			existingSecrets: []client.Object{sourceSecret,
+				targetSecret(
+					"ns-1",
+					map[string]string{
+						"A":          "B",
+						"old-target": "foo",
+					},
+					ptr.To("old-target"),
+					true,
+				),
+				targetSecret(
+					"ns-2",
+					map[string]string{
+						"A":          "B",
+						"old-target": "foo",
+					},
+					ptr.To("old-target"),
+					true,
+				),
+			},
+			existingBundles: []client.Object{
+				gen.BundleFrom(baseBundle,
+					func(b *trustapi.Bundle) {
+						// swap target configmap for secret
+						keySelector := b.Spec.Target.ConfigMap
+						b.Spec.Target.ConfigMap = nil
+						b.Spec.Target.Secret = keySelector
+					},
+					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{Secret: &trustapi.KeySelector{Key: "old-target"}}}),
+				),
+			},
+			expResult: ctrl.Result{},
+			expError:  false,
+			expPatches: []interface{}{
+				secretPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
+				secretPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
+				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
+			},
+			expBundlePatch: &trustapi.BundleStatus{
+				Target: &trustapi.BundleTarget{Secret: &trustapi.KeySelector{Key: targetKey}},
 				Conditions: []trustapi.BundleCondition{
 					{
 						Type:               trustapi.BundleConditionSynced,
@@ -379,17 +500,17 @@ func Test_Reconcile(t *testing.T) {
 			expResult: ctrl.Result{},
 			expError:  false,
 			expPatches: []interface{}{
-				configmapPatch(baseBundle.Name, "trust-namespace", map[string]string{
+				configMapPatch(baseBundle.Name, "trust-namespace", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
 				}, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "ns-1", map[string]string{
+				configMapPatch(baseBundle.Name, "ns-1", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
 				}, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "ns-2", map[string]string{
+				configMapPatch(baseBundle.Name, "ns-2", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
@@ -454,17 +575,17 @@ func Test_Reconcile(t *testing.T) {
 			expResult: ctrl.Result{},
 			expError:  false,
 			expPatches: []interface{}{
-				configmapPatch(baseBundle.Name, "trust-namespace", map[string]string{
+				configMapPatch(baseBundle.Name, "trust-namespace", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
 				}, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "ns-1", map[string]string{
+				configMapPatch(baseBundle.Name, "ns-1", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
 				}, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "ns-2", map[string]string{
+				configMapPatch(baseBundle.Name, "ns-2", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
@@ -488,20 +609,31 @@ func Test_Reconcile(t *testing.T) {
 			},
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
-		"if Bundle not synced everywhere, sync and update Synced": {
+		"if Bundle with secret and configmap target not synced everywhere, sync and update Synced": {
 			existingNamespaces: namespaces,
 			existingConfigMaps: []client.Object{sourceConfigMap},
 			existingSecrets:    []client.Object{sourceSecret},
-			existingBundles:    []client.Object{gen.BundleFrom(baseBundle)},
-			expResult:          ctrl.Result{},
-			expError:           false,
+			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
+				func(b *trustapi.Bundle) {
+					// copy configmap target to secret target
+					b.Spec.Target.Secret = b.Spec.Target.ConfigMap
+				},
+			)},
+			expResult: ctrl.Result{},
+			expError:  false,
 			expPatches: []interface{}{
-				configmapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				secretPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
+				secretPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
+				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
-				Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
+				Target: &trustapi.BundleTarget{
+					ConfigMap: &trustapi.KeySelector{Key: targetKey},
+					Secret:    &trustapi.KeySelector{Key: targetKey},
+				},
 				Conditions: []trustapi.BundleCondition{
 					{
 						Type:               trustapi.BundleConditionSynced,
@@ -529,9 +661,9 @@ func Test_Reconcile(t *testing.T) {
 			expResult:          ctrl.Result{},
 			expError:           false,
 			expPatches: []interface{}{
-				configmapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
 				Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
@@ -570,8 +702,8 @@ func Test_Reconcile(t *testing.T) {
 			expResult: ctrl.Result{},
 			expError:  false,
 			expPatches: []interface{}{
-				configmapPatch(baseBundle.Name, "random-namespace", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "another-random-namespace", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, "random-namespace", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, "another-random-namespace", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
 				Target: &trustapi.BundleTarget{
@@ -628,9 +760,9 @@ func Test_Reconcile(t *testing.T) {
 			expResult: ctrl.Result{},
 			expError:  false,
 			expPatches: []interface{}{
-				configmapPatch(baseBundle.Name, trustNamespace, map[string]string{}, nil, nil),
-				configmapPatch(baseBundle.Name, "ns-1", map[string]string{}, nil, nil),
-				configmapPatch(baseBundle.Name, "ns-2", map[string]string{}, nil, nil),
+				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{}, nil, nil),
+				configMapPatch(baseBundle.Name, "ns-1", map[string]string{}, nil, nil),
+				configMapPatch(baseBundle.Name, "ns-2", map[string]string{}, nil, nil),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
 				Target: &trustapi.BundleTarget{
@@ -703,9 +835,9 @@ func Test_Reconcile(t *testing.T) {
 			expResult: ctrl.Result{},
 			expError:  false,
 			expPatches: []interface{}{
-				configmapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
 				Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
@@ -903,9 +1035,9 @@ func Test_Reconcile(t *testing.T) {
 			expResult:               ctrl.Result{},
 			expError:                false,
 			expPatches: []interface{}{
-				configmapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)}, nil, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)}, nil, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)}, nil, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
 				Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
@@ -975,12 +1107,93 @@ func Test_Reconcile(t *testing.T) {
 			expResult:               ctrl.Result{},
 			expError:                false,
 			expPatches: []interface{}{
-				configmapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
-				configmapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
 				Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
+				Conditions: []trustapi.BundleCondition{
+					{
+						Type:               trustapi.BundleConditionSynced,
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: fixedmetatime,
+						Reason:             "Synced",
+						Message:            "Successfully synced Bundle to all namespaces",
+						ObservedGeneration: bundleGeneration,
+					},
+				},
+				DefaultCAPackageVersion: nil,
+			},
+			expEvent: `Normal Synced Successfully synced Bundle to all namespaces`,
+		},
+		"if Bundle switches from ConfigMap target to Secret target, remove ConfigMaps and create Secrets": {
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap,
+				targetConfigMap(
+					trustNamespace,
+					map[string]string{
+						targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5),
+					},
+					nil,
+					ptr.To(targetKey),
+					true,
+				),
+				targetConfigMap(
+					"ns-1",
+					map[string]string{
+						targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5),
+					},
+					nil,
+					ptr.To(targetKey),
+					true,
+				),
+				targetConfigMap(
+					"ns-2",
+					map[string]string{
+						targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5),
+					},
+					nil,
+					ptr.To(targetKey),
+					true,
+				),
+			},
+			existingSecrets: []client.Object{sourceSecret},
+			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
+				func(b *trustapi.Bundle) {
+					// swap target configmap for secret
+					keySelector := b.Spec.Target.ConfigMap
+					b.Spec.Target.ConfigMap = nil
+					b.Spec.Target.Secret = keySelector
+				},
+				gen.SetBundleStatus(trustapi.BundleStatus{
+					Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
+					Conditions: []trustapi.BundleCondition{
+						{
+							Type:               trustapi.BundleConditionSynced,
+							Status:             metav1.ConditionTrue,
+							LastTransitionTime: fixedmetatime,
+							Reason:             "Synced",
+							Message:            "Successfully synced Bundle to all namespaces",
+							ObservedGeneration: bundleGeneration,
+						},
+					},
+					DefaultCAPackageVersion: ptr.To(testDefaultPackage.StringID()),
+				}),
+			)},
+			configureDefaultPackage: true,
+			expResult:               ctrl.Result{},
+			expError:                false,
+			expPatches: []interface{}{
+				secretPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
+				secretPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
+				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, trustNamespace, nil, nil, nil),
+				configMapPatch(baseBundle.Name, "ns-1", nil, nil, nil),
+				configMapPatch(baseBundle.Name, "ns-2", nil, nil, nil),
+			},
+			expBundlePatch: &trustapi.BundleStatus{
+				Target: &trustapi.BundleTarget{Secret: &trustapi.KeySelector{Key: targetKey}},
 				Conditions: []trustapi.BundleCondition{
 					{
 						Type:               trustapi.BundleConditionSynced,
