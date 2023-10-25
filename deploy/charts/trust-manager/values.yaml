@@ -111,6 +111,7 @@ app:
 secretTargets:
   # -- If set to true, enable writing trust bundles to Kubernetes Secrets as a target.
   # trust-manager can only write to secrets which are explicitly allowed via either authorizedSecrets or authorizedSecretsAll.
+  # NOTE: Enabling secret targets will grant trust-manager read access to all secrets in the cluster.
   enabled: false
   # -- If set to true, grant read/write permission to all secrets across the cluster. Use with caution!
   # If set, ignores the authorizedSecrets list.

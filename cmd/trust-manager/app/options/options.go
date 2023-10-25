@@ -152,6 +152,10 @@ func (o *Options) addBundleFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Bundle.DefaultPackageLocation,
 		"default-package-location", "",
 		"Path to a JSON file containing the default certificate package. If set, must be a valid package.")
+
+	fs.BoolVar(&o.Bundle.SecretTargetsEnabled,
+		"secret-targets-enabled", false,
+		"Controls if secret targets are enabled in the Bundle API.")
 }
 
 func (o *Options) addWebhookFlags(fs *pflag.FlagSet) {

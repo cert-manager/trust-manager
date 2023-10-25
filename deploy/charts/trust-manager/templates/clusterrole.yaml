@@ -44,24 +44,24 @@ rules:
   - "events"
   verbs: ["create", "patch"]
 
-- apiGroups:
-  - ""
-  resources:
-  - "secrets"
-  verbs: ["create", "list", "watch"]
 {{- if .Values.secretTargets.enabled }}
 {{- if .Values.secretTargets.authorizedSecretsAll }}
 - apiGroups:
   - ""
   resources:
   - "secrets"
-  verbs: ["get", "update", "delete", "patch"]
+  verbs: ["get", "list", "create", "patch", "watch", "delete"]
 {{- else if .Values.secretTargets.authorizedSecrets }}
 - apiGroups:
   - ""
   resources:
   - "secrets"
-  verbs: ["get", "update", "delete", "patch"]
+  verbs: ["list", "watch"]
+- apiGroups:
+  - ""
+  resources:
+  - "secrets"
+  verbs: ["get", "create", "patch", "delete"]
   resourceNames: {{ .Values.secretTargets.authorizedSecrets | toYaml | nindent 2 }}
 {{- end -}}
 {{- end -}}

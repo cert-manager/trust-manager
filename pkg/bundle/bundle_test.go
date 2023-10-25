@@ -265,6 +265,7 @@ func Test_Reconcile(t *testing.T) {
 		existingNamespaces      []client.Object
 		existingBundles         []client.Object
 		configureDefaultPackage bool
+		disableSecretTargets    bool
 		expResult               ctrl.Result
 		expError                bool
 		expPatches              []interface{}
@@ -756,7 +757,13 @@ func Test_Reconcile(t *testing.T) {
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
-				gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}))},
+				gen.SetBundleStatus(trustapi.BundleStatus{
+					Target: &trustapi.BundleTarget{
+						ConfigMap: &trustapi.KeySelector{Key: targetKey},
+					},
+				}),
+				gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}),
+			)},
 			expResult: ctrl.Result{},
 			expError:  false,
 			expPatches: []interface{}{
@@ -1208,6 +1215,46 @@ func Test_Reconcile(t *testing.T) {
 			},
 			expEvent: `Normal Synced Successfully synced Bundle to all namespaces`,
 		},
+		"if Bundle had a Secret target, and Secret targets are disabled, return an error": {
+			disableSecretTargets: true,
+			existingNamespaces:   namespaces,
+			existingConfigMaps:   []client.Object{sourceConfigMap},
+			existingSecrets:      []client.Object{sourceSecret},
+			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
+				gen.SetBundleStatus(trustapi.BundleStatus{
+					Target: &trustapi.BundleTarget{Secret: &trustapi.KeySelector{Key: targetKey}}, // The status shows that the target was a Secret
+					Conditions: []trustapi.BundleCondition{
+						{
+							Type:               trustapi.BundleConditionSynced,
+							Status:             metav1.ConditionTrue,
+							LastTransitionTime: fixedmetatime,
+							Reason:             "Synced",
+							Message:            "Successfully synced Bundle to all namespaces",
+							ObservedGeneration: bundleGeneration,
+						},
+					},
+				}),
+			)},
+			configureDefaultPackage: true,
+			expResult:               ctrl.Result{Requeue: true},
+			expError:                false,
+			expPatches:              []interface{}{},
+			expBundlePatch: &trustapi.BundleStatus{
+				Target: &trustapi.BundleTarget{Secret: &trustapi.KeySelector{Key: targetKey}},
+				Conditions: []trustapi.BundleCondition{
+					{
+						Type:               trustapi.BundleConditionSynced,
+						Status:             metav1.ConditionFalse,
+						LastTransitionTime: fixedmetatime,
+						Reason:             "SecretTargetsDisabled",
+						Message:            "Bundle has Secret targets but the feature is disabled",
+						ObservedGeneration: bundleGeneration,
+					},
+				},
+				DefaultCAPackageVersion: nil,
+			},
+			expEvent: `Warning SecretTargetsDisabled Bundle has Secret targets but the feature is disabled`,
+		},
 	}
 
 	for name, test := range tests {
@@ -1238,8 +1285,9 @@ func Test_Reconcile(t *testing.T) {
 				recorder:    fakerecorder,
 				clock:       fixedclock,
 				Options: Options{
-					Log:       klogr.New(),
-					Namespace: trustNamespace,
+					Log:                  klogr.New(),
+					Namespace:            trustNamespace,
+					SecretTargetsEnabled: !test.disableSecretTargets,
 				},
 				patchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
 					logMutex.Lock()

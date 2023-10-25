@@ -99,13 +99,14 @@ func NewCommand() *cobra.Command {
 						&corev1.Namespace{}: {},
 						&corev1.ConfigMap{}: {
 							// Only cache full ConfigMaps in the "watched" namespace.
-							// Target configmaps have a dedicated cache
+							// Target ConfigMaps have a dedicated cache
 							Namespaces: map[string]cache.Config{
 								opts.Bundle.Namespace: {},
 							},
 						},
 						&corev1.Secret{}: {
 							// Only cache full Secrets in the "watched" namespace.
+							// Target Secrets have a dedicated cache
 							Namespaces: map[string]cache.Config{
 								opts.Bundle.Namespace: {},
 							},
