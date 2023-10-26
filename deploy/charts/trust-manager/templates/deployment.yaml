@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: {{ include "trust-manager.name" . }}
   namespace: {{ include "trust-manager.namespace" . }}
+  annotations:
+    {{- toYaml .Values.app.deploymentAnnotations | nindent 4 }}
   labels:
 {{ include "trust-manager.labels" . | indent 4 }}
 spec:

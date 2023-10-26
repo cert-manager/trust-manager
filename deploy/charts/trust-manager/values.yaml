@@ -108,6 +108,12 @@ app:
     # -- If false, disables the default seccomp profile, which might be required to run on certain platforms
     seccompProfileEnabled: true
 
+  # -- Annotations for the trust-manager Deployment
+  deploymentAnnotations: {}
+
+  # -- Annotations for the Certificate/Issuer resources created by trust-manager
+  certificateAnnotations: {}
+
 secretTargets:
   # -- If set to true, enable writing trust bundles to Kubernetes Secrets as a target.
   # trust-manager can only write to secrets which are explicitly allowed via either authorizedSecrets or authorizedSecretsAll.

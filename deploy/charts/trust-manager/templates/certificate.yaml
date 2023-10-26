@@ -3,6 +3,8 @@ kind: Issuer
 metadata:
   name: {{ include "trust-manager.name" . }}
   namespace: {{ include "trust-manager.namespace" . }}
+  annotations:
+    {{- toYaml .Values.app.certificateAnnotations | nindent 4 }}
   labels:
 {{ include "trust-manager.labels" . | indent 4 }}
 spec:
@@ -15,6 +17,8 @@ kind: Certificate
 metadata:
   name: {{ include "trust-manager.name" . }}
   namespace: {{ include "trust-manager.namespace" . }}
+  annotations:
+    {{- toYaml .Values.app.certificateAnnotations | nindent 4 }}
   labels:
 {{ include "trust-manager.labels" . | indent 4 }}
 spec:

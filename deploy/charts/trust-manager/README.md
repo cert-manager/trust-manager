@@ -34,6 +34,8 @@ Kubernetes: `>= 1.25.0-0`
 | app.readinessProbe.path | string | `"/readyz"` | Path on which to expose trust-manager HTTP readiness probe using default network interface. |
 | app.readinessProbe.port | int | `6060` | Container port on which to expose trust-manager HTTP readiness probe using default network interface. |
 | app.securityContext.seccompProfileEnabled | bool | `true` | If false, disables the default seccomp profile, which might be required to run on certain platforms |
+| app.deploymentAnnotations | object | `{}` | Annotations for the trust-manager Deployment |
+| app.certificateAnnotations | object | `{}` | Annotations for the Certificate/Issuer resources created by trust-manager |
 | app.trust.namespace | string | `"cert-manager"` | Namespace used as trust source. Note that the namespace _must_ exist before installing trust-manager. |
 | app.webhook.host | string | `"0.0.0.0"` | Host that the webhook listens on. |
 | app.webhook.hostNetwork | bool | `false` | Specifies if the app should be started in hostNetwork mode. Required for use in some managed kubernetes clusters (such as AWS EKS) with custom CNI. |
