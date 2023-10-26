@@ -80,7 +80,7 @@ func AddBundleController(
 	}
 
 	// Only reconcile config maps that match the well known name
-	if err := ctrl.NewControllerManagedBy(mgr).
+	controller := ctrl.NewControllerManagedBy(mgr).
 		Named("bundles").
 
 		////// Targets //////
@@ -96,11 +96,12 @@ func AddBundleController(
 				handler.OnlyControllerOwner(),
 			),
 			builder.OnlyMetadata,
-		).
+		)
 
+	if opts.SecretTargetsEnabled {
 		// Reconcile a Bundle on events against a Secret that it
 		// owns. Only cache Secret metadata.
-		WatchesRawSource(
+		controller.WatchesRawSource(
 			source.Kind(targetCache, &corev1.Secret{}),
 			handler.EnqueueRequestForOwner(
 				mgr.GetScheme(),
@@ -109,12 +110,13 @@ func AddBundleController(
 				handler.OnlyControllerOwner(),
 			),
 			builder.OnlyMetadata,
-		).
+		)
+	}
 
-		////// Sources //////
+	////// Sources //////
 
-		// Reconcile trust.cert-manager.io Bundles
-		Watches(&trustapi.Bundle{}, &handler.EnqueueRequestForObject{}).
+	// Reconcile trust.cert-manager.io Bundles
+	controller.Watches(&trustapi.Bundle{}, &handler.EnqueueRequestForObject{}).
 
 		// Watch all Namespaces. Cache whole Namespaces to include Phase Status.
 		// Reconcile all Bundles on a Namespace change.
@@ -161,10 +163,10 @@ func AddBundleController(
 					}
 				}
 				return false
-			}), builder.WithPredicates(inNamespacePredicate(b.Options.Namespace))).
+			}), builder.WithPredicates(inNamespacePredicate(b.Options.Namespace)))
 
-		// Complete controller.
-		Complete(b); err != nil {
+	// Complete controller.
+	if err := controller.Complete(b); err != nil {
 		return fmt.Errorf("failed to create Bundle controller: %s", err)
 	}
 

@@ -53,6 +53,9 @@ type Options struct {
 	// loaded in order for the controller to start. If unset, referring to the default
 	// certificate package in a `Bundle` resource will cause that Bundle to error.
 	DefaultPackageLocation string
+
+	// SecretTargetsEnabled controls if secret targets are enabled in the Bundle API.
+	SecretTargetsEnabled bool
 }
 
 // bundle is a controller-runtime controller. Implements the actual controller
@@ -167,6 +170,33 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		return ctrl.Result{}, nil, fmt.Errorf("failed to build bundle source: %w", err)
 	}
 
+	// Detect if we have a bundle with Secret targets but the feature is disabled.
+	if !b.Options.SecretTargetsEnabled && (bundle.Spec.Target.Secret != nil || (bundle.Status.Target != nil &&
+		bundle.Status.Target.Secret != nil)) {
+		if bundle.Status.Target != nil && bundle.Status.Target.Secret != nil {
+			// Keep the target in the status so that we stay in the failed state until the
+			// secret option is enabled.
+			statusPatch.Target = bundle.Status.Target
+		}
+
+		log.Error(err, "bundle has Secret targets but the feature is disabled")
+		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SecretTargetsDisabled", "Bundle has Secret targets but the feature is disabled")
+
+		b.setBundleCondition(
+			bundle.Status.Conditions,
+			&statusPatch.Conditions,
+			trustapi.BundleCondition{
+				Type:               trustapi.BundleConditionSynced,
+				Status:             metav1.ConditionFalse,
+				Reason:             "SecretTargetsDisabled",
+				Message:            "Bundle has Secret targets but the feature is disabled",
+				ObservedGeneration: bundle.Generation,
+			},
+		)
+
+		return ctrl.Result{Requeue: true}, statusPatch, nil
+	}
+
 	statusPatch.Target = &bundle.Spec.Target
 
 	type targetKind string
@@ -222,7 +252,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 	}
 
 	// Find all old existing ConfigMap targetResources.
-	{
+	if bundle.Status.Target != nil && bundle.Status.Target.ConfigMap != nil {
 		configMapList := &metav1.PartialObjectMetadataList{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "v1",
@@ -272,7 +302,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 	}
 
 	// Find all old existing Secret targetResources.
-	{
+	if bundle.Status.Target != nil && bundle.Status.Target.Secret != nil {
 		secretLists := &metav1.PartialObjectMetadataList{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "v1",
