@@ -35,7 +35,7 @@ CONTROLLER_TOOLS_VERSION ?= $(shell grep "sigs.k8s.io/controller-tools" hack/too
 
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
 
-RELEASE_VERSION ?= v0.7.0-alpha.2
+RELEASE_VERSION ?= v0.7.0-alpha.3
 
 BUILDX_BUILDER ?= trust-manager-builder
 
