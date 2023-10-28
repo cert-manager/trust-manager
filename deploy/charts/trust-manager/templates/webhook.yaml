@@ -48,5 +48,5 @@ webhooks:
     clientConfig:
       service:
         name: {{ include "trust-manager.name" . }}
-        namespace: {{ .Release.Namespace | quote }}
+        namespace: {{ include "trust-manager.namespace" . }}
         path: /validate-trust-cert-manager-io-v1alpha1-bundle
