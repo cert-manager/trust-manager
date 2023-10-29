@@ -32,6 +32,7 @@ var BundleHashAnnotationKey = "trust.cert-manager.io/hash"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Timestamp Bundle was created"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
+// +genclient
 
 type Bundle struct {
 	metav1.TypeMeta   `json:",inline"`
