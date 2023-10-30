@@ -24,8 +24,8 @@ maintainers:
 sources:
 - https://github.com/cert-manager/trust-manager
 
-appVersion: v0.7.0-alpha.3
-version: v0.7.0-alpha.3
+appVersion: v0.7.0
+version: v0.7.0
 
 annotations:
   artifacthub.io/license: Apache-2.0
