@@ -25,6 +25,8 @@ Kubernetes: `>= 1.25.0-0`
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Kubernetes Affinty; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core |
+| app.certificateAnnotations | object | `{}` | Annotations for the Certificate/Issuer resources created by trust-manager |
+| app.deploymentAnnotations | object | `{}` | Annotations for the trust-manager Deployment |
 | app.logLevel | int | `1` | Verbosity of trust-manager logging; takes a value from 1-5, with higher being more verbose |
 | app.metrics.port | int | `9402` | Port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'. |
 | app.metrics.service | object | `{"enabled":true,"servicemonitor":{"enabled":false,"interval":"10s","labels":{},"prometheusInstance":"default","scrapeTimeout":"5s"},"type":"ClusterIP"}` | Service to expose metrics endpoint. |
