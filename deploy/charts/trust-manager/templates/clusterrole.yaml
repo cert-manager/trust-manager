@@ -23,8 +23,14 @@ rules:
   - "trust.cert-manager.io"
   resources:
   - "bundles/status"
+  verbs: ["patch"]
+
+- apiGroups:
+  - "trust.cert-manager.io"
+  resources:
+  - "bundles"
   # We also need update here so we can perform migrations from old CSA to SSA.
-  verbs: ["update", "patch"]
+  verbs: ["update"]
 
 - apiGroups:
   - ""
