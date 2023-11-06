@@ -78,7 +78,6 @@ func NewCommand() *cobra.Command {
 				Scheme:                        trustapi.GlobalScheme,
 				EventBroadcaster:              eventBroadcaster,
 				LeaderElection:                true,
-				LeaderElectionNamespace:       opts.Bundle.Namespace,
 				LeaderElectionID:              "trust-manager-leader-election",
 				LeaderElectionReleaseOnCancel: true,
 				ReadinessEndpointName:         opts.ReadyzPath,

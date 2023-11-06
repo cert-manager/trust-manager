@@ -47,11 +47,13 @@ import (
 )
 
 const (
-	bundleName = "test-bundle"
-	key        = "trust.pem"
-	jksKey     = "trust.jks"
-	pkcs12Key  = "trust.p12"
-	data       = dummy.TestCertificate1
+	bundleName    = "test-bundle"
+	key           = "trust.pem"
+	jksKey        = "trust.jks"
+	pkcs12Key     = "trust.p12"
+	pkcs12EncrKey = "trustEncr.p12" // PKCS12 encrypted with arbitrary password
+	pkcs12Passwd  = "pkcs12Passwd"  // arbitrary password for PKCS12
+	data          = dummy.TestCertificate1
 )
 
 func managedFieldEntries(fields []string, dataFields []string) []metav1.ManagedFieldsEntry {
@@ -94,13 +96,17 @@ func Test_syncConfigMapTarget(t *testing.T) {
 		withJKS bool
 		// Add PKCS12 to AdditionalFormats
 		withPKCS12 bool
+		// Add PKCS12 with arbitrary password
+		withPKCS12Encr bool
 		// Expect the configmap to exist at the end of the sync.
 		expExists bool
 		// Expect JKS to exist in the configmap at the end of the sync.
 		expJKS bool
 		// Expect PKCS12 to exist in the configmap at the end of the sync.
 		expPKCS12 bool
-		expEvent  string
+		// Expect PKCS12 ecryped by arbitrary password  to exist in the configmap at the end of the sync.
+		expPKCS12Excr bool
+		expEvent      string
 		// Expect the owner reference of the configmap to point to the bundle.
 		expOwnerReference bool
 		expNeedsUpdate    bool
@@ -439,6 +445,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 			withPKCS12:        true,
 			expExists:         true,
 			expPKCS12:         true,
+			expPKCS12Excr:     false,
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
@@ -578,6 +585,36 @@ func Test_syncConfigMapTarget(t *testing.T) {
 			expOwnerReference: false,
 			expNeedsUpdate:    true,
 		},
+		"if object exists with encryped PKCS12": {
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bundleName,
+					Namespace: "test-namespace",
+					Labels: map[string]string{
+						trustapi.BundleLabelKey: bundleName,
+					},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
+				},
+			},
+			namespace:      corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:    true,
+			withPKCS12:     true,
+			expExists:      true,
+			expPKCS12:      true,
+			expPKCS12Excr:  true,
+			withPKCS12Encr: true,
+			expNeedsUpdate: true,
+		},
 	}
 
 	for name, test := range tests {
@@ -619,10 +656,20 @@ func Test_syncConfigMapTarget(t *testing.T) {
 				},
 			}
 			if test.withJKS {
+				b.Options = Options{
+					PKCS12Password: DefaultJKSPassword,
+				}
 				spec.Target.AdditionalFormats.JKS = &trustapi.KeySelector{Key: jksKey}
+				spec.Target.AdditionalFormats.Password = DefaultJKSPassword
+
 			}
-			if test.withPKCS12 {
+			if test.withPKCS12 && !test.withPKCS12Encr {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12Key}
+			}
+
+			if test.withPKCS12 && test.withPKCS12Encr {
+				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12EncrKey}
+				spec.Target.AdditionalFormats.Password = pkcs12Passwd
 			}
 
 			needsUpdate, err := b.syncConfigMapTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
@@ -684,11 +731,26 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					assert.Equal(t, p.Bytes, cert.Certificate.Content)
 				}
 
-				pkcs12Data, pkcs12Exists := configmap.BinaryData[pkcs12Key]
-				assert.Equal(t, test.expPKCS12, pkcs12Exists)
+				if test.expPKCS12 && !test.expPKCS12Excr {
+					// password-less PKCS12
+					pkcs12Data, pkcs12Exists := configmap.BinaryData[pkcs12Key]
+					assert.Equal(t, test.expPKCS12, pkcs12Exists)
 
-				if test.expPKCS12 {
 					cas, err := pkcs12.DecodeTrustStore(pkcs12Data, DefaultPKCS12Password)
+					assert.Nil(t, err)
+					assert.Len(t, cas, 1)
+
+					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
+					p, _ := pem.Decode([]byte(data))
+					assert.Equal(t, p.Bytes, cas[0].Raw)
+				}
+
+				if test.expPKCS12 && test.expPKCS12Excr {
+					// PKCS12 encrypted with arbitrary password
+					pkcs12Data, pkcs12Exists := configmap.BinaryData[pkcs12EncrKey]
+					assert.Equal(t, test.expPKCS12, pkcs12Exists)
+
+					cas, err := pkcs12.DecodeTrustStore(pkcs12Data, pkcs12Passwd)
 					assert.Nil(t, err)
 					assert.Len(t, cas, 1)
 
@@ -724,13 +786,17 @@ func Test_syncSecretTarget(t *testing.T) {
 		withJKS bool
 		// Add PKCS12 to AdditionalFormats
 		withPKCS12 bool
+		// Add PKCS12 with arbitrary password
+		withPKCS12Encr bool
 		// Expect the secret to exist at the end of the sync.
 		expExists bool
 		// Expect JKS to exist in the secret at the end of the sync.
 		expJKS bool
 		// Expect PKCS12 to exist in the secret at the end of the sync.
 		expPKCS12 bool
-		expEvent  string
+		// Expect PKCS12 ecryped by arbitrary password  to exist in the configmap at the end of the sync.
+		expPKCS12Excr bool
+		expEvent      string
 		// Expect the owner reference of the secret to point to the bundle.
 		expOwnerReference bool
 		expNeedsUpdate    bool
@@ -1207,6 +1273,37 @@ func Test_syncSecretTarget(t *testing.T) {
 			expExists:         false,
 			expOwnerReference: false,
 			expNeedsUpdate:    true,
+			expPKCS12:         false,
+		},
+		"if object exists with encryped PKCS12": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bundleName,
+					Namespace: "test-namespace",
+					Labels: map[string]string{
+						trustapi.BundleLabelKey: bundleName,
+					},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: managedFieldEntries([]string{key}, nil),
+				},
+			},
+			namespace:      corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
+			shouldExist:    true,
+			withPKCS12:     true,
+			expExists:      true,
+			expPKCS12:      true,
+			expPKCS12Excr:  true,
+			withPKCS12Encr: true,
+			expNeedsUpdate: true,
 		},
 	}
 
@@ -1249,10 +1346,19 @@ func Test_syncSecretTarget(t *testing.T) {
 				},
 			}
 			if test.withJKS {
+				b.Options = Options{
+					PKCS12Password: DefaultJKSPassword,
+				}
 				spec.Target.AdditionalFormats.JKS = &trustapi.KeySelector{Key: jksKey}
+				spec.Target.AdditionalFormats.Password = DefaultJKSPassword
 			}
-			if test.withPKCS12 {
+			if test.withPKCS12 && !test.withPKCS12Encr {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12Key}
+			}
+
+			if test.withPKCS12 && test.withPKCS12Encr {
+				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12EncrKey}
+				spec.Target.AdditionalFormats.Password = pkcs12Passwd
 			}
 
 			needsUpdate, err := b.syncSecretTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
@@ -1312,11 +1418,25 @@ func Test_syncSecretTarget(t *testing.T) {
 					assert.Equal(t, p.Bytes, cert.Certificate.Content)
 				}
 
-				pkcs12Data, pkcs12Exists := secret.Data[pkcs12Key]
-				assert.Equal(t, test.expPKCS12, pkcs12Exists)
-
-				if test.expPKCS12 {
+				if test.expPKCS12 && !test.expPKCS12Excr {
+					// password-less PKCS12
+					pkcs12Data, pkcs12Exists := secret.Data[pkcs12Key]
+					assert.Equal(t, test.expPKCS12, pkcs12Exists)
 					cas, err := pkcs12.DecodeTrustStore(pkcs12Data, DefaultPKCS12Password)
+					assert.Nil(t, err)
+					assert.Len(t, cas, 1)
+
+					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
+					p, _ := pem.Decode([]byte(data))
+					assert.Equal(t, p.Bytes, cas[0].Raw)
+				}
+
+				if test.expPKCS12 && test.expPKCS12Excr {
+					// PKCS12 encrypted with arbitrary password
+					pkcs12Data, pkcs12Exists := secret.Data[pkcs12EncrKey]
+					assert.Equal(t, test.expPKCS12, pkcs12Exists)
+
+					cas, err := pkcs12.DecodeTrustStore(pkcs12Data, pkcs12Passwd)
 					assert.Nil(t, err)
 					assert.Len(t, cas, 1)
 
@@ -1549,8 +1669,12 @@ func Test_encodeJKSAliases(t *testing.T) {
 	bundle := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2)
 
 	password := []byte(DefaultJKSPassword)
-
-	jksFile, err := jksEncoder{password: password}.encode(bundle)
+	jksFile, err := jksEncoder{
+		encoderData: encoderData{
+			bundleData:  bundle,
+			storePasswd: string(password),
+		},
+	}.encode()
 	if err != nil {
 		t.Fatalf("didn't expect an error but got: %s", err)
 	}

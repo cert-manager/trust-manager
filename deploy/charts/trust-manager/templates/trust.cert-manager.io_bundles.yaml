@@ -109,6 +109,9 @@ spec:
                             key:
                               description: Key is the key of the entry in the object's `data` field to be used.
                               type: string
+                        password:
+                          description: Arbitrary password for bundle stores
+                          type: string
                         pkcs12:
                           description: PKCS12 requests a PKCS12-formatted binary trust bundle to be written to the target. The bundle is created without a password.
                           type: object
@@ -185,6 +188,7 @@ spec:
                 defaultCAVersion:
                   description: DefaultCAPackageVersion, if set and non-empty, indicates the version information which was retrieved when the set of default CAs was requested in the bundle source. This should only be set if useDefaultCAs was set to "true" on a source, and will be the same for the same version of a bundle with identical certificates.
                   type: string
+<<<<<<< HEAD
                 target:
                   description: Target is the current Target that the Bundle is attempting or has completed syncing the source data to.
                   type: object
@@ -202,6 +206,9 @@ spec:
                             key:
                               description: Key is the key of the entry in the object's `data` field to be used.
                               type: string
+                        password:
+                          description: Arbitrary password for bundle stores
+                          type: string
                         pkcs12:
                           description: PKCS12 requests a PKCS12-formatted binary trust bundle to be written to the target. The bundle is created without a password.
                           type: object
@@ -238,6 +245,8 @@ spec:
                         key:
                           description: Key is the key of the entry in the object's `data` field to be used.
                           type: string
+=======
+>>>>>>> e11a272 (chore!: remove .status.target field from Bundle API)
       served: true
       storage: true
       subresources:

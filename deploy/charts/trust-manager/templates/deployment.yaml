@@ -67,6 +67,7 @@ spec:
           - "--metrics-port={{.Values.app.metrics.port}}"
           - "--readiness-probe-port={{.Values.app.readinessProbe.port}}"
           - "--readiness-probe-path={{.Values.app.readinessProbe.path}}"
+          - "--pkcs12-password={{.Values.app.pkcs12Password}}"
             # trust
           - "--trust-namespace={{.Values.app.trust.namespace}}"
             # webhook

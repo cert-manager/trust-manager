@@ -23,7 +23,6 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
-	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -56,6 +55,9 @@ type Options struct {
 
 	// SecretTargetsEnabled controls if secret targets are enabled in the Bundle API.
 	SecretTargetsEnabled bool
+
+	// Arbitrary password for PKCS12 container
+	PKCS12Password string
 }
 
 // bundle is a controller-runtime controller. Implements the actual controller
@@ -140,7 +142,11 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		log.V(2).Info("migrated bundle status from CSA to SSA")
 	}
 
-	statusPatch = &trustapi.BundleStatus{}
+	// Initialize patch with current status field values, except conditions.
+	// This is done to ensure information is not lost in patch if exiting early.
+	statusPatch = &trustapi.BundleStatus{
+		DefaultCAPackageVersion: bundle.Status.DefaultCAPackageVersion,
+	}
 
 	resolvedBundle, err := b.buildSourceBundle(ctx, &bundle)
 
@@ -171,13 +177,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 	}
 
 	// Detect if we have a bundle with Secret targets but the feature is disabled.
-	if !b.Options.SecretTargetsEnabled && (bundle.Spec.Target.Secret != nil || (bundle.Status.Target != nil &&
-		bundle.Status.Target.Secret != nil)) {
-		if bundle.Status.Target != nil && bundle.Status.Target.Secret != nil {
-			// Keep the target in the status so that we stay in the failed state until the
-			// secret option is enabled.
-			statusPatch.Target = bundle.Status.Target
-		}
+	if !b.Options.SecretTargetsEnabled && bundle.Spec.Target.Secret != nil {
 
 		log.Error(err, "bundle has Secret targets but the feature is disabled")
 		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SecretTargetsDisabled", "Bundle has Secret targets but the feature is disabled")
@@ -194,10 +194,8 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 			},
 		)
 
-		return ctrl.Result{Requeue: true}, statusPatch, nil
+		return ctrl.Result{}, statusPatch, nil
 	}
-
-	statusPatch.Target = &bundle.Spec.Target
 
 	type targetKind string
 	const (
@@ -252,7 +250,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 	}
 
 	// Find all old existing ConfigMap targetResources.
-	if bundle.Status.Target != nil && bundle.Status.Target.ConfigMap != nil {
+	{
 		configMapList := &metav1.PartialObjectMetadataList{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "v1",
@@ -302,7 +300,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 	}
 
 	// Find all old existing Secret targetResources.
-	if bundle.Status.Target != nil && bundle.Status.Target.Secret != nil {
+	if b.Options.SecretTargetsEnabled {
 		secretLists := &metav1.PartialObjectMetadataList{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "v1",
@@ -406,10 +404,6 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 			// We need to update if any target is synced.
 			needsUpdate = true
 		}
-	}
-
-	if bundle.Status.Target == nil || !apiequality.Semantic.DeepEqual(*bundle.Status.Target, bundle.Spec.Target) {
-		needsUpdate = true
 	}
 
 	if b.setBundleStatusDefaultCAVersion(statusPatch, resolvedBundle.defaultCAPackageStringID) {

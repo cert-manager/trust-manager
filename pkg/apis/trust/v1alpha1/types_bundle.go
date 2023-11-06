@@ -32,6 +32,7 @@ var BundleHashAnnotationKey = "trust.cert-manager.io/hash"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Timestamp Bundle was created"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
+// +genclient
 
 type Bundle struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -121,6 +122,8 @@ type AdditionalFormats struct {
 	// PKCS12 requests a PKCS12-formatted binary trust bundle to be written to the target.
 	// The bundle is created without a password.
 	PKCS12 *KeySelector `json:"pkcs12,omitempty"`
+	// Arbitrary password for bundle stores
+	Password string `json:"password,omitempty"`
 }
 
 // NamespaceSelector defines selectors to match on Namespaces.
@@ -149,11 +152,6 @@ type KeySelector struct {
 
 // BundleStatus defines the observed state of the Bundle.
 type BundleStatus struct {
-	// Target is the current Target that the Bundle is attempting or has
-	// completed syncing the source data to.
-	// +optional
-	Target *BundleTarget `json:"target,omitempty"`
-
 	// List of status conditions to indicate the status of the Bundle.
 	// Known condition types are `Bundle`.
 	// +listType=map
