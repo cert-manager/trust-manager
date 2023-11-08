@@ -48,7 +48,13 @@ import (
 func testEncodeJKS(t *testing.T, data string) []byte {
 	t.Helper()
 
-	encoded, err := jksEncoder{password: []byte(DefaultJKSPassword)}.encode(data)
+	encoded, err := jksEncoder{
+		encoderData: encoderData{
+			bundleData:  data,
+			storePasswd: DefaultJKSPassword,
+		},
+	}.encode()
+
 	if err != nil {
 		t.Error(err)
 	}
@@ -1288,6 +1294,7 @@ func Test_Reconcile(t *testing.T) {
 					Log:                  klogr.New(),
 					Namespace:            trustNamespace,
 					SecretTargetsEnabled: !test.disableSecretTargets,
+					PKCS12Password:       DefaultJKSPassword,
 				},
 				patchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
 					logMutex.Lock()

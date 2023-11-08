@@ -31,6 +31,7 @@ Kubernetes: `>= 1.25.0-0`
 | app.metrics.service.enabled | bool | `true` | Create a Service resource to expose metrics endpoint. |
 | app.metrics.service.servicemonitor | object | `{"enabled":false,"interval":"10s","labels":{},"prometheusInstance":"default","scrapeTimeout":"5s"}` | ServiceMonitor resource for this Service. |
 | app.metrics.service.type | string | `"ClusterIP"` | Service type to expose metrics. |
+| app.pkcs12Password | string | `nil` | Password for JKS and PKCS12 stores protection |
 | app.podAnnotations | object | `{}` | Pod annotations to add to trust-manager pods. |
 | app.podLabels | object | `{}` | Pod labels to add to trust-manager pods. |
 | app.readinessProbe.path | string | `"/readyz"` | Path on which to expose trust-manager HTTP readiness probe using default network interface. |

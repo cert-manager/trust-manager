@@ -95,6 +95,7 @@ var _ = Describe("Integration", func() {
 			Log:                    logf.Log,
 			Namespace:              namespace.Name,
 			DefaultPackageLocation: tmpFileName,
+			PKCS12Password:         bundle.DefaultJKSPassword,
 		}
 
 		By("Make sure that manager is not running")

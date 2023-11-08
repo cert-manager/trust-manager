@@ -156,6 +156,10 @@ func (o *Options) addBundleFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&o.Bundle.SecretTargetsEnabled,
 		"secret-targets-enabled", false,
 		"Controls if secret targets are enabled in the Bundle API.")
+
+	fs.StringVar(&o.Bundle.PKCS12Password,
+		"pkcs12-password", "",
+		"Arbitrary password for PKCS12 bundle")
 }
 
 func (o *Options) addWebhookFlags(fs *pflag.FlagSet) {

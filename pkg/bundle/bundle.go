@@ -56,6 +56,9 @@ type Options struct {
 
 	// SecretTargetsEnabled controls if secret targets are enabled in the Bundle API.
 	SecretTargetsEnabled bool
+
+	// Arbitrary password for PKCS12 container
+	PKCS12Password string
 }
 
 // bundle is a controller-runtime controller. Implements the actual controller

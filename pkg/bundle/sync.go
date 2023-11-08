@@ -19,7 +19,6 @@ package bundle
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -63,6 +62,19 @@ const (
 	crRegressionFieldManager = "Go-http-client"
 	fieldManager             = "trust-manager"
 )
+
+type encoderData struct {
+	storePasswd string
+	bundleData  string
+}
+
+type pkcs12Encoder struct {
+	encoderData
+}
+
+type jksEncoder struct {
+	encoderData
+}
 
 type notFoundError struct{ error }
 
@@ -173,15 +185,11 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 	return string(data), nil
 }
 
-type jksEncoder struct {
-	password []byte
-}
-
 // encodeJKS creates a binary JKS file from the given PEM-encoded trust bundle and password.
 // Note that the password is not treated securely; JKS files generally seem to expect a password
 // to exist and so we have the option for one.
-func (e jksEncoder) encode(trustBundle string) ([]byte, error) {
-	cas, err := util.DecodeX509CertificateChainBytes([]byte(trustBundle))
+func (e jksEncoder) encode() ([]byte, error) {
+	cas, err := util.DecodeX509CertificateChainBytes([]byte(e.bundleData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode trust bundle: %w", err)
 	}
@@ -218,7 +226,7 @@ func (e jksEncoder) encode(trustBundle string) ([]byte, error) {
 
 	buf := &bytes.Buffer{}
 
-	err = ks.Store(buf, e.password)
+	err = ks.Store(buf, []byte(e.storePasswd))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create JKS file: %w", err)
 	}
@@ -244,12 +252,10 @@ func certAlias(derData []byte, friendlyName string) string {
 	return certHash[:8] + "|" + friendlyName
 }
 
-type pkcs12Encoder struct {
-	password string
-}
+func (e pkcs12Encoder) encode() ([]byte, error) {
+	var encoder = pkcs12.Modern2023 // user modern PKCS#12 encoder
 
-func (e pkcs12Encoder) encode(trustBundle string) ([]byte, error) {
-	cas, err := util.DecodeX509CertificateChainBytes([]byte(trustBundle))
+	cas, err := util.DecodeX509CertificateChainBytes([]byte(e.bundleData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode trust bundle: %w", err)
 	}
@@ -262,7 +268,7 @@ func (e pkcs12Encoder) encode(trustBundle string) ([]byte, error) {
 		})
 	}
 
-	return pkcs12.EncodeTrustStoreEntries(rand.Reader, entries, e.password)
+	return encoder.EncodeTrustStoreEntries(entries, e.storePasswd)
 }
 
 // syncConfigMapTarget syncs the given data to the target ConfigMap in the given namespace.
@@ -331,7 +337,10 @@ func (b *bundle) syncConfigMapTarget(
 		target.ConfigMap.Key: data,
 	}
 	configmapBinData := map[string][]byte{}
-	if err := populateAdditionalFormatData(data, target, configmapBinData); err != nil {
+
+	// preapre a data which is consumed by JKS or PKCS12 encoders
+	encoderData := encoderData{bundleData: data, storePasswd: b.PKCS12Password}
+	if err := populateAdditionalFormatData(encoderData, target, configmapBinData); err != nil {
 		return false, err
 	}
 
@@ -440,7 +449,9 @@ func (b *bundle) syncSecretTarget(
 		target.Secret.Key: []byte(data),
 	}
 
-	if additionalFormatsErr := populateAdditionalFormatData(data, target, targetData); additionalFormatsErr != nil {
+	// preapre a data which is consumed by JKS or PKCS12 encoders
+	encoderData := encoderData{bundleData: data, storePasswd: b.PKCS12Password}
+	if additionalFormatsErr := populateAdditionalFormatData(encoderData, target, targetData); additionalFormatsErr != nil {
 		return false, err
 	}
 
@@ -482,10 +493,12 @@ func (b *bundle) syncSecretTarget(
 	return true, nil
 }
 
-func populateAdditionalFormatData(data string, target trustapi.BundleTarget, targetMap map[string][]byte) error {
+// Populates additional data formats which were defined in Bundle resource: JKS and/or PKCS12.
+// Both JSK and PKCS12 containers might be encrypted by password.
+func populateAdditionalFormatData(data encoderData, target trustapi.BundleTarget, targetMap map[string][]byte) error {
 	if target.AdditionalFormats != nil {
 		if target.AdditionalFormats.JKS != nil {
-			encoded, err := jksEncoder{password: []byte(DefaultJKSPassword)}.encode(data)
+			encoded, err := jksEncoder{encoderData: data}.encode()
 			if err != nil {
 				return fmt.Errorf("failed to encode JKS: %w", err)
 			}
@@ -493,7 +506,7 @@ func populateAdditionalFormatData(data string, target trustapi.BundleTarget, tar
 		}
 
 		if target.AdditionalFormats.PKCS12 != nil {
-			encoded, err := pkcs12Encoder{password: DefaultPKCS12Password}.encode(data)
+			encoded, err := pkcs12Encoder{encoderData: data}.encode()
 			if err != nil {
 				return fmt.Errorf("failed to encode PKCS12: %w", err)
 			}
