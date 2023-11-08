@@ -121,6 +121,8 @@ type AdditionalFormats struct {
 	// PKCS12 requests a PKCS12-formatted binary trust bundle to be written to the target.
 	// The bundle is created without a password.
 	PKCS12 *KeySelector `json:"pkcs12,omitempty"`
+	// Arbitrary password for bundle stores
+	Password string `json:"password,omitempty"`
 }
 
 // NamespaceSelector defines selectors to match on Namespaces.

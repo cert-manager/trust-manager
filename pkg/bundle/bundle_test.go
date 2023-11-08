@@ -48,7 +48,13 @@ import (
 func testEncodeJKS(t *testing.T, data string) []byte {
 	t.Helper()
 
-	encoded, err := jksEncoder{password: []byte(DefaultJKSPassword)}.encode(data)
+	encoded, err := jksEncoder{
+		encoderData: encoderData{
+			bundleData:  data,
+			storePasswd: DefaultJKSPassword,
+		},
+	}.encode()
+
 	if err != nil {
 		t.Error(err)
 	}
@@ -492,7 +498,7 @@ func Test_Reconcile(t *testing.T) {
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
+					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}, Password: DefaultJKSPassword}),
 					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{
 						ConfigMap:         &trustapi.KeySelector{Key: "old-target"},
 						AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}},
@@ -520,7 +526,7 @@ func Test_Reconcile(t *testing.T) {
 			expBundlePatch: &trustapi.BundleStatus{
 				Target: &trustapi.BundleTarget{
 					ConfigMap:         &trustapi.KeySelector{Key: targetKey},
-					AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}},
+					AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}, Password: DefaultJKSPassword},
 				},
 				Conditions: []trustapi.BundleCondition{
 					{
@@ -566,7 +572,7 @@ func Test_Reconcile(t *testing.T) {
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
+					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}, Password: DefaultJKSPassword}),
 					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{
 						ConfigMap:         &trustapi.KeySelector{Key: targetKey},
 						AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "old-target.jks"}},
@@ -595,7 +601,7 @@ func Test_Reconcile(t *testing.T) {
 			expBundlePatch: &trustapi.BundleStatus{
 				Target: &trustapi.BundleTarget{
 					ConfigMap:         &trustapi.KeySelector{Key: targetKey},
-					AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}},
+					AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}, Password: DefaultJKSPassword},
 				},
 				Conditions: []trustapi.BundleCondition{
 					{

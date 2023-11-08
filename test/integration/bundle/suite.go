@@ -322,7 +322,8 @@ var _ = Describe("Integration", func() {
 		testBundle.Spec.Target = trustapi.BundleTarget{
 			ConfigMap: &trustapi.KeySelector{Key: testData.Target.Key},
 			AdditionalFormats: &trustapi.AdditionalFormats{
-				JKS: &trustapi.KeySelector{Key: "myfile.jks"},
+				JKS:      &trustapi.KeySelector{Key: "myfile.jks"},
+				Password: bundle.DefaultJKSPassword,
 			},
 		}
 
