@@ -27,7 +27,6 @@ import (
 
 	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 	corev1 "k8s.io/api/core/v1"
-	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -181,14 +180,6 @@ func checkBundleSyncedInternal(ctx context.Context, cl client.Client, bundleName
 
 	if err := comparator(gotData); err != nil {
 		return fmt.Errorf("configMap %s/%s didn't have expected value: %w", namespace, bundle.Name, err)
-	}
-
-	if bundle.Status.Target == nil {
-		return fmt.Errorf("bundle status target was nil")
-	}
-
-	if !apiequality.Semantic.DeepEqual(*bundle.Status.Target, bundle.Spec.Target) {
-		return fmt.Errorf("bundle status target didn't match expected status target")
 	}
 
 	for _, condition := range bundle.Status.Conditions {

@@ -32,6 +32,7 @@ GINKGO_VERSION ?= $(shell grep "github.com/onsi/ginkgo/v2" go.mod | awk '{print 
 HELM_DOCS_VERSION ?= $(shell grep "github.com/norwoodj/helm-docs" hack/tools/go.mod | awk '{print $$NF}')
 BOILERSUITE_VERSION ?= $(shell grep "github.com/cert-manager/boilersuite" hack/tools/go.mod | awk '{print $$NF}')
 CONTROLLER_TOOLS_VERSION ?= $(shell grep "sigs.k8s.io/controller-tools" hack/tools/go.mod | awk '{print $$NF}')
+CODE_GENERATOR_VERSION ?= $(shell grep "k8s.io/code-generator" hack/tools/go.mod | awk '{print $$NF}')
 
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
 
@@ -96,12 +97,26 @@ build: | $(BINDIR) ## build trust-manager
 	CGO_ENABLED=0 go build -o $(BINDIR)/trust-manager ./cmd/trust-manager
 
 .PHONY: generate
-generate: depend generate-deepcopy generate-manifests
+generate: depend generate-deepcopy generate-applyconfigurations generate-manifests
 
 .PHONY: generate-deepcopy
 generate-deepcopy: ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 generate-deepcopy: | $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)/controller-gen
 	$(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)/controller-gen object:headerFile="hack/boilerplate/boilerplate.go.txt" paths="./..."
+
+GO_MODULE = $(shell go list -m)
+API_DIRS = $(shell find pkg/apis -mindepth 2 -type d | sed "s|^|$(shell go list -m)/|" | paste -sd ",")
+.PHONY: generate-applyconfigurations
+generate-applyconfigurations: ## Generate applyconfigurations to support typesafe SSA.
+generate-applyconfigurations: | $(BINDIR)/code-generator-$(CODE_GENERATOR_VERSION)/applyconfiguration-gen
+	rm -rf pkg/applyconfigurations
+	@echo ">> generating pkg/applyconfigurations..."
+	$(BINDIR)/code-generator-$(CODE_GENERATOR_VERSION)/applyconfiguration-gen \
+		--go-header-file 	hack/boilerplate/boilerplate.go.txt \
+		--input-dirs		"$(API_DIRS)" \
+		--output-package  	"$(GO_MODULE)/pkg/applyconfigurations" \
+		--trim-path-prefix 	"$(GO_MODULE)" \
+		--output-base    	"."
 
 .PHONY: generate-manifests
 generate-manifests: ## Generate CustomResourceDefinition objects.
@@ -211,6 +226,7 @@ $(BINDIR)/validate-trust-package: cmd/validate-trust-package/main.go pkg/fspkg/p
 
 .PHONY: depend
 depend: $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)/controller-gen
+depend: $(BINDIR)/code-generator-$(CODE_GENERATOR_VERSION)/applyconfiguration-gen
 depend: $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION)/boilersuite
 depend: $(BINDIR)/kind-$(KIND_VERSION)/kind
 depend: $(BINDIR)/helm-docs-$(HELM_DOCS_VERSION)/helm-docs
@@ -222,6 +238,9 @@ depend: $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/etcd
 
 $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)/controller-gen: | $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)
 	cd hack/tools && go build -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
+
+$(BINDIR)/code-generator-$(CODE_GENERATOR_VERSION)/applyconfiguration-gen: | $(BINDIR)/code-generator-$(CODE_GENERATOR_VERSION)
+	cd hack/tools && go build -o $@ k8s.io/code-generator/cmd/applyconfiguration-gen
 
 $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION)/boilersuite: | $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION)
 	cd hack/tools && go build -o $@ github.com/cert-manager/boilersuite
@@ -253,7 +272,7 @@ $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/kube-apiserver: $(BINDIR)/kub
 $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/envtest-bins.tar.gz: | $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)
 	curl -sSL -o $@ "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$(KUBEBUILDER_TOOLS_VERISON)-$(OS)-$(ARCH).tar.gz"
 
-$(BINDIR) $(BINDIR)/kubectl-$(KUBECTL_VERSION) $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON) $(BINDIR)/chart $(BINDIR)/ginkgo-$(GINKGO_VERSION) $(BINDIR)/helm-$(HELM_VERSION) $(BINDIR)/helm-docs-$(HELM_DOCS_VERSION) $(BINDIR)/kind-$(KIND_VERSION) $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION) $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION):
+$(BINDIR) $(BINDIR)/kubectl-$(KUBECTL_VERSION) $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON) $(BINDIR)/chart $(BINDIR)/ginkgo-$(GINKGO_VERSION) $(BINDIR)/helm-$(HELM_VERSION) $(BINDIR)/helm-docs-$(HELM_DOCS_VERSION) $(BINDIR)/kind-$(KIND_VERSION) $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION) $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION) $(BINDIR)/code-generator-$(CODE_GENERATOR_VERSION):
 	@mkdir -p $@
 
 _FORCE:
