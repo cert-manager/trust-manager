@@ -9,27 +9,20 @@
 
 # trust-manager
 
-trust-manager is the easiest way to manage trust bundles in Kubernetes and OpenShift clusters.
+trust-manager is the easiest way to manage trust bundles in Kubernetes and OpenShift clusters!
 
-It orchestrates bundles of trusted X.509 certificates which are primarily used for validating
-certificates during a TLS handshake but can be used in other situations, too.
+It takes a list of trusted certificates which you specify and combines them into a bundle which you can trust directly
+in your applications.
 
-⚠️ trust-manager is still an early stage project and may undergo changes as it's developed!
+Supported sources include a public trust bundle similar to what you get from your Operating System.
 
-We encourage you to run it and test it and we truly believe it's useful! The caveat is that while
-we'll strive to avoid any breaking changes we reserve the right to break things if we _must_.
-
----
-
-Please follow the documentation on [cert-manager.io](https://cert-manager.io/docs/projects/trust-manager/) to
-install trust-manager.
-
-There's also full [API reference documentation](https://cert-manager.io/docs/projects/trust-manager/api-reference/) available.
+[Installation instructions](https://cert-manager.io/docs/projects/trust-manager/) and [API reference documentation](https://cert-manager.io/docs/projects/trust-manager/api-reference/)
+are available on the cert-manager website.
 
 ## Demo
 
 If you've got Docker installed and you just want to play with trust-manager as soon as possible, we provide
-a `demo` command to get a [Kind cluster](https://kind.sigs.k8s.io/) set up with minimal fuss.
+a `demo` command to quickly get a [Kind cluster](https://kind.sigs.k8s.io/) running trust-manager.
 
 First, clone the repo then run `make demo`:
 
