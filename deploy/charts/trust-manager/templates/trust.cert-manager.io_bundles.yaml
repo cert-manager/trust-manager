@@ -185,59 +185,6 @@ spec:
                 defaultCAVersion:
                   description: DefaultCAPackageVersion, if set and non-empty, indicates the version information which was retrieved when the set of default CAs was requested in the bundle source. This should only be set if useDefaultCAs was set to "true" on a source, and will be the same for the same version of a bundle with identical certificates.
                   type: string
-                target:
-                  description: Target is the current Target that the Bundle is attempting or has completed syncing the source data to.
-                  type: object
-                  properties:
-                    additionalFormats:
-                      description: AdditionalFormats specifies any additional formats to write to the target
-                      type: object
-                      properties:
-                        jks:
-                          description: JKS requests a JKS-formatted binary trust bundle to be written to the target. The bundle is created with the hardcoded password "changeit".
-                          type: object
-                          required:
-                            - key
-                          properties:
-                            key:
-                              description: Key is the key of the entry in the object's `data` field to be used.
-                              type: string
-                        pkcs12:
-                          description: PKCS12 requests a PKCS12-formatted binary trust bundle to be written to the target. The bundle is created without a password.
-                          type: object
-                          required:
-                            - key
-                          properties:
-                            key:
-                              description: Key is the key of the entry in the object's `data` field to be used.
-                              type: string
-                    configMap:
-                      description: ConfigMap is the target ConfigMap in Namespaces that all Bundle source data will be synced to.
-                      type: object
-                      required:
-                        - key
-                      properties:
-                        key:
-                          description: Key is the key of the entry in the object's `data` field to be used.
-                          type: string
-                    namespaceSelector:
-                      description: NamespaceSelector will, if set, only sync the target resource in Namespaces which match the selector.
-                      type: object
-                      properties:
-                        matchLabels:
-                          description: MatchLabels matches on the set of labels that must be present on a Namespace for the Bundle target to be synced there.
-                          type: object
-                          additionalProperties:
-                            type: string
-                    secret:
-                      description: Secret is the target Secret that all Bundle source data will be synced to. Using Secrets as targets is only supported if enabled at trust-manager startup. By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
-                      type: object
-                      required:
-                        - key
-                      properties:
-                        key:
-                          description: Key is the key of the entry in the object's `data` field to be used.
-                          type: string
       served: true
       storage: true
       subresources:

@@ -378,9 +378,7 @@ func Test_Reconcile(t *testing.T) {
 				),
 			},
 			existingBundles: []client.Object{
-				gen.BundleFrom(baseBundle,
-					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "old-target"}}}),
-				),
+				gen.BundleFrom(baseBundle),
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			expResult:       ctrl.Result{},
@@ -391,7 +389,6 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
-				Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 				Conditions: []trustapi.BundleCondition{
 					{
 						Type:               trustapi.BundleConditionSynced,
@@ -436,7 +433,6 @@ func Test_Reconcile(t *testing.T) {
 						b.Spec.Target.ConfigMap = nil
 						b.Spec.Target.Secret = keySelector
 					},
-					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{Secret: &trustapi.KeySelector{Key: "old-target"}}}),
 				),
 			},
 			expResult: ctrl.Result{},
@@ -447,7 +443,6 @@ func Test_Reconcile(t *testing.T) {
 				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
-				Target: &trustapi.BundleTarget{Secret: &trustapi.KeySelector{Key: targetKey}},
 				Conditions: []trustapi.BundleCondition{
 					{
 						Type:               trustapi.BundleConditionSynced,
@@ -493,10 +488,6 @@ func Test_Reconcile(t *testing.T) {
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
-					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{
-						ConfigMap:         &trustapi.KeySelector{Key: "old-target"},
-						AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}},
-					}}),
 				)},
 			expResult: ctrl.Result{},
 			expError:  false,
@@ -518,10 +509,6 @@ func Test_Reconcile(t *testing.T) {
 				}, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
-				Target: &trustapi.BundleTarget{
-					ConfigMap:         &trustapi.KeySelector{Key: targetKey},
-					AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}},
-				},
 				Conditions: []trustapi.BundleCondition{
 					{
 						Type:               trustapi.BundleConditionSynced,
@@ -567,10 +554,6 @@ func Test_Reconcile(t *testing.T) {
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
-					gen.SetBundleStatus(trustapi.BundleStatus{Target: &trustapi.BundleTarget{
-						ConfigMap:         &trustapi.KeySelector{Key: targetKey},
-						AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "old-target.jks"}},
-					}}),
 				),
 			},
 			expResult: ctrl.Result{},
@@ -593,10 +576,6 @@ func Test_Reconcile(t *testing.T) {
 				}, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
-				Target: &trustapi.BundleTarget{
-					ConfigMap:         &trustapi.KeySelector{Key: targetKey},
-					AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}},
-				},
 				Conditions: []trustapi.BundleCondition{
 					{
 						Type:               trustapi.BundleConditionSynced,
@@ -631,10 +610,6 @@ func Test_Reconcile(t *testing.T) {
 				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
-				Target: &trustapi.BundleTarget{
-					ConfigMap: &trustapi.KeySelector{Key: targetKey},
-					Secret:    &trustapi.KeySelector{Key: targetKey},
-				},
 				Conditions: []trustapi.BundleCondition{
 					{
 						Type:               trustapi.BundleConditionSynced,
@@ -667,7 +642,6 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
-				Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 				Conditions: []trustapi.BundleCondition{{
 					Type:               trustapi.BundleConditionSynced,
 					Status:             metav1.ConditionTrue,
@@ -707,12 +681,6 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "another-random-namespace", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
-				Target: &trustapi.BundleTarget{
-					ConfigMap: &trustapi.KeySelector{Key: targetKey},
-					NamespaceSelector: &trustapi.NamespaceSelector{
-						MatchLabels: map[string]string{"foo": "bar"},
-					},
-				},
 				Conditions: []trustapi.BundleCondition{{
 					Type:               trustapi.BundleConditionSynced,
 					Status:             metav1.ConditionTrue,
@@ -757,11 +725,6 @@ func Test_Reconcile(t *testing.T) {
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
-				gen.SetBundleStatus(trustapi.BundleStatus{
-					Target: &trustapi.BundleTarget{
-						ConfigMap: &trustapi.KeySelector{Key: targetKey},
-					},
-				}),
 				gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}),
 			)},
 			expResult: ctrl.Result{},
@@ -772,12 +735,6 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{}, nil, nil),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
-				Target: &trustapi.BundleTarget{
-					ConfigMap: &trustapi.KeySelector{Key: targetKey},
-					NamespaceSelector: &trustapi.NamespaceSelector{
-						MatchLabels: map[string]string{"foo": "bar"},
-					},
-				},
 				Conditions: []trustapi.BundleCondition{{
 					Type:               trustapi.BundleConditionSynced,
 					Status:             metav1.ConditionTrue,
@@ -824,9 +781,6 @@ func Test_Reconcile(t *testing.T) {
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleStatus(trustapi.BundleStatus{
-						Target: &trustapi.BundleTarget{
-							ConfigMap: &trustapi.KeySelector{Key: targetKey},
-						},
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
@@ -847,7 +801,6 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
-				Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 				Conditions: []trustapi.BundleCondition{
 					{
 						Type:               trustapi.BundleConditionSynced,
@@ -898,7 +851,6 @@ func Test_Reconcile(t *testing.T) {
 			expError:        false,
 			expPatches:      nil,
 			expBundlePatch: &trustapi.BundleStatus{
-				Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 				Conditions: []trustapi.BundleCondition{
 					{
 						Type:               trustapi.BundleConditionSynced,
@@ -947,7 +899,6 @@ func Test_Reconcile(t *testing.T) {
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
 					gen.SetBundleStatus(trustapi.BundleStatus{
-						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
@@ -1024,7 +975,6 @@ func Test_Reconcile(t *testing.T) {
 				gen.BundleFrom(baseBundle,
 					gen.AppendBundleUsesDefaultPackage(),
 					gen.SetBundleStatus(trustapi.BundleStatus{
-						Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 						Conditions: []trustapi.BundleCondition{
 							{
 								Type:               trustapi.BundleConditionSynced,
@@ -1047,7 +997,6 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)}, nil, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
-				Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 				Conditions: []trustapi.BundleCondition{
 					{
 						Type:               trustapi.BundleConditionSynced,
@@ -1096,7 +1045,6 @@ func Test_Reconcile(t *testing.T) {
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
 				gen.SetBundleStatus(trustapi.BundleStatus{
-					Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 					Conditions: []trustapi.BundleCondition{
 						{
 							Type:               trustapi.BundleConditionSynced,
@@ -1119,7 +1067,6 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
-				Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 				Conditions: []trustapi.BundleCondition{
 					{
 						Type:               trustapi.BundleConditionSynced,
@@ -1174,7 +1121,6 @@ func Test_Reconcile(t *testing.T) {
 					b.Spec.Target.Secret = keySelector
 				},
 				gen.SetBundleStatus(trustapi.BundleStatus{
-					Target: &trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
 					Conditions: []trustapi.BundleCondition{
 						{
 							Type:               trustapi.BundleConditionSynced,
@@ -1200,7 +1146,6 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-2", nil, nil, nil),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
-				Target: &trustapi.BundleTarget{Secret: &trustapi.KeySelector{Key: targetKey}},
 				Conditions: []trustapi.BundleCondition{
 					{
 						Type:               trustapi.BundleConditionSynced,
@@ -1215,14 +1160,17 @@ func Test_Reconcile(t *testing.T) {
 			},
 			expEvent: `Normal Synced Successfully synced Bundle to all namespaces`,
 		},
-		"if Bundle had a Secret target, and Secret targets are disabled, return an error": {
+		"if Bundle has Secret target, and Secret targets are disabled, return an error": {
 			disableSecretTargets: true,
 			existingNamespaces:   namespaces,
 			existingConfigMaps:   []client.Object{sourceConfigMap},
 			existingSecrets:      []client.Object{sourceSecret},
 			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
+				func(b *trustapi.Bundle) {
+					// copy configmap target to secret target
+					b.Spec.Target.Secret = b.Spec.Target.ConfigMap
+				},
 				gen.SetBundleStatus(trustapi.BundleStatus{
-					Target: &trustapi.BundleTarget{Secret: &trustapi.KeySelector{Key: targetKey}}, // The status shows that the target was a Secret
 					Conditions: []trustapi.BundleCondition{
 						{
 							Type:               trustapi.BundleConditionSynced,
@@ -1236,11 +1184,10 @@ func Test_Reconcile(t *testing.T) {
 				}),
 			)},
 			configureDefaultPackage: true,
-			expResult:               ctrl.Result{Requeue: true},
+			expResult:               ctrl.Result{},
 			expError:                false,
 			expPatches:              []interface{}{},
 			expBundlePatch: &trustapi.BundleStatus{
-				Target: &trustapi.BundleTarget{Secret: &trustapi.KeySelector{Key: targetKey}},
 				Conditions: []trustapi.BundleCondition{
 					{
 						Type:               trustapi.BundleConditionSynced,
