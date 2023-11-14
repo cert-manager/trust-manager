@@ -21,7 +21,6 @@ package v1alpha1
 // BundleStatusApplyConfiguration represents an declarative configuration of the BundleStatus type for use
 // with apply.
 type BundleStatusApplyConfiguration struct {
-	Target                  *BundleTargetApplyConfiguration     `json:"target,omitempty"`
 	Conditions              []BundleConditionApplyConfiguration `json:"conditions,omitempty"`
 	DefaultCAPackageVersion *string                             `json:"defaultCAVersion,omitempty"`
 }
@@ -30,14 +29,6 @@ type BundleStatusApplyConfiguration struct {
 // apply.
 func BundleStatus() *BundleStatusApplyConfiguration {
 	return &BundleStatusApplyConfiguration{}
-}
-
-// WithTarget sets the Target field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Target field is set to the value of the last call.
-func (b *BundleStatusApplyConfiguration) WithTarget(value *BundleTargetApplyConfiguration) *BundleStatusApplyConfiguration {
-	b.Target = value
-	return b
 }
 
 // WithConditions adds the given value to the Conditions field in the declarative configuration

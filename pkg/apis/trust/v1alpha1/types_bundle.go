@@ -150,11 +150,6 @@ type KeySelector struct {
 
 // BundleStatus defines the observed state of the Bundle.
 type BundleStatus struct {
-	// Target is the current Target that the Bundle is attempting or has
-	// completed syncing the source data to.
-	// +optional
-	Target *BundleTarget `json:"target,omitempty"`
-
 	// List of status conditions to indicate the status of the Bundle.
 	// Known condition types are `Bundle`.
 	// +listType=map

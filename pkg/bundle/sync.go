@@ -546,9 +546,9 @@ func (b *bundle) needsUpdate(ctx context.Context, log logr.Logger, obj *metav1.P
 		}
 
 		if targetType == "ConfigMap" {
-			if bundle.Status.Target != nil && bundle.Status.Target.ConfigMap != nil {
+			if bundle.Spec.Target.ConfigMap != nil {
 				// Check if we need to migrate the ConfigMap managed fields to the Apply field operation
-				if didMigrate, err := b.migrateConfigMapToApply(ctx, obj, bundle.Status.Target.ConfigMap.Key); err != nil {
+				if didMigrate, err := b.migrateConfigMapToApply(ctx, obj, bundle.Spec.Target.ConfigMap.Key); err != nil {
 					return false, fmt.Errorf("failed to migrate ConfigMap %s/%s to Apply: %w", obj.Namespace, obj.Name, err)
 				} else if didMigrate {
 					log.V(2).Info("migrated configmap from CSA to SSA")
