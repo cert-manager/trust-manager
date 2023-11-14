@@ -82,6 +82,23 @@ The number of replicas of trust-manager to run.
 </tr>
 <tr>
 
+<td>revisionHistoryLimit</td>
+<td>
+
+The number of revisions to keep.
+
+</td>
+<td>number</td>
+<td>
+
+```yaml
+10
+```
+
+</td>
+</tr>
+<tr>
+
 <td>namespace</td>
 <td>
 
@@ -532,6 +549,21 @@ Whether to filter expired certificates from the trust bundle.
 
 ```yaml
 false
+```
+
+</td>
+</tr>
+<tr>
+
+<td>packagesVolume.emptyDir</td>
+<td>
+
+</td>
+<td>object</td>
+<td>
+
+```yaml
+{}
 ```
 
 </td>

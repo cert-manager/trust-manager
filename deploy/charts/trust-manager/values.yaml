@@ -9,6 +9,9 @@ crds:
 # The number of replicas of trust-manager to run.
 replicaCount: 1
 
+# The number of revisions to keep.
+revisionHistoryLimit: 10
+
 # The namespace to install trust-manager into.
 # If not set, the namespace of the release is used.
 # This is helpful when installing trust-manager as a chart dependency (sub chart).
@@ -130,6 +133,10 @@ topologySpreadConstraints: []
 filterExpiredCertificates:
   # Whether to filter expired certificates from the trust bundle.
   enabled: false
+
+# Volume to be mounted in Pods for loading default trust package.
+packagesVolume:
+  emptyDir: {}
 
 
 app:

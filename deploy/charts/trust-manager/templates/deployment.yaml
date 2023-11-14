@@ -7,6 +7,9 @@ metadata:
 {{ include "trust-manager.labels" . | indent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  {{- if ne (quote .Values.revisionHistoryLimit) (quote "") }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  {{- end }}
   selector:
     matchLabels:
       app: {{ include "trust-manager.name" . }}
@@ -123,7 +126,7 @@ spec:
       {{- end }}
       volumes:
       - name: packages
-        emptyDir: {}
+        {{- toYaml .Values.packagesVolume | nindent 8 }}
       - name: tls
         secret:
           defaultMode: 420
