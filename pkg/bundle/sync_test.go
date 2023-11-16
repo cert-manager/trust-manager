@@ -1427,6 +1427,7 @@ func Test_syncSecretTarget(t *testing.T) {
 
 				if test.expPKCS12 && test.expPKCS12Excr {
 					// PKCS12 encrypted with arbitrary password
+
 					pkcs12Data, pkcs12Exists := secret.Data[pkcs12EncrKey]
 					assert.Equal(t, test.expPKCS12, pkcs12Exists)
 
