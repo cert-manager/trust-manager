@@ -442,11 +442,6 @@ var _ = Describe("Integration", func() {
 	It("should migrate bundle from CSA to SSA", func() {
 		Expect(cl.Get(ctx, client.ObjectKeyFromObject(testBundle), testBundle)).ToNot(HaveOccurred())
 		testBundle.Status = trustapi.BundleStatus{
-			Target: &trustapi.BundleTarget{
-				ConfigMap: &trustapi.KeySelector{
-					Key: "OLD_KEY",
-				},
-			},
 			DefaultCAPackageVersion: ptr.To("OLD_VERSION"),
 			Conditions: []trustapi.BundleCondition{
 				{
@@ -467,10 +462,6 @@ var _ = Describe("Integration", func() {
 
 			if err != nil {
 				return err
-			}
-
-			if testBundle.Status.Target.ConfigMap != nil && testBundle.Status.Target.ConfigMap.Key == "OLD_KEY" {
-				return fmt.Errorf("old target still present")
 			}
 
 			if testBundle.Status.DefaultCAPackageVersion != nil && *testBundle.Status.DefaultCAPackageVersion == "OLD_VERSION" {
