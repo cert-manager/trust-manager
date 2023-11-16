@@ -50,9 +50,13 @@ defaultPackageImage:
 app:
   # -- Verbosity of trust-manager logging; takes a value from 1-5, with higher being more verbose
   logLevel: 1
+<<<<<<< HEAD
   # -- Password for JKS and PKCS12 stores protection
   pkcs12Password:
 
+=======
+  
+>>>>>>> addPKCSPasswdBundle
   metrics:
     # -- Port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'.
     port: 9402

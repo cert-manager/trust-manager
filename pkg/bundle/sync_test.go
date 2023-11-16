@@ -660,16 +660,23 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					PKCS12Password: DefaultJKSPassword,
 				}
 				spec.Target.AdditionalFormats.JKS = &trustapi.KeySelector{Key: jksKey}
+				spec.Target.AdditionalFormats.Password = DefaultJKSPassword
+
 			}
 			if test.withPKCS12 && !test.withPKCS12Encr {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12Key}
 			}
 
 			if test.withPKCS12 && test.withPKCS12Encr {
+<<<<<<< HEAD
 				b.Options = Options{
 					PKCS12Password: pkcs12Passwd,
 				}
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12EncrKey}
+=======
+				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12EncrKey}
+				spec.Target.AdditionalFormats.Password = pkcs12Passwd
+>>>>>>> addPKCSPasswdBundle
 			}
 
 			needsUpdate, err := b.syncConfigMapTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
@@ -1350,16 +1357,22 @@ func Test_syncSecretTarget(t *testing.T) {
 					PKCS12Password: DefaultJKSPassword,
 				}
 				spec.Target.AdditionalFormats.JKS = &trustapi.KeySelector{Key: jksKey}
+				spec.Target.AdditionalFormats.Password = DefaultJKSPassword
 			}
 			if test.withPKCS12 && !test.withPKCS12Encr {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12Key}
 			}
 
 			if test.withPKCS12 && test.withPKCS12Encr {
+<<<<<<< HEAD
 				b.Options = Options{
 					PKCS12Password: pkcs12Passwd,
 				}
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12EncrKey}
+=======
+				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12EncrKey}
+				spec.Target.AdditionalFormats.Password = pkcs12Passwd
+>>>>>>> addPKCSPasswdBundle
 			}
 
 			needsUpdate, err := b.syncSecretTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
@@ -1434,6 +1447,10 @@ func Test_syncSecretTarget(t *testing.T) {
 
 				if test.expPKCS12 && test.expPKCS12Excr {
 					// PKCS12 encrypted with arbitrary password
+<<<<<<< HEAD
+=======
+
+>>>>>>> addPKCSPasswdBundle
 					pkcs12Data, pkcs12Exists := secret.Data[pkcs12EncrKey]
 					assert.Equal(t, test.expPKCS12, pkcs12Exists)
 

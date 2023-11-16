@@ -109,6 +109,9 @@ spec:
                             key:
                               description: Key is the key of the entry in the object's `data` field to be used.
                               type: string
+                        password:
+                          description: Arbitrary password for bundle stores
+                          type: string
                         pkcs12:
                           description: PKCS12 requests a PKCS12-formatted binary trust bundle to be written to the target. The bundle is created without a password.
                           type: object
