@@ -338,10 +338,6 @@ func (b *bundle) syncConfigMapTarget(
 	}
 	configmapBinData := map[string][]byte{}
 
-<<<<<<< HEAD
-	// preapre a data which is consumed by JKS or PKCS12 encoders
-	encoderData := encoderData{bundleData: data, storePasswd: b.PKCS12Password}
-=======
 	// Preapre data which is consumed by JKS or PKCS12 encoders
 
 	// Obtain password if AdditionalFormats was set
@@ -351,7 +347,6 @@ func (b *bundle) syncConfigMapTarget(
 	}
 
 	encoderData := encoderData{bundleData: data, storePasswd: storePasswd}
->>>>>>> addPKCSPasswdBundle
 	if err := populateAdditionalFormatData(encoderData, target, configmapBinData); err != nil {
 		return false, err
 	}
@@ -461,10 +456,6 @@ func (b *bundle) syncSecretTarget(
 		target.Secret.Key: []byte(data),
 	}
 
-<<<<<<< HEAD
-	// preapre a data which is consumed by JKS or PKCS12 encoders
-	encoderData := encoderData{bundleData: data, storePasswd: b.PKCS12Password}
-=======
 	// Preapre data which is consumed by JKS or PKCS12 encoders
 
 	// Obtain password if AdditionalFormats was set
@@ -474,7 +465,6 @@ func (b *bundle) syncSecretTarget(
 	}
 
 	encoderData := encoderData{bundleData: data, storePasswd: storePasswd}
->>>>>>> addPKCSPasswdBundle
 	if additionalFormatsErr := populateAdditionalFormatData(encoderData, target, targetData); additionalFormatsErr != nil {
 		return false, err
 	}

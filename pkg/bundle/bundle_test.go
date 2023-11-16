@@ -493,11 +493,7 @@ func Test_Reconcile(t *testing.T) {
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-<<<<<<< HEAD
-					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
-=======
 					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}, Password: DefaultJKSPassword}),
->>>>>>> addPKCSPasswdBundle
 				)},
 			expResult: ctrl.Result{},
 			expError:  false,
@@ -563,11 +559,7 @@ func Test_Reconcile(t *testing.T) {
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-<<<<<<< HEAD
-					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
-=======
 					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}, Password: DefaultJKSPassword}),
->>>>>>> addPKCSPasswdBundle
 				),
 			},
 			expResult: ctrl.Result{},
