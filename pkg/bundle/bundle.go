@@ -30,12 +30,11 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/clock"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
+	trustapiac "github.com/cert-manager/trust-manager/pkg/applyconfigurations/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
 
@@ -94,18 +93,21 @@ type bundle struct {
 func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	result, statusPatch, resultErr := b.reconcileBundle(ctx, req)
 	if statusPatch != nil {
-		con, patch, err := ssa_client.GenerateBundleStatusPatch(req.Name, req.Namespace, statusPatch)
-		if err != nil {
-			err = fmt.Errorf("failed to generate bundle status patch: %w", err)
-			return ctrl.Result{}, utilerrors.NewAggregate([]error{resultErr, err})
+		bundlePatch := trustapiac.Bundle(req.Name, req.Namespace).
+			WithStatus(trustapiac.BundleStatus().WithConditions())
+		bundlePatch.Status.DefaultCAPackageVersion = statusPatch.DefaultCAPackageVersion
+		for _, condition := range statusPatch.Conditions {
+			bundlePatch.Status.Conditions = append(bundlePatch.Status.Conditions,
+				*trustapiac.BundleCondition().
+					WithType(condition.Type).
+					WithStatus(condition.Status).
+					WithLastTransitionTime(*condition.LastTransitionTime).
+					WithReason(condition.Reason).
+					WithMessage(condition.Message).
+					WithObservedGeneration(condition.ObservedGeneration))
 		}
 
-		if err := b.client.Status().Patch(ctx, con, patch, &client.SubResourcePatchOptions{
-			PatchOptions: client.PatchOptions{
-				FieldManager: fieldManager,
-				Force:        ptr.To(true),
-			},
-		}); err != nil {
+		if err := patchStatus(ctx, b.client.Status(), bundlePatch); err != nil {
 			err = fmt.Errorf("failed to apply bundle status patch: %w", err)
 			return ctrl.Result{}, utilerrors.NewAggregate([]error{resultErr, err})
 		}

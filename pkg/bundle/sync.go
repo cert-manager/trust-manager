@@ -40,7 +40,6 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
 	"github.com/cert-manager/trust-manager/pkg/util"
 )
 
@@ -590,53 +589,37 @@ func listManagedProperties(configmap *metav1.PartialObjectMetadata, fieldManager
 	return properties, nil
 }
 
-func (b *bundle) patchConfigMapResource(ctx context.Context, applyConfig *coreapplyconfig.ConfigMapApplyConfiguration) error {
+func (b *bundle) patchConfigMapResource(ctx context.Context, configMap *coreapplyconfig.ConfigMapApplyConfiguration) error {
 	if b.patchResourceOverwrite != nil {
-		return b.patchResourceOverwrite(ctx, applyConfig)
+		return b.patchResourceOverwrite(ctx, configMap)
 	}
 
-	configMap, patch, err := ssa_client.GenerateConfigMapPatch(applyConfig)
-	if err != nil {
-		return fmt.Errorf("failed to generate patch: %w", err)
-	}
-
-	err = b.client.Patch(ctx, configMap, patch, &client.PatchOptions{
-		FieldManager: fieldManager,
-		Force:        ptr.To(true),
-	})
+	err := patchResource(ctx, b.client, configMap)
 	if err != nil {
 		return err
 	}
 
 	// If the configMap is empty, delete it
 	if len(configMap.Data) == 0 && len(configMap.BinaryData) == 0 {
-		return b.client.Delete(ctx, configMap)
+		return deleteResource(ctx, b.client, configMap)
 	}
 
 	return nil
 }
 
-func (b *bundle) patchSecretResource(ctx context.Context, applyConfig *coreapplyconfig.SecretApplyConfiguration) error {
+func (b *bundle) patchSecretResource(ctx context.Context, secret *coreapplyconfig.SecretApplyConfiguration) error {
 	if b.patchResourceOverwrite != nil {
-		return b.patchResourceOverwrite(ctx, applyConfig)
+		return b.patchResourceOverwrite(ctx, secret)
 	}
 
-	secret, patch, err := ssa_client.GenerateSecretPatch(applyConfig)
-	if err != nil {
-		return fmt.Errorf("failed to generate patch: %w", err)
-	}
-
-	err = b.client.Patch(ctx, secret, patch, &client.PatchOptions{
-		FieldManager: fieldManager,
-		Force:        ptr.To(true),
-	})
+	err := patchResource(ctx, b.client, secret)
 	if err != nil {
 		return err
 	}
 
 	// If the secret is empty, delete it
 	if len(secret.Data) == 0 {
-		return b.client.Delete(ctx, secret)
+		return deleteResource(ctx, b.client, secret)
 	}
 
 	return nil
