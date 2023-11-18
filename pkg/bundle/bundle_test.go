@@ -913,11 +913,22 @@ func Test_Reconcile(t *testing.T) {
 				),
 			},
 
-			expResult:      ctrl.Result{},
-			expError:       false,
-			expPatches:     nil,
-			expBundlePatch: nil,
-			expEvent:       "",
+			expResult:  ctrl.Result{},
+			expError:   false,
+			expPatches: nil,
+			expBundlePatch: &trustapi.BundleStatus{
+				Conditions: []trustapi.BundleCondition{
+					{
+						Type:               trustapi.BundleConditionSynced,
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: fixedmetatime,
+						Reason:             "Synced",
+						Message:            "Successfully synced Bundle to all namespaces",
+						ObservedGeneration: bundleGeneration,
+					},
+				},
+			},
+			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
 		"if Bundle references default CAs but it wasn't configured at startup, update with error": {
 			existingNamespaces: namespaces,

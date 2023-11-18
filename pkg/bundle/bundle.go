@@ -346,15 +346,12 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		}
 	}
 
-	var needsUpdate bool
-
 	for target, shouldExist := range targetResources {
 		targetLog := log.WithValues("target", target)
-		var cmSynced, secretSynced bool
 		var err error
 
 		if target.Kind == configMapTarget {
-			cmSynced, err = b.syncConfigMapTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle.data, shouldExist)
+			_, err = b.syncConfigMapTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle.data, shouldExist)
 			if err != nil {
 				targetLog.Error(err, "failed sync bundle to ConfigMap target namespace")
 				b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncConfigMapTargetFailed", "Failed to sync target in Namespace %q: %s", target.Namespace, err)
@@ -376,7 +373,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		}
 
 		if target.Kind == secretTarget {
-			secretSynced, err = b.syncSecretTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle.data, shouldExist)
+			_, err = b.syncSecretTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle.data, shouldExist)
 			if err != nil {
 				targetLog.Error(err, "failed sync bundle to Secret target namespace")
 				b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncSecretTargetFailed", "Failed to sync target in Namespace %q: %s", target.Namespace, err)
@@ -396,15 +393,13 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 				return ctrl.Result{Requeue: true}, statusPatch, nil
 			}
 		}
-
-		if cmSynced || secretSynced {
-			// We need to update if any target is synced.
-			needsUpdate = true
-		}
 	}
 
-	if b.setBundleStatusDefaultCAVersion(statusPatch, resolvedBundle.defaultCAPackageStringID) {
-		needsUpdate = true
+	if resolvedBundle.defaultCAPackageStringID != "" {
+		statusPatch.DefaultCAPackageVersion = &resolvedBundle.defaultCAPackageStringID
+	} else {
+		// Must reset the value set initially to support an eventual early exit
+		statusPatch.DefaultCAPackageVersion = nil
 	}
 
 	message := "Successfully synced Bundle to all namespaces"
@@ -418,10 +413,6 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		Reason:             "Synced",
 		Message:            message,
 		ObservedGeneration: bundle.Generation,
-	}
-
-	if !needsUpdate && bundleHasCondition(bundle.Status.Conditions, syncedCondition) {
-		return ctrl.Result{}, nil, nil
 	}
 
 	log.V(2).Info("successfully synced bundle")

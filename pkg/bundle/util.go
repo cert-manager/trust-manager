@@ -22,27 +22,6 @@ import (
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 )
 
-// bundleHasCondition returns true if the bundle has an exact matching condition.
-// The given condition will have the ObservedGeneration set to the bundle Generation.
-// The LastTransitionTime is ignored.
-func bundleHasCondition(
-	existingConditions []trustapi.BundleCondition,
-	searchCondition trustapi.BundleCondition,
-) bool {
-	for _, existingCondition := range existingConditions {
-		if existingCondition.Type == searchCondition.Type {
-			// Compare all fields except LastTransitionTime
-			// We ignore the LastTransitionTime as this is set by the controller
-			return existingCondition.Status == searchCondition.Status &&
-				existingCondition.Reason == searchCondition.Reason &&
-				existingCondition.Message == searchCondition.Message &&
-				existingCondition.ObservedGeneration == searchCondition.ObservedGeneration
-		}
-	}
-
-	return false
-}
-
 // setBundleCondition updates the bundle with the given condition.
 // Will overwrite any existing condition of the same type.
 // LastTransitionTime will not be updated if an existing condition of the same
@@ -85,34 +64,4 @@ func (b *bundle) setBundleCondition(
 	*patchConditions = append(*patchConditions, newCondition)
 
 	return newCondition
-}
-
-// setBundleStatusDefaultCAVersion ensures that the given Bundle's Status correctly
-// reflects the defaultCAVersion represented by requiredID.
-// Returns true if the bundle status needs updating.
-func (b *bundle) setBundleStatusDefaultCAVersion(
-	bundleStatus *trustapi.BundleStatus,
-	requiredID string,
-) bool {
-	currentVersion := bundleStatus.DefaultCAPackageVersion
-
-	// If both are empty, we don't need to update
-	if len(requiredID) == 0 && currentVersion == nil {
-		return false
-	}
-
-	// If requiredID is empty, we need to update if currentVersion is not
-	if len(requiredID) == 0 && currentVersion != nil {
-		bundleStatus.DefaultCAPackageVersion = nil
-		return true
-	}
-
-	// If requiredID is not empty, we need to update if currentVersion is empty or
-	// if currentVersion is not equal to requiredID
-	if currentVersion == nil || *currentVersion != requiredID {
-		bundleStatus.DefaultCAPackageVersion = &requiredID
-		return true
-	}
-
-	return false
 }
