@@ -40,6 +40,7 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustapiac "github.com/cert-manager/trust-manager/pkg/applyconfigurations/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/test/dummy"
 	"github.com/cert-manager/trust-manager/test/gen"
@@ -270,7 +271,7 @@ func Test_Reconcile(t *testing.T) {
 		expResult               ctrl.Result
 		expError                bool
 		expPatches              []interface{}
-		expBundlePatch          *trustapi.BundleStatus
+		expBundlePatch          *trustapiac.BundleStatusApplyConfiguration
 		expEvent                string
 	}{
 		"if no bundle exists, should return nothing": {
@@ -286,16 +287,15 @@ func Test_Reconcile(t *testing.T) {
 			existingBundles:    []client.Object{gen.BundleFrom(baseBundle)},
 			expResult:          ctrl.Result{},
 			expError:           false,
-			expBundlePatch: &trustapi.BundleStatus{Conditions: []trustapi.BundleCondition{
-				{
-					Type:               trustapi.BundleConditionSynced,
-					Status:             metav1.ConditionFalse,
-					Reason:             "SourceNotFound",
-					Message:            `Bundle source was not found: failed to retrieve bundle from source: configmaps "source-configmap" not found`,
-					ObservedGeneration: bundleGeneration,
-					LastTransitionTime: fixedmetatime,
-				},
-			}},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionFalse).
+					WithReason("SourceNotFound").
+					WithMessage(`Bundle source was not found: failed to retrieve bundle from source: configmaps "source-configmap" not found`).
+					WithObservedGeneration(bundleGeneration).
+					WithLastTransitionTime(fixedmetatime),
+			),
 			expEvent: `Warning SourceNotFound Bundle source was not found: failed to retrieve bundle from source: configmaps "source-configmap" not found`,
 		},
 		"if Bundle references a ConfigMap whose key doesn't exist, update with 'not found'": {
@@ -305,16 +305,15 @@ func Test_Reconcile(t *testing.T) {
 			existingBundles:    []client.Object{gen.BundleFrom(baseBundle)},
 			expResult:          ctrl.Result{},
 			expError:           false,
-			expBundlePatch: &trustapi.BundleStatus{Conditions: []trustapi.BundleCondition{
-				{
-					Type:               trustapi.BundleConditionSynced,
-					Status:             metav1.ConditionFalse,
-					Reason:             "SourceNotFound",
-					Message:            `Bundle source was not found: failed to retrieve bundle from source: no data found in ConfigMap trust-namespace/source-configmap at key "configmap-key"`,
-					ObservedGeneration: bundleGeneration,
-					LastTransitionTime: fixedmetatime,
-				},
-			}},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionFalse).
+					WithReason("SourceNotFound").
+					WithMessage(`Bundle source was not found: failed to retrieve bundle from source: no data found in ConfigMap trust-namespace/source-configmap at key "configmap-key"`).
+					WithObservedGeneration(bundleGeneration).
+					WithLastTransitionTime(fixedmetatime),
+			),
 			expEvent: `Warning SourceNotFound Bundle source was not found: failed to retrieve bundle from source: no data found in ConfigMap trust-namespace/source-configmap at key "configmap-key"`,
 		},
 		"if Bundle references a Secret which does not exist, update with 'not found'": {
@@ -323,16 +322,15 @@ func Test_Reconcile(t *testing.T) {
 			existingBundles:    []client.Object{gen.BundleFrom(baseBundle)},
 			expResult:          ctrl.Result{},
 			expError:           false,
-			expBundlePatch: &trustapi.BundleStatus{Conditions: []trustapi.BundleCondition{
-				{
-					Type:               trustapi.BundleConditionSynced,
-					Status:             metav1.ConditionFalse,
-					Reason:             "SourceNotFound",
-					Message:            `Bundle source was not found: failed to retrieve bundle from source: secrets "source-secret" not found`,
-					ObservedGeneration: bundleGeneration,
-					LastTransitionTime: fixedmetatime,
-				},
-			}},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionFalse).
+					WithReason("SourceNotFound").
+					WithMessage(`Bundle source was not found: failed to retrieve bundle from source: secrets "source-secret" not found`).
+					WithObservedGeneration(bundleGeneration).
+					WithLastTransitionTime(fixedmetatime),
+			),
 			expEvent: `Warning SourceNotFound Bundle source was not found: failed to retrieve bundle from source: secrets "source-secret" not found`,
 		},
 		"if Bundle references a Secret whose key doesn't exist, update with 'not found'": {
@@ -342,16 +340,15 @@ func Test_Reconcile(t *testing.T) {
 			existingBundles:    []client.Object{gen.BundleFrom(baseBundle)},
 			expResult:          ctrl.Result{},
 			expError:           false,
-			expBundlePatch: &trustapi.BundleStatus{Conditions: []trustapi.BundleCondition{
-				{
-					Type:               trustapi.BundleConditionSynced,
-					Status:             metav1.ConditionFalse,
-					Reason:             "SourceNotFound",
-					Message:            `Bundle source was not found: failed to retrieve bundle from source: no data found in Secret trust-namespace/source-secret at key "secret-key"`,
-					ObservedGeneration: bundleGeneration,
-					LastTransitionTime: fixedmetatime,
-				},
-			}},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionFalse).
+					WithReason("SourceNotFound").
+					WithMessage(`Bundle source was not found: failed to retrieve bundle from source: no data found in Secret trust-namespace/source-secret at key "secret-key"`).
+					WithObservedGeneration(bundleGeneration).
+					WithLastTransitionTime(fixedmetatime),
+			),
 			expEvent: `Warning SourceNotFound Bundle source was not found: failed to retrieve bundle from source: no data found in Secret trust-namespace/source-secret at key "secret-key"`,
 		},
 		"if Bundle configMap Target changes, delete old targets and update": {
@@ -389,18 +386,15 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
-				Conditions: []trustapi.BundleCondition{
-					{
-						Type:               trustapi.BundleConditionSynced,
-						Status:             metav1.ConditionTrue,
-						LastTransitionTime: fixedmetatime,
-						Reason:             "Synced",
-						Message:            "Successfully synced Bundle to all namespaces",
-						ObservedGeneration: bundleGeneration,
-					},
-				},
-			},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionTrue).
+					WithLastTransitionTime(fixedmetatime).
+					WithReason("Synced").
+					WithMessage("Successfully synced Bundle to all namespaces").
+					WithObservedGeneration(bundleGeneration),
+			),
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
 		"if Bundle secret Target changes, delete old targets and update": {
@@ -443,18 +437,15 @@ func Test_Reconcile(t *testing.T) {
 				secretPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
 				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
-				Conditions: []trustapi.BundleCondition{
-					{
-						Type:               trustapi.BundleConditionSynced,
-						Status:             metav1.ConditionTrue,
-						LastTransitionTime: fixedmetatime,
-						Reason:             "Synced",
-						Message:            "Successfully synced Bundle to all namespaces",
-						ObservedGeneration: bundleGeneration,
-					},
-				},
-			},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionTrue).
+					WithLastTransitionTime(fixedmetatime).
+					WithReason("Synced").
+					WithMessage("Successfully synced Bundle to all namespaces").
+					WithObservedGeneration(bundleGeneration),
+			),
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
 		"if Bundle Status Target doesn't match the Spec Target, delete all old targets and update": {
@@ -516,18 +507,15 @@ func Test_Reconcile(t *testing.T) {
 					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
 				}, ptr.To(targetKey)),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
-				Conditions: []trustapi.BundleCondition{
-					{
-						Type:               trustapi.BundleConditionSynced,
-						Status:             metav1.ConditionTrue,
-						LastTransitionTime: fixedmetatime,
-						Reason:             "Synced",
-						Message:            "Successfully synced Bundle to all namespaces",
-						ObservedGeneration: bundleGeneration,
-					},
-				},
-			},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionTrue).
+					WithLastTransitionTime(fixedmetatime).
+					WithReason("Synced").
+					WithMessage("Successfully synced Bundle to all namespaces").
+					WithObservedGeneration(bundleGeneration),
+			),
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
 		"if Bundle Status Target.AdditionalFormats.JKS doesn't match the Spec Target.AdditionalFormats.JKS, delete old targets and update": {
@@ -590,18 +578,15 @@ func Test_Reconcile(t *testing.T) {
 					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
 				}, ptr.To(targetKey)),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
-				Conditions: []trustapi.BundleCondition{
-					{
-						Type:               trustapi.BundleConditionSynced,
-						Status:             metav1.ConditionTrue,
-						LastTransitionTime: fixedmetatime,
-						Reason:             "Synced",
-						Message:            "Successfully synced Bundle to all namespaces",
-						ObservedGeneration: bundleGeneration,
-					},
-				},
-			},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionTrue).
+					WithLastTransitionTime(fixedmetatime).
+					WithReason("Synced").
+					WithMessage("Successfully synced Bundle to all namespaces").
+					WithObservedGeneration(bundleGeneration),
+			),
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
 		"if Bundle with secret and configmap target not synced everywhere, sync and update Synced": {
@@ -624,18 +609,15 @@ func Test_Reconcile(t *testing.T) {
 				secretPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
 				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
-				Conditions: []trustapi.BundleCondition{
-					{
-						Type:               trustapi.BundleConditionSynced,
-						Status:             metav1.ConditionTrue,
-						LastTransitionTime: fixedmetatime,
-						Reason:             "Synced",
-						Message:            "Successfully synced Bundle to all namespaces",
-						ObservedGeneration: bundleGeneration,
-					},
-				},
-			},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionTrue).
+					WithLastTransitionTime(fixedmetatime).
+					WithReason("Synced").
+					WithMessage("Successfully synced Bundle to all namespaces").
+					WithObservedGeneration(bundleGeneration),
+			),
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
 		"if Bundle not synced everywhere, sync except Namespaces that are terminating and update Synced": {
@@ -656,16 +638,15 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
-				Conditions: []trustapi.BundleCondition{{
-					Type:               trustapi.BundleConditionSynced,
-					Status:             metav1.ConditionTrue,
-					LastTransitionTime: fixedmetatime,
-					Reason:             "Synced",
-					Message:            "Successfully synced Bundle to all namespaces",
-					ObservedGeneration: bundleGeneration,
-				}},
-			},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionTrue).
+					WithLastTransitionTime(fixedmetatime).
+					WithReason("Synced").
+					WithMessage("Successfully synced Bundle to all namespaces").
+					WithObservedGeneration(bundleGeneration),
+			),
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
 		"if Bundle not synced everywhere, sync except Namespaces that don't match labels and update Synced": {
@@ -695,16 +676,15 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "random-namespace", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 				configMapPatch(baseBundle.Name, "another-random-namespace", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
-				Conditions: []trustapi.BundleCondition{{
-					Type:               trustapi.BundleConditionSynced,
-					Status:             metav1.ConditionTrue,
-					LastTransitionTime: fixedmetatime,
-					Reason:             "Synced",
-					Message:            "Successfully synced Bundle to namespaces that match this label selector: foo=bar",
-					ObservedGeneration: bundleGeneration,
-				}},
-			},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionTrue).
+					WithLastTransitionTime(fixedmetatime).
+					WithReason("Synced").
+					WithMessage("Successfully synced Bundle to namespaces that match this label selector: foo=bar").
+					WithObservedGeneration(bundleGeneration),
+			),
 			expEvent: "Normal Synced Successfully synced Bundle to namespaces that match this label selector: foo=bar",
 		},
 		"if Bundle not synced everywhere, sync except Namespaces that don't match labels and update Synced. Should delete ConfigMaps in wrong namespaces.": {
@@ -749,16 +729,15 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{}, nil, nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{}, nil, nil),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
-				Conditions: []trustapi.BundleCondition{{
-					Type:               trustapi.BundleConditionSynced,
-					Status:             metav1.ConditionTrue,
-					LastTransitionTime: fixedmetatime,
-					Reason:             "Synced",
-					Message:            "Successfully synced Bundle to namespaces that match this label selector: foo=bar",
-					ObservedGeneration: bundleGeneration,
-				}},
-			},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionTrue).
+					WithLastTransitionTime(fixedmetatime).
+					WithReason("Synced").
+					WithMessage("Successfully synced Bundle to namespaces that match this label selector: foo=bar").
+					WithObservedGeneration(bundleGeneration),
+			),
 			expEvent: "Normal Synced Successfully synced Bundle to namespaces that match this label selector: foo=bar",
 		},
 		"if Bundle synced but doesn't have owner reference, should sync and update": {
@@ -815,18 +794,15 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
-				Conditions: []trustapi.BundleCondition{
-					{
-						Type:               trustapi.BundleConditionSynced,
-						Status:             metav1.ConditionTrue,
-						LastTransitionTime: fixedmetatime,
-						Reason:             "Synced",
-						Message:            "Successfully synced Bundle to all namespaces",
-						ObservedGeneration: bundleGeneration,
-					},
-				},
-			},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionTrue).
+					WithLastTransitionTime(fixedmetatime).
+					WithReason("Synced").
+					WithMessage("Successfully synced Bundle to all namespaces").
+					WithObservedGeneration(bundleGeneration),
+			),
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
 		"if Bundle synced but doesn't have condition, should add condition": {
@@ -865,18 +841,15 @@ func Test_Reconcile(t *testing.T) {
 			expResult:       ctrl.Result{},
 			expError:        false,
 			expPatches:      nil,
-			expBundlePatch: &trustapi.BundleStatus{
-				Conditions: []trustapi.BundleCondition{
-					{
-						Type:               trustapi.BundleConditionSynced,
-						Status:             metav1.ConditionTrue,
-						LastTransitionTime: fixedmetatime,
-						Reason:             "Synced",
-						Message:            "Successfully synced Bundle to all namespaces",
-						ObservedGeneration: bundleGeneration,
-					},
-				},
-			},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionTrue).
+					WithLastTransitionTime(fixedmetatime).
+					WithReason("Synced").
+					WithMessage("Successfully synced Bundle to all namespaces").
+					WithObservedGeneration(bundleGeneration),
+			),
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
 		"if Bundle synced, should do nothing": {
@@ -942,16 +915,15 @@ func Test_Reconcile(t *testing.T) {
 			expResult:          ctrl.Result{},
 			expError:           false,
 			expPatches:         nil,
-			expBundlePatch: &trustapi.BundleStatus{Conditions: []trustapi.BundleCondition{
-				{
-					Type:               trustapi.BundleConditionSynced,
-					Status:             metav1.ConditionFalse,
-					Reason:             "SourceNotFound",
-					Message:            `Bundle source was not found: failed to retrieve bundle from source: no default package was specified when trust-manager was started; default CAs not available`,
-					ObservedGeneration: bundleGeneration,
-					LastTransitionTime: fixedmetatime,
-				},
-			}},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionFalse).
+					WithReason("SourceNotFound").
+					WithMessage(`Bundle source was not found: failed to retrieve bundle from source: no default package was specified when trust-manager was started; default CAs not available`).
+					WithObservedGeneration(bundleGeneration).
+					WithLastTransitionTime(fixedmetatime),
+			),
 			expEvent: `Warning SourceNotFound Bundle source was not found: failed to retrieve bundle from source: no default package was specified when trust-manager was started; default CAs not available`,
 		},
 		"if Bundle references the configured default CAs, update targets with the CAs and ensure Bundle status references the configured default package version": {
@@ -1011,19 +983,15 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)}, nil, ptr.To(targetKey)),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)}, nil, ptr.To(targetKey)),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
-				Conditions: []trustapi.BundleCondition{
-					{
-						Type:               trustapi.BundleConditionSynced,
-						Status:             metav1.ConditionTrue,
-						LastTransitionTime: fixedmetatime,
-						Reason:             "Synced",
-						Message:            "Successfully synced Bundle to all namespaces",
-						ObservedGeneration: bundleGeneration,
-					},
-				},
-				DefaultCAPackageVersion: ptr.To(testDefaultPackage.StringID()),
-			},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionTrue).
+					WithLastTransitionTime(fixedmetatime).
+					WithReason("Synced").
+					WithMessage("Successfully synced Bundle to all namespaces").
+					WithObservedGeneration(bundleGeneration),
+			).WithDefaultCAPackageVersion(testDefaultPackage.StringID()),
 			expEvent: `Normal Synced Successfully synced Bundle to all namespaces`,
 		},
 		"if Bundle removes reference to default package, remove version from Bundle Status and update targets": {
@@ -1081,19 +1049,15 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey)),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
-				Conditions: []trustapi.BundleCondition{
-					{
-						Type:               trustapi.BundleConditionSynced,
-						Status:             metav1.ConditionTrue,
-						LastTransitionTime: fixedmetatime,
-						Reason:             "Synced",
-						Message:            "Successfully synced Bundle to all namespaces",
-						ObservedGeneration: bundleGeneration,
-					},
-				},
-				DefaultCAPackageVersion: nil,
-			},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionTrue).
+					WithLastTransitionTime(fixedmetatime).
+					WithReason("Synced").
+					WithMessage("Successfully synced Bundle to all namespaces").
+					WithObservedGeneration(bundleGeneration),
+			),
 			expEvent: `Normal Synced Successfully synced Bundle to all namespaces`,
 		},
 		"if Bundle switches from ConfigMap target to Secret target, remove ConfigMaps and create Secrets": {
@@ -1160,19 +1124,15 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", nil, nil, nil),
 				configMapPatch(baseBundle.Name, "ns-2", nil, nil, nil),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
-				Conditions: []trustapi.BundleCondition{
-					{
-						Type:               trustapi.BundleConditionSynced,
-						Status:             metav1.ConditionTrue,
-						LastTransitionTime: fixedmetatime,
-						Reason:             "Synced",
-						Message:            "Successfully synced Bundle to all namespaces",
-						ObservedGeneration: bundleGeneration,
-					},
-				},
-				DefaultCAPackageVersion: nil,
-			},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionTrue).
+					WithLastTransitionTime(fixedmetatime).
+					WithReason("Synced").
+					WithMessage("Successfully synced Bundle to all namespaces").
+					WithObservedGeneration(bundleGeneration),
+			),
 			expEvent: `Normal Synced Successfully synced Bundle to all namespaces`,
 		},
 		"if Bundle has Secret target, and Secret targets are disabled, return an error": {
@@ -1202,19 +1162,15 @@ func Test_Reconcile(t *testing.T) {
 			expResult:               ctrl.Result{},
 			expError:                false,
 			expPatches:              []interface{}{},
-			expBundlePatch: &trustapi.BundleStatus{
-				Conditions: []trustapi.BundleCondition{
-					{
-						Type:               trustapi.BundleConditionSynced,
-						Status:             metav1.ConditionFalse,
-						LastTransitionTime: fixedmetatime,
-						Reason:             "SecretTargetsDisabled",
-						Message:            "Bundle has Secret targets but the feature is disabled",
-						ObservedGeneration: bundleGeneration,
-					},
-				},
-				DefaultCAPackageVersion: nil,
-			},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionFalse).
+					WithLastTransitionTime(fixedmetatime).
+					WithReason("SecretTargetsDisabled").
+					WithMessage("Bundle has Secret targets but the feature is disabled").
+					WithObservedGeneration(bundleGeneration),
+			),
 			expEvent: `Warning SecretTargetsDisabled Bundle has Secret targets but the feature is disabled`,
 		},
 		"if Bundle has configmaps with expired cert, remove it": {
@@ -1233,18 +1189,15 @@ func Test_Reconcile(t *testing.T) {
 				},
 			},
 			existingSecrets: []client.Object{sourceSecret},
-			expBundlePatch: &trustapi.BundleStatus{
-				Conditions: []trustapi.BundleCondition{
-					{
-						Type:               trustapi.BundleConditionSynced,
-						Status:             metav1.ConditionTrue,
-						LastTransitionTime: fixedmetatime,
-						Reason:             "Synced",
-						Message:            "Successfully synced Bundle to all namespaces",
-						ObservedGeneration: bundleGeneration,
-					},
-				},
-			},
+			expBundlePatch: trustapiac.BundleStatus().WithConditions(
+				trustapiac.BundleCondition().
+					WithType(trustapi.BundleConditionSynced).
+					WithStatus(metav1.ConditionTrue).
+					WithLastTransitionTime(fixedmetatime).
+					WithReason("Synced").
+					WithMessage("Successfully synced Bundle to all namespaces").
+					WithObservedGeneration(bundleGeneration),
+			),
 			expEvent: `Normal Synced Successfully synced Bundle to all namespaces`,
 			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
 				func(b *trustapi.Bundle) {

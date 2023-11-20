@@ -18,8 +18,10 @@ package bundle
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustapiac "github.com/cert-manager/trust-manager/pkg/applyconfigurations/trust/v1alpha1"
 )
 
 // bundleHasCondition returns true if the bundle has an exact matching condition.
@@ -27,16 +29,16 @@ import (
 // The LastTransitionTime is ignored.
 func bundleHasCondition(
 	existingConditions []trustapi.BundleCondition,
-	searchCondition trustapi.BundleCondition,
+	searchCondition *trustapiac.BundleConditionApplyConfiguration,
 ) bool {
 	for _, existingCondition := range existingConditions {
-		if existingCondition.Type == searchCondition.Type {
+		if existingCondition.Type == ptr.Deref(searchCondition.Type, "") {
 			// Compare all fields except LastTransitionTime
 			// We ignore the LastTransitionTime as this is set by the controller
-			return existingCondition.Status == searchCondition.Status &&
-				existingCondition.Reason == searchCondition.Reason &&
-				existingCondition.Message == searchCondition.Message &&
-				existingCondition.ObservedGeneration == searchCondition.ObservedGeneration
+			return existingCondition.Status == ptr.Deref(searchCondition.Status, "") &&
+				existingCondition.Reason == ptr.Deref(searchCondition.Reason, "") &&
+				existingCondition.Message == ptr.Deref(searchCondition.Message, "") &&
+				existingCondition.ObservedGeneration == ptr.Deref(searchCondition.ObservedGeneration, 0)
 		}
 	}
 
@@ -49,21 +51,21 @@ func bundleHasCondition(
 // Type and Status already exists.
 func (b *bundle) setBundleCondition(
 	existingConditions []trustapi.BundleCondition,
-	patchConditions *[]trustapi.BundleCondition,
-	newCondition trustapi.BundleCondition,
-) trustapi.BundleCondition {
-	newCondition.LastTransitionTime = metav1.Time{Time: b.clock.Now()}
+	patchConditions *[]trustapiac.BundleConditionApplyConfiguration,
+	newCondition *trustapiac.BundleConditionApplyConfiguration,
+) *trustapiac.BundleConditionApplyConfiguration {
+	newCondition.LastTransitionTime = &metav1.Time{Time: b.clock.Now()}
 
 	// Reset the LastTransitionTime if the status hasn't changed
 	for _, cond := range existingConditions {
-		if cond.Type != newCondition.Type {
+		if cond.Type != *newCondition.Type {
 			continue
 		}
 
 		// If this update doesn't contain a state transition, we don't update
 		// the conditions LastTransitionTime to Now()
-		if cond.Status == newCondition.Status {
-			newCondition.LastTransitionTime = cond.LastTransitionTime
+		if cond.Status == *newCondition.Status {
+			newCondition.LastTransitionTime = &cond.LastTransitionTime
 		}
 	}
 
@@ -75,14 +77,14 @@ func (b *bundle) setBundleCondition(
 		}
 
 		// Overwrite the existing condition
-		(*patchConditions)[idx] = newCondition
+		(*patchConditions)[idx] = *newCondition
 
 		return newCondition
 	}
 
 	// If we've not found an existing condition of this type, we simply insert
 	// the new condition into the slice.
-	*patchConditions = append(*patchConditions, newCondition)
+	*patchConditions = append(*patchConditions, *newCondition)
 
 	return newCondition
 }
@@ -91,7 +93,7 @@ func (b *bundle) setBundleCondition(
 // reflects the defaultCAVersion represented by requiredID.
 // Returns true if the bundle status needs updating.
 func (b *bundle) setBundleStatusDefaultCAVersion(
-	bundleStatus *trustapi.BundleStatus,
+	bundleStatus *trustapiac.BundleStatusApplyConfiguration,
 	requiredID string,
 ) bool {
 	currentVersion := bundleStatus.DefaultCAPackageVersion

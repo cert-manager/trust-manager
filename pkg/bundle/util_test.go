@@ -26,6 +26,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustapiac "github.com/cert-manager/trust-manager/pkg/applyconfigurations/trust/v1alpha1"
 )
 
 func Test_bundleHasCondition(t *testing.T) {
@@ -36,32 +37,32 @@ func Test_bundleHasCondition(t *testing.T) {
 
 	tests := map[string]struct {
 		existingConditions []trustapi.BundleCondition
-		newCondition       trustapi.BundleCondition
+		newCondition       *trustapiac.BundleConditionApplyConfiguration
 		expectHasCondition bool
 	}{
 		"no existing conditions returns no matching condition": {
 			existingConditions: []trustapi.BundleCondition{},
-			newCondition:       trustapi.BundleCondition{Reason: "A", ObservedGeneration: bundleGeneration},
+			newCondition:       trustapiac.BundleCondition().WithReason("A").WithObservedGeneration(bundleGeneration),
 			expectHasCondition: false,
 		},
 		"an existing condition which doesn't match the current condition should return false": {
 			existingConditions: []trustapi.BundleCondition{{Reason: "B"}},
-			newCondition:       trustapi.BundleCondition{Reason: "A", ObservedGeneration: bundleGeneration},
+			newCondition:       trustapiac.BundleCondition().WithReason("A").WithObservedGeneration(bundleGeneration),
 			expectHasCondition: false,
 		},
 		"an existing condition which shares the same condition but is an older generation should return false": {
 			existingConditions: []trustapi.BundleCondition{{Reason: "A", ObservedGeneration: bundleGeneration - 1}},
-			newCondition:       trustapi.BundleCondition{Reason: "A", ObservedGeneration: bundleGeneration},
+			newCondition:       trustapiac.BundleCondition().WithReason("A").WithObservedGeneration(bundleGeneration),
 			expectHasCondition: false,
 		},
 		"an existing condition which shares the same condition and generation should return true": {
 			existingConditions: []trustapi.BundleCondition{{Reason: "A", ObservedGeneration: bundleGeneration}},
-			newCondition:       trustapi.BundleCondition{Reason: "A", ObservedGeneration: bundleGeneration},
+			newCondition:       trustapiac.BundleCondition().WithReason("A").WithObservedGeneration(bundleGeneration),
 			expectHasCondition: true,
 		},
 		"an existing condition with a different LastTransitionTime should return true still": {
 			existingConditions: []trustapi.BundleCondition{{Reason: "A", ObservedGeneration: bundleGeneration, LastTransitionTime: metav1.Time{Time: fixedTime.Add(-time.Second)}}},
-			newCondition:       trustapi.BundleCondition{Reason: "A", ObservedGeneration: bundleGeneration},
+			newCondition:       trustapiac.BundleCondition().WithReason("A").WithObservedGeneration(bundleGeneration),
 			expectHasCondition: true,
 		},
 	}
@@ -87,7 +88,7 @@ func Test_setBundleCondition(t *testing.T) {
 	tests := map[string]struct {
 		existingConditions []trustapi.BundleCondition
 		newCondition       trustapi.BundleCondition
-		expectedConditions []trustapi.BundleCondition
+		expectedConditions []trustapiac.BundleConditionApplyConfiguration
 	}{
 		"no existing conditions should add the condition with time and gen to the bundle": {
 			existingConditions: []trustapi.BundleCondition{},
@@ -97,15 +98,14 @@ func Test_setBundleCondition(t *testing.T) {
 				Reason:  "B",
 				Message: "C",
 			},
-			expectedConditions: []trustapi.BundleCondition{
-				{
-					Type:               "A",
-					Status:             metav1.ConditionTrue,
-					Reason:             "B",
-					Message:            "C",
-					LastTransitionTime: fixedmetatime,
-					ObservedGeneration: bundleGeneration,
-				},
+			expectedConditions: []trustapiac.BundleConditionApplyConfiguration{
+				*trustapiac.BundleCondition().
+					WithType("A").
+					WithStatus(metav1.ConditionTrue).
+					WithReason("B").
+					WithMessage("C").
+					WithLastTransitionTime(fixedmetatime).
+					WithObservedGeneration(bundleGeneration),
 			},
 		},
 		"an existing condition of different type should add a different condition with time and gen to the bundle": {
@@ -116,15 +116,14 @@ func Test_setBundleCondition(t *testing.T) {
 				Reason:  "B",
 				Message: "C",
 			},
-			expectedConditions: []trustapi.BundleCondition{
-				{
-					Type:               "A",
-					Status:             metav1.ConditionTrue,
-					Reason:             "B",
-					Message:            "C",
-					LastTransitionTime: fixedmetatime,
-					ObservedGeneration: bundleGeneration,
-				},
+			expectedConditions: []trustapiac.BundleConditionApplyConfiguration{
+				*trustapiac.BundleCondition().
+					WithType("A").
+					WithStatus(metav1.ConditionTrue).
+					WithReason("B").
+					WithMessage("C").
+					WithLastTransitionTime(fixedmetatime).
+					WithObservedGeneration(bundleGeneration),
 			},
 		},
 		"an existing condition of the same type but different status should be replaced with new time if it has a different status": {
@@ -144,15 +143,14 @@ func Test_setBundleCondition(t *testing.T) {
 				Reason:  "B",
 				Message: "C",
 			},
-			expectedConditions: []trustapi.BundleCondition{
-				{
-					Type:               "A",
-					Status:             metav1.ConditionTrue,
-					Reason:             "B",
-					Message:            "C",
-					LastTransitionTime: fixedmetatime,
-					ObservedGeneration: bundleGeneration,
-				},
+			expectedConditions: []trustapiac.BundleConditionApplyConfiguration{
+				*trustapiac.BundleCondition().
+					WithType("A").
+					WithStatus(metav1.ConditionTrue).
+					WithReason("B").
+					WithMessage("C").
+					WithLastTransitionTime(fixedmetatime).
+					WithObservedGeneration(bundleGeneration),
 			},
 		},
 		"an existing condition of the same type and status should be replaced with same time": {
@@ -172,15 +170,14 @@ func Test_setBundleCondition(t *testing.T) {
 				Reason:  "B",
 				Message: "C",
 			},
-			expectedConditions: []trustapi.BundleCondition{
-				{
-					Type:               "A",
-					Status:             metav1.ConditionTrue,
-					Reason:             "B",
-					Message:            "C",
-					LastTransitionTime: metav1.Time{Time: fixedTime.Add(-time.Second)},
-					ObservedGeneration: bundleGeneration,
-				},
+			expectedConditions: []trustapiac.BundleConditionApplyConfiguration{
+				*trustapiac.BundleCondition().
+					WithType("A").
+					WithStatus(metav1.ConditionTrue).
+					WithReason("B").
+					WithMessage("C").
+					WithLastTransitionTime(metav1.Time{Time: fixedTime.Add(-time.Second)}).
+					WithObservedGeneration(bundleGeneration),
 			},
 		},
 	}
@@ -197,17 +194,16 @@ func Test_setBundleCondition(t *testing.T) {
 				},
 			}
 
-			var patchConditions []trustapi.BundleCondition
+			var patchConditions []trustapiac.BundleConditionApplyConfiguration
 			b.setBundleCondition(
 				bundle.Status.Conditions,
 				&patchConditions,
-				trustapi.BundleCondition{
-					Type:               test.newCondition.Type,
-					Status:             test.newCondition.Status,
-					Reason:             test.newCondition.Reason,
-					Message:            test.newCondition.Message,
-					ObservedGeneration: bundle.Generation,
-				},
+				trustapiac.BundleCondition().
+					WithType(test.newCondition.Type).
+					WithStatus(test.newCondition.Status).
+					WithReason(test.newCondition.Reason).
+					WithMessage(test.newCondition.Message).
+					WithObservedGeneration(bundle.Generation),
 			)
 
 			if !apiequality.Semantic.DeepEqual(patchConditions, test.expectedConditions) {
@@ -298,13 +294,15 @@ func Test_setBundleStatusDefaultCAVersion(t *testing.T) {
 
 			b := &bundle{clock: fixedclock}
 
-			shouldUpdate := b.setBundleStatusDefaultCAVersion(&test.inputBundle.Status, test.requiredID)
+			statusPatch := trustapiac.BundleStatus()
+			statusPatch.DefaultCAPackageVersion = test.inputBundle.Status.DefaultCAPackageVersion
+			shouldUpdate := b.setBundleStatusDefaultCAVersion(statusPatch, test.requiredID)
 
 			if shouldUpdate != test.expectUpdate {
 				t.Errorf("expected shouldUpdate=%v got=%v", test.expectUpdate, shouldUpdate)
 			}
 
-			finalVersion := test.inputBundle.Status.DefaultCAPackageVersion
+			finalVersion := statusPatch.DefaultCAPackageVersion
 
 			if !apiequality.Semantic.DeepEqual(finalVersion, test.expectedDefaultCAPackageVersion) {
 				t.Errorf("expected DefaultCAPackageVersion=%v, got=%v", test.expectedDefaultCAPackageVersion, finalVersion)

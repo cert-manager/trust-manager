@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustapiac "github.com/cert-manager/trust-manager/pkg/applyconfigurations/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
@@ -97,13 +98,16 @@ type bundle struct {
 func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	result, statusPatch, resultErr := b.reconcileBundle(ctx, req)
 	if statusPatch != nil {
-		con, patch, err := ssa_client.GenerateBundleStatusPatch(req.Name, req.Namespace, statusPatch)
+		bundle, patch, err := ssa_client.GenerateBundlePatch(
+			trustapiac.Bundle(req.Name).
+				WithStatus(statusPatch),
+		)
 		if err != nil {
-			err = fmt.Errorf("failed to generate bundle status patch: %w", err)
+			err = fmt.Errorf("failed to generate bundle patch: %w", err)
 			return ctrl.Result{}, utilerrors.NewAggregate([]error{resultErr, err})
 		}
 
-		if err := b.client.Status().Patch(ctx, con, patch, &client.SubResourcePatchOptions{
+		if err := b.client.Status().Patch(ctx, bundle, patch, &client.SubResourcePatchOptions{
 			PatchOptions: client.PatchOptions{
 				FieldManager: fieldManager,
 				Force:        ptr.To(true),
@@ -117,7 +121,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	return result, resultErr
 }
 
-func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result ctrl.Result, statusPatch *trustapi.BundleStatus, returnedErr error) {
+func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result ctrl.Result, statusPatch *trustapiac.BundleStatusApplyConfiguration, returnedErr error) {
 	log := b.Log.WithValues("bundle", req.NamespacedName.Name)
 	log.V(2).Info("syncing bundle")
 
@@ -144,9 +148,9 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 
 	// Initialize patch with current status field values, except conditions.
 	// This is done to ensure information is not lost in patch if exiting early.
-	statusPatch = &trustapi.BundleStatus{
-		DefaultCAPackageVersion: bundle.Status.DefaultCAPackageVersion,
-	}
+	statusPatch = trustapiac.BundleStatus()
+	statusPatch.DefaultCAPackageVersion = bundle.Status.DefaultCAPackageVersion
+
 	resolvedBundle, err := b.buildSourceBundle(ctx, &bundle)
 
 	// If any source is not found, update the Bundle status to an unready state.
@@ -155,13 +159,12 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		b.setBundleCondition(
 			bundle.Status.Conditions,
 			&statusPatch.Conditions,
-			trustapi.BundleCondition{
-				Type:               trustapi.BundleConditionSynced,
-				Status:             metav1.ConditionFalse,
-				Reason:             "SourceNotFound",
-				Message:            "Bundle source was not found: " + err.Error(),
-				ObservedGeneration: bundle.Generation,
-			},
+			trustapiac.BundleCondition().
+				WithType(trustapi.BundleConditionSynced).
+				WithStatus(metav1.ConditionFalse).
+				WithReason("SourceNotFound").
+				WithMessage("Bundle source was not found: "+err.Error()).
+				WithObservedGeneration(bundle.Generation),
 		)
 
 		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SourceNotFound", "Bundle source was not found: %s", err)
@@ -184,13 +187,12 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		b.setBundleCondition(
 			bundle.Status.Conditions,
 			&statusPatch.Conditions,
-			trustapi.BundleCondition{
-				Type:               trustapi.BundleConditionSynced,
-				Status:             metav1.ConditionFalse,
-				Reason:             "SecretTargetsDisabled",
-				Message:            "Bundle has Secret targets but the feature is disabled",
-				ObservedGeneration: bundle.Generation,
-			},
+			trustapiac.BundleCondition().
+				WithType(trustapi.BundleConditionSynced).
+				WithStatus(metav1.ConditionFalse).
+				WithReason("SecretTargetsDisabled").
+				WithMessage("Bundle has Secret targets but the feature is disabled").
+				WithObservedGeneration(bundle.Generation),
 		)
 
 		return ctrl.Result{}, statusPatch, nil
@@ -364,13 +366,12 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 				b.setBundleCondition(
 					bundle.Status.Conditions,
 					&statusPatch.Conditions,
-					trustapi.BundleCondition{
-						Type:               trustapi.BundleConditionSynced,
-						Status:             metav1.ConditionFalse,
-						Reason:             "SyncConfigMapTargetFailed",
-						Message:            fmt.Sprintf("Failed to sync bundle to namespace %q: %s", target.Namespace, err),
-						ObservedGeneration: bundle.Generation,
-					},
+					trustapiac.BundleCondition().
+						WithType(trustapi.BundleConditionSynced).
+						WithStatus(metav1.ConditionFalse).
+						WithReason("SyncConfigMapTargetFailed").
+						WithMessage(fmt.Sprintf("Failed to sync bundle to namespace %q: %s", target.Namespace, err)).
+						WithObservedGeneration(bundle.Generation),
 				)
 
 				return ctrl.Result{Requeue: true}, statusPatch, nil
@@ -386,13 +387,12 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 				b.setBundleCondition(
 					bundle.Status.Conditions,
 					&statusPatch.Conditions,
-					trustapi.BundleCondition{
-						Type:               trustapi.BundleConditionSynced,
-						Status:             metav1.ConditionFalse,
-						Reason:             "SyncSecretTargetFailed",
-						Message:            fmt.Sprintf("Failed to sync bundle to namespace %q: %s", target.Namespace, err),
-						ObservedGeneration: bundle.Generation,
-					},
+					trustapiac.BundleCondition().
+						WithType(trustapi.BundleConditionSynced).
+						WithStatus(metav1.ConditionFalse).
+						WithReason("SyncSecretTargetFailed").
+						WithMessage(fmt.Sprintf("Failed to sync bundle to namespace %q: %s", target.Namespace, err)).
+						WithObservedGeneration(bundle.Generation),
 				)
 
 				return ctrl.Result{Requeue: true}, statusPatch, nil
@@ -414,13 +414,12 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		message = fmt.Sprintf("Successfully synced Bundle to namespaces that match this label selector: %s", namespaceSelector)
 	}
 
-	syncedCondition := trustapi.BundleCondition{
-		Type:               trustapi.BundleConditionSynced,
-		Status:             metav1.ConditionTrue,
-		Reason:             "Synced",
-		Message:            message,
-		ObservedGeneration: bundle.Generation,
-	}
+	syncedCondition := trustapiac.BundleCondition().
+		WithType(trustapi.BundleConditionSynced).
+		WithStatus(metav1.ConditionTrue).
+		WithReason("Synced").
+		WithMessage(message).
+		WithObservedGeneration(bundle.Generation)
 
 	if !needsUpdate && bundleHasCondition(bundle.Status.Conditions, syncedCondition) {
 		return ctrl.Result{}, nil, nil
