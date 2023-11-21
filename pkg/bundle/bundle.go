@@ -153,7 +153,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		b.setBundleCondition(
 			bundle.Status.Conditions,
 			&statusPatch.Conditions,
-			trustapi.BundleCondition{
+			metav1.Condition{
 				Type:               trustapi.BundleConditionSynced,
 				Status:             metav1.ConditionFalse,
 				Reason:             "SourceNotFound",
@@ -182,7 +182,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		b.setBundleCondition(
 			bundle.Status.Conditions,
 			&statusPatch.Conditions,
-			trustapi.BundleCondition{
+			metav1.Condition{
 				Type:               trustapi.BundleConditionSynced,
 				Status:             metav1.ConditionFalse,
 				Reason:             "SecretTargetsDisabled",
@@ -362,7 +362,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 				b.setBundleCondition(
 					bundle.Status.Conditions,
 					&statusPatch.Conditions,
-					trustapi.BundleCondition{
+					metav1.Condition{
 						Type:               trustapi.BundleConditionSynced,
 						Status:             metav1.ConditionFalse,
 						Reason:             "SyncConfigMapTargetFailed",
@@ -384,7 +384,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 				b.setBundleCondition(
 					bundle.Status.Conditions,
 					&statusPatch.Conditions,
-					trustapi.BundleCondition{
+					metav1.Condition{
 						Type:               trustapi.BundleConditionSynced,
 						Status:             metav1.ConditionFalse,
 						Reason:             "SyncSecretTargetFailed",
@@ -412,7 +412,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		message = fmt.Sprintf("Successfully synced Bundle to namespaces that match this label selector: %s", namespaceSelector)
 	}
 
-	syncedCondition := trustapi.BundleCondition{
+	syncedCondition := metav1.Condition{
 		Type:               trustapi.BundleConditionSynced,
 		Status:             metav1.ConditionTrue,
 		Reason:             "Synced",

@@ -17,6 +17,8 @@ limitations under the License.
 package bundle
 
 import (
+	"fmt"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
@@ -26,21 +28,19 @@ import (
 // The given condition will have the ObservedGeneration set to the bundle Generation.
 // The LastTransitionTime is ignored.
 func bundleHasCondition(
-	existingConditions []trustapi.BundleCondition,
-	searchCondition trustapi.BundleCondition,
+	existingConditions []metav1.Condition,
+	searchCondition metav1.Condition,
 ) bool {
-	for _, existingCondition := range existingConditions {
-		if existingCondition.Type == searchCondition.Type {
-			// Compare all fields except LastTransitionTime
-			// We ignore the LastTransitionTime as this is set by the controller
-			return existingCondition.Status == searchCondition.Status &&
-				existingCondition.Reason == searchCondition.Reason &&
-				existingCondition.Message == searchCondition.Message &&
-				existingCondition.ObservedGeneration == searchCondition.ObservedGeneration
-		}
+	existingCondition := meta.FindStatusCondition(existingConditions, searchCondition.Type)
+	if existingCondition == nil {
+		return false
 	}
-
-	return false
+	// Compare all fields except LastTransitionTime
+	// We ignore the LastTransitionTime as this is set by the controller
+	return existingCondition.Status == searchCondition.Status &&
+		existingCondition.Reason == searchCondition.Reason &&
+		existingCondition.Message == searchCondition.Message &&
+		existingCondition.ObservedGeneration == searchCondition.ObservedGeneration
 }
 
 // setBundleCondition updates the bundle with the given condition.
@@ -48,42 +48,26 @@ func bundleHasCondition(
 // LastTransitionTime will not be updated if an existing condition of the same
 // Type and Status already exists.
 func (b *bundle) setBundleCondition(
-	existingConditions []trustapi.BundleCondition,
-	patchConditions *[]trustapi.BundleCondition,
-	newCondition trustapi.BundleCondition,
-) trustapi.BundleCondition {
-	newCondition.LastTransitionTime = &metav1.Time{Time: b.clock.Now()}
+	existingConditions []metav1.Condition,
+	patchConditions *[]metav1.Condition,
+	newCondition metav1.Condition,
+) metav1.Condition {
+	if cond := meta.FindStatusCondition(*patchConditions, newCondition.Type); cond != nil {
+		panic(fmt.Sprintf("condition %q already added to patch conditions; this is probably a bug", newCondition.Type))
+	}
 
-	// Reset the LastTransitionTime if the status hasn't changed
-	for _, cond := range existingConditions {
-		if cond.Type != newCondition.Type {
-			continue
-		}
-
-		// If this update doesn't contain a state transition, we don't update
-		// the conditions LastTransitionTime to Now()
-		if cond.Status == newCondition.Status {
-			newCondition.LastTransitionTime = cond.LastTransitionTime
+	existingCondition := meta.FindStatusCondition(existingConditions, newCondition.Type)
+	// If this update doesn't contain a state transition, we don't update
+	// the conditions LastTransitionTime to Now()
+	if existingCondition != nil && existingCondition.Status == newCondition.Status {
+		newCondition.LastTransitionTime = existingCondition.LastTransitionTime
+	} else {
+		if newCondition.LastTransitionTime.IsZero() {
+			newCondition.LastTransitionTime = metav1.Time{Time: b.clock.Now()}
 		}
 	}
 
-	// Search through existing conditions
-	for idx, cond := range *patchConditions {
-		// Skip unrelated conditions
-		if cond.Type != newCondition.Type {
-			continue
-		}
-
-		// Overwrite the existing condition
-		(*patchConditions)[idx] = newCondition
-
-		return newCondition
-	}
-
-	// If we've not found an existing condition of this type, we simply insert
-	// the new condition into the slice.
 	*patchConditions = append(*patchConditions, newCondition)
-
 	return newCondition
 }
 

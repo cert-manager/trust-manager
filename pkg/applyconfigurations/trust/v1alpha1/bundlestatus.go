@@ -18,11 +18,15 @@ limitations under the License.
 
 package v1alpha1
 
+import (
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
 // BundleStatusApplyConfiguration represents an declarative configuration of the BundleStatus type for use
 // with apply.
 type BundleStatusApplyConfiguration struct {
-	Conditions              []BundleConditionApplyConfiguration `json:"conditions,omitempty"`
-	DefaultCAPackageVersion *string                             `json:"defaultCAVersion,omitempty"`
+	Conditions              []v1.Condition `json:"conditions,omitempty"`
+	DefaultCAPackageVersion *string        `json:"defaultCAVersion,omitempty"`
 }
 
 // BundleStatusApplyConfiguration constructs an declarative configuration of the BundleStatus type for use with
@@ -34,12 +38,9 @@ func BundleStatus() *BundleStatusApplyConfiguration {
 // WithConditions adds the given value to the Conditions field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Conditions field.
-func (b *BundleStatusApplyConfiguration) WithConditions(values ...*BundleConditionApplyConfiguration) *BundleStatusApplyConfiguration {
+func (b *BundleStatusApplyConfiguration) WithConditions(values ...v1.Condition) *BundleStatusApplyConfiguration {
 	for i := range values {
-		if values[i] == nil {
-			panic("nil value passed to WithConditions")
-		}
-		b.Conditions = append(b.Conditions, *values[i])
+		b.Conditions = append(b.Conditions, values[i])
 	}
 	return b
 }

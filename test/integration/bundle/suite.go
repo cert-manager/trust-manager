@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -442,10 +443,12 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Get(ctx, client.ObjectKeyFromObject(testBundle), testBundle)).ToNot(HaveOccurred())
 		testBundle.Status = trustapi.BundleStatus{
 			DefaultCAPackageVersion: ptr.To("OLD_VERSION"),
-			Conditions: []trustapi.BundleCondition{
+			Conditions: []metav1.Condition{
 				{
-					Type:   "OLD_CONDITION",
-					Status: metav1.ConditionTrue,
+					Type:               "OLD_CONDITION",
+					Status:             metav1.ConditionTrue,
+					Reason:             "OldReason",
+					LastTransitionTime: metav1.Time{Time: time.Unix(0, 0)},
 				},
 			},
 		}

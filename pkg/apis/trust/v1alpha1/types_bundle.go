@@ -155,7 +155,7 @@ type BundleStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	// +optional
-	Conditions []BundleCondition `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// DefaultCAPackageVersion, if set and non-empty, indicates the version information
 	// which was retrieved when the set of default CAs was requested in the bundle
@@ -165,43 +165,8 @@ type BundleStatus struct {
 	DefaultCAPackageVersion *string `json:"defaultCAVersion,omitempty"`
 }
 
-// BundleCondition contains condition information for a Bundle.
-type BundleCondition struct {
-	// Type of the condition, known values are (`Synced`).
-	Type BundleConditionType `json:"type"`
-
-	// Status of the condition, one of ('True', 'False', 'Unknown').
-	Status metav1.ConditionStatus `json:"status"`
-
-	// LastTransitionTime is the timestamp corresponding to the last status
-	// change of this condition.
-	// +optional
-	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
-
-	// Reason is a brief machine readable explanation for the condition's last
-	// transition.
-	// +optional
-	Reason string `json:"reason,omitempty"`
-
-	// Message is a human readable description of the details of the last
-	// transition, complementing reason.
-	// +optional
-	Message string `json:"message,omitempty"`
-
-	// If set, this represents the .metadata.generation that the condition was
-	// set based upon.
-	// For instance, if .metadata.generation is currently 12, but the
-	// .status.condition[x].observedGeneration is 9, the condition is out of date
-	// with respect to the current state of the Bundle.
-	// +optional
-	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-}
-
-// BundleConditionType represents a Bundle condition value.
-type BundleConditionType string
-
 const (
 	// BundleConditionSynced indicates that the Bundle has successfully synced
 	// all source bundle data to the Bundle target in all Namespaces.
-	BundleConditionSynced BundleConditionType = "Synced"
+	BundleConditionSynced string = "Synced"
 )

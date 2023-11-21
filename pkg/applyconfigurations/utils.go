@@ -33,8 +33,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &trustv1alpha1.AdditionalFormatsApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Bundle"):
 		return &trustv1alpha1.BundleApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("BundleCondition"):
-		return &trustv1alpha1.BundleConditionApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("BundleSource"):
 		return &trustv1alpha1.BundleSourceApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("BundleSpec"):
