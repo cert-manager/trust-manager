@@ -354,7 +354,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		var err error
 
 		if target.Kind == configMapTarget {
-			cmSynced, err = b.syncConfigMapTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle.data, shouldExist)
+			cmSynced, err = b.syncConfigMapTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle, shouldExist)
 			if err != nil {
 				targetLog.Error(err, "failed sync bundle to ConfigMap target namespace")
 				b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncConfigMapTargetFailed", "Failed to sync target in Namespace %q: %s", target.Namespace, err)
@@ -376,7 +376,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		}
 
 		if target.Kind == secretTarget {
-			secretSynced, err = b.syncSecretTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle.data, shouldExist)
+			secretSynced, err = b.syncSecretTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle, shouldExist)
 			if err != nil {
 				targetLog.Error(err, "failed sync bundle to Secret target namespace")
 				b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncSecretTargetFailed", "Failed to sync target in Namespace %q: %s", target.Namespace, err)

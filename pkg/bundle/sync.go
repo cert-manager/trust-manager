@@ -66,11 +66,12 @@ const (
 
 type notFoundError struct{ error }
 
-// bundleData holds the result of a call to buildSourceBundle. It contains both the resulting PEM-encoded
-// certificate data from concatenating all of the sources together and any metadata from the sources which
-// needs to be exposed on the Bundle resource's status field.
+// bundleData holds the result of a call to buildSourceBundle. It contains the resulting PEM-encoded
+// certificate data from concatenating all the sources together, binary data for any additional formats and
+// any metadata from the sources which needs to be exposed on the Bundle resource's status field.
 type bundleData struct {
-	data string
+	data       string
+	binaryData map[string][]byte
 
 	defaultCAPackageStringID string
 }
@@ -129,7 +130,9 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 		return bundleData{}, fmt.Errorf("couldn't find any valid certificates in bundle")
 	}
 
-	resolvedBundle.data = strings.Join(bundles, "\n") + "\n"
+	if err := resolvedBundle.populateData(bundles, bundle.Spec.Target); err != nil {
+		return bundleData{}, err
+	}
 
 	return resolvedBundle, nil
 }
@@ -275,7 +278,7 @@ func (b *bundle) syncConfigMapTarget(
 	bundle *trustapi.Bundle,
 	name string,
 	namespace string,
-	data string,
+	resolvedBundle bundleData,
 	shouldExist bool,
 ) (bool, error) {
 	configMap := &metav1.PartialObjectMetadata{
@@ -326,14 +329,11 @@ func (b *bundle) syncConfigMapTarget(
 
 	// Generated JKS is not deterministic - best we can do here is update if the pem cert has
 	// changed (hence not checking if JKS matches)
-	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
+	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(resolvedBundle.data)))
 	configmapData := map[string]string{
-		target.ConfigMap.Key: data,
+		target.ConfigMap.Key: resolvedBundle.data,
 	}
-	configmapBinData := map[string][]byte{}
-	if err := populateAdditionalFormatData(data, target, configmapBinData); err != nil {
-		return false, err
-	}
+	configmapBinData := resolvedBundle.binaryData
 
 	// If the ConfigMap doesn't exist, create it.
 	if !apierrors.IsNotFound(err) {
@@ -384,7 +384,7 @@ func (b *bundle) syncSecretTarget(
 	bundle *trustapi.Bundle,
 	name string,
 	namespace string,
-	data string,
+	resolvedBundle bundleData,
 	shouldExist bool,
 ) (bool, error) {
 	secret := &metav1.PartialObjectMetadata{
@@ -435,13 +435,13 @@ func (b *bundle) syncSecretTarget(
 
 	// Generated JKS is not deterministic - best we can do here is update if the pem cert has
 	// changed (hence not checking if JKS matches)
-	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
+	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(resolvedBundle.data)))
 	targetData := map[string][]byte{
-		target.Secret.Key: []byte(data),
+		target.Secret.Key: []byte(resolvedBundle.data),
 	}
 
-	if additionalFormatsErr := populateAdditionalFormatData(data, target, targetData); additionalFormatsErr != nil {
-		return false, err
+	for k, v := range resolvedBundle.binaryData {
+		targetData[k] = v
 	}
 
 	// If the Secret doesn't exist, create it.
@@ -482,22 +482,26 @@ func (b *bundle) syncSecretTarget(
 	return true, nil
 }
 
-func populateAdditionalFormatData(data string, target trustapi.BundleTarget, targetMap map[string][]byte) error {
+func (b *bundleData) populateData(bundles []string, target trustapi.BundleTarget) error {
+	b.data = strings.Join(bundles, "\n") + "\n"
+
 	if target.AdditionalFormats != nil {
+		b.binaryData = make(map[string][]byte)
+
 		if target.AdditionalFormats.JKS != nil {
-			encoded, err := jksEncoder{password: []byte(DefaultJKSPassword)}.encode(data)
+			encoded, err := jksEncoder{password: []byte(DefaultJKSPassword)}.encode(b.data)
 			if err != nil {
 				return fmt.Errorf("failed to encode JKS: %w", err)
 			}
-			targetMap[target.AdditionalFormats.JKS.Key] = encoded
+			b.binaryData[target.AdditionalFormats.JKS.Key] = encoded
 		}
 
 		if target.AdditionalFormats.PKCS12 != nil {
-			encoded, err := pkcs12Encoder{password: DefaultPKCS12Password}.encode(data)
+			encoded, err := pkcs12Encoder{password: DefaultPKCS12Password}.encode(b.data)
 			if err != nil {
 				return fmt.Errorf("failed to encode PKCS12: %w", err)
 			}
-			targetMap[target.AdditionalFormats.PKCS12.Key] = encoded
+			b.binaryData[target.AdditionalFormats.PKCS12.Key] = encoded
 		}
 	}
 	return nil
