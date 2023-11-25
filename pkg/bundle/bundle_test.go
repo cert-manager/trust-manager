@@ -48,7 +48,13 @@ import (
 func testEncodeJKS(t *testing.T, data string) []byte {
 	t.Helper()
 
-	encoded, err := jksEncoder{password: []byte(DefaultJKSPassword)}.encode(data)
+	encoded, err := jksEncoder{
+		encoderData: encoderData{
+			bundleData:  data,
+			storePasswd: DefaultJKSPassword,
+		},
+	}.encode()
+
 	if err != nil {
 		t.Error(err)
 	}
@@ -487,7 +493,7 @@ func Test_Reconcile(t *testing.T) {
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
+					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}, Password: DefaultJKSPassword}),
 				)},
 			expResult: ctrl.Result{},
 			expError:  false,
@@ -553,7 +559,7 @@ func Test_Reconcile(t *testing.T) {
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
+					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}, Password: DefaultJKSPassword}),
 				),
 			},
 			expResult: ctrl.Result{},
