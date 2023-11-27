@@ -41,6 +41,7 @@ RELEASE_VERSION ?= v0.7.0
 BUILDX_BUILDER ?= trust-manager-builder
 
 CONTAINER_REGISTRY ?= quay.io/jetstack
+CONTAINER_REGISTRY_API_URL ?= https://quay.io/v2/jetstack/cert-manager-package-debian/manifests
 
 GOPROXY ?= https://proxy.golang.org,direct
 

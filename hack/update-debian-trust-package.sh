@@ -29,6 +29,7 @@ CTR=${CTR:-docker}
 
 REPO=${1:-}
 DEBIAN_TRUST_PACKAGE_SUFFIX=${2:-}
+REGISTRY_API_URL=${3:-}
 
 DEBIAN_IMAGE=docker.io/library/debian:11-slim
 
@@ -89,8 +90,16 @@ FULL_IMAGE=$REPO:$IMAGE_TAG
 
 echo "+++ searching for $FULL_IMAGE in upstream registry"
 
-# Look for an image tagged with IMAGE_TAG; if it exists, we're done. If not, we need to build + upload it.
-$CTR run --rm gcr.io/go-containerregistry/crane:v0.12.1 digest $FULL_IMAGE && echo "latest image appears to be up-to-date; exiting" && exit 0
+# Look for an image tagged with IMAGE_TAG; if this is successful, we're done. If we get a 404 we need to build + upload it. If we get any other error, we need to quit
+STATUS_CODE=$(curl --silent --show-error --location --retry 5 --retry-connrefused --output /dev/null --write-out "%{http_code}" $REGISTRY_API_URL/$IMAGE_TAG)
+
+if [[ $STATUS_CODE = "200" ]]; then
+	echo "upstream registry appears to contain $FULL_IMAGE, exiting"
+	exit 0
+elif [[ $STATUS_CODE != "404" ]]; then
+	echo "fatal: upstream registry returned an unexpected error response $STATUS_CODE, exiting"
+	exit 1
+fi
 
 echo "+++ latest image appears not to exist; building and pushing $FULL_IMAGE"
 
