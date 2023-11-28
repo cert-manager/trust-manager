@@ -105,8 +105,8 @@ generate-deepcopy: ## Generate code containing DeepCopy, DeepCopyInto, and DeepC
 generate-deepcopy: | $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)/controller-gen
 	$(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)/controller-gen object:headerFile="hack/boilerplate/boilerplate.go.txt" paths="./..."
 
-GO_MODULE = $(shell go list -m)
-API_DIRS = $(shell find pkg/apis -mindepth 2 -type d | sed "s|^|$(shell go list -m)/|" | paste -sd "," -)
+GO_MODULE := $(shell go list -m)
+API_DIRS := $(shell find pkg/apis -mindepth 2 -type d | sed "s|^|$(GO_MODULE)/|" | paste -sd "," -)
 
 .PHONY: generate-applyconfigurations
 generate-applyconfigurations: ## Generate applyconfigurations to support typesafe SSA.
