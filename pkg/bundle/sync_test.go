@@ -54,6 +54,12 @@ const (
 	data       = dummy.TestCertificate1
 )
 
+var (
+	// The actual encoded data is not relevant for this test. So to avoid additional complexity, we just set dummy values.
+	jksData    = []byte("JKS")
+	pkcs12Data = []byte("PKCS12")
+)
+
 func managedFieldEntries(fields []string, dataFields []string) []metav1.ManagedFieldsEntry {
 	fieldset := fieldpath.NewSet()
 	for _, property := range fields {
@@ -618,17 +624,20 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
+			resolvedBundle := bundleData{data: data, binaryData: make(map[string][]byte)}
 			if test.withJKS {
 				spec.Target.AdditionalFormats.JKS = &trustapi.KeySelector{Key: jksKey}
+				resolvedBundle.binaryData[jksKey] = jksData
 			}
 			if test.withPKCS12 {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12Key}
+				resolvedBundle.binaryData[pkcs12Key] = pkcs12Data
 			}
 
 			needsUpdate, err := b.syncConfigMapTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       spec,
-			}, bundleName, test.namespace.Name, data, test.shouldExist)
+			}, bundleName, test.namespace.Name, resolvedBundle, test.shouldExist)
 			assert.NoError(t, err)
 
 			assert.Equalf(t, test.expNeedsUpdate, needsUpdate, "unexpected needsUpdate, exp=%t got=%t", test.expNeedsUpdate, needsUpdate)
@@ -661,40 +670,18 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					assert.NotContains(t, configmap.OwnerReferences, expectedOwnerReference)
 				}
 
-				jksData, jksExists := configmap.BinaryData[jksKey]
+				binData, jksExists := configmap.BinaryData[jksKey]
 				assert.Equal(t, test.expJKS, jksExists)
 
 				if test.expJKS {
-					reader := bytes.NewReader(jksData)
-
-					ks := jks.New()
-					err := ks.Load(reader, []byte(DefaultJKSPassword))
-					assert.Nil(t, err)
-
-					entryNames := ks.Aliases()
-
-					assert.Len(t, entryNames, 1)
-					assert.True(t, ks.IsTrustedCertificateEntry(entryNames[0]))
-
-					// Safe to ignore errors here, we've tested that it's present and a TrustedCertificateEntry
-					cert, _ := ks.GetTrustedCertificateEntry(entryNames[0])
-
-					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
-					p, _ := pem.Decode([]byte(data))
-					assert.Equal(t, p.Bytes, cert.Certificate.Content)
+					assert.Equal(t, jksData, binData)
 				}
 
-				pkcs12Data, pkcs12Exists := configmap.BinaryData[pkcs12Key]
+				binData, pkcs12Exists := configmap.BinaryData[pkcs12Key]
 				assert.Equal(t, test.expPKCS12, pkcs12Exists)
 
 				if test.expPKCS12 {
-					cas, err := pkcs12.DecodeTrustStore(pkcs12Data, DefaultPKCS12Password)
-					assert.Nil(t, err)
-					assert.Len(t, cas, 1)
-
-					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
-					p, _ := pem.Decode([]byte(data))
-					assert.Equal(t, p.Bytes, cas[0].Raw)
+					assert.Equal(t, pkcs12Data, binData)
 				}
 			}
 
@@ -1248,17 +1235,20 @@ func Test_syncSecretTarget(t *testing.T) {
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
+			resolvedBundle := bundleData{data: data, binaryData: make(map[string][]byte)}
 			if test.withJKS {
 				spec.Target.AdditionalFormats.JKS = &trustapi.KeySelector{Key: jksKey}
+				resolvedBundle.binaryData[jksKey] = jksData
 			}
 			if test.withPKCS12 {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12Key}
+				resolvedBundle.binaryData[pkcs12Key] = pkcs12Data
 			}
 
 			needsUpdate, err := b.syncSecretTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       spec,
-			}, bundleName, test.namespace.Name, data, test.shouldExist)
+			}, bundleName, test.namespace.Name, resolvedBundle, test.shouldExist)
 			assert.NoError(t, err)
 
 			assert.Equalf(t, test.expNeedsUpdate, needsUpdate, "unexpected needsUpdate, exp=%t got=%t", test.expNeedsUpdate, needsUpdate)
@@ -1289,40 +1279,18 @@ func Test_syncSecretTarget(t *testing.T) {
 					assert.NotContains(t, secret.OwnerReferences, expectedOwnerReference)
 				}
 
-				jksData, jksExists := secret.Data[jksKey]
+				binData, jksExists := secret.Data[jksKey]
 				assert.Equal(t, test.expJKS, jksExists)
 
 				if test.expJKS {
-					reader := bytes.NewReader(jksData)
-
-					ks := jks.New()
-					err := ks.Load(reader, []byte(DefaultJKSPassword))
-					assert.Nil(t, err)
-
-					entryNames := ks.Aliases()
-
-					assert.Len(t, entryNames, 1)
-					assert.True(t, ks.IsTrustedCertificateEntry(entryNames[0]))
-
-					// Safe to ignore errors here, we've tested that it's present and a TrustedCertificateEntry
-					cert, _ := ks.GetTrustedCertificateEntry(entryNames[0])
-
-					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
-					p, _ := pem.Decode([]byte(data))
-					assert.Equal(t, p.Bytes, cert.Certificate.Content)
+					assert.Equal(t, jksData, binData)
 				}
 
-				pkcs12Data, pkcs12Exists := secret.Data[pkcs12Key]
+				binData, pkcs12Exists := secret.Data[pkcs12Key]
 				assert.Equal(t, test.expPKCS12, pkcs12Exists)
 
 				if test.expPKCS12 {
-					cas, err := pkcs12.DecodeTrustStore(pkcs12Data, DefaultPKCS12Password)
-					assert.Nil(t, err)
-					assert.Len(t, cas, 1)
-
-					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
-					p, _ := pem.Decode([]byte(data))
-					assert.Equal(t, p.Bytes, cas[0].Raw)
+					assert.Equal(t, pkcs12Data, binData)
 				}
 			}
 
@@ -1343,6 +1311,8 @@ func Test_buildSourceBundle(t *testing.T) {
 		expData          string
 		expError         bool
 		expNotFoundError bool
+		expJKS           bool
+		expPKCS12        bool
 	}{
 		"if no sources defined, should return an error": {
 			bundle:           &trustapi.Bundle{},
@@ -1503,6 +1473,34 @@ func Test_buildSourceBundle(t *testing.T) {
 			expError:         true,
 			expNotFoundError: true,
 		},
+		"if has JKS target, return binaryData with encoded JKS": {
+			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{
+				Sources: []trustapi.BundleSource{
+					{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
+				},
+				Target: trustapi.BundleTarget{AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: jksKey}}},
+			}},
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				Data:       map[string]string{"key": dummy.TestCertificate1},
+			}},
+			expData: dummy.JoinCerts(dummy.TestCertificate1),
+			expJKS:  true,
+		},
+		"if has PKCS12 target, return binaryData with encoded PKCS12": {
+			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{
+				Sources: []trustapi.BundleSource{
+					{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
+				},
+				Target: trustapi.BundleTarget{AdditionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.KeySelector{Key: pkcs12Key}}},
+			}},
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				Data:       map[string]string{"key": dummy.TestCertificate1},
+			}},
+			expData:   dummy.JoinCerts(dummy.TestCertificate1),
+			expPKCS12: true,
+		},
 	}
 
 	for name, test := range tests {
@@ -1535,6 +1533,42 @@ func Test_buildSourceBundle(t *testing.T) {
 
 			if resolvedBundle.data != test.expData {
 				t.Errorf("unexpected data, exp=%q got=%q", test.expData, resolvedBundle.data)
+			}
+
+			binData, jksExists := resolvedBundle.binaryData[jksKey]
+			assert.Equal(t, test.expJKS, jksExists)
+
+			if test.expJKS {
+				reader := bytes.NewReader(binData)
+
+				ks := jks.New()
+				err := ks.Load(reader, []byte(DefaultJKSPassword))
+				assert.Nil(t, err)
+
+				entryNames := ks.Aliases()
+
+				assert.Len(t, entryNames, 1)
+				assert.True(t, ks.IsTrustedCertificateEntry(entryNames[0]))
+
+				// Safe to ignore errors here, we've tested that it's present and a TrustedCertificateEntry
+				cert, _ := ks.GetTrustedCertificateEntry(entryNames[0])
+
+				// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
+				p, _ := pem.Decode([]byte(data))
+				assert.Equal(t, p.Bytes, cert.Certificate.Content)
+			}
+
+			binData, pkcs12Exists := resolvedBundle.binaryData[pkcs12Key]
+			assert.Equal(t, test.expPKCS12, pkcs12Exists)
+
+			if test.expPKCS12 {
+				cas, err := pkcs12.DecodeTrustStore(binData, DefaultPKCS12Password)
+				assert.Nil(t, err)
+				assert.Len(t, cas, 1)
+
+				// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
+				p, _ := pem.Decode([]byte(data))
+				assert.Equal(t, p.Bytes, cas[0].Raw)
 			}
 		})
 	}
