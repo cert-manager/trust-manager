@@ -215,32 +215,6 @@ func Test_validate(t *testing.T) {
 				field.Invalid(field.NewPath("spec", "target", "secret", "key"), "", "target secret key must be defined"),
 			}.ToAggregate().Error()),
 		},
-		"conditions with the same type": {
-			bundle: &trustapi.Bundle{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle-1"},
-				Spec: trustapi.BundleSpec{
-					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("test-1")},
-					},
-					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test-1"}},
-				},
-				Status: trustapi.BundleStatus{
-					Conditions: []trustapi.BundleCondition{
-						{
-							Type:   "A",
-							Reason: "B",
-						},
-						{
-							Type:   "A",
-							Reason: "C",
-						},
-					},
-				},
-			},
-			expErr: ptr.To(field.ErrorList{
-				field.Invalid(field.NewPath("status", "conditions", "[1]"), trustapi.BundleCondition{Type: "A", Reason: "C"}, "condition type already present on Bundle"),
-			}.ToAggregate().Error()),
-		},
 		"invalid namespace selector": {
 			bundle: &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle-1"},

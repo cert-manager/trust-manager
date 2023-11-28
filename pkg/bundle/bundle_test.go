@@ -122,7 +122,7 @@ func Test_Reconcile(t *testing.T) {
 		}
 
 		fixedTime     = time.Date(2021, 01, 01, 01, 0, 0, 0, time.Local)
-		fixedmetatime = &metav1.Time{Time: fixedTime}
+		fixedmetatime = metav1.Time{Time: fixedTime}
 		fixedclock    = fakeclock.NewFakeClock(fixedTime)
 
 		testDefaultPackage = &fspkg.Package{

@@ -155,6 +155,8 @@ spec:
                     description: BundleCondition contains condition information for a Bundle.
                     type: object
                     required:
+                      - lastTransitionTime
+                      - reason
                       - status
                       - type
                     properties:
@@ -163,21 +165,32 @@ spec:
                         type: string
                         format: date-time
                       message:
-                        description: Message is a human readable description of the details of the last transition, complementing reason.
+                        description: Message is a human-readable description of the details of the last transition, complementing reason.
                         type: string
+                        maxLength: 32768
                       observedGeneration:
                         description: If set, this represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.condition[x].observedGeneration is 9, the condition is out of date with respect to the current state of the Bundle.
                         type: integer
                         format: int64
+                        minimum: 0
                       reason:
-                        description: Reason is a brief machine readable explanation for the condition's last transition.
+                        description: Reason is a brief machine-readable explanation for the condition's last transition. The value should be a CamelCase string. This field may not be empty.
                         type: string
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
                       status:
-                        description: Status of the condition, one of ('True', 'False', 'Unknown').
+                        description: Status of the condition, one of True, False, Unknown.
                         type: string
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
                       type:
                         description: Type of the condition, known values are (`Synced`).
                         type: string
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                   x-kubernetes-list-map-keys:
                     - type
                   x-kubernetes-list-type: map

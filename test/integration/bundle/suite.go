@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -444,15 +445,18 @@ var _ = Describe("Integration", func() {
 
 	It("should migrate bundle from CSA to SSA", func() {
 		Expect(komega.UpdateStatus(testBundle, func() {
-			testBundle.Status = trustapi.BundleStatus{
-				DefaultCAPackageVersion: ptr.To("OLD_VERSION"),
-				Conditions: []trustapi.BundleCondition{
-					{
-						Type:   "OLD_CONDITION",
-						Status: metav1.ConditionTrue,
-					},
+		testBundle.Status = trustapi.BundleStatus{
+			DefaultCAPackageVersion: ptr.To("OLD_VERSION"),
+			Conditions: []trustapi.BundleCondition{
+				{
+					Type:               "OLD_CONDITION",
+					Status:             metav1.ConditionTrue,
+					Reason:             "OldReason",
+					LastTransitionTime: metav1.Time{Time: time.Unix(0, 0)},
 				},
-			}
+			},
+		}
+
 		}, &client.SubResourceUpdateOptions{
 			UpdateOptions: client.UpdateOptions{
 				FieldManager: "Go-http-client",

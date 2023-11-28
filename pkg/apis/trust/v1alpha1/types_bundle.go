@@ -168,24 +168,33 @@ type BundleStatus struct {
 // BundleCondition contains condition information for a Bundle.
 type BundleCondition struct {
 	// Type of the condition, known values are (`Synced`).
-	Type BundleConditionType `json:"type"`
+	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
+	// +kubebuilder:validation:MaxLength=316
+	Type string `json:"type"`
 
-	// Status of the condition, one of ('True', 'False', 'Unknown').
+	// Status of the condition, one of True, False, Unknown.
+	// +kubebuilder:validation:Enum=True;False;Unknown
 	Status metav1.ConditionStatus `json:"status"`
 
 	// LastTransitionTime is the timestamp corresponding to the last status
 	// change of this condition.
-	// +optional
-	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Format=date-time
+	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 
-	// Reason is a brief machine readable explanation for the condition's last
+	// Reason is a brief machine-readable explanation for the condition's last
 	// transition.
-	// +optional
-	Reason string `json:"reason,omitempty"`
+	// The value should be a CamelCase string.
+	// This field may not be empty.
+	// +kubebuilder:validation:MaxLength=1024
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:Pattern=`^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$`
+	Reason string `json:"reason"`
 
-	// Message is a human readable description of the details of the last
+	// Message is a human-readable description of the details of the last
 	// transition, complementing reason.
 	// +optional
+	// +kubebuilder:validation:MaxLength=32768
 	Message string `json:"message,omitempty"`
 
 	// If set, this represents the .metadata.generation that the condition was
@@ -194,14 +203,12 @@ type BundleCondition struct {
 	// .status.condition[x].observedGeneration is 9, the condition is out of date
 	// with respect to the current state of the Bundle.
 	// +optional
+	// +kubebuilder:validation:Minimum=0
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
-
-// BundleConditionType represents a Bundle condition value.
-type BundleConditionType string
 
 const (
 	// BundleConditionSynced indicates that the Bundle has successfully synced
 	// all source bundle data to the Bundle target in all Namespaces.
-	BundleConditionSynced BundleConditionType = "Synced"
+	BundleConditionSynced string = "Synced"
 )

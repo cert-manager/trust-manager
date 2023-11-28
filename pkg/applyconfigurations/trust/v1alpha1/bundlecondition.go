@@ -19,19 +19,18 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // BundleConditionApplyConfiguration represents an declarative configuration of the BundleCondition type for use
 // with apply.
 type BundleConditionApplyConfiguration struct {
-	Type               *v1alpha1.BundleConditionType `json:"type,omitempty"`
-	Status             *v1.ConditionStatus           `json:"status,omitempty"`
-	LastTransitionTime *v1.Time                      `json:"lastTransitionTime,omitempty"`
-	Reason             *string                       `json:"reason,omitempty"`
-	Message            *string                       `json:"message,omitempty"`
-	ObservedGeneration *int64                        `json:"observedGeneration,omitempty"`
+	Type               *string             `json:"type,omitempty"`
+	Status             *v1.ConditionStatus `json:"status,omitempty"`
+	LastTransitionTime *v1.Time            `json:"lastTransitionTime,omitempty"`
+	Reason             *string             `json:"reason,omitempty"`
+	Message            *string             `json:"message,omitempty"`
+	ObservedGeneration *int64              `json:"observedGeneration,omitempty"`
 }
 
 // BundleConditionApplyConfiguration constructs an declarative configuration of the BundleCondition type for use with
@@ -43,7 +42,7 @@ func BundleCondition() *BundleConditionApplyConfiguration {
 // WithType sets the Type field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Type field is set to the value of the last call.
-func (b *BundleConditionApplyConfiguration) WithType(value v1alpha1.BundleConditionType) *BundleConditionApplyConfiguration {
+func (b *BundleConditionApplyConfiguration) WithType(value string) *BundleConditionApplyConfiguration {
 	b.Type = &value
 	return b
 }
