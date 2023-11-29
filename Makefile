@@ -98,8 +98,14 @@ vet:
 .PHONY: build
 build: $(BINDIR)/trust-manager | $(BINDIR) ## build trust-manager for the host system architecture
 
+.PHONY: build-linux-amd64 build-linux-arm64 build-linux-ppc64le build-linux-arm
+build-linux-amd64 build-linux-arm64 build-linux-ppc64le build-linux-arm: build-linux-%: $(BINDIR)/trust-manager-linux-%
+
 $(BINDIR)/trust-manager: $(GO_SOURCES) | $(BINDIR)
 	CGO_ENABLED=0 go build -o $(BINDIR)/trust-manager ./cmd/trust-manager
+
+$(BINDIR)/trust-manager-linux-amd64 $(BINDIR)/trust-manager-linux-arm64 $(BINDIR)/trust-manager-linux-ppc64le $(BINDIR)/trust-manager-linux-arm: $(BINDIR)/trust-manager-linux-%: $(GO_SOURCES) | $(BINDIR)
+	CGO_ENABLED=0 GOOS=linux GOARCH=$* go build -o $@ ./cmd/trust-manager
 
 .PHONY: generate
 generate: depend generate-deepcopy generate-applyconfigurations generate-manifests
@@ -140,7 +146,7 @@ ifeq ($(OS), linux)
 endif
 	docker buildx rm $(BUILDX_BUILDER) &>/dev/null || :
 	./hack/wait-for-buildx.sh $(BUILDX_BUILDER) gone
-	docker buildx create --name $(BUILDX_BUILDER) --driver docker-container --use
+	docker buildx create --name $(BUILDX_BUILDER) --bootstrap --driver docker-container --platform $(IMAGE_PLATFORMS)
 	./hack/wait-for-buildx.sh $(BUILDX_BUILDER) exists
 	docker buildx inspect --bootstrap --builder $(BUILDX_BUILDER)
 
