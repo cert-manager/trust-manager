@@ -37,7 +37,7 @@ endif
 
 .PHONY: trust-package-debian-load
 trust-package-debian-load:
-	$(call build_debian_trust_package,type=docker,latest,linux/amd64)
+	$(call build_debian_trust_package,type=docker,latest,linux/$(ARCH))
 
 .PHONY: trust-package-debian-push
 trust-package-debian-push:

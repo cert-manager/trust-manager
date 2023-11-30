@@ -28,7 +28,7 @@ trust-manager-save:
 
 .PHONY: trust-manager-load
 trust-manager-load:
-	$(call build_trust_manager,type=docker,latest,linux/amd64)
+	$(call build_trust_manager,type=docker,latest,linux/$(ARCH))
 
 .PHONY: trust-manager-push
 trust-manager-push:

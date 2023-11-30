@@ -45,6 +45,8 @@ CONTAINER_REGISTRY_API_URL ?= https://quay.io/v2/jetstack/cert-manager-package-d
 
 GOPROXY ?= https://proxy.golang.org,direct
 
+GO_SOURCES := $(shell find . -name "*.go") go.mod go.sum
+
 CI ?=
 
 # can't use a comma in an argument to a make function, so define a variable instead
@@ -94,7 +96,9 @@ vet:
 	go vet ./...
 
 .PHONY: build
-build: | $(BINDIR) ## build trust-manager
+build: $(BINDIR)/trust-manager | $(BINDIR) ## build trust-manager for the host system architecture
+
+$(BINDIR)/trust-manager: $(GO_SOURCES) | $(BINDIR)
 	CGO_ENABLED=0 go build -o $(BINDIR)/trust-manager ./cmd/trust-manager
 
 .PHONY: generate
