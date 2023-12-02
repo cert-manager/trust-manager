@@ -189,6 +189,7 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 	}
 
 	if bundle.Spec.Target.AdditionalFormats != nil {
+		var formats = make(map[string]*trustapi.KeySelector)
 		targetKeys := map[string]struct{}{}
 		if configMap != nil {
 			targetKeys[configMap.Key] = struct{}{}
@@ -196,10 +197,17 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 		if secret != nil {
 			targetKeys[secret.Key] = struct{}{}
 		}
-		formats := map[string]*trustapi.KeySelector{
-			"jks":    bundle.Spec.Target.AdditionalFormats.JKS,
-			"pkcs12": bundle.Spec.Target.AdditionalFormats.PKCS12,
+
+		// Checks for nil to avoid nil point dereference error
+		if bundle.Spec.Target.AdditionalFormats.JKS != nil {
+			formats["jks"] = &bundle.Spec.Target.AdditionalFormats.JKS.KeySelector
 		}
+
+		// Checks for nil to avoid nil point dereference error
+		if bundle.Spec.Target.AdditionalFormats.PKCS12 != nil {
+			formats["pkcs12"] = &bundle.Spec.Target.AdditionalFormats.PKCS12.KeySelector
+		}
+
 		for f, selector := range formats {
 			if selector != nil {
 				if _, ok := targetKeys[selector.Key]; ok {

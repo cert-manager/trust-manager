@@ -626,11 +626,19 @@ func Test_syncConfigMapTarget(t *testing.T) {
 			}
 			resolvedBundle := bundleData{data: data, binaryData: make(map[string][]byte)}
 			if test.withJKS {
-				spec.Target.AdditionalFormats.JKS = &trustapi.KeySelector{Key: jksKey}
+				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
+					KeySelector: trustapi.KeySelector{
+						Key: jksKey,
+					},
+				}
 				resolvedBundle.binaryData[jksKey] = jksData
 			}
 			if test.withPKCS12 {
-				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12Key}
+				spec.Target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{
+					KeySelector: trustapi.KeySelector{
+						Key: pkcs12Key,
+					},
+				}
 				resolvedBundle.binaryData[pkcs12Key] = pkcs12Data
 			}
 
@@ -1237,11 +1245,19 @@ func Test_syncSecretTarget(t *testing.T) {
 			}
 			resolvedBundle := bundleData{data: data, binaryData: make(map[string][]byte)}
 			if test.withJKS {
-				spec.Target.AdditionalFormats.JKS = &trustapi.KeySelector{Key: jksKey}
+				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
+					KeySelector: trustapi.KeySelector{
+						Key: jksKey,
+					},
+				}
 				resolvedBundle.binaryData[jksKey] = jksData
 			}
 			if test.withPKCS12 {
-				spec.Target.AdditionalFormats.PKCS12 = &trustapi.KeySelector{Key: pkcs12Key}
+				spec.Target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{
+					KeySelector: trustapi.KeySelector{
+						Key: pkcs12Key,
+					},
+				}
 				resolvedBundle.binaryData[pkcs12Key] = pkcs12Data
 			}
 
@@ -1313,6 +1329,7 @@ func Test_buildSourceBundle(t *testing.T) {
 		expNotFoundError bool
 		expJKS           bool
 		expPKCS12        bool
+		expPassword      *string
 	}{
 		"if no sources defined, should return an error": {
 			bundle:           &trustapi.Bundle{},
@@ -1478,7 +1495,15 @@ func Test_buildSourceBundle(t *testing.T) {
 				Sources: []trustapi.BundleSource{
 					{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
 				},
-				Target: trustapi.BundleTarget{AdditionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: jksKey}}},
+				Target: trustapi.BundleTarget{
+					AdditionalFormats: &trustapi.AdditionalFormats{
+						JKS: &trustapi.JKS{
+							KeySelector: trustapi.KeySelector{
+								Key: jksKey,
+							},
+							Password: ptr.To(DefaultJKSPassword),
+						},
+					}},
 			}},
 			objects: []runtime.Object{&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
@@ -1487,19 +1512,77 @@ func Test_buildSourceBundle(t *testing.T) {
 			expData: dummy.JoinCerts(dummy.TestCertificate1),
 			expJKS:  true,
 		},
+		"if has JKS target with arbitrary password, return binaryData with encoded JKS": {
+			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{
+				Sources: []trustapi.BundleSource{
+					{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
+				},
+				Target: trustapi.BundleTarget{
+					AdditionalFormats: &trustapi.AdditionalFormats{
+						JKS: &trustapi.JKS{
+							KeySelector: trustapi.KeySelector{
+								Key: jksKey,
+							},
+							Password: ptr.To("testPasswd123"),
+						},
+					}},
+			}},
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				Data:       map[string]string{"key": dummy.TestCertificate1},
+			}},
+			expData:     dummy.JoinCerts(dummy.TestCertificate1),
+			expJKS:      true,
+			expPassword: ptr.To("testPasswd123"),
+		},
 		"if has PKCS12 target, return binaryData with encoded PKCS12": {
 			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{
 				Sources: []trustapi.BundleSource{
 					{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
 				},
-				Target: trustapi.BundleTarget{AdditionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.KeySelector{Key: pkcs12Key}}},
+				Target: trustapi.BundleTarget{
+					AdditionalFormats: &trustapi.AdditionalFormats{
+						PKCS12: &trustapi.PKCS12{
+							KeySelector: trustapi.KeySelector{
+								Key: pkcs12Key,
+							},
+							Password: ptr.To(DefaultPKCS12Password),
+						},
+					},
+				},
 			}},
+
 			objects: []runtime.Object{&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
 				Data:       map[string]string{"key": dummy.TestCertificate1},
 			}},
 			expData:   dummy.JoinCerts(dummy.TestCertificate1),
 			expPKCS12: true,
+		},
+		"if has PKCS12 target with arbitrary password, return binaryData with encoded PKCS12": {
+			bundle: &trustapi.Bundle{Spec: trustapi.BundleSpec{
+				Sources: []trustapi.BundleSource{
+					{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
+				},
+				Target: trustapi.BundleTarget{
+					AdditionalFormats: &trustapi.AdditionalFormats{
+						PKCS12: &trustapi.PKCS12{
+							KeySelector: trustapi.KeySelector{
+								Key: pkcs12Key,
+							},
+							Password: ptr.To("testPasswd123"),
+						},
+					},
+				},
+			}},
+
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				Data:       map[string]string{"key": dummy.TestCertificate1},
+			}},
+			expData:     dummy.JoinCerts(dummy.TestCertificate1),
+			expPKCS12:   true,
+			expPassword: ptr.To("testPasswd123"),
 		},
 	}
 
@@ -1522,6 +1605,23 @@ func Test_buildSourceBundle(t *testing.T) {
 				},
 			}
 
+			// for corresponding store if arbitrary password is expected then set it instead of default one
+			var password string
+			if test.expJKS {
+				if test.expPassword != nil {
+					password = *test.expPassword
+				} else {
+					password = DefaultJKSPassword
+				}
+			}
+			if test.expPKCS12 {
+				if test.expPassword != nil {
+					password = *test.expPassword
+				} else {
+					password = DefaultPKCS12Password
+				}
+			}
+
 			resolvedBundle, err := b.buildSourceBundle(context.TODO(), test.bundle)
 
 			if (err != nil) != test.expError {
@@ -1542,7 +1642,8 @@ func Test_buildSourceBundle(t *testing.T) {
 				reader := bytes.NewReader(binData)
 
 				ks := jks.New()
-				err := ks.Load(reader, []byte(DefaultJKSPassword))
+
+				err := ks.Load(reader, []byte(password))
 				assert.Nil(t, err)
 
 				entryNames := ks.Aliases()
@@ -1562,7 +1663,7 @@ func Test_buildSourceBundle(t *testing.T) {
 			assert.Equal(t, test.expPKCS12, pkcs12Exists)
 
 			if test.expPKCS12 {
-				cas, err := pkcs12.DecodeTrustStore(binData, DefaultPKCS12Password)
+				cas, err := pkcs12.DecodeTrustStore(binData, password)
 				assert.Nil(t, err)
 				assert.Len(t, cas, 1)
 
@@ -1582,9 +1683,7 @@ func Test_encodeJKSAliases(t *testing.T) {
 	// Using different dummy certs would allow this test to pass but wouldn't actually test anything useful!
 	bundle := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2)
 
-	password := []byte(DefaultJKSPassword)
-
-	jksFile, err := jksEncoder{password: password}.encode(bundle)
+	jksFile, err := jksEncoder{password: DefaultJKSPassword}.encode(bundle)
 	if err != nil {
 		t.Fatalf("didn't expect an error but got: %s", err)
 	}
@@ -1593,7 +1692,7 @@ func Test_encodeJKSAliases(t *testing.T) {
 
 	ks := jks.New()
 
-	err = ks.Load(reader, password)
+	err = ks.Load(reader, []byte(DefaultJKSPassword))
 	if err != nil {
 		t.Fatalf("failed to parse generated JKS file: %s", err)
 	}
