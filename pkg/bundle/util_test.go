@@ -60,7 +60,7 @@ func Test_bundleHasCondition(t *testing.T) {
 			expectHasCondition: true,
 		},
 		"an existing condition with a different LastTransitionTime should return true still": {
-			existingConditions: []trustapi.BundleCondition{{Reason: "A", ObservedGeneration: bundleGeneration, LastTransitionTime: &metav1.Time{Time: fixedTime.Add(-time.Second)}}},
+			existingConditions: []trustapi.BundleCondition{{Reason: "A", ObservedGeneration: bundleGeneration, LastTransitionTime: metav1.Time{Time: fixedTime.Add(-time.Second)}}},
 			newCondition:       trustapi.BundleCondition{Reason: "A", ObservedGeneration: bundleGeneration},
 			expectHasCondition: true,
 		},
@@ -80,7 +80,7 @@ func Test_setBundleCondition(t *testing.T) {
 	const bundleGeneration int64 = 2
 	var (
 		fixedTime     = time.Date(2021, 01, 01, 01, 0, 0, 0, time.UTC)
-		fixedmetatime = &metav1.Time{Time: fixedTime}
+		fixedmetatime = metav1.Time{Time: fixedTime}
 		fixedclock    = fakeclock.NewFakeClock(fixedTime)
 	)
 
@@ -166,7 +166,7 @@ func Test_setBundleCondition(t *testing.T) {
 					Status:             metav1.ConditionTrue,
 					Reason:             "B",
 					Message:            "C",
-					LastTransitionTime: &metav1.Time{Time: fixedTime.Add(-time.Second)},
+					LastTransitionTime: metav1.Time{Time: fixedTime.Add(-time.Second)},
 					ObservedGeneration: bundleGeneration - 1,
 				},
 			},
@@ -183,7 +183,7 @@ func Test_setBundleCondition(t *testing.T) {
 					Status:             metav1.ConditionTrue,
 					Reason:             "B",
 					Message:            "C",
-					LastTransitionTime: &metav1.Time{Time: fixedTime.Add(-time.Second)},
+					LastTransitionTime: metav1.Time{Time: fixedTime.Add(-time.Second)},
 					ObservedGeneration: bundleGeneration,
 				},
 			},

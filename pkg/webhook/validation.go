@@ -216,16 +216,6 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 		}
 	}
 
-	path = field.NewPath("status")
-
-	conditionTypes := make(map[trustapi.BundleConditionType]struct{})
-	for i, condition := range bundle.Status.Conditions {
-		if _, ok := conditionTypes[condition.Type]; ok {
-			el = append(el, field.Invalid(path.Child("conditions", "["+strconv.Itoa(i)+"]"), condition, "condition type already present on Bundle"))
-		}
-		conditionTypes[condition.Type] = struct{}{}
-	}
-
 	return warnings, el.ToAggregate()
 
 }
