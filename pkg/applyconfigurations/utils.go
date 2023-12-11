@@ -43,10 +43,14 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &trustv1alpha1.BundleStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("BundleTarget"):
 		return &trustv1alpha1.BundleTargetApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("JKS"):
+		return &trustv1alpha1.JKSApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("KeySelector"):
 		return &trustv1alpha1.KeySelectorApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("NamespaceSelector"):
 		return &trustv1alpha1.NamespaceSelectorApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("PKCS12"):
+		return &trustv1alpha1.PKCS12ApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("SourceObjectKeySelector"):
 		return &trustv1alpha1.SourceObjectKeySelectorApplyConfiguration{}
 

@@ -117,11 +117,33 @@ type BundleTarget struct {
 // AdditionalFormats specifies any additional formats to write to the target
 type AdditionalFormats struct {
 	// JKS requests a JKS-formatted binary trust bundle to be written to the target.
-	// The bundle is created with the hardcoded password "changeit".
-	JKS *KeySelector `json:"jks,omitempty"`
+	// The bundle has "changeit" as the default password.
+	// For more information refer to this link https://cert-manager.io/docs/faq/#keystore-passwords
+	JKS *JKS `json:"jks,omitempty"`
 	// PKCS12 requests a PKCS12-formatted binary trust bundle to be written to the target.
-	// The bundle is created without a password.
-	PKCS12 *KeySelector `json:"pkcs12,omitempty"`
+	// The bundle is by default created without a password.
+	PKCS12 *PKCS12 `json:"pkcs12,omitempty"`
+}
+
+type JKS struct {
+	KeySelector `json:",inline"`
+
+	// Password for JKS trust store
+	//+optional
+	//+kubebuilder:validation:MinLength=1
+	//+kubebuilder:validation:MaxLength=128
+	//+kubebuilder:default=changeit
+	Password *string `json:"password"`
+}
+
+type PKCS12 struct {
+	KeySelector `json:",inline"`
+
+	// Password for PKCS12 trust store
+	//+optional
+	//+kubebuilder:validation:MaxLength=128
+	//+kubebuilder:default=""
+	Password *string `json:"password,omitempty"`
 }
 
 // NamespaceSelector defines selectors to match on Namespaces.

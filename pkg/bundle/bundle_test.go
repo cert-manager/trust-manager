@@ -48,7 +48,7 @@ import (
 func testEncodeJKS(t *testing.T, data string) []byte {
 	t.Helper()
 
-	encoded, err := jksEncoder{password: []byte(DefaultJKSPassword)}.encode(data)
+	encoded, err := jksEncoder{password: DefaultJKSPassword}.encode(data)
 	if err != nil {
 		t.Error(err)
 	}
@@ -487,7 +487,14 @@ func Test_Reconcile(t *testing.T) {
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
+					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{
+						JKS: &trustapi.JKS{
+							KeySelector: trustapi.KeySelector{
+								Key: "target.jks",
+							},
+							Password: ptr.To(DefaultJKSPassword),
+						},
+					}),
 				)},
 			expResult: ctrl.Result{},
 			expError:  false,
@@ -553,7 +560,14 @@ func Test_Reconcile(t *testing.T) {
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{JKS: &trustapi.KeySelector{Key: "target.jks"}}),
+					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{
+						JKS: &trustapi.JKS{
+							KeySelector: trustapi.KeySelector{
+								Key: "target.jks",
+							},
+							Password: ptr.To(DefaultJKSPassword),
+						},
+					}),
 				),
 			},
 			expResult: ctrl.Result{},
@@ -1208,7 +1222,6 @@ func Test_Reconcile(t *testing.T) {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-
 			fakeclient := fakeclient.NewClientBuilder().
 				WithScheme(trustapi.GlobalScheme).
 				WithObjects(test.existingConfigMaps...).

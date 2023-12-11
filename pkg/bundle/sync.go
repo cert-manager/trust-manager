@@ -19,7 +19,6 @@ package bundle
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -177,7 +176,7 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 }
 
 type jksEncoder struct {
-	password []byte
+	password string
 }
 
 // encodeJKS creates a binary JKS file from the given PEM-encoded trust bundle and password.
@@ -221,7 +220,7 @@ func (e jksEncoder) encode(trustBundle string) ([]byte, error) {
 
 	buf := &bytes.Buffer{}
 
-	err = ks.Store(buf, e.password)
+	err = ks.Store(buf, []byte(e.password))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create JKS file: %w", err)
 	}
@@ -265,7 +264,7 @@ func (e pkcs12Encoder) encode(trustBundle string) ([]byte, error) {
 		})
 	}
 
-	return pkcs12.EncodeTrustStoreEntries(rand.Reader, entries, e.password)
+	return pkcs12.LegacyRC2.EncodeTrustStoreEntries(entries, e.password)
 }
 
 // syncConfigMapTarget syncs the given data to the target ConfigMap in the given namespace.
@@ -489,7 +488,7 @@ func (b *bundleData) populateData(bundles []string, target trustapi.BundleTarget
 		b.binaryData = make(map[string][]byte)
 
 		if target.AdditionalFormats.JKS != nil {
-			encoded, err := jksEncoder{password: []byte(DefaultJKSPassword)}.encode(b.data)
+			encoded, err := jksEncoder{password: *target.AdditionalFormats.JKS.Password}.encode(b.data)
 			if err != nil {
 				return fmt.Errorf("failed to encode JKS: %w", err)
 			}
@@ -497,7 +496,7 @@ func (b *bundleData) populateData(bundles []string, target trustapi.BundleTarget
 		}
 
 		if target.AdditionalFormats.PKCS12 != nil {
-			encoded, err := pkcs12Encoder{password: DefaultPKCS12Password}.encode(b.data)
+			encoded, err := pkcs12Encoder{password: *target.AdditionalFormats.PKCS12.Password}.encode(b.data)
 			if err != nil {
 				return fmt.Errorf("failed to encode PKCS12: %w", err)
 			}
