@@ -54,13 +54,23 @@ type BundleList struct {
 	Items []Bundle `json:"items"`
 }
 
-// BundleSepc defines the desired state of a Bundle.
+// BundleSpec defines the desired state of a Bundle.
 type BundleSpec struct {
 	// Sources is a set of references to data whose data will sync to the target.
 	Sources []BundleSource `json:"sources"`
 
 	// Target is the target location in all namespaces to sync source data to.
 	Target BundleTarget `json:"target"`
+}
+
+// BundleLabelSelectorReference defines a label selector reference
+// to an object
+type BundleLabelSelectorReference struct {
+	// Selector is the label selector for an object
+	Selector *metav1.LabelSelector `json:"selector,omitempty"`
+
+	// Key is the key to use within the object (Secret or ConfigMap) for the certificate
+	Key string `json:"key,omitempty"`
 }
 
 // BundleSource is the set of sources whose data will be appended and synced to
@@ -71,10 +81,18 @@ type BundleSource struct {
 	// +optional
 	ConfigMap *SourceObjectKeySelector `json:"configMap,omitempty"`
 
+	// ConfigMapLabelSelector is a reference to a selection of labels
+	// +optional
+	ConfigMapLabelSelector *BundleLabelSelectorReference `json:"configMapLabelSelector,omitempty"`
+
 	// Secret is a reference to a Secrets's `data` key, in the trust
 	// Namespace.
 	// +optional
 	Secret *SourceObjectKeySelector `json:"secret,omitempty"`
+
+	// SecretLabelSelector is a reference to a selection of labels
+	// +optional
+	SecretLabelSelector *BundleLabelSelectorReference `json:"secretLabelSelector,omitempty"`
 
 	// InLine is a simple string to append as the source data.
 	// +optional

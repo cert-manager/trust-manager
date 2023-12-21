@@ -110,6 +110,11 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 			}
 		}
 
+		if source.ConfigMapLabelSelector != nil {
+			sourceCount++
+			unionCount++
+		}
+
 		if secret := source.Secret; secret != nil {
 			path := path.Child("secret")
 			sourceCount++
@@ -121,6 +126,11 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 			if len(secret.Key) == 0 {
 				el = append(el, field.Invalid(path.Child("key"), secret.Key, "source secret key must be defined"))
 			}
+		}
+
+		if source.SecretLabelSelector != nil {
+			sourceCount++
+			unionCount++
 		}
 
 		if source.InLine != nil {

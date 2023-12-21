@@ -19,6 +19,7 @@ package bundle
 import (
 	"context"
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
@@ -136,13 +137,14 @@ func AddBundleController(
 		Watches(&corev1.ConfigMap{}, b.enqueueRequestsFromBundleFunc(
 			func(obj client.Object, bundle trustapi.Bundle) bool {
 				for _, source := range bundle.Spec.Sources {
-					if source.ConfigMap == nil {
-						continue
+					if source.ConfigMap != nil && source.ConfigMap.Name == obj.GetName() {
+						return true
 					}
 
-					// Bundle references this ConfigMap as a source. Add to request.
-					if source.ConfigMap.Name == obj.GetName() {
-						return true
+					if source.ConfigMapLabelSelector != nil {
+						if labelsMatchSelector(obj.GetLabels(), source.ConfigMapLabelSelector.Selector) {
+							return true
+						}
 					}
 				}
 				return false
@@ -153,13 +155,14 @@ func AddBundleController(
 		Watches(&corev1.Secret{}, b.enqueueRequestsFromBundleFunc(
 			func(obj client.Object, bundle trustapi.Bundle) bool {
 				for _, source := range bundle.Spec.Sources {
-					if source.Secret == nil {
-						continue
+					if source.Secret != nil && source.Secret.Name == obj.GetName() {
+						return true
 					}
 
-					// Bundle references this Secret as a source. Add to request.
-					if source.Secret.Name == obj.GetName() {
-						return true
+					if source.SecretLabelSelector != nil {
+						if labelsMatchSelector(obj.GetLabels(), source.SecretLabelSelector.Selector) {
+							return true
+						}
 					}
 				}
 				return false
@@ -214,4 +217,16 @@ func inNamespacePredicate(namespace string) predicate.Predicate {
 	return predicate.NewPredicateFuncs(func(object client.Object) bool {
 		return object.GetNamespace() == namespace
 	})
+}
+
+// labelsMatchSelector returns true is all objLabels matches the label selector
+// and false otherwise
+func labelsMatchSelector(objLabels map[string]string, selector *metav1.LabelSelector) bool {
+	labelRequirements, _ := labels.ParseToRequirements(metav1.FormatLabelSelector(selector))
+	for _, r := range labelRequirements {
+		if !r.Matches(labels.Set(objLabels)) {
+			return false
+		}
+	}
+	return true
 }

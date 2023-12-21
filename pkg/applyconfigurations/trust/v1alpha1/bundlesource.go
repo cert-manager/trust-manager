@@ -21,10 +21,12 @@ package v1alpha1
 // BundleSourceApplyConfiguration represents an declarative configuration of the BundleSource type for use
 // with apply.
 type BundleSourceApplyConfiguration struct {
-	ConfigMap     *SourceObjectKeySelectorApplyConfiguration `json:"configMap,omitempty"`
-	Secret        *SourceObjectKeySelectorApplyConfiguration `json:"secret,omitempty"`
-	InLine        *string                                    `json:"inLine,omitempty"`
-	UseDefaultCAs *bool                                      `json:"useDefaultCAs,omitempty"`
+	ConfigMap              *SourceObjectKeySelectorApplyConfiguration      `json:"configMap,omitempty"`
+	ConfigMapLabelSelector *BundleLabelSelectorReferenceApplyConfiguration `json:"configMapLabelSelector,omitempty"`
+	Secret                 *SourceObjectKeySelectorApplyConfiguration      `json:"secret,omitempty"`
+	SecretLabelSelector    *BundleLabelSelectorReferenceApplyConfiguration `json:"secretLabelSelector,omitempty"`
+	InLine                 *string                                         `json:"inLine,omitempty"`
+	UseDefaultCAs          *bool                                           `json:"useDefaultCAs,omitempty"`
 }
 
 // BundleSourceApplyConfiguration constructs an declarative configuration of the BundleSource type for use with
@@ -41,11 +43,27 @@ func (b *BundleSourceApplyConfiguration) WithConfigMap(value *SourceObjectKeySel
 	return b
 }
 
+// WithConfigMapLabelSelector sets the ConfigMapLabelSelector field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the ConfigMapLabelSelector field is set to the value of the last call.
+func (b *BundleSourceApplyConfiguration) WithConfigMapLabelSelector(value *BundleLabelSelectorReferenceApplyConfiguration) *BundleSourceApplyConfiguration {
+	b.ConfigMapLabelSelector = value
+	return b
+}
+
 // WithSecret sets the Secret field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Secret field is set to the value of the last call.
 func (b *BundleSourceApplyConfiguration) WithSecret(value *SourceObjectKeySelectorApplyConfiguration) *BundleSourceApplyConfiguration {
 	b.Secret = value
+	return b
+}
+
+// WithSecretLabelSelector sets the SecretLabelSelector field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the SecretLabelSelector field is set to the value of the last call.
+func (b *BundleSourceApplyConfiguration) WithSecretLabelSelector(value *BundleLabelSelectorReferenceApplyConfiguration) *BundleSourceApplyConfiguration {
+	b.SecretLabelSelector = value
 	return b
 }
 

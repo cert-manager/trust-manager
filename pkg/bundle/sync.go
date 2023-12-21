@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/labels"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -91,10 +92,12 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 		switch {
 		case source.ConfigMap != nil:
 			sourceData, err = b.configMapBundle(ctx, source.ConfigMap)
-
+		case source.ConfigMapLabelSelector != nil:
+			sourceData, err = b.configMapLabelSelectorBundle(ctx, source.ConfigMapLabelSelector)
 		case source.Secret != nil:
 			sourceData, err = b.secretBundle(ctx, source.Secret)
-
+		case source.SecretLabelSelector != nil:
+			sourceData, err = b.secretLabelSelectorBundle(ctx, source.SecretLabelSelector)
 		case source.InLine != nil:
 			sourceData = *source.InLine
 
@@ -119,12 +122,10 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 		if err != nil {
 			return bundleData{}, fmt.Errorf("invalid PEM data in source: %w", err)
 		}
-
 		bundles = append(bundles, string(sanitizedBundle))
 	}
 
 	// NB: empty bundles are not valid so check and return an error if one somehow snuck through.
-
 	if len(bundles) == 0 {
 		return bundleData{}, fmt.Errorf("couldn't find any valid certificates in bundle")
 	}
@@ -156,6 +157,33 @@ func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObject
 	return data, nil
 }
 
+// configMapSelectorBundle returns the data of all ConfigMap that matches the label selector
+func (b *bundle) configMapLabelSelectorBundle(ctx context.Context, ref *trustapi.BundleLabelSelectorReference) (string, error) {
+	labelSelectorRequirements, err := labels.ParseToRequirements(metav1.FormatLabelSelector(ref.Selector))
+	if err != nil {
+		return "", err
+	}
+	var configMapList corev1.ConfigMapList
+	err = b.client.List(ctx, &configMapList, client.MatchingLabelsSelector{Selector: labels.NewSelector().Add(labelSelectorRequirements...)})
+	if apierrors.IsNotFound(err) {
+		return "", notFoundError{err}
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to get ConfigMapList %s: %w", b.Namespace, err)
+	}
+
+	var results strings.Builder
+	for _, cm := range configMapList.Items {
+		data, ok := cm.Data[ref.Key]
+		if !ok {
+			return "", notFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", b.Namespace, cm.Name, ref.Key)}
+		}
+		results.WriteString(data)
+		results.WriteByte('\n')
+	}
+	return results.String(), nil
+}
+
 // secretBundle returns the data in the source Secret within the trust Namespace.
 func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKeySelector) (string, error) {
 	var secret corev1.Secret
@@ -173,6 +201,33 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 	}
 
 	return string(data), nil
+}
+
+// secretLabelSelectorBundle returns the data of all Secret that matches the label selector
+func (b *bundle) secretLabelSelectorBundle(ctx context.Context, ref *trustapi.BundleLabelSelectorReference) (string, error) {
+	labelSelectorRequirements, err := labels.ParseToRequirements(metav1.FormatLabelSelector(ref.Selector))
+	if err != nil {
+		return "", err
+	}
+	var secretList corev1.SecretList
+	err = b.client.List(ctx, &secretList, client.MatchingLabelsSelector{Selector: labels.NewSelector().Add(labelSelectorRequirements...)})
+	if apierrors.IsNotFound(err) {
+		return "", notFoundError{err}
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to get SecretList %s: %w", b.Namespace, err)
+	}
+
+	var results strings.Builder
+	for _, secret := range secretList.Items {
+		data, ok := secret.Data[ref.Key]
+		if !ok {
+			return "", notFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", b.Namespace, secret.Name, ref.Key)}
+		}
+		results.WriteString(string(data))
+		results.WriteByte('\n')
+	}
+	return results.String(), nil
 }
 
 type jksEncoder struct {
