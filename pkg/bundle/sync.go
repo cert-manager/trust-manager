@@ -521,29 +521,29 @@ func (b *bundle) needsUpdate(ctx context.Context, log logr.Logger, obj *metav1.P
 	}
 
 	{
-		properties, err := listManagedProperties(obj, fieldManager, "data")
-		if err != nil {
-			return false, fmt.Errorf("failed to list managed properties: %w", err)
-		}
-
 		key := ""
+		targetFieldNames := []string{"data"}
 		targetType := obj.TypeMeta.Kind
 		if targetType == "ConfigMap" {
 			key = bundle.Spec.Target.ConfigMap.Key
+			targetFieldNames = append(targetFieldNames, "binaryData")
 		} else if targetType == "Secret" {
 			key = bundle.Spec.Target.Secret.Key
 		} else {
 			return false, fmt.Errorf("unknown targetType: %s", targetType)
 		}
+
+		properties, err := listManagedProperties(obj, fieldManager, targetFieldNames...)
+		if err != nil {
+			return false, fmt.Errorf("failed to list managed properties: %w", err)
+		}
 		expectedProperties := sets.New[string](key)
 		if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.JKS != nil {
 			expectedProperties.Insert(bundle.Spec.Target.AdditionalFormats.JKS.Key)
 		}
-
 		if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.PKCS12 != nil {
 			expectedProperties.Insert(bundle.Spec.Target.AdditionalFormats.PKCS12.Key)
 		}
-
 		if !properties.Equal(expectedProperties) {
 			needsUpdate = true
 		}
@@ -563,7 +563,7 @@ func (b *bundle) needsUpdate(ctx context.Context, log logr.Logger, obj *metav1.P
 	return needsUpdate, nil
 }
 
-func listManagedProperties(configmap *metav1.PartialObjectMetadata, fieldManager string, fieldName string) (sets.Set[string], error) {
+func listManagedProperties(configmap *metav1.PartialObjectMetadata, fieldManager string, fieldNames ...string) (sets.Set[string], error) {
 	properties := sets.New[string]()
 
 	for _, managedField := range configmap.ManagedFields {
@@ -578,16 +578,18 @@ func listManagedProperties(configmap *metav1.PartialObjectMetadata, fieldManager
 			return nil, err
 		}
 
-		// Extract the labels and annotations of the managed fields.
-		configmapData := fieldset.Children.Descend(fieldpath.PathElement{
-			FieldName: ptr.To(fieldName),
-		})
+		for _, fieldName := range fieldNames {
+			// Extract the labels and annotations of the managed fields.
+			configmapData := fieldset.Children.Descend(fieldpath.PathElement{
+				FieldName: ptr.To(fieldName),
+			})
 
-		// Gather the properties on the managed fields. Remove the '.'
-		// prefix which appears on managed field keys.
-		configmapData.Iterate(func(path fieldpath.Path) {
-			properties.Insert(strings.TrimPrefix(path.String(), "."))
-		})
+			// Gather the properties on the managed fields. Remove the '.'
+			// prefix which appears on managed field keys.
+			configmapData.Iterate(func(path fieldpath.Path) {
+				properties.Insert(strings.TrimPrefix(path.String(), "."))
+			})
+		}
 	}
 
 	return properties, nil
