@@ -92,8 +92,10 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 		switch {
 		case source.ConfigMap != nil:
 			sourceData, err = b.configMapBundle(ctx, source.ConfigMap)
+
 		case source.Secret != nil:
 			sourceData, err = b.secretBundle(ctx, source.Secret)
+
 		case source.InLine != nil:
 			sourceData = *source.InLine
 
@@ -118,10 +120,12 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 		if err != nil {
 			return bundleData{}, fmt.Errorf("invalid PEM data in source: %w", err)
 		}
+
 		bundles = append(bundles, string(sanitizedBundle))
 	}
 
 	// NB: empty bundles are not valid so check and return an error if one somehow snuck through.
+
 	if len(bundles) == 0 {
 		return bundleData{}, fmt.Errorf("couldn't find any valid certificates in bundle")
 	}
@@ -138,12 +142,15 @@ func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObject
 	if ref.Name != "" {
 		var configMap corev1.ConfigMap
 		err := b.client.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &configMap)
+
 		if apierrors.IsNotFound(err) {
 			return "", notFoundError{err}
 		}
+
 		if err != nil {
 			return "", fmt.Errorf("failed to get ConfigMap %s/%s: %w", b.Namespace, ref.Name, err)
 		}
+
 		data, ok := configMap.Data[ref.Key]
 		if !ok {
 			return "", notFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", b.Namespace, ref.Name, ref.Key)}
@@ -151,17 +158,22 @@ func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObject
 		return data, nil
 	} else {
 		var configMapList corev1.ConfigMapList
+
 		labelSelectorRequirements, err := labels.ParseToRequirements(metav1.FormatLabelSelector(ref.Selector))
 		if err != nil {
 			return "", err
 		}
+
 		err = b.client.List(ctx, &configMapList, client.MatchingLabelsSelector{Selector: labels.NewSelector().Add(labelSelectorRequirements...)})
+
 		if apierrors.IsNotFound(err) {
 			return "", notFoundError{err}
 		}
+
 		if err != nil {
 			return "", fmt.Errorf("failed to get ConfigMapList %s: %w", b.Namespace, err)
 		}
+
 		var results strings.Builder
 		for _, cm := range configMapList.Items {
 			data, ok := cm.Data[ref.Key]
@@ -180,9 +192,11 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 	if ref.Name != "" {
 		var secret corev1.Secret
 		err := b.client.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &secret)
+
 		if apierrors.IsNotFound(err) {
 			return "", notFoundError{err}
 		}
+
 		if err != nil {
 			return "", fmt.Errorf("failed to get Secret %s/%s: %w", b.Namespace, ref.Name, err)
 		}
@@ -196,13 +210,17 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 	} else {
 		var secretList corev1.SecretList
 		labelSelectorRequirements, err := labels.ParseToRequirements(metav1.FormatLabelSelector(ref.Selector))
+
 		if err != nil {
 			return "", err
 		}
+
 		err = b.client.List(ctx, &secretList, client.MatchingLabelsSelector{Selector: labels.NewSelector().Add(labelSelectorRequirements...)})
+
 		if apierrors.IsNotFound(err) {
 			return "", notFoundError{err}
 		}
+
 		if err != nil {
 			return "", fmt.Errorf("failed to get SecretList %s: %w", b.Namespace, err)
 		}

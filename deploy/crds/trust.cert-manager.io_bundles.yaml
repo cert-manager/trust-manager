@@ -69,10 +69,10 @@ spec:
                             description: Key is the key of the entry in the object's `data` field to be used.
                             type: string
                           name:
-                            description: Name is the name of the source object in the trust Namespace.
+                            description: Name is the name of the source object in the trust Namespace. This field must be left empty when `selector` is set
                             type: string
                           selector:
-                            description: Selector is the label selector for an object
+                            description: Selector is the label selector to use to fetch all object. Must not be set when `Name` is set.
                             type: object
                             properties:
                               matchExpressions:
@@ -115,10 +115,10 @@ spec:
                             description: Key is the key of the entry in the object's `data` field to be used.
                             type: string
                           name:
-                            description: Name is the name of the source object in the trust Namespace.
+                            description: Name is the name of the source object in the trust Namespace. This field must be left empty when `selector` is set
                             type: string
                           selector:
-                            description: Selector is the label selector for an object
+                            description: Selector is the label selector to use to fetch all object. Must not be set when `Name` is set.
                             type: object
                             properties:
                               matchExpressions:

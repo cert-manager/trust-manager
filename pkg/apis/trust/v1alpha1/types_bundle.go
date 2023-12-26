@@ -158,10 +158,12 @@ type NamespaceSelector struct {
 // in the trust Namespace.
 type SourceObjectKeySelector struct {
 	// Name is the name of the source object in the trust Namespace.
+	// This field must be left empty when `selector` is set
 	//+optional
 	Name string `json:"name"`
 
-	// Selector is the label selector for an object
+	// Selector is the label selector to use to fetch a list of objects. Must not be set
+	// when `Name` is set.
 	//+optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 
