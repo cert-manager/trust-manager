@@ -137,14 +137,18 @@ func AddBundleController(
 		Watches(&corev1.ConfigMap{}, b.enqueueRequestsFromBundleFunc(
 			func(obj client.Object, bundle trustapi.Bundle) bool {
 				for _, source := range bundle.Spec.Sources {
-					if source.ConfigMap != nil && source.ConfigMap.Name == obj.GetName() {
-						return true
+					if source.ConfigMap == nil {
+						continue
 					}
 
-					if source.ConfigMapLabelSelector != nil {
-						if labelsMatchSelector(obj.GetLabels(), source.ConfigMapLabelSelector.Selector) {
+					if source.ConfigMap.Selector != nil {
+						if labelsMatchSelector(obj.GetLabels(), source.ConfigMap.Selector) {
 							return true
 						}
+					}
+
+					if source.ConfigMap.Name == obj.GetName() {
+						return true
 					}
 				}
 				return false
@@ -155,14 +159,18 @@ func AddBundleController(
 		Watches(&corev1.Secret{}, b.enqueueRequestsFromBundleFunc(
 			func(obj client.Object, bundle trustapi.Bundle) bool {
 				for _, source := range bundle.Spec.Sources {
-					if source.Secret != nil && source.Secret.Name == obj.GetName() {
-						return true
+					if source.Secret == nil {
+						continue
 					}
 
-					if source.SecretLabelSelector != nil {
-						if labelsMatchSelector(obj.GetLabels(), source.SecretLabelSelector.Selector) {
+					if source.Secret.Selector != nil {
+						if labelsMatchSelector(obj.GetLabels(), source.Secret.Selector) {
 							return true
 						}
+					}
+
+					if source.Secret.Name == obj.GetName() {
+						return true
 					}
 				}
 				return false

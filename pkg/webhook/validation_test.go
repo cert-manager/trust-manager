@@ -153,9 +153,9 @@ func Test_validate(t *testing.T) {
 				},
 			},
 			expErr: ptr.To(field.ErrorList{
-				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap", "name"), "", "source configMap name must be defined"),
+				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap", "name"), "", "source configMap name or label selector must be defined"),
 				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap", "key"), "", "source configMap key must be defined"),
-				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret", "name"), "", "source secret name must be defined"),
+				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret", "name"), "", "source secret name or label selector must be defined"),
 				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret", "key"), "", "source secret key must be defined"),
 			}.ToAggregate().Error()),
 		},

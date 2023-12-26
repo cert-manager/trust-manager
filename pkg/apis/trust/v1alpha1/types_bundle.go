@@ -63,36 +63,18 @@ type BundleSpec struct {
 	Target BundleTarget `json:"target"`
 }
 
-// BundleLabelSelectorReference defines a label selector reference
-// to an object
-type BundleLabelSelectorReference struct {
-	// Selector is the label selector for an object
-	Selector *metav1.LabelSelector `json:"selector,omitempty"`
-
-	// Key is the key to use within the object (Secret or ConfigMap) for the certificate
-	Key string `json:"key,omitempty"`
-}
-
 // BundleSource is the set of sources whose data will be appended and synced to
 // the BundleTarget in all Namespaces.
 type BundleSource struct {
-	// ConfigMap is a reference to a ConfigMap's `data` key, in the trust
-	// Namespace.
+	// ConfigMap is a reference (by name) to a ConfigMap's `data` key, or to a
+	// list of ConfigMap's `data` key using label selector, in the trust Namespace
 	// +optional
 	ConfigMap *SourceObjectKeySelector `json:"configMap,omitempty"`
 
-	// ConfigMapLabelSelector is a reference to a selection of labels
-	// +optional
-	ConfigMapLabelSelector *BundleLabelSelectorReference `json:"configMapLabelSelector,omitempty"`
-
-	// Secret is a reference to a Secrets's `data` key, in the trust
-	// Namespace.
+	// Secret is a reference (by name) to a Secret's `data` key, or to a
+	// list of Secret's `data` key using label selector, in the trust Namespace
 	// +optional
 	Secret *SourceObjectKeySelector `json:"secret,omitempty"`
-
-	// SecretLabelSelector is a reference to a selection of labels
-	// +optional
-	SecretLabelSelector *BundleLabelSelectorReference `json:"secretLabelSelector,omitempty"`
 
 	// InLine is a simple string to append as the source data.
 	// +optional
@@ -176,7 +158,12 @@ type NamespaceSelector struct {
 // in the trust Namespace.
 type SourceObjectKeySelector struct {
 	// Name is the name of the source object in the trust Namespace.
+	//+optional
 	Name string `json:"name"`
+
+	// Selector is the label selector for an object
+	//+optional
+	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 
 	// KeySelector is the key of the entry in the objects' `data` field to be referenced.
 	KeySelector `json:",inline"`

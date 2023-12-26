@@ -60,24 +60,16 @@ spec:
                     type: object
                     properties:
                       configMap:
-                        description: ConfigMap is a reference to a ConfigMap's `data` key, in the trust Namespace.
+                        description: ConfigMap is a reference (by name) to a ConfigMap's `data` key, or to a list of ConfigMap's `data` key using label selector, in the trust Namespace
                         type: object
                         required:
                           - key
-                          - name
                         properties:
                           key:
                             description: Key is the key of the entry in the object's `data` field to be used.
                             type: string
                           name:
                             description: Name is the name of the source object in the trust Namespace.
-                            type: string
-                      configMapLabelSelector:
-                        description: ConfigMapLabelSelector is a reference to a selection of labels
-                        type: object
-                        properties:
-                          key:
-                            description: Key is the key to use within the object (Secret or ConfigMap) for the certificate
                             type: string
                           selector:
                             description: Selector is the label selector for an object
@@ -114,24 +106,16 @@ spec:
                         description: InLine is a simple string to append as the source data.
                         type: string
                       secret:
-                        description: Secret is a reference to a Secrets's `data` key, in the trust Namespace.
+                        description: Secret is a reference (by name) to a Secret's `data` key, or to a list of Secret's `data` key using label selector, in the trust Namespace
                         type: object
                         required:
                           - key
-                          - name
                         properties:
                           key:
                             description: Key is the key of the entry in the object's `data` field to be used.
                             type: string
                           name:
                             description: Name is the name of the source object in the trust Namespace.
-                            type: string
-                      secretLabelSelector:
-                        description: SecretLabelSelector is a reference to a selection of labels
-                        type: object
-                        properties:
-                          key:
-                            description: Key is the key to use within the object (Secret or ConfigMap) for the certificate
                             type: string
                           selector:
                             description: Selector is the label selector for an object

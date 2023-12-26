@@ -1,0 +1,15 @@
+apiVersion: trust.cert-manager.io/v1alpha1
+kind: Bundle
+metadata:
+  name: ocampeau-bundle
+spec:
+  sources:
+  - useDefaultCAs: false
+  - configMap:
+      key: ca.crt
+      selector:
+        matchLabels:
+          fruit: apple
+  target:
+    configMap:
+      key: "ca.crt"

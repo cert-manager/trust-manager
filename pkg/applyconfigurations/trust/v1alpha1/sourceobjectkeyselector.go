@@ -18,10 +18,15 @@ limitations under the License.
 
 package v1alpha1
 
+import (
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
 // SourceObjectKeySelectorApplyConfiguration represents an declarative configuration of the SourceObjectKeySelector type for use
 // with apply.
 type SourceObjectKeySelectorApplyConfiguration struct {
-	Name                          *string `json:"name,omitempty"`
+	Name                          *string           `json:"name,omitempty"`
+	Selector                      *v1.LabelSelector `json:"selector,omitempty"`
 	KeySelectorApplyConfiguration `json:",inline"`
 }
 
@@ -36,6 +41,14 @@ func SourceObjectKeySelector() *SourceObjectKeySelectorApplyConfiguration {
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *SourceObjectKeySelectorApplyConfiguration) WithName(value string) *SourceObjectKeySelectorApplyConfiguration {
 	b.Name = &value
+	return b
+}
+
+// WithSelector sets the Selector field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Selector field is set to the value of the last call.
+func (b *SourceObjectKeySelectorApplyConfiguration) WithSelector(value v1.LabelSelector) *SourceObjectKeySelectorApplyConfiguration {
+	b.Selector = &value
 	return b
 }
 

@@ -102,17 +102,12 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 			sourceCount++
 			unionCount++
 
-			if len(configMap.Name) == 0 {
-				el = append(el, field.Invalid(path.Child("name"), configMap.Name, "source configMap name must be defined"))
+			if len(configMap.Name) == 0 && configMap.Selector == nil {
+				el = append(el, field.Invalid(path.Child("name"), configMap.Name, "source configMap name or label selector must be defined"))
 			}
 			if len(configMap.Key) == 0 {
 				el = append(el, field.Invalid(path.Child("key"), configMap.Key, "source configMap key must be defined"))
 			}
-		}
-
-		if source.ConfigMapLabelSelector != nil {
-			sourceCount++
-			unionCount++
 		}
 
 		if secret := source.Secret; secret != nil {
@@ -120,17 +115,12 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 			sourceCount++
 			unionCount++
 
-			if len(secret.Name) == 0 {
-				el = append(el, field.Invalid(path.Child("name"), secret.Name, "source secret name must be defined"))
+			if len(secret.Name) == 0 && secret.Selector == nil {
+				el = append(el, field.Invalid(path.Child("name"), secret.Name, "source secret name or label selector must be defined"))
 			}
 			if len(secret.Key) == 0 {
 				el = append(el, field.Invalid(path.Child("key"), secret.Key, "source secret key must be defined"))
 			}
-		}
-
-		if source.SecretLabelSelector != nil {
-			sourceCount++
-			unionCount++
 		}
 
 		if source.InLine != nil {
