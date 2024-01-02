@@ -131,7 +131,7 @@ generate-manifests: $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)/contr
 
 # See wait-for-buildx.sh for an explanation of why it's needed
 .PHONY: provision-buildx
-provision-buildx:  ## set up docker buildx for multiarch building
+provision-buildx:  ## set up docker buildx for multiarch building; required for building images
 ifeq ($(OS), linux)
 	# This step doesn't work on macOS and doesn't seem to be required (at least with docker desktop)
 	# It did seem to be needed in Linux, at least in certain configurations when running on amd64
@@ -145,10 +145,10 @@ endif
 	docker buildx inspect --bootstrap --builder $(BUILDX_BUILDER)
 
 .PHONY: image
-image: trust-manager-save trust-package-debian-save | $(BINDIR) ## build docker images targeting all supported platforms and save to disk
+image: trust-manager-save trust-package-debian-save | $(BINDIR) ## build docker images targeting all supported platforms and save to disk. Requires `make provision-buildx`
 
 .PHONY: local-images
-local-images: trust-manager-load trust-package-debian-load  ## build container images for only amd64 and load into docker
+local-images: trust-manager-load trust-package-debian-load  ## build container images for only the local architecture and load into docker. Requires `make provision-buildx`
 
 .PHONY: kind-load
 kind-load: local-images | $(BINDIR)/kind-$(KIND_VERSION)/kind  ## same as local-images but also run "kind load docker-image"
