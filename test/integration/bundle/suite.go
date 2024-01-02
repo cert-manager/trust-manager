@@ -447,6 +447,41 @@ var _ = Describe("Integration", func() {
 		}, eventuallyTimeout, eventuallyPollInterval).Should(BeNil(), "checking that bundle was re-added to newly labelled namespace")
 	})
 
+	Context("Reconcile consistency", func() {
+		It("should have stable resourceVersion", func() {
+			var configMap corev1.ConfigMap
+			Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).To(Succeed())
+			resourceVersion := configMap.ResourceVersion
+			Consistently(komega.Object(&configMap)).Should(HaveField("ObjectMeta.ResourceVersion", Equal(resourceVersion)))
+		})
+
+		It("should have stable resourceVersion for JKS target", func() {
+			Expect(komega.Update(testBundle, func() {
+				testBundle.Spec.Target.AdditionalFormats = &trustapi.AdditionalFormats{
+					JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "target.jks"}}}
+			})()).To(Succeed())
+
+			configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "kube-system", Name: testBundle.Name}}
+			Eventually(komega.Object(configMap)).Should(HaveField("BinaryData", HaveKey("target.jks")))
+
+			resourceVersion := configMap.ResourceVersion
+			Consistently(komega.Object(configMap)).Should(HaveField("ObjectMeta.ResourceVersion", Equal(resourceVersion)))
+		})
+
+		It("should have stable resourceVersion for PKCS12 target", func() {
+			Expect(komega.Update(testBundle, func() {
+				testBundle.Spec.Target.AdditionalFormats = &trustapi.AdditionalFormats{
+					PKCS12: &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "target.p12"}}}
+			})()).To(Succeed())
+
+			configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "kube-system", Name: testBundle.Name}}
+			Eventually(komega.Object(configMap)).Should(HaveField("BinaryData", HaveKey("target.p12")))
+
+			resourceVersion := configMap.ResourceVersion
+			Consistently(komega.Object(configMap)).Should(HaveField("ObjectMeta.ResourceVersion", Equal(resourceVersion)))
+		})
+	})
+
 	It("should migrate bundle from CSA to SSA", func() {
 		Expect(komega.UpdateStatus(testBundle, func() {
 			testBundle.Status = trustapi.BundleStatus{
