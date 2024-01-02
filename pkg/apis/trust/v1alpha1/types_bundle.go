@@ -33,6 +33,7 @@ var BundleHashAnnotationKey = "trust.cert-manager.io/hash"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
 // +genclient
+// +genclient:nonNamespaced
 
 type Bundle struct {
 	metav1.TypeMeta   `json:",inline"`

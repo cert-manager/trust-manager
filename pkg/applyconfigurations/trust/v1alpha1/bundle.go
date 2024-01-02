@@ -35,10 +35,9 @@ type BundleApplyConfiguration struct {
 
 // Bundle constructs an declarative configuration of the Bundle type for use with
 // apply.
-func Bundle(name, namespace string) *BundleApplyConfiguration {
+func Bundle(name string) *BundleApplyConfiguration {
 	b := &BundleApplyConfiguration{}
 	b.WithName(name)
-	b.WithNamespace(namespace)
 	b.WithKind("Bundle")
 	b.WithAPIVersion("trust.cert-manager.io/v1alpha1")
 	return b
