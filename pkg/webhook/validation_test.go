@@ -141,7 +141,7 @@ func Test_validate(t *testing.T) {
 				field.Forbidden(field.NewPath("spec", "sources"), "must request default CAs either once or not at all but got 3 requests"),
 			}.ToAggregate().Error()),
 		},
-		"sources no names and keys": {
+		"sources names, selectors and keys are empty": {
 			bundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
@@ -153,10 +153,26 @@ func Test_validate(t *testing.T) {
 				},
 			},
 			expErr: ptr.To(field.ErrorList{
-				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap", "name"), "", "source configMap name or label selector must be defined"),
+				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap", "name", "selector"), "", "source configMap name or label selector are both empty; one must be set"),
 				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap", "key"), "", "source configMap key must be defined"),
-				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret", "name"), "", "source secret name or label selector must be defined"),
+				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret", "name", "selector"), "", "source secret name or label selector are both empty; one must be set"),
 				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret", "key"), "", "source secret key must be defined"),
+			}.ToAggregate().Error()),
+		},
+		"sources names and selectors are both set": {
+			bundle: &trustapi.Bundle{
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "some-config-map", Selector: &metav1.LabelSelector{}, KeySelector: trustapi.KeySelector{Key: "test"}}},
+						{InLine: ptr.To("test")},
+						{Secret: &trustapi.SourceObjectKeySelector{Name: "some-secret", Selector: &metav1.LabelSelector{}, KeySelector: trustapi.KeySelector{Key: "test"}}},
+					},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test"}},
+				},
+			},
+			expErr: ptr.To(field.ErrorList{
+				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap", "name", "selector"), "some-config-map", "source configMap name and label selector are both set; only one must be set"),
+				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret", "name", "selector"), "some-secret", "source secret name and label selector are both set; only one must be set"),
 			}.ToAggregate().Error()),
 		},
 		"sources defines the same configMap target": {
