@@ -103,7 +103,10 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 			unionCount++
 
 			if len(configMap.Name) == 0 && configMap.Selector == nil {
-				el = append(el, field.Invalid(path.Child("name"), configMap.Name, "source configMap name or label selector must be defined"))
+				el = append(el, field.Invalid(path.Child("name", "selector"), configMap.Name, "source configMap name or label selector are both empty; one must be set"))
+			}
+			if len(configMap.Name) > 0 && configMap.Selector != nil {
+				el = append(el, field.Invalid(path.Child("name", "selector"), configMap.Name, "source configMap name and label selector are both set; only one must be set"))
 			}
 			if len(configMap.Key) == 0 {
 				el = append(el, field.Invalid(path.Child("key"), configMap.Key, "source configMap key must be defined"))
@@ -116,7 +119,10 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 			unionCount++
 
 			if len(secret.Name) == 0 && secret.Selector == nil {
-				el = append(el, field.Invalid(path.Child("name"), secret.Name, "source secret name or label selector must be defined"))
+				el = append(el, field.Invalid(path.Child("name", "selector"), secret.Name, "source secret name or label selector are both empty; one must be set"))
+			}
+			if len(secret.Name) > 0 && secret.Selector != nil {
+				el = append(el, field.Invalid(path.Child("name", "selector"), secret.Name, "source secret name and label selector are both set; only one must be set"))
 			}
 			if len(secret.Key) == 0 {
 				el = append(el, field.Invalid(path.Child("key"), secret.Key, "source secret key must be defined"))
