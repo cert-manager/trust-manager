@@ -160,7 +160,7 @@ type SourceObjectKeySelector struct {
 	// Name is the name of the source object in the trust Namespace.
 	// This field must be left empty when `selector` is set
 	//+optional
-	Name string `json:"name",omitempty`
+	Name string `json:"name,omitempty"`
 
 	// Selector is the label selector to use to fetch a list of objects. Must not be set
 	// when `Name` is set.
