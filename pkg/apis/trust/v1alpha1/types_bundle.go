@@ -67,7 +67,7 @@ type BundleSpec struct {
 // the BundleTarget in all Namespaces.
 type BundleSource struct {
 	// ConfigMap is a reference (by name) to a ConfigMap's `data` key, or to a
-	// list of ConfigMap's `data` key using label selector, in the trust Namespace
+	// list of ConfigMap's `data` key using label selector, in the trust Namespace.
 	// +optional
 	ConfigMap *SourceObjectKeySelector `json:"configMap,omitempty"`
 
