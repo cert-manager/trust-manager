@@ -23,14 +23,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/labels"
 	"strings"
 
-	"github.com/go-logr/logr"
-	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
@@ -42,6 +40,8 @@ import (
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
 	"github.com/cert-manager/trust-manager/pkg/util"
+	"github.com/go-logr/logr"
+	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 )
 
 const (
