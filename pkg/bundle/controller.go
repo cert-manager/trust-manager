@@ -141,13 +141,9 @@ func AddBundleController(
 						continue
 					}
 
-					if source.ConfigMap.Selector != nil {
-						if labelsMatchSelector(obj.GetLabels(), source.ConfigMap.Selector) {
-							return true
-						}
-					}
-
-					if source.ConfigMap.Name == obj.GetName() {
+					if source.ConfigMap.Selector != nil && labelsMatchSelector(obj.GetLabels(), source.ConfigMap.Selector) {
+						return true
+					} else if source.ConfigMap.Name == obj.GetName() {
 						return true
 					}
 				}
@@ -229,12 +225,10 @@ func inNamespacePredicate(namespace string) predicate.Predicate {
 
 // labelsMatchSelector returns true is all objLabels matches the label selector
 // and false otherwise
-func labelsMatchSelector(objLabels map[string]string, selector *metav1.LabelSelector) bool {
-	labelRequirements, _ := labels.ParseToRequirements(metav1.FormatLabelSelector(selector))
-	for _, r := range labelRequirements {
-		if !r.Matches(labels.Set(objLabels)) {
-			return false
-		}
+func labelsMatchSelector(objLabels map[string]string, labelSelector *metav1.LabelSelector) bool {
+	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
+	if err != nil {
+		return false
 	}
-	return true
+	return selector.Matches(labels.Set(objLabels))
 }

@@ -103,7 +103,7 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 			unionCount++
 
 			if len(configMap.Name) == 0 && configMap.Selector == nil {
-				el = append(el, field.Invalid(path, "name: '', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"))
+				el = append(el, field.Invalid(path, "name: ' ', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"))
 			}
 			if len(configMap.Name) > 0 && configMap.Selector != nil {
 				el = append(el, field.Invalid(path, fmt.Sprintf("name: %s, selector: {}", configMap.Name), "must validate one and only one schema (oneOf): [name, selector]. Found none valid"))
@@ -119,7 +119,7 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 			unionCount++
 
 			if len(secret.Name) == 0 && secret.Selector == nil {
-				el = append(el, field.Invalid(path, "name: '', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"))
+				el = append(el, field.Invalid(path, "name: ' ', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"))
 			}
 			if len(secret.Name) > 0 && secret.Selector != nil {
 				el = append(el, field.Invalid(path, fmt.Sprintf("name: %s, selector: {}", secret.Name), "must validate one and only one schema (oneOf): [name, selector]. Found none valid"))

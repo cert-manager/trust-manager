@@ -153,9 +153,9 @@ func Test_validate(t *testing.T) {
 				},
 			},
 			expErr: ptr.To(field.ErrorList{
-				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap"), "name: '', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
+				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap"), "name: ' ', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
 				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap", "key"), "", "source configMap key must be defined"),
-				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "name: '', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
+				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "name: ' ', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
 				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret", "key"), "", "source secret key must be defined"),
 			}.ToAggregate().Error()),
 		},
