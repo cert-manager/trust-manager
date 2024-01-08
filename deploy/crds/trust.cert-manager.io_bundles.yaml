@@ -60,7 +60,7 @@ spec:
                     type: object
                     properties:
                       configMap:
-                        description: ConfigMap is a reference (by name) to a ConfigMap's `data` key, or to a list of ConfigMap's `data` key using label selector, in the trust Namespace
+                        description: ConfigMap is a reference (by name) to a ConfigMap's `data` key, or to a list of ConfigMap's `data` key using label selector, in the trust Namespace.
                         type: object
                         required:
                           - key
@@ -106,7 +106,7 @@ spec:
                         description: InLine is a simple string to append as the source data.
                         type: string
                       secret:
-                        description: Secret is a reference (by name) to a Secret's `data` key, or to a list of Secret's `data` key using label selector, in the trust Namespace
+                        description: Secret is a reference (by name) to a Secret's `data` key, or to a list of Secret's `data` key using label selector, in the trust Namespace.
                         type: object
                         required:
                           - key
