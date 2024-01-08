@@ -153,9 +153,9 @@ func Test_validate(t *testing.T) {
 				},
 			},
 			expErr: ptr.To(field.ErrorList{
-				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap", "name", "selector"), "", "source configMap name or label selector are both empty; one must be set"),
+				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap"), "name: '', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
 				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap", "key"), "", "source configMap key must be defined"),
-				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret", "name", "selector"), "", "source secret name or label selector are both empty; one must be set"),
+				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "name: '', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
 				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret", "key"), "", "source secret key must be defined"),
 			}.ToAggregate().Error()),
 		},
@@ -171,8 +171,8 @@ func Test_validate(t *testing.T) {
 				},
 			},
 			expErr: ptr.To(field.ErrorList{
-				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap", "name", "selector"), "some-config-map", "source configMap name and label selector are both set; only one must be set"),
-				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret", "name", "selector"), "some-secret", "source secret name and label selector are both set; only one must be set"),
+				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap"), "name: some-config-map, selector: {}", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
+				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "name: some-secret, selector: {}", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
 			}.ToAggregate().Error()),
 		},
 		"sources defines the same configMap target": {
