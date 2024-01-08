@@ -151,7 +151,7 @@ endif
 	docker buildx inspect --bootstrap --builder $(BUILDX_BUILDER)
 
 .PHONY: image
-image: trust-manager-save trust-package-debian-save | $(BINDIR) ## build docker images targeting all supported platforms and save to disk. Requires `make provision-buildx`
+image: trust-manager-save | $(BINDIR) ## build trust-manager container images targeting all supported platforms and save to disk. Requires `make provision-buildx`
 
 .PHONY: local-images
 local-images: trust-manager-load trust-package-debian-load  ## build container images for only the local architecture and load into docker. Requires `make provision-buildx`
