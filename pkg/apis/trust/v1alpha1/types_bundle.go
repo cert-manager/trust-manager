@@ -72,7 +72,7 @@ type BundleSource struct {
 	ConfigMap *SourceObjectKeySelector `json:"configMap,omitempty"`
 
 	// Secret is a reference (by name) to a Secret's `data` key, or to a
-	// list of Secret's `data` key using label selector, in the trust Namespace
+	// list of Secret's `data` key using label selector, in the trust Namespace.
 	// +optional
 	Secret *SourceObjectKeySelector `json:"secret,omitempty"`
 
