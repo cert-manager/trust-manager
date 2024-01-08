@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM docker.io/library/golang:1.21 as gobuild
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.21 as gobuild
 
 ARG GOPROXY
+ARG TARGETARCH
 
 WORKDIR /work
 
@@ -22,9 +23,9 @@ COPY go.mod go.mod
 COPY go.sum go.sum
 COPY main.go main.go
 
-RUN GOPROXY=$GOPROXY CGO_ENABLED=0 go build -o copyandmaybepause main.go
+RUN GOPROXY=$GOPROXY CGO_ENABLED=0 GOARCH=$TARGETARCH go build -o copyandmaybepause main.go
 
-RUN GOPROXY=$GOPROXY CGO_ENABLED=0 go install github.com/cert-manager/trust-manager/cmd/validate-trust-package@main
+RUN GOPROXY=$GOPROXY go get github.com/cert-manager/trust-manager/cmd/validate-trust-package && GOPROXY=$GOPROXY CGO_ENABLED=0 GOARCH=$TARGETARCH go build -o /go/bin/validate-trust-package github.com/cert-manager/trust-manager/cmd/validate-trust-package
 
 FROM docker.io/library/debian:11-slim as debbase
 
