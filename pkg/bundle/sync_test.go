@@ -1622,7 +1622,7 @@ func Test_buildSourceBundle(t *testing.T) {
 				}
 			}
 
-			resolvedBundle, err := b.buildSourceBundle(context.TODO(), test.bundle)
+			resolvedBundle, err := b.buildSourceBundle(context.TODO(), test.bundle, false)
 
 			if (err != nil) != test.expError {
 				t.Errorf("unexpected error, exp=%t got=%v", test.expError, err)

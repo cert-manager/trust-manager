@@ -64,7 +64,7 @@ func (p *Package) Clone() *Package {
 func (p *Package) Validate() error {
 	// Ignore the sanitized bundle here and preserve the bundle as-is.
 	// We'll sanitize later, when building a bundle on a reconcile.
-	_, err := util.ValidateAndSanitizePEMBundle([]byte(p.Bundle))
+	_, err := util.ValidateAndSanitizePEMBundle([]byte(p.Bundle), false)
 	if err != nil {
 		return fmt.Errorf("package bundle failed validation: %w", err)
 	}

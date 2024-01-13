@@ -130,13 +130,18 @@ func TestAppendCertFromPEM(t *testing.T) {
 			"qwerty",
 			true,
 		},
+		{
+			"TestExpiredCertificate",
+			dummy.TestExpiredCertificate,
+			false,
+		},
 	}
 
 	// populate certificates bundle
 	for _, crt := range certificateList {
 		certPool := newCertPool()
 
-		if err := certPool.appendCertFromPEM([]byte(crt.certificate)); err != nil {
+		if err := certPool.appendCertFromPEM([]byte(crt.certificate), false); err != nil {
 			t.Fatalf("error adding PEM certificate into pool %s", err)
 		}
 

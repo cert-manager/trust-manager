@@ -79,6 +79,9 @@ spec:
           {{- if .Values.secretTargets.enabled }}
           - "--secret-targets-enabled=true"
           {{- end }}
+          {{- if .Values.filterExpiredCertificates.enabled }}
+          - "--filter-expired-certificates=true"
+          {{- end }}
         volumeMounts:
         - mountPath: /tls
           name: tls

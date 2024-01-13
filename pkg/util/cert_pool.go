@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"time"
 )
 
 // CertPool is a set of certificates.
@@ -54,7 +55,7 @@ func (cp *certPool) isCertificateDuplicate(certData []byte) bool {
 }
 
 // Append certificate to a pool
-func (cp *certPool) appendCertFromPEM(PEMdata []byte) error {
+func (cp *certPool) appendCertFromPEM(PEMdata []byte, filterExpiredCerts bool) error {
 	if PEMdata == nil {
 		return fmt.Errorf("certificate data can't be nil")
 	}
@@ -85,6 +86,10 @@ func (cp *certPool) appendCertFromPEM(PEMdata []byte) error {
 
 		if certificate == nil {
 			return fmt.Errorf("failed appending a certificate: certificate is nil")
+		}
+
+		if filterExpiredCerts && time.Now().After(certificate.NotAfter) {
+			continue
 		}
 
 		if !cp.isCertificateDuplicate(block.Bytes) {

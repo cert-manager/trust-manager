@@ -55,6 +55,9 @@ type Options struct {
 
 	// SecretTargetsEnabled controls if secret targets are enabled in the Bundle API.
 	SecretTargetsEnabled bool
+
+	// FilterExpiredCerts controls if expired certificates are filtered from the bundle.
+	FilterExpiredCerts bool
 }
 
 // bundle is a controller-runtime controller. Implements the actual controller
@@ -144,8 +147,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 	statusPatch = &trustapi.BundleStatus{
 		DefaultCAPackageVersion: bundle.Status.DefaultCAPackageVersion,
 	}
-
-	resolvedBundle, err := b.buildSourceBundle(ctx, &bundle)
+	resolvedBundle, err := b.buildSourceBundle(ctx, &bundle, b.Options.FilterExpiredCerts)
 
 	// If any source is not found, update the Bundle status to an unready state.
 	if errors.As(err, &notFoundError{}) {

@@ -43,8 +43,8 @@ import (
 // https://www.rfc-editor.org/rfc/rfc7468
 
 // See also https://github.com/golang/go/blob/5d5ed57b134b7a02259ff070864f753c9e601a18/src/crypto/x509/cert_pool.go#L201-L239
-func ValidateAndSanitizePEMBundle(data []byte) ([]byte, error) {
-	certificates, err := ValidateAndSplitPEMBundle(data)
+func ValidateAndSanitizePEMBundle(data []byte, filterExpiredCerts bool) ([]byte, error) {
+	certificates, err := ValidateAndSplitPEMBundle(data, filterExpiredCerts)
 	if err != nil {
 		return nil, err
 	}
@@ -62,12 +62,13 @@ func ValidateAndSanitizePEMBundle(data []byte) ([]byte, error) {
 // This process involves performs deduplication of certificates to ensure
 // no duplicated certificates in the bundle.
 // For details of the validation performed, see the comment for ValidateAndSanitizePEMBundle
-func ValidateAndSplitPEMBundle(data []byte) ([][]byte, error) {
+// When filterExpiredCerts is true, expired certificates will be filtered out.
+func ValidateAndSplitPEMBundle(data []byte, filterExpiredCerts bool) ([][]byte, error) {
 	// create a new pool
 	var certPool *certPool = newCertPool()
 
 	// put PEM encoded certificate into a pool
-	err := certPool.appendCertFromPEM(data)
+	err := certPool.appendCertFromPEM(data, filterExpiredCerts)
 	if err != nil {
 		return nil, fmt.Errorf("invalid PEM block in bundle; invalid PEM certificate: %w", err)
 	}
