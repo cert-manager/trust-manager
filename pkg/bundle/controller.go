@@ -22,6 +22,7 @@ import (
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/clock"
@@ -140,8 +141,9 @@ func AddBundleController(
 						continue
 					}
 
-					// Bundle references this ConfigMap as a source. Add to request.
-					if source.ConfigMap.Name == obj.GetName() {
+					if source.ConfigMap.Selector != nil && labelsMatchSelector(obj.GetLabels(), source.ConfigMap.Selector) {
+						return true
+					} else if source.ConfigMap.Name == obj.GetName() {
 						return true
 					}
 				}
@@ -157,7 +159,12 @@ func AddBundleController(
 						continue
 					}
 
-					// Bundle references this Secret as a source. Add to request.
+					if source.Secret.Selector != nil {
+						if labelsMatchSelector(obj.GetLabels(), source.Secret.Selector) {
+							return true
+						}
+					}
+
 					if source.Secret.Name == obj.GetName() {
 						return true
 					}
@@ -214,4 +221,14 @@ func inNamespacePredicate(namespace string) predicate.Predicate {
 	return predicate.NewPredicateFuncs(func(object client.Object) bool {
 		return object.GetNamespace() == namespace
 	})
+}
+
+// labelsMatchSelector returns true if objLabels matches the label selector
+// and false otherwise
+func labelsMatchSelector(objLabels map[string]string, labelSelector *metav1.LabelSelector) bool {
+	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
+	if err != nil {
+		return false
+	}
+	return selector.Matches(labels.Set(objLabels))
 }

@@ -61,34 +61,94 @@ spec:
                     type: object
                     properties:
                       configMap:
-                        description: ConfigMap is a reference to a ConfigMap's `data` key, in the trust Namespace.
+                        description: ConfigMap is a reference (by name) to a ConfigMap's `data` key, or to a list of ConfigMap's `data` key using label selector, in the trust Namespace.
                         type: object
                         required:
                           - key
-                          - name
                         properties:
                           key:
                             description: Key is the key of the entry in the object's `data` field to be used.
                             type: string
                           name:
-                            description: Name is the name of the source object in the trust Namespace.
+                            description: Name is the name of the source object in the trust Namespace. This field must be left empty when `selector` is set
                             type: string
+                          selector:
+                            description: Selector is the label selector to use to fetch a list of objects. Must not be set when `Name` is set.
+                            type: object
+                            properties:
+                              matchExpressions:
+                                description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                                type: array
+                                items:
+                                  description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+                                  type: object
+                                  required:
+                                    - key
+                                    - operator
+                                  properties:
+                                    key:
+                                      description: key is the label key that the selector applies to.
+                                      type: string
+                                    operator:
+                                      description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
+                                      type: string
+                                    values:
+                                      description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
+                                      type: array
+                                      items:
+                                        type: string
+                              matchLabels:
+                                description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                type: object
+                                additionalProperties:
+                                  type: string
+                            x-kubernetes-map-type: atomic
                       inLine:
                         description: InLine is a simple string to append as the source data.
                         type: string
                       secret:
-                        description: Secret is a reference to a Secrets's `data` key, in the trust Namespace.
+                        description: Secret is a reference (by name) to a Secret's `data` key, or to a list of Secret's `data` key using label selector, in the trust Namespace.
                         type: object
                         required:
                           - key
-                          - name
                         properties:
                           key:
                             description: Key is the key of the entry in the object's `data` field to be used.
                             type: string
                           name:
-                            description: Name is the name of the source object in the trust Namespace.
+                            description: Name is the name of the source object in the trust Namespace. This field must be left empty when `selector` is set
                             type: string
+                          selector:
+                            description: Selector is the label selector to use to fetch a list of objects. Must not be set when `Name` is set.
+                            type: object
+                            properties:
+                              matchExpressions:
+                                description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                                type: array
+                                items:
+                                  description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+                                  type: object
+                                  required:
+                                    - key
+                                    - operator
+                                  properties:
+                                    key:
+                                      description: key is the label key that the selector applies to.
+                                      type: string
+                                    operator:
+                                      description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
+                                      type: string
+                                    values:
+                                      description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
+                                      type: array
+                                      items:
+                                        type: string
+                              matchLabels:
+                                description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                type: object
+                                additionalProperties:
+                                  type: string
+                            x-kubernetes-map-type: atomic
                       useDefaultCAs:
                         description: UseDefaultCAs, when true, requests the default CA bundle to be used as a source. Default CAs are available if trust-manager was installed via Helm or was otherwise set up to include a package-injecting init container by using the "--default-package-location" flag when starting the trust-manager controller. If default CAs were not configured at start-up, any request to use the default CAs will fail. The version of the default CA package which is used for a Bundle is stored in the defaultCAPackageVersion field of the Bundle's status field.
                         type: boolean

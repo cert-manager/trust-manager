@@ -55,7 +55,7 @@ type BundleList struct {
 	Items []Bundle `json:"items"`
 }
 
-// BundleSepc defines the desired state of a Bundle.
+// BundleSpec defines the desired state of a Bundle.
 type BundleSpec struct {
 	// Sources is a set of references to data whose data will sync to the target.
 	Sources []BundleSource `json:"sources"`
@@ -67,13 +67,13 @@ type BundleSpec struct {
 // BundleSource is the set of sources whose data will be appended and synced to
 // the BundleTarget in all Namespaces.
 type BundleSource struct {
-	// ConfigMap is a reference to a ConfigMap's `data` key, in the trust
-	// Namespace.
+	// ConfigMap is a reference (by name) to a ConfigMap's `data` key, or to a
+	// list of ConfigMap's `data` key using label selector, in the trust Namespace.
 	// +optional
 	ConfigMap *SourceObjectKeySelector `json:"configMap,omitempty"`
 
-	// Secret is a reference to a Secrets's `data` key, in the trust
-	// Namespace.
+	// Secret is a reference (by name) to a Secret's `data` key, or to a
+	// list of Secret's `data` key using label selector, in the trust Namespace.
 	// +optional
 	Secret *SourceObjectKeySelector `json:"secret,omitempty"`
 
@@ -159,7 +159,14 @@ type NamespaceSelector struct {
 // in the trust Namespace.
 type SourceObjectKeySelector struct {
 	// Name is the name of the source object in the trust Namespace.
-	Name string `json:"name"`
+	// This field must be left empty when `selector` is set
+	//+optional
+	Name string `json:"name,omitempty"`
+
+	// Selector is the label selector to use to fetch a list of objects. Must not be set
+	// when `Name` is set.
+	//+optional
+	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 
 	// KeySelector is the key of the entry in the objects' `data` field to be referenced.
 	KeySelector `json:",inline"`

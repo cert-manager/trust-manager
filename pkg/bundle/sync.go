@@ -25,8 +25,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-logr/logr"
-	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,6 +39,8 @@ import (
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
 	"github.com/cert-manager/trust-manager/pkg/util"
+	"github.com/go-logr/logr"
+	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 )
 
 const (
@@ -138,41 +138,96 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 
 // configMapBundle returns the data in the source ConfigMap within the trust Namespace.
 func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObjectKeySelector) (string, error) {
-	var configMap corev1.ConfigMap
-	err := b.client.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &configMap)
-	if apierrors.IsNotFound(err) {
-		return "", notFoundError{err}
+	// this slice will contain a single ConfigMap if we fetch by name
+	// or potentially multiple ConfigMaps if we fetch by label selector
+	var configMaps []corev1.ConfigMap
+
+	// if Name is set, we `Get` by name
+	if ref.Name != "" {
+		cm := corev1.ConfigMap{}
+		if err := b.client.Get(ctx, client.ObjectKey{
+			Namespace: b.Namespace,
+			Name:      ref.Name,
+		}, &cm); apierrors.IsNotFound(err) {
+			return "", notFoundError{err}
+		} else if err != nil {
+			return "", fmt.Errorf("failed to get ConfigMap %s/%s: %w", b.Namespace, ref.Name, err)
+		}
+
+		configMaps = []corev1.ConfigMap{cm}
+	} else {
+		// if Selector is set, we `List` by label selector
+		cml := corev1.ConfigMapList{}
+		selector, selectorErr := metav1.LabelSelectorAsSelector(ref.Selector)
+		if selectorErr != nil {
+			return "", fmt.Errorf("failed to parse label selector as Selector for ConfigMap in namespace %s: %w", b.Namespace, selectorErr)
+		}
+		if err := b.client.List(ctx, &cml, client.MatchingLabelsSelector{Selector: selector}); apierrors.IsNotFound(err) {
+			return "", notFoundError{err}
+		} else if err != nil {
+			return "", fmt.Errorf("failed to get ConfigMapList: %w", err)
+		}
+
+		configMaps = cml.Items
 	}
 
-	if err != nil {
-		return "", fmt.Errorf("failed to get ConfigMap %s/%s: %w", b.Namespace, ref.Name, err)
+	var results strings.Builder
+	for _, cm := range configMaps {
+		data, ok := cm.Data[ref.Key]
+		if !ok {
+			return "", notFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, ref.Key)}
+		}
+		results.WriteString(data)
+		results.WriteByte('\n')
 	}
-
-	data, ok := configMap.Data[ref.Key]
-	if !ok {
-		return "", notFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", b.Namespace, ref.Name, ref.Key)}
-	}
-
-	return data, nil
+	return results.String(), nil
 }
 
 // secretBundle returns the data in the source Secret within the trust Namespace.
 func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKeySelector) (string, error) {
-	var secret corev1.Secret
-	err := b.client.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &secret)
-	if apierrors.IsNotFound(err) {
-		return "", notFoundError{err}
-	}
-	if err != nil {
-		return "", fmt.Errorf("failed to get Secret %s/%s: %w", b.Namespace, ref.Name, err)
+	// this slice will contain a single Secret if we fetch by name
+	// or potentially multiple Secrets if we fetch by label selector
+	var secrets []corev1.Secret
+
+	// if Name is set, we `Get` by name
+	if ref.Name != "" {
+		s := corev1.Secret{}
+		if err := b.client.Get(ctx, client.ObjectKey{
+			Namespace: b.Namespace,
+			Name:      ref.Name,
+		}, &s); apierrors.IsNotFound(err) {
+			return "", notFoundError{err}
+		} else if err != nil {
+			return "", fmt.Errorf("failed to get Secret %s/%s: %w", b.Namespace, ref.Name, err)
+		}
+
+		secrets = []corev1.Secret{s}
+	} else {
+		// if Selector is set, we `List` by label selector
+		sl := corev1.SecretList{}
+		selector, selectorErr := metav1.LabelSelectorAsSelector(ref.Selector)
+		if selectorErr != nil {
+			return "", fmt.Errorf("failed to parse label selector as Selector for Secret in namespace %s: %w", b.Namespace, selectorErr)
+		}
+		if err := b.client.List(ctx, &sl, client.MatchingLabelsSelector{Selector: selector}); apierrors.IsNotFound(err) {
+			return "", notFoundError{err}
+		} else if err != nil {
+			return "", fmt.Errorf("failed to get SecretList: %w", err)
+		}
+
+		secrets = sl.Items
 	}
 
-	data, ok := secret.Data[ref.Key]
-	if !ok {
-		return "", notFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", b.Namespace, ref.Name, ref.Key)}
+	var results strings.Builder
+	for _, secret := range secrets {
+		data, ok := secret.Data[ref.Key]
+		if !ok {
+			return "", notFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, ref.Key)}
+		}
+		results.WriteString(string(data))
+		results.WriteByte('\n')
 	}
-
-	return string(data), nil
+	return results.String(), nil
 }
 
 type jksEncoder struct {
