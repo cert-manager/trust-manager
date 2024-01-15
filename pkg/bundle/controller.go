@@ -19,10 +19,10 @@ package bundle
 import (
 	"context"
 	"fmt"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/clock"
@@ -223,7 +223,7 @@ func inNamespacePredicate(namespace string) predicate.Predicate {
 	})
 }
 
-// labelsMatchSelector returns true is all objLabels matches the label selector
+// labelsMatchSelector returns true if objLabels matches the label selector
 // and false otherwise
 func labelsMatchSelector(objLabels map[string]string, labelSelector *metav1.LabelSelector) bool {
 	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
