@@ -75,7 +75,7 @@ func TestValidateAndSanitizePEMBundle(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			inputBundle := []byte(strings.Join(test.parts, "\n"))
 
-			sanitizedBundleBytes, err := ValidateAndSanitizePEMBundle(inputBundle, false)
+			sanitizedBundleBytes, err := ValidateAndSanitizePEMBundle(inputBundle)
 
 			if test.expectErr != (err != nil) {
 				t.Fatalf("ValidateAndSanitizePEMBundle: expectErr: %v | err: %v", test.expectErr, err)
@@ -145,8 +145,8 @@ func TestValidateAndSanitizePEMBundle(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			inputBundle := []byte(strings.Join(test.parts, "\n"))
 			outputBundle := []byte(strings.Join(test.expectedOutput, "\n"))
-
-			sanitizedBundleBytes, err := ValidateAndSanitizePEMBundle(inputBundle, true)
+			certPool := NewCertPool(true)
+			sanitizedBundleBytes, err := certPool.ValidateAndSanitizePEMBundle(inputBundle)
 
 			if test.expectErr != (err != nil) {
 				t.Errorf("ValidateAndSanitizePEMBundle: expectErr: %v | err: %v", test.expectErr, err)

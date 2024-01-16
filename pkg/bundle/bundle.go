@@ -147,7 +147,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 	statusPatch = &trustapi.BundleStatus{
 		DefaultCAPackageVersion: bundle.Status.DefaultCAPackageVersion,
 	}
-	resolvedBundle, err := b.buildSourceBundle(ctx, &bundle, b.Options.FilterExpiredCerts)
+	resolvedBundle, err := b.buildSourceBundle(ctx, &bundle)
 
 	// If any source is not found, update the Bundle status to an unready state.
 	if errors.As(err, &notFoundError{}) {

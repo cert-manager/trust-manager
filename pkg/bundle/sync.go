@@ -78,7 +78,7 @@ type bundleData struct {
 // buildSourceBundle retrieves and concatenates all source bundle data for this Bundle object.
 // Each source data is validated and pruned to ensure that all certificates within are valid, and
 // is each bundle is concatenated together with a new line character.
-func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle, filterExpiredCerts bool) (bundleData, error) {
+func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle) (bundleData, error) {
 	var resolvedBundle bundleData
 	var bundles []string
 
@@ -115,7 +115,8 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle,
 			return bundleData{}, fmt.Errorf("failed to retrieve bundle from source: %w", err)
 		}
 
-		sanitizedBundle, err := util.ValidateAndSanitizePEMBundle([]byte(sourceData), filterExpiredCerts)
+		certPool := util.NewCertPool(b.Options.FilterExpiredCerts)
+		sanitizedBundle, err := certPool.ValidateAndSanitizePEMBundle([]byte(sourceData))
 		if err != nil {
 			return bundleData{}, fmt.Errorf("invalid PEM data in source: %w", err)
 		}

@@ -28,13 +28,15 @@ import (
 type certPool struct {
 	certificatesHashes map[[32]byte]struct{}
 	certificates       []*x509.Certificate
+	filterExpiredCerts bool
 }
 
 // NewCertPool returns a new, empty CertPool.
-func newCertPool() *certPool {
+func NewCertPool(filterExpiredCerts bool) *certPool {
 	return &certPool{
 		certificatesHashes: make(map[[32]byte]struct{}),
 		certificates:       make([]*x509.Certificate, 0),
+		filterExpiredCerts: filterExpiredCerts,
 	}
 }
 
@@ -55,7 +57,7 @@ func (cp *certPool) isCertificateDuplicate(certData []byte) bool {
 }
 
 // Append certificate to a pool
-func (cp *certPool) appendCertFromPEM(PEMdata []byte, filterExpiredCerts bool) error {
+func (cp *certPool) appendCertFromPEM(PEMdata []byte) error {
 	if PEMdata == nil {
 		return fmt.Errorf("certificate data can't be nil")
 	}
@@ -88,7 +90,7 @@ func (cp *certPool) appendCertFromPEM(PEMdata []byte, filterExpiredCerts bool) e
 			return fmt.Errorf("failed appending a certificate: certificate is nil")
 		}
 
-		if filterExpiredCerts && time.Now().After(certificate.NotAfter) {
+		if cp.filterExpiredCerts && time.Now().After(certificate.NotAfter) {
 			continue
 		}
 

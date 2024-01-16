@@ -220,7 +220,7 @@ func CheckBundleSyncedStartsWith(ctx context.Context, cl client.Client, name str
 
 		// check that there are a nonzero number of valid certs remaining
 
-		_, err := util.ValidateAndSanitizePEMBundle([]byte(remaining), false)
+		_, err := util.ValidateAndSanitizePEMBundle([]byte(remaining))
 		if err != nil {
 			return fmt.Errorf("received data didn't have any valid certs after valid starting data: %w", err)
 		}
@@ -324,7 +324,7 @@ func CheckJKSFileSynced(jksData []byte, expectedPassword string, expectedCertPEM
 		return err
 	}
 
-	expectedCertList, err := util.ValidateAndSplitPEMBundle([]byte(expectedCertPEMData), false)
+	expectedCertList, err := util.ValidateAndSplitPEMBundle([]byte(expectedCertPEMData))
 	if err != nil {
 		return fmt.Errorf("invalid PEM data passed to CheckJKSFileSynced: %s", err)
 	}
