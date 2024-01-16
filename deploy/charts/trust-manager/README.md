@@ -52,6 +52,7 @@ Kubernetes: `>= 1.25.0-0`
 | defaultPackageImage.registry | string | `nil` | Target image registry. Will be prepended to the target image repositry if set. |
 | defaultPackageImage.repository | string | `"quay.io/jetstack/cert-manager-package-debian"` | Repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles. |
 | defaultPackageImage.tag | string | `"20210119.0"` | Tag for the default package image |
+| filterExpiredCertificates.enabled | bool | `false` | Whether to filter expired certificates from the trust bundle. |
 | image.digest | string | `nil` | Target image digest. Will override any tag if set. for example: digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20 |
 | image.pullPolicy | string | `"IfNotPresent"` | Kubernetes imagePullPolicy on Deployment. |
 | image.registry | string | `nil` | Target image registry. Will be prepended to the target image repositry if set. |
