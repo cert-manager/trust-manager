@@ -44,16 +44,8 @@ import (
 
 // See also https://github.com/golang/go/blob/5d5ed57b134b7a02259ff070864f753c9e601a18/src/crypto/x509/cert_pool.go#L201-L239
 func ValidateAndSanitizePEMBundle(data []byte) ([]byte, error) {
-	certificates, err := ValidateAndSplitPEMBundle(data)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(certificates) == 0 {
-		return nil, fmt.Errorf("bundle contains no PEM certificates")
-	}
-
-	return bytes.TrimSpace(bytes.Join(certificates, nil)), nil
+	var certPool *certPool = NewCertPool(false)
+	return certPool.ValidateAndSanitizePEMBundle(data)
 }
 
 // ValidateAndSplitPEMBundle takes a PEM bundle as input, validates it and
@@ -65,18 +57,11 @@ func ValidateAndSanitizePEMBundle(data []byte) ([]byte, error) {
 func ValidateAndSplitPEMBundle(data []byte) ([][]byte, error) {
 	// create a new pool
 	var certPool *certPool = NewCertPool(false)
-
-	// put PEM encoded certificate into a pool
-	err := certPool.appendCertFromPEM(data)
-	if err != nil {
-		return nil, fmt.Errorf("invalid PEM block in bundle; invalid PEM certificate: %w", err)
-	}
-
-	return certPool.getCertsPEM(), nil
+	return certPool.ValidateAndSplitPEMBundle(data)
 }
 
 // Same function as above but as a pointer receiver method on certPool
-// Allow the filterExpiredCerts flag to be set
+// Allow the certPool.filterExpiredCerts flag to be set
 func (c *certPool) ValidateAndSanitizePEMBundle(data []byte) ([]byte, error) {
 	certificates, err := c.ValidateAndSplitPEMBundle(data)
 	if err != nil {
@@ -91,7 +76,7 @@ func (c *certPool) ValidateAndSanitizePEMBundle(data []byte) ([]byte, error) {
 }
 
 // Same function as above but as a pointer receiver method on certPool
-// Allow the filterExpiredCerts flag to be set
+// Allow the certPool.filterExpiredCerts flag to be set
 func (c *certPool) ValidateAndSplitPEMBundle(data []byte) ([][]byte, error) {
 	// put PEM encoded certificate into a pool
 	err := c.appendCertFromPEM(data)
