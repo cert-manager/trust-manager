@@ -20,7 +20,14 @@ package dummy
 
 import (
 	"strings"
+	"time"
 )
+
+// DummyInstant returns a time at which all dummy certs should be unexpired except
+// for any which are specifically created to have expired.
+func DummyInstant() time.Time {
+	return time.Date(2024, time.January, 17, 16, 56, 07, 0, time.UTC)
+}
 
 const (
 	// NB: TestCertificate1 is expected to have the following properties:
@@ -428,7 +435,7 @@ MTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAK3oJHP0FDfzm54rVygc
 h77ct984kIxuPOZXoHj3dcKi/vVqbvYATyjb3miGbESTtrFj/RQSa78f0uoxmyF+
 0TM8ukj13Xnfs7j/EvEhmkvBioZxaUpmZmyPfjxwv60pIgbz5MDmgK7iS4+3mX6U
 A5/TR5d8mUgjU+g4rk8Kb4Mu0UlXjIB0ttov0DiNewNwIRt18jA8+o+u3dpjq+sW`
-	//Expired certificate
+	// Expired certificate
 	// Certificate:
 	// Data:
 	//     Version: 3 (0x2)
