@@ -23,7 +23,7 @@ import (
 )
 
 func TestNewCertPool(t *testing.T) {
-	certPool := newCertPool()
+	certPool := newCertPool(false)
 
 	if certPool == nil {
 		t.Fatal("pool is nil")
@@ -32,7 +32,7 @@ func TestNewCertPool(t *testing.T) {
 
 func TestCertificatesDeduplication(t *testing.T) {
 	// create a pool
-	certPool := newCertPool()
+	certPool := newCertPool(false)
 
 	// list of certificates
 	certificateList := [...]struct {
@@ -83,7 +83,7 @@ func TestCertificatesDeduplication(t *testing.T) {
 	}
 
 	// create a new pool
-	newCertPool := newCertPool()
+	newCertPool := newCertPool(false)
 
 	// check certificates bundle for duplicated certificates
 	for _, crt := range certificateBundle {
@@ -130,11 +130,16 @@ func TestAppendCertFromPEM(t *testing.T) {
 			"qwerty",
 			true,
 		},
+		{
+			"TestExpiredCertificate",
+			dummy.TestExpiredCertificate,
+			false,
+		},
 	}
 
 	// populate certificates bundle
 	for _, crt := range certificateList {
-		certPool := newCertPool()
+		certPool := newCertPool(false)
 
 		if err := certPool.appendCertFromPEM([]byte(crt.certificate)); err != nil {
 			t.Fatalf("error adding PEM certificate into pool %s", err)

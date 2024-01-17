@@ -21,19 +21,22 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"time"
 )
 
 // CertPool is a set of certificates.
 type certPool struct {
 	certificatesHashes map[[32]byte]struct{}
 	certificates       []*x509.Certificate
+	filterExpired      bool
 }
 
-// NewCertPool returns a new, empty CertPool.
-func newCertPool() *certPool {
+// newCertPool returns a new, empty CertPool.
+func newCertPool(filterExpired bool) *certPool {
 	return &certPool{
 		certificatesHashes: make(map[[32]byte]struct{}),
 		certificates:       make([]*x509.Certificate, 0),
+		filterExpired:      filterExpired,
 	}
 }
 
@@ -85,6 +88,10 @@ func (cp *certPool) appendCertFromPEM(PEMdata []byte) error {
 
 		if certificate == nil {
 			return fmt.Errorf("failed appending a certificate: certificate is nil")
+		}
+
+		if cp.filterExpired && time.Now().After(certificate.NotAfter) {
+			continue
 		}
 
 		if !cp.isCertificateDuplicate(block.Bytes) {

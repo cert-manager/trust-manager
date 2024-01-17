@@ -42,9 +42,30 @@ import (
 // contain (accidental) private information. They're also non-standard according to
 // https://www.rfc-editor.org/rfc/rfc7468
 
-// See also https://github.com/golang/go/blob/5d5ed57b134b7a02259ff070864f753c9e601a18/src/crypto/x509/cert_pool.go#L201-L239
+type ValidateAndSanitizeOptions struct {
+	FilterExpired bool // If true, expired certificates will be filtered out
+}
+
+// ValidateAndSanitizePEMBundle keeps the original function signature for backward compatibility
 func ValidateAndSanitizePEMBundle(data []byte) ([]byte, error) {
-	certificates, err := ValidateAndSplitPEMBundle(data)
+	opts := ValidateAndSanitizeOptions{
+		FilterExpired: false,
+	}
+	return ValidateAndSanitizePEMBundleWithOptions(data, opts)
+}
+
+// ValidateAndSplitPEMBundle keeps the original function signature for backward compatibility
+func ValidateAndSplitPEMBundle(data []byte) ([][]byte, error) {
+	opts := ValidateAndSanitizeOptions{
+		FilterExpired: false,
+	}
+	return ValidateAndSplitPEMBundleWithOptions(data, opts)
+}
+
+// See also https://github.com/golang/go/blob/5d5ed57b134b7a02259ff070864f753c9e601a18/src/crypto/x509/cert_pool.go#L201-L239
+// An option to enable filtering of expired certificates is available.
+func ValidateAndSanitizePEMBundleWithOptions(data []byte, opts ValidateAndSanitizeOptions) ([]byte, error) {
+	certificates, err := ValidateAndSplitPEMBundleWithOptions(data, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -56,17 +77,15 @@ func ValidateAndSanitizePEMBundle(data []byte) ([]byte, error) {
 	return bytes.TrimSpace(bytes.Join(certificates, nil)), nil
 }
 
-// ValidateAndSplitPEMBundle takes a PEM bundle as input, validates it and
-// returns the list of certificates as a slice, allowing them to be
-// iterated over.
+// ValidateAndSplitPEMBundleWithOptions takes a PEM bundle as input, validates it and
+// returns the list of certificates as a slice, allowing them to be iterated over.
 // This process involves performs deduplication of certificates to ensure
 // no duplicated certificates in the bundle.
 // For details of the validation performed, see the comment for ValidateAndSanitizePEMBundle
-func ValidateAndSplitPEMBundle(data []byte) ([][]byte, error) {
-	// create a new pool
-	var certPool *certPool = newCertPool()
+// An option to enable filtering of expired certificates is available.
+func ValidateAndSplitPEMBundleWithOptions(data []byte, opts ValidateAndSanitizeOptions) ([][]byte, error) {
+	var certPool *certPool = newCertPool(opts.FilterExpired) // put PEM encoded certificate into a pool
 
-	// put PEM encoded certificate into a pool
 	err := certPool.appendCertFromPEM(data)
 	if err != nil {
 		return nil, fmt.Errorf("invalid PEM block in bundle; invalid PEM certificate: %w", err)

@@ -115,7 +115,8 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 			return bundleData{}, fmt.Errorf("failed to retrieve bundle from source: %w", err)
 		}
 
-		sanitizedBundle, err := util.ValidateAndSanitizePEMBundle([]byte(sourceData))
+		opts := util.ValidateAndSanitizeOptions{FilterExpired: b.Options.FilterExpiredCerts}
+		sanitizedBundle, err := util.ValidateAndSanitizePEMBundleWithOptions([]byte(sourceData), opts)
 		if err != nil {
 			return bundleData{}, fmt.Errorf("invalid PEM data in source: %w", err)
 		}

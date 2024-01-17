@@ -156,6 +156,10 @@ func (o *Options) addBundleFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&o.Bundle.SecretTargetsEnabled,
 		"secret-targets-enabled", false,
 		"Controls if secret targets are enabled in the Bundle API.")
+
+	fs.BoolVar(&o.Bundle.FilterExpiredCerts,
+		"filter-expired-certificates", false,
+		"Filter expired certificates from the bundle.")
 }
 
 func (o *Options) addWebhookFlags(fs *pflag.FlagSet) {

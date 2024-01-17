@@ -82,6 +82,7 @@ func Test_Reconcile(t *testing.T) {
 				"configmap-key": dummy.TestCertificate1,
 			},
 		}
+
 		sourceSecret client.Object = &corev1.Secret{
 			TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
 			ObjectMeta: metav1.ObjectMeta{
@@ -1216,6 +1217,60 @@ func Test_Reconcile(t *testing.T) {
 			},
 			expEvent: `Warning SecretTargetsDisabled Bundle has Secret targets but the feature is disabled`,
 		},
+		"if Bundle has configmaps with expired cert, remove it": {
+			configureDefaultPackage: false,
+			existingNamespaces:      namespaces,
+			existingConfigMaps: []client.Object{
+				&corev1.ConfigMap{
+					TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      sourceConfigMapName,
+						Namespace: trustNamespace,
+					},
+					Data: map[string]string{
+						"configmap-key": dummy.JoinCerts(dummy.TestExpiredCertificate, dummy.TestCertificate1),
+					},
+				},
+			},
+			existingSecrets: []client.Object{sourceSecret},
+			expBundlePatch: &trustapi.BundleStatus{
+				Conditions: []trustapi.BundleCondition{
+					{
+						Type:               trustapi.BundleConditionSynced,
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: fixedmetatime,
+						Reason:             "Synced",
+						Message:            "Successfully synced Bundle to all namespaces",
+						ObservedGeneration: bundleGeneration,
+					},
+				},
+			},
+			expEvent: `Normal Synced Successfully synced Bundle to all namespaces`,
+			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
+				func(b *trustapi.Bundle) {
+				},
+				gen.SetBundleStatus(trustapi.BundleStatus{
+					Conditions: []trustapi.BundleCondition{
+						{
+							Type:               trustapi.BundleConditionSynced,
+							Status:             metav1.ConditionTrue,
+							LastTransitionTime: fixedmetatime,
+							Reason:             "Synced",
+							Message:            "Successfully synced Bundle to all namespaces",
+							ObservedGeneration: bundleGeneration,
+						},
+					},
+					DefaultCAPackageVersion: nil,
+				}),
+			)},
+			expResult: ctrl.Result{},
+			expError:  false,
+			expPatches: []interface{}{
+				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3)}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3)}, nil, ptr.To(targetKey)),
+				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3)}, nil, ptr.To(targetKey)),
+			},
+		},
 	}
 
 	for name, test := range tests {
@@ -1248,6 +1303,7 @@ func Test_Reconcile(t *testing.T) {
 					Log:                  klogr.New(),
 					Namespace:            trustNamespace,
 					SecretTargetsEnabled: !test.disableSecretTargets,
+					FilterExpiredCerts:   true,
 				},
 				patchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
 					logMutex.Lock()
@@ -1261,7 +1317,6 @@ func Test_Reconcile(t *testing.T) {
 			if test.configureDefaultPackage {
 				b.defaultPackage = testDefaultPackage.Clone()
 			}
-
 			resp, result, err := b.reconcileBundle(context.TODO(), ctrl.Request{NamespacedName: types.NamespacedName{Name: bundleName}})
 			if (err != nil) != test.expError {
 				t.Errorf("unexpected error, exp=%t got=%v", test.expError, err)

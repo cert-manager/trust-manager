@@ -184,3 +184,7 @@ topologySpreadConstraints: []
 crds:
   # -- Whether or not to install the crds.
   enabled: true
+
+filterExpiredCertificates:
+  # -- Whether to filter expired certificates from the trust bundle.
+  enabled: false
