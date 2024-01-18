@@ -1,3 +1,11 @@
+# +docs:section=CRDs
+
+crds:
+  # Whether or not to install the CRDs.
+  enabled: true
+
+# +docs:section=Trust Manager
+
 # Number of replicas of trust-manager to run.
 replicaCount: 1
 
@@ -13,14 +21,17 @@ image:
   # Target image repository.
   repository: quay.io/jetstack/trust-manager
   # Target image registry. Will be prepended to the target image repository if set.
-  registry:
+  # +docs:type=string
+  registry: 
 
   # Target image version tag. Defaults to the chart's appVersion.
+  # +docs:type=string
   tag:
 
   # Target image digest. Will override any tag if set.
   # for example:
   # digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
+  # +docs:type=string
   digest:
 
   # Kubernetes imagePullPolicy on Deployment.
@@ -34,6 +45,7 @@ defaultPackageImage:
   # Repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles.
   repository: quay.io/jetstack/cert-manager-package-debian
   # Target image registry. Will be prepended to the target image repository if set.
+  # +docs:type=string
   registry:
 
   # Tag for the default package image
@@ -42,85 +54,11 @@ defaultPackageImage:
   # Target image digest. Will override any tag if set.
   # for example:
   # digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
+  # +docs:type=string
   digest:
 
   # imagePullPolicy for the default package image
   pullPolicy: IfNotPresent
-
-app:
-  # Verbosity of trust-manager logging; takes a value from 1-5, with higher being more verbose
-  logLevel: 1
-
-  metrics:
-    # Port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'.
-    port: 9402
-    # Service to expose metrics endpoint.
-    service:
-      # Create a Service resource to expose metrics endpoint.
-      enabled: true
-      # Service type to expose metrics.
-      type: ClusterIP
-      # ServiceMonitor resource for this Service.
-      servicemonitor:
-        # Create a Prometheus ServiceMonitor for trust-manager
-        enabled: false
-        # Sets the value of the "prometheus" label on the ServiceMonitor, this
-        # is used as separate Prometheus instances can select difference
-        # ServiceMonitors using labels
-        prometheusInstance: default
-        # Interval to scrape the metrics
-        interval: 10s
-        # Timeout for a metrics scrape
-        scrapeTimeout: 5s
-        # Additional labels to add to the ServiceMonitor
-        labels: {}
-
-  readinessProbe:
-    # Container port on which to expose trust-manager HTTP readiness probe using default network interface.
-    port: 6060
-    # Path on which to expose trust-manager HTTP readiness probe using default network interface.
-    path: "/readyz"
-
-  trust:
-    # Namespace used as trust source. Note that the namespace _must_ exist
-    # before installing trust-manager.
-    namespace: cert-manager
-
-  webhook:
-    # Host that the webhook listens on.
-    host: 0.0.0.0
-    # Port that the webhook listens on.
-    port: 6443
-    # Timeout of webhook HTTP request.
-    timeoutSeconds: 5
-    
-    service:
-      # Type of Kubernetes Service used by the Webhook
-      type: ClusterIP
-
-    tls:
-      approverPolicy:
-        # Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this.
-        enabled: false
-
-        # Namespace in which cert-manager was installed. Only used if app.webhook.tls.approverPolicy.enabled is true
-        certManagerNamespace: "cert-manager"
-
-        # Name of cert-manager's ServiceAccount. Only used if app.webhook.tls.approverPolicy.enabled is true
-        certManagerServiceAccount: "cert-manager"
-
-    # Specifies if the app should be started in hostNetwork mode. Required for use in some managed kubernetes clusters (such as AWS EKS) with custom CNI.
-    hostNetwork: false
-
-  securityContext:
-    # If false, disables the default seccomp profile, which might be required to run on certain platforms
-    seccompProfileEnabled: true
-
-  # Pod labels to add to trust-manager pods.
-  podLabels: {}
-
-  # Pod annotations to add to trust-manager pods.
-  podAnnotations: {}
 
 secretTargets:
   # If set to true, enable writing trust bundles to Kubernetes Secrets as a target.
@@ -135,20 +73,23 @@ secretTargets:
   # trust-manager will not be able to write to secrets and will only be able to read secrets in the trust namespace for use as sources.
   authorizedSecrets: []
 
+# Kubernetes pod resource limits for trust.
+#
+# For example:
+#  resources:
+#    limits:
+#      cpu: 100m
+#      memory: 128Mi
+#    requests:
+#      cpu: 100m
+#      memory: 128Mi
 resources: {}
-  # Kubernetes pod resource limits for trust.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # Kubernetes pod memory resource requests for trust.
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
 
 # Configure the priority class of the pod; see https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
 priorityClassName: ""
 
 # Configure the nodeSelector; defaults to any Linux node (trust-manager doesn't support Windows nodes)
+# +docs:property
 nodeSelector:
   kubernetes.io/os: linux
 
@@ -189,10 +130,85 @@ tolerations: []
 # List of Kubernetes TopologySpreadConstraints; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core
 topologySpreadConstraints: []
 
-crds:
-  # Whether or not to install the CRDs.
-  enabled: true
-
 filterExpiredCertificates:
   # Whether to filter expired certificates from the trust bundle.
   enabled: false
+
+
+app:
+  # Verbosity of trust-manager logging; takes a value from 1-5, with higher being more verbose
+  logLevel: 1
+
+  readinessProbe:
+    # Container port on which to expose trust-manager HTTP readiness probe using default network interface.
+    port: 6060
+    # Path on which to expose trust-manager HTTP readiness probe using default network interface.
+    path: "/readyz"
+
+  trust:
+    # Namespace used as trust source. Note that the namespace _must_ exist
+    # before installing trust-manager.
+    namespace: cert-manager
+
+  securityContext:
+    # If false, disables the default seccomp profile, which might be required to run on certain platforms
+    seccompProfileEnabled: true
+
+  # Pod labels to add to trust-manager pods.
+  podLabels: {}
+
+  # Pod annotations to add to trust-manager pods.
+  podAnnotations: {}
+
+  # +docs:section=Webhook
+
+  webhook:
+    # Host that the webhook listens on.
+    host: 0.0.0.0
+    # Port that the webhook listens on.
+    port: 6443
+    # Timeout of webhook HTTP request.
+    timeoutSeconds: 5
+    
+    service:
+      # Type of Kubernetes Service used by the Webhook
+      type: ClusterIP
+
+    tls:
+      approverPolicy:
+        # Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this.
+        enabled: false
+
+        # Namespace in which cert-manager was installed. Only used if app.webhook.tls.approverPolicy.enabled is true
+        certManagerNamespace: "cert-manager"
+
+        # Name of cert-manager's ServiceAccount. Only used if app.webhook.tls.approverPolicy.enabled is true
+        certManagerServiceAccount: "cert-manager"
+    # Specifies if the app should be started in hostNetwork mode. Required for use in some managed kubernetes clusters (such as AWS EKS) with custom CNI.
+    hostNetwork: false
+
+  # +docs:section=Metrics
+
+  metrics:
+    # Port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'.
+    port: 9402
+    # Service to expose metrics endpoint.
+    service:
+      # Create a Service resource to expose metrics endpoint.
+      enabled: true
+      # Service type to expose metrics.
+      type: ClusterIP
+      # ServiceMonitor resource for this Service.
+      servicemonitor:
+        # Create a Prometheus ServiceMonitor for trust-manager
+        enabled: false
+        # Sets the value of the "prometheus" label on the ServiceMonitor, this
+        # is used as separate Prometheus instances can select difference
+        # ServiceMonitors using labels
+        prometheusInstance: default
+        # Interval to scrape the metrics
+        interval: 10s
+        # Timeout for a metrics scrape
+        scrapeTimeout: 5s
+        # Additional labels to add to the ServiceMonitor
+        labels: {}

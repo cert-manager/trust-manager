@@ -24,6 +24,37 @@ Kubernetes: `>= 1.25.0-0`
 
 <!-- AUTO-GENERATED -->
 
+### CRDs
+
+
+<table>
+<tr>
+<th>Property</th>
+<th>Description</th>
+<th>Type</th>
+<th>Default</th>
+</tr>
+<tr>
+
+<td>crds.enabled</td>
+<td>
+
+Whether or not to install the CRDs.
+
+</td>
+<td>bool</td>
+<td>
+
+```yaml
+true
+```
+
+</td>
+</tr>
+</table>
+
+### Trust Manager
+
 
 <table>
 <tr>
@@ -108,8 +139,9 @@ quay.io/jetstack/trust-manager
 
 Target image registry. Will be prepended to the target image repository if set.
 
+
 </td>
-<td>unknown</td>
+<td>string</td>
 <td>
 
 ```yaml
@@ -125,8 +157,9 @@ null
 
 Target image version tag. Defaults to the chart's appVersion.
 
+
 </td>
-<td>unknown</td>
+<td>string</td>
 <td>
 
 ```yaml
@@ -146,8 +179,9 @@ Target image digest. Will override any tag if set. for example:
 digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
 ```
 
+
 </td>
-<td>unknown</td>
+<td>string</td>
 <td>
 
 ```yaml
@@ -214,8 +248,9 @@ quay.io/jetstack/cert-manager-package-debian
 
 Target image registry. Will be prepended to the target image repository if set.
 
+
 </td>
-<td>unknown</td>
+<td>string</td>
 <td>
 
 ```yaml
@@ -252,8 +287,9 @@ Target image digest. Will override any tag if set. for example:
 digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
 ```
 
+
 </td>
-<td>unknown</td>
+<td>string</td>
 <td>
 
 ```yaml
@@ -281,78 +317,10 @@ IfNotPresent
 </tr>
 <tr>
 
-<td>app.logLevel</td>
+<td>secretTargets.enabled</td>
 <td>
 
-Verbosity of trust-manager logging; takes a value from 1-5, with higher being more verbose
-
-</td>
-<td>number</td>
-<td>
-
-```yaml
-1
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.metrics.port</td>
-<td>
-
-Port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'.
-
-</td>
-<td>number</td>
-<td>
-
-```yaml
-9402
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.metrics.service.servicemonitor</td>
-<td>
-
-Create a Service resource to expose metrics endpoint.
-
-</td>
-<td>bool</td>
-<td>
-
-```yaml
-true
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.metrics.service.servicemonitor</td>
-<td>
-
-Service type to expose metrics.
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-ClusterIP
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.metrics.service.servicemonitor.enabled</td>
-<td>
-
-Create a Prometheus ServiceMonitor for trust-manager
+If set to true, enable writing trust bundles to Kubernetes Secrets as a target. trust-manager can only write to secrets which are explicitly allowed via either authorizedSecrets or authorizedSecretsAll. NOTE: Enabling secret targets will grant trust-manager read access to all secrets in the cluster.
 
 </td>
 <td>bool</td>
@@ -366,62 +334,57 @@ false
 </tr>
 <tr>
 
-<td>app.metrics.service.servicemonitor.prometheusInstance</td>
+<td>secretTargets.authorizedSecretsAll</td>
 <td>
 
-Sets the value of the "prometheus" label on the ServiceMonitor, this is used as separate Prometheus instances can select difference  
-ServiceMonitors using labels
+If set to true, grant read/write permission to all secrets across the cluster. Use with caution!  
+If set, ignores the authorizedSecrets list.
 
 </td>
-<td>string</td>
+<td>bool</td>
 <td>
 
 ```yaml
-default
+false
 ```
 
 </td>
 </tr>
 <tr>
 
-<td>app.metrics.service.servicemonitor.interval</td>
+<td>secretTargets.authorizedSecrets</td>
 <td>
 
-Interval to scrape the metrics
+A list of secret names which trust-manager will be permitted to read and write across all namespaces. These will be the only allowable Secrets that can be used as targets. If the list is empty (and authorizedSecretsAll is false), trust-manager will not be able to write to secrets and will only be able to read secrets in the trust namespace for use as sources.
 
 </td>
-<td>string</td>
+<td>array</td>
 <td>
 
 ```yaml
-10s
+[]
 ```
 
 </td>
 </tr>
 <tr>
 
-<td>app.metrics.service.servicemonitor.scrapeTimeout</td>
+<td>resources</td>
 <td>
 
-Timeout for a metrics scrape
-
-</td>
-<td>string</td>
-<td>
+Kubernetes pod resource limits for trust.  
+  
+For example:
 
 ```yaml
-5s
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
 ```
-
-</td>
-</tr>
-<tr>
-
-<td>app.metrics.service.servicemonitor.labels</td>
-<td>
-
-Additional labels to add to the ServiceMonitor
 
 </td>
 <td>object</td>
@@ -429,6 +392,164 @@ Additional labels to add to the ServiceMonitor
 
 ```yaml
 {}
+```
+
+</td>
+</tr>
+<tr>
+
+<td>priorityClassName</td>
+<td>
+
+Configure the priority class of the pod; see https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
+
+</td>
+<td>string</td>
+<td>
+
+```yaml
+""
+```
+
+</td>
+</tr>
+<tr>
+
+<td>nodeSelector</td>
+<td>
+
+Configure the nodeSelector; defaults to any Linux node (trust-manager doesn't support Windows nodes)
+
+
+</td>
+<td>object</td>
+<td>
+
+```yaml
+kubernetes.io/os: linux
+```
+
+</td>
+</tr>
+<tr>
+
+<td>affinity</td>
+<td>
+
+Kubernetes Affinty; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core for example:
+
+```yaml
+affinity:
+  nodeAffinity:
+   requiredDuringSchedulingIgnoredDuringExecution:
+     nodeSelectorTerms:
+     - matchExpressions:
+       - key: foo.bar.com/role
+         operator: In
+         values:
+         - master
+```
+
+Kubernetes Affinty; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core
+
+</td>
+<td>object</td>
+<td>
+
+```yaml
+{}
+```
+
+</td>
+</tr>
+<tr>
+
+<td>tolerations</td>
+<td>
+
+List of Kubernetes Tolerations, if required; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core for example:
+
+```yaml
+tolerations:
+- key: foo.bar.com/role
+  operator: Equal
+  value: master
+  effect: NoSchedule
+```
+
+List of Kubernetes Tolerations; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core
+
+</td>
+<td>array</td>
+<td>
+
+```yaml
+[]
+```
+
+</td>
+</tr>
+<tr>
+
+<td>topologySpreadConstraints</td>
+<td>
+
+List of Kubernetes TopologySpreadConstraints; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core  
+For example:
+
+```yaml
+topologySpreadConstraints:
+- maxSkew: 2
+  topologyKey: topology.kubernetes.io/zone
+  whenUnsatisfiable: ScheduleAnyway
+  labelSelector:
+    matchLabels:
+      app.kubernetes.io/instance: cert-manager
+      app.kubernetes.io/component: controller
+```
+
+List of Kubernetes TopologySpreadConstraints; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core
+
+</td>
+<td>array</td>
+<td>
+
+```yaml
+[]
+```
+
+</td>
+</tr>
+<tr>
+
+<td>filterExpiredCertificates.enabled</td>
+<td>
+
+Whether to filter expired certificates from the trust bundle.
+
+</td>
+<td>bool</td>
+<td>
+
+```yaml
+false
+```
+
+</td>
+</tr>
+<tr>
+
+<td>app.logLevel</td>
+<td>
+
+Verbosity of trust-manager logging; takes a value from 1-5, with higher being more verbose
+
+</td>
+<td>number</td>
+<td>
+
+```yaml
+1
 ```
 
 </td>
@@ -483,6 +604,69 @@ cert-manager
 ```
 
 </td>
+</tr>
+<tr>
+
+<td>app.securityContext.seccompProfileEnabled</td>
+<td>
+
+If false, disables the default seccomp profile, which might be required to run on certain platforms
+
+</td>
+<td>bool</td>
+<td>
+
+```yaml
+true
+```
+
+</td>
+</tr>
+<tr>
+
+<td>app.podLabels</td>
+<td>
+
+Pod labels to add to trust-manager pods.
+
+</td>
+<td>object</td>
+<td>
+
+```yaml
+{}
+```
+
+</td>
+</tr>
+<tr>
+
+<td>app.podAnnotations</td>
+<td>
+
+Pod annotations to add to trust-manager pods.
+
+</td>
+<td>object</td>
+<td>
+
+```yaml
+{}
+```
+
+</td>
+</tr>
+</table>
+
+### Webhook
+
+
+<table>
+<tr>
+<th>Property</th>
+<th>Description</th>
+<th>Type</th>
+<th>Default</th>
 </tr>
 <tr>
 
@@ -620,12 +804,41 @@ false
 
 </td>
 </tr>
+</table>
+
+### Metrics
+
+
+<table>
+<tr>
+<th>Property</th>
+<th>Description</th>
+<th>Type</th>
+<th>Default</th>
+</tr>
 <tr>
 
-<td>app.securityContext.seccompProfileEnabled</td>
+<td>app.metrics.port</td>
 <td>
 
-If false, disables the default seccomp profile, which might be required to run on certain platforms
+Port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'.
+
+</td>
+<td>number</td>
+<td>
+
+```yaml
+9402
+```
+
+</td>
+</tr>
+<tr>
+
+<td>app.metrics.service.servicemonitor</td>
+<td>
+
+Create a Service resource to expose metrics endpoint.
 
 </td>
 <td>bool</td>
@@ -639,249 +852,27 @@ true
 </tr>
 <tr>
 
-<td>app.podLabels</td>
+<td>app.metrics.service.servicemonitor</td>
 <td>
 
-Pod labels to add to trust-manager pods.
-
-</td>
-<td>object</td>
-<td>
-
-```yaml
-{}
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.podAnnotations</td>
-<td>
-
-Pod annotations to add to trust-manager pods.
-
-</td>
-<td>object</td>
-<td>
-
-```yaml
-{}
-```
-
-</td>
-</tr>
-<tr>
-
-<td>secretTargets.enabled</td>
-<td>
-
-If set to true, enable writing trust bundles to Kubernetes Secrets as a target. trust-manager can only write to secrets which are explicitly allowed via either authorizedSecrets or authorizedSecretsAll. NOTE: Enabling secret targets will grant trust-manager read access to all secrets in the cluster.
-
-</td>
-<td>bool</td>
-<td>
-
-```yaml
-false
-```
-
-</td>
-</tr>
-<tr>
-
-<td>secretTargets.authorizedSecretsAll</td>
-<td>
-
-If set to true, grant read/write permission to all secrets across the cluster. Use with caution!  
-If set, ignores the authorizedSecrets list.
-
-</td>
-<td>bool</td>
-<td>
-
-```yaml
-false
-```
-
-</td>
-</tr>
-<tr>
-
-<td>secretTargets.authorizedSecrets</td>
-<td>
-
-A list of secret names which trust-manager will be permitted to read and write across all namespaces. These will be the only allowable Secrets that can be used as targets. If the list is empty (and authorizedSecretsAll is false), trust-manager will not be able to write to secrets and will only be able to read secrets in the trust namespace for use as sources.
-
-</td>
-<td>array</td>
-<td>
-
-```yaml
-[]
-```
-
-</td>
-</tr>
-<tr>
-
-<td>resources</td>
-<td>
-
-</td>
-<td>object</td>
-<td>
-
-```yaml
-{}
-```
-
-</td>
-</tr>
-<tr>
-
-<td>priorityClassName</td>
-<td>
-
-Configure the priority class of the pod; see https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
+Service type to expose metrics.
 
 </td>
 <td>string</td>
 <td>
 
 ```yaml
-""
+ClusterIP
 ```
 
 </td>
 </tr>
 <tr>
 
-<td>nodeSelector["kubernetes.io/os"]</td>
+<td>app.metrics.service.servicemonitor.enabled</td>
 <td>
 
-</td>
-<td>string</td>
-<td>
-
-```yaml
-linux
-```
-
-</td>
-</tr>
-<tr>
-
-<td>affinity</td>
-<td>
-
-Kubernetes Affinty; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core for example:
-
-```yaml
-affinity:
-  nodeAffinity:
-   requiredDuringSchedulingIgnoredDuringExecution:
-     nodeSelectorTerms:
-     - matchExpressions:
-       - key: foo.bar.com/role
-         operator: In
-         values:
-         - master
-```
-
-Kubernetes Affinty; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core
-
-</td>
-<td>object</td>
-<td>
-
-```yaml
-{}
-```
-
-</td>
-</tr>
-<tr>
-
-<td>tolerations</td>
-<td>
-
-List of Kubernetes Tolerations, if required; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core for example:
-
-```yaml
-tolerations:
-- key: foo.bar.com/role
-  operator: Equal
-  value: master
-  effect: NoSchedule
-```
-
-List of Kubernetes Tolerations; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core
-
-</td>
-<td>array</td>
-<td>
-
-```yaml
-[]
-```
-
-</td>
-</tr>
-<tr>
-
-<td>topologySpreadConstraints</td>
-<td>
-
-List of Kubernetes TopologySpreadConstraints; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core  
-For example:
-
-```yaml
-topologySpreadConstraints:
-- maxSkew: 2
-  topologyKey: topology.kubernetes.io/zone
-  whenUnsatisfiable: ScheduleAnyway
-  labelSelector:
-    matchLabels:
-      app.kubernetes.io/instance: cert-manager
-      app.kubernetes.io/component: controller
-```
-
-List of Kubernetes TopologySpreadConstraints; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core
-
-</td>
-<td>array</td>
-<td>
-
-```yaml
-[]
-```
-
-</td>
-</tr>
-<tr>
-
-<td>crds.enabled</td>
-<td>
-
-Whether or not to install the CRDs.
-
-</td>
-<td>bool</td>
-<td>
-
-```yaml
-true
-```
-
-</td>
-</tr>
-<tr>
-
-<td>filterExpiredCertificates.enabled</td>
-<td>
-
-Whether to filter expired certificates from the trust bundle.
+Create a Prometheus ServiceMonitor for trust-manager
 
 </td>
 <td>bool</td>
@@ -889,6 +880,75 @@ Whether to filter expired certificates from the trust bundle.
 
 ```yaml
 false
+```
+
+</td>
+</tr>
+<tr>
+
+<td>app.metrics.service.servicemonitor.prometheusInstance</td>
+<td>
+
+Sets the value of the "prometheus" label on the ServiceMonitor, this is used as separate Prometheus instances can select difference  
+ServiceMonitors using labels
+
+</td>
+<td>string</td>
+<td>
+
+```yaml
+default
+```
+
+</td>
+</tr>
+<tr>
+
+<td>app.metrics.service.servicemonitor.interval</td>
+<td>
+
+Interval to scrape the metrics
+
+</td>
+<td>string</td>
+<td>
+
+```yaml
+10s
+```
+
+</td>
+</tr>
+<tr>
+
+<td>app.metrics.service.servicemonitor.scrapeTimeout</td>
+<td>
+
+Timeout for a metrics scrape
+
+</td>
+<td>string</td>
+<td>
+
+```yaml
+5s
+```
+
+</td>
+</tr>
+<tr>
+
+<td>app.metrics.service.servicemonitor.labels</td>
+<td>
+
+Additional labels to add to the ServiceMonitor
+
+</td>
+<td>object</td>
+<td>
+
+```yaml
+{}
 ```
 
 </td>
