@@ -18,11 +18,11 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-HELM_DOCS_BIN=${1:-}
+HELM_TOOL_BIN=${1:-}
 
-if [[ -z $HELM_DOCS_BIN ]]; then
+if [[ -z $HELM_TOOL_BIN ]]; then
 	echo "usage: $0 <path-to-helm-docs>"
 	exit 1
 fi
 
-$HELM_DOCS_BIN ./deploy/charts/trust-manager
+$HELM_TOOL_BIN inject -i ./deploy/charts/trust-manager/values.yaml -o ./deploy/charts/trust-manager/README.md --header-search '^<!-- AUTO-GENERATED -->' --footer-search '^<!-- /AUTO-GENERATED -->'

@@ -29,7 +29,7 @@ KUBEBUILDER_TOOLS_VERISON ?= 1.28.0
 KUBECTL_VERSION ?= 1.28.2
 KIND_VERSION ?= $(shell grep "sigs.k8s.io/kind" go.mod | awk '{print $$NF}')
 GINKGO_VERSION ?= $(shell grep "github.com/onsi/ginkgo/v2" go.mod | awk '{print $$NF}')
-HELM_DOCS_VERSION ?= $(shell grep "github.com/norwoodj/helm-docs" hack/tools/go.mod | awk '{print $$NF}')
+HELM_TOOL_VERSION ?= $(shell grep "github.com/cert-manager/helm-tool" hack/tools/go.mod | awk '{print $$NF}')
 BOILERSUITE_VERSION ?= $(shell grep "github.com/cert-manager/boilersuite" hack/tools/go.mod | awk '{print $$NF}')
 CONTROLLER_TOOLS_VERSION ?= $(shell grep "sigs.k8s.io/controller-tools" hack/tools/go.mod | awk '{print $$NF}')
 CODE_GENERATOR_VERSION ?= $(shell grep "k8s.io/code-generator" hack/tools/go.mod | awk '{print $$NF}')
@@ -174,8 +174,8 @@ chart: | $(BINDIR)/helm-$(HELM_VERSION)/helm $(BINDIR)/chart
 	$(BINDIR)/helm-$(HELM_VERSION)/helm package --app-version=$(RELEASE_VERSION) --version=$(RELEASE_VERSION) --destination "$(BINDIR)/chart" ./deploy/charts/trust-manager
 
 .PHONY: update-helm-docs
-update-helm-docs: | $(BINDIR)/helm-docs-$(HELM_DOCS_VERSION)/helm-docs  ## update Helm README, generated from other Helm files
-	./hack/update-helm-docs.sh $(BINDIR)/helm-docs-$(HELM_DOCS_VERSION)/helm-docs
+update-helm-docs: | $(BINDIR)/helm-tool-$(HELM_TOOL_VERSION)/helm-tool  ## update Helm README, generated from other Helm files
+	./hack/update-helm-tool.sh $(BINDIR)/helm-tool-$(HELM_TOOL_VERSION)/helm-tool
 
 .PHONY: clean
 clean: ## clean up created files
@@ -247,7 +247,7 @@ depend: $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)/controller-gen
 depend: $(BINDIR)/code-generator-$(CODE_GENERATOR_VERSION)/applyconfiguration-gen
 depend: $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION)/boilersuite
 depend: $(BINDIR)/kind-$(KIND_VERSION)/kind
-depend: $(BINDIR)/helm-docs-$(HELM_DOCS_VERSION)/helm-docs
+depend: $(BINDIR)/helm-tool-$(HELM_TOOL_VERSION)/helm-tool
 depend: $(BINDIR)/helm-$(HELM_VERSION)/helm
 depend: $(BINDIR)/ginkgo-$(GINKGO_VERSION)/ginkgo
 depend: $(BINDIR)/kubectl-$(KUBECTL_VERSION)/kubectl
@@ -266,8 +266,8 @@ $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION)/boilersuite: | $(BINDIR)/boilersuit
 $(BINDIR)/kind-$(KIND_VERSION)/kind: | $(BINDIR)/kind-$(KIND_VERSION)
 	cd hack/tools && go build -o $@ sigs.k8s.io/kind
 
-$(BINDIR)/helm-docs-$(HELM_DOCS_VERSION)/helm-docs: | $(BINDIR)/helm-docs-$(HELM_DOCS_VERSION)
-	cd hack/tools && go build -o $@ github.com/norwoodj/helm-docs/cmd/helm-docs
+$(BINDIR)/helm-tool-$(HELM_TOOL_VERSION)/helm-tool: | $(BINDIR)/helm-tool-$(HELM_TOOL_VERSION)
+	cd hack/tools && go build -o $@ github.com/cert-manager/helm-tool
 
 $(BINDIR)/helm-$(HELM_VERSION)/helm: $(BINDIR)/helm-$(HELM_VERSION)/helm-v$(HELM_VERSION)-$(OS)-$(ARCH).tar.gz | $(BINDIR)
 	tar xfO $< $(OS)-$(ARCH)/helm > $@ && chmod +x $@
@@ -290,7 +290,7 @@ $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/kube-apiserver: $(BINDIR)/kub
 $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/envtest-bins.tar.gz: | $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)
 	curl -sSL -o $@ "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$(KUBEBUILDER_TOOLS_VERISON)-$(OS)-$(ARCH).tar.gz"
 
-$(BINDIR) $(BINDIR)/kubectl-$(KUBECTL_VERSION) $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON) $(BINDIR)/chart $(BINDIR)/ginkgo-$(GINKGO_VERSION) $(BINDIR)/helm-$(HELM_VERSION) $(BINDIR)/helm-docs-$(HELM_DOCS_VERSION) $(BINDIR)/kind-$(KIND_VERSION) $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION) $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION) $(BINDIR)/code-generator-$(CODE_GENERATOR_VERSION):
+$(BINDIR) $(BINDIR)/kubectl-$(KUBECTL_VERSION) $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON) $(BINDIR)/chart $(BINDIR)/ginkgo-$(GINKGO_VERSION) $(BINDIR)/helm-$(HELM_VERSION) $(BINDIR)/helm-tool-$(HELM_TOOL_VERSION) $(BINDIR)/kind-$(KIND_VERSION) $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION) $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION) $(BINDIR)/code-generator-$(CODE_GENERATOR_VERSION):
 	@mkdir -p $@
 
 _FORCE:
