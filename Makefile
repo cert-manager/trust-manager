@@ -36,7 +36,7 @@ CODE_GENERATOR_VERSION ?= $(shell grep "k8s.io/code-generator" hack/tools/go.mod
 
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
 
-RELEASE_VERSION ?= v0.7.0
+RELEASE_VERSION ?= v0.8.0
 
 BUILDX_BUILDER ?= trust-manager-builder
 
@@ -46,6 +46,9 @@ CONTAINER_REGISTRY_API_URL ?= https://quay.io/v2/jetstack/cert-manager-package-d
 GOPROXY ?= https://proxy.golang.org,direct
 
 GO_SOURCES := $(shell find . -name "*.go") go.mod go.sum
+
+CGO_ENABLED ?= 0
+GOEXPERIMENT ?= # empty by default
 
 CI ?=
 
@@ -102,10 +105,13 @@ build: $(BINDIR)/trust-manager | $(BINDIR) ## build trust-manager for the host s
 build-linux-amd64 build-linux-arm64 build-linux-ppc64le build-linux-arm: build-linux-%: $(BINDIR)/trust-manager-linux-%
 
 $(BINDIR)/trust-manager: $(GO_SOURCES) | $(BINDIR)
-	CGO_ENABLED=0 go build -o $(BINDIR)/trust-manager ./cmd/trust-manager
+	CGO_ENABLED=$(CGO_ENABLED) GOEXPERIMENT=$(GOEXPERIMENT) \
+		go build -o $(BINDIR)/trust-manager ./cmd/trust-manager
 
 $(BINDIR)/trust-manager-linux-amd64 $(BINDIR)/trust-manager-linux-arm64 $(BINDIR)/trust-manager-linux-ppc64le $(BINDIR)/trust-manager-linux-arm: $(BINDIR)/trust-manager-linux-%: $(GO_SOURCES) | $(BINDIR)
-	CGO_ENABLED=0 GOOS=linux GOARCH=$* go build -o $@ ./cmd/trust-manager
+	CGO_ENABLED=$(CGO_ENABLED) GOEXPERIMENT=$(GOEXPERIMENT) \
+		GOOS=linux GOARCH=$* \
+		go build -o $@ ./cmd/trust-manager
 
 .PHONY: generate
 generate: depend generate-deepcopy generate-applyconfigurations generate-manifests
