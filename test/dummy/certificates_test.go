@@ -21,7 +21,9 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
+	"fmt"
 	"testing"
+	"time"
 )
 
 func Test_DummySubjectEquality(t *testing.T) {
@@ -102,5 +104,74 @@ func Test_DummyCertificateSanity(t *testing.T) {
 		}
 
 		equalityMap[hexHash] = struct{}{}
+	}
+}
+
+func Test_DummyCertificateExpiryAtInstant(t *testing.T) {
+	instant := DummyInstant()
+
+	tests := []struct {
+		certName        string
+		certPEM         string
+		shouldBeExpired bool
+	}{
+		{
+			certName:        "TestCertificate1",
+			certPEM:         TestCertificate1,
+			shouldBeExpired: false,
+		},
+		{
+			certName:        "TestCertificate2",
+			certPEM:         TestCertificate2,
+			shouldBeExpired: false,
+		},
+		{
+			certName:        "TestCertificate3",
+			certPEM:         TestCertificate3,
+			shouldBeExpired: false,
+		},
+		{
+			certName:        "TestCertificate4",
+			certPEM:         TestCertificate4,
+			shouldBeExpired: false,
+		},
+		{
+			certName:        "TestCertificate5",
+			certPEM:         TestCertificate5,
+			shouldBeExpired: false,
+		},
+		{
+			certName:        "TestExpiredCertificate",
+			certPEM:         TestExpiredCertificate,
+			shouldBeExpired: true,
+		},
+	}
+
+	for _, test := range tests {
+		testCheck := "is not"
+		if test.shouldBeExpired {
+			testCheck = "is"
+		}
+
+		t.Run(fmt.Sprintf("checking %s %s expired at DummyInstant", test.certName, testCheck), func(t *testing.T) {
+			block, _ := pem.Decode([]byte(test.certPEM))
+			if block == nil {
+				t.Errorf("couldn't parse a PEM block for %s", test.certName)
+				return
+			}
+
+			cert, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				t.Errorf("failed to parse %s: %s", test.certName, err)
+				return
+			}
+
+			isExpired := cert.NotAfter.Before(instant)
+
+			if test.shouldBeExpired != isExpired {
+				t.Errorf("%s: shouldBeExpired=%v, isExpired=%v (at instant %s)", test.certName, test.shouldBeExpired, isExpired, instant.Format(time.RFC3339))
+				return
+			}
+		})
 	}
 }
