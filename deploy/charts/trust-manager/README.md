@@ -68,7 +68,7 @@ true
 <td>replicaCount</td>
 <td>
 
-Number of replicas of trust-manager to run.
+The number of replicas of trust-manager to run.
 
 </td>
 <td>number</td>
@@ -86,7 +86,8 @@ Number of replicas of trust-manager to run.
 <td>
 
 The namespace to install trust-manager into.  
-If not set, the namespace of the release will be used. This is helpful when installing trust-manager as a chart dependency (sub chart)
+If not set, the namespace of the release is used.  
+This is helpful when installing trust-manager as a chart dependency (sub chart).
 
 </td>
 <td>string</td>
@@ -103,7 +104,7 @@ If not set, the namespace of the release will be used. This is helpful when inst
 <td>imagePullSecrets</td>
 <td>
 
-For Private docker registries, authentication is needed. Registry secrets are applied to the service account
+For Private docker registries, authentication is needed. Registry secrets are applied to the service account.
 
 </td>
 <td>array</td>
@@ -137,7 +138,7 @@ quay.io/jetstack/trust-manager
 <td>image.registry</td>
 <td>
 
-Target image registry. Will be prepended to the target image repository if set.
+Target image registry. If set, this value is prepended to the target image repository.
 
 
 </td>
@@ -173,7 +174,8 @@ null
 <td>image.digest</td>
 <td>
 
-Target image digest. Will override any tag if set. for example:
+Target image digest. If set, this value overrides any tag.  
+For example:
 
 ```yaml
 digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
@@ -212,7 +214,7 @@ IfNotPresent
 <td>defaultPackage.enabled</td>
 <td>
 
-Whether to load the default trust package during pod initialization and include it in main container args. This container enables the 'useDefaultCAs' source on Bundles.
+Whether to load the default trust package during pod initialization, and include it in main container args. This container enables the 'useDefaultCAs' source on Bundles.
 
 </td>
 <td>bool</td>
@@ -229,7 +231,7 @@ true
 <td>defaultPackageImage.repository</td>
 <td>
 
-Repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles.
+The repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles.
 
 </td>
 <td>string</td>
@@ -246,7 +248,7 @@ quay.io/jetstack/cert-manager-package-debian
 <td>defaultPackageImage.registry</td>
 <td>
 
-Target image registry. Will be prepended to the target image repository if set.
+Target image registry. If set, this value is prepended to the target image repository.
 
 
 </td>
@@ -264,7 +266,7 @@ null
 <td>defaultPackageImage.tag</td>
 <td>
 
-Tag for the default package image
+Tag for the default package image.
 
 </td>
 <td>string</td>
@@ -281,7 +283,8 @@ Tag for the default package image
 <td>defaultPackageImage.digest</td>
 <td>
 
-Target image digest. Will override any tag if set. for example:
+Target image digest. If set, this value overrides any tag.  
+For example:
 
 ```yaml
 digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
@@ -303,7 +306,7 @@ null
 <td>defaultPackageImage.pullPolicy</td>
 <td>
 
-imagePullPolicy for the default package image
+imagePullPolicy for the default package image.
 
 </td>
 <td>string</td>
@@ -320,7 +323,7 @@ IfNotPresent
 <td>secretTargets.enabled</td>
 <td>
 
-If set to true, enable writing trust bundles to Kubernetes Secrets as a target. trust-manager can only write to secrets which are explicitly allowed via either authorizedSecrets or authorizedSecretsAll. NOTE: Enabling secret targets will grant trust-manager read access to all secrets in the cluster.
+If set to true, enable writing trust bundles to Kubernetes Secrets as a target. trust-manager can only write to secrets which are explicitly allowed via either authorizedSecrets or authorizedSecretsAll. Note that enabling secret targets will grant trust-manager read access to all secrets in the cluster.
 
 </td>
 <td>bool</td>
@@ -355,7 +358,7 @@ false
 <td>secretTargets.authorizedSecrets</td>
 <td>
 
-A list of secret names which trust-manager will be permitted to read and write across all namespaces. These will be the only allowable Secrets that can be used as targets. If the list is empty (and authorizedSecretsAll is false), trust-manager will not be able to write to secrets and will only be able to read secrets in the trust namespace for use as sources.
+A list of secret names which trust-manager will be permitted to read and write across all namespaces. These are the only allowable Secrets that can be used as targets. If the list is empty (and authorizedSecretsAll is false), trust-manager can't write to secrets and can only read secrets in the trust namespace for use as sources.
 
 </td>
 <td>array</td>
@@ -401,7 +404,7 @@ resources:
 <td>priorityClassName</td>
 <td>
 
-Configure the priority class of the pod; see https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass
+Configure the priority class of the pod. For more information, see [PriorityClass](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass).
 
 </td>
 <td>string</td>
@@ -436,7 +439,8 @@ kubernetes.io/os: linux
 <td>affinity</td>
 <td>
 
-Kubernetes Affinty; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core for example:
+Kubernetes Affinity. For more information, see [Affinity v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core).  
+For example:
 
 ```yaml
 affinity:
@@ -449,8 +453,6 @@ affinity:
          values:
          - master
 ```
-
-Kubernetes Affinty; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core
 
 </td>
 <td>object</td>
@@ -467,7 +469,8 @@ Kubernetes Affinty; see https://kubernetes.io/docs/reference/generated/kubernete
 <td>tolerations</td>
 <td>
 
-List of Kubernetes Tolerations, if required; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core for example:
+List of Kubernetes Tolerations, if required. For more information, see [Toleration v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core).  
+For example:
 
 ```yaml
 tolerations:
@@ -476,8 +479,6 @@ tolerations:
   value: master
   effect: NoSchedule
 ```
-
-List of Kubernetes Tolerations; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core
 
 </td>
 <td>array</td>
@@ -494,7 +495,7 @@ List of Kubernetes Tolerations; see https://kubernetes.io/docs/reference/generat
 <td>topologySpreadConstraints</td>
 <td>
 
-List of Kubernetes TopologySpreadConstraints; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core  
+List of Kubernetes TopologySpreadConstraints. For more information, see [TopologySpreadConstraint v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core).  
 For example:
 
 ```yaml
@@ -507,8 +508,6 @@ topologySpreadConstraints:
       app.kubernetes.io/instance: cert-manager
       app.kubernetes.io/component: controller
 ```
-
-List of Kubernetes TopologySpreadConstraints; see https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core
 
 </td>
 <td>array</td>
@@ -542,7 +541,7 @@ false
 <td>app.logLevel</td>
 <td>
 
-Verbosity of trust-manager logging; takes a value from 1-5, with higher being more verbose
+The verbosity of trust-manager logging. This takes a value from 1-5, with the higher value being more verbose.
 
 </td>
 <td>number</td>
@@ -559,7 +558,7 @@ Verbosity of trust-manager logging; takes a value from 1-5, with higher being mo
 <td>app.readinessProbe.port</td>
 <td>
 
-Container port on which to expose trust-manager HTTP readiness probe using default network interface.
+The container port on which to expose the trust-manager HTTP readiness probe using the default network interface.
 
 </td>
 <td>number</td>
@@ -576,7 +575,7 @@ Container port on which to expose trust-manager HTTP readiness probe using defau
 <td>app.readinessProbe.path</td>
 <td>
 
-Path on which to expose trust-manager HTTP readiness probe using default network interface.
+The path on which to expose the trust-manager HTTP readiness probe using the default network interface.
 
 </td>
 <td>string</td>
@@ -593,7 +592,7 @@ Path on which to expose trust-manager HTTP readiness probe using default network
 <td>app.trust.namespace</td>
 <td>
 
-Namespace used as trust source. Note that the namespace _must_ exist before installing trust-manager.
+The namespace used as the trust source. Note that the namespace _must_ exist before installing trust-manager.
 
 </td>
 <td>string</td>
@@ -610,7 +609,7 @@ cert-manager
 <td>app.securityContext.seccompProfileEnabled</td>
 <td>
 
-If false, disables the default seccomp profile, which might be required to run on certain platforms
+If false, disables the default seccomp profile, which might be required to run on certain platforms.
 
 </td>
 <td>bool</td>
@@ -724,7 +723,7 @@ Timeout of webhook HTTP request.
 <td>app.webhook.service.type</td>
 <td>
 
-Type of Kubernetes Service used by the Webhook
+The type of Kubernetes Service used by the Webhook.
 
 </td>
 <td>string</td>
@@ -758,7 +757,7 @@ false
 <td>app.webhook.tls.approverPolicy.certManagerNamespace</td>
 <td>
 
-Namespace in which cert-manager was installed. Only used if app.webhook.tls.approverPolicy.enabled is true
+The namespace in which cert-manager was installed. Only used if `app.webhook.tls.approverPolicy.enabled` is true.
 
 </td>
 <td>string</td>
@@ -775,7 +774,7 @@ cert-manager
 <td>app.webhook.tls.approverPolicy.certManagerServiceAccount</td>
 <td>
 
-Name of cert-manager's ServiceAccount. Only used if app.webhook.tls.approverPolicy.enabled is true
+The name of cert-manager's Service Account. Only used if `app.webhook.tls.approverPolicy.enabled` is true.
 
 </td>
 <td>string</td>
@@ -792,7 +791,7 @@ cert-manager
 <td>app.webhook.hostNetwork</td>
 <td>
 
-Specifies if the app should be started in hostNetwork mode. Required for use in some managed kubernetes clusters (such as AWS EKS) with custom CNI.
+This value specifies if the app should be started in hostNetwork mode. It is required for use in some managed Kubernetes clusters (such as AWS EKS) with custom CNI.
 
 </td>
 <td>bool</td>
@@ -821,7 +820,7 @@ false
 <td>app.metrics.port</td>
 <td>
 
-Port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'.
+The port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'.
 
 </td>
 <td>number</td>
@@ -838,7 +837,7 @@ Port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'.
 <td>app.metrics.service.servicemonitor</td>
 <td>
 
-Create a Service resource to expose metrics endpoint.
+Create a Service resource to expose the metrics endpoint.
 
 </td>
 <td>bool</td>
@@ -855,7 +854,7 @@ true
 <td>app.metrics.service.servicemonitor</td>
 <td>
 
-Service type to expose metrics.
+The Service type to expose metrics.
 
 </td>
 <td>string</td>
@@ -872,7 +871,7 @@ ClusterIP
 <td>app.metrics.service.servicemonitor.enabled</td>
 <td>
 
-Create a Prometheus ServiceMonitor for trust-manager
+Create a Prometheus ServiceMonitor for trust-manager.
 
 </td>
 <td>bool</td>
@@ -889,8 +888,7 @@ false
 <td>app.metrics.service.servicemonitor.prometheusInstance</td>
 <td>
 
-Sets the value of the "prometheus" label on the ServiceMonitor, this is used as separate Prometheus instances can select difference  
-ServiceMonitors using labels
+Sets the value of the "prometheus" label on the ServiceMonitor. This is used so that separate Prometheus instances can select different ServiceMonitors using labels.
 
 </td>
 <td>string</td>
@@ -907,7 +905,7 @@ default
 <td>app.metrics.service.servicemonitor.interval</td>
 <td>
 
-Interval to scrape the metrics
+The interval to scrape the metrics.
 
 </td>
 <td>string</td>
@@ -924,7 +922,7 @@ Interval to scrape the metrics
 <td>app.metrics.service.servicemonitor.scrapeTimeout</td>
 <td>
 
-Timeout for a metrics scrape
+The timeout for a metrics scrape.
 
 </td>
 <td>string</td>
@@ -941,7 +939,7 @@ Timeout for a metrics scrape
 <td>app.metrics.service.servicemonitor.labels</td>
 <td>
 
-Additional labels to add to the ServiceMonitor
+Additional labels to add to the ServiceMonitor.
 
 </td>
 <td>object</td>
