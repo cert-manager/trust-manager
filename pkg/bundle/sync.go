@@ -393,7 +393,7 @@ func (b *bundle) syncConfigMapTarget(
 	// If the ConfigMap doesn't exist, create it.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
-		if exit, err := b.needsUpdate(ctx, log, configMap, bundle, dataHash); err != nil {
+		if exit, err := b.needsUpdate(ctx, targetKindConfigMap, log, configMap, bundle, dataHash); err != nil {
 			return false, err
 		} else if !exit {
 			return false, nil
@@ -502,7 +502,7 @@ func (b *bundle) syncSecretTarget(
 	// If the Secret doesn't exist, create it.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
-		if exit, err := b.needsUpdate(ctx, log, secret, bundle, dataHash); err != nil {
+		if exit, err := b.needsUpdate(ctx, targetKindSecret, log, secret, bundle, dataHash); err != nil {
 			return false, err
 		} else if !exit {
 			return false, nil
@@ -562,7 +562,14 @@ func (b *bundleData) populateData(bundles []string, target trustapi.BundleTarget
 	return nil
 }
 
-func (b *bundle) needsUpdate(ctx context.Context, log logr.Logger, obj *metav1.PartialObjectMetadata, bundle *trustapi.Bundle, dataHash string) (bool, error) {
+type targetKind string
+
+const (
+	targetKindConfigMap targetKind = "ConfigMap"
+	targetKindSecret    targetKind = "Secret"
+)
+
+func (b *bundle) needsUpdate(ctx context.Context, kind targetKind, log logr.Logger, obj *metav1.PartialObjectMetadata, bundle *trustapi.Bundle, dataHash string) (bool, error) {
 	needsUpdate := false
 	if !metav1.IsControlledBy(obj, bundle) {
 		needsUpdate = true
@@ -577,16 +584,17 @@ func (b *bundle) needsUpdate(ctx context.Context, log logr.Logger, obj *metav1.P
 	}
 
 	{
-		key := ""
-		targetFieldNames := []string{"data"}
-		targetType := obj.TypeMeta.Kind
-		if targetType == "ConfigMap" {
+		var key string
+		var targetFieldNames []string
+		switch kind {
+		case targetKindConfigMap:
 			key = bundle.Spec.Target.ConfigMap.Key
-			targetFieldNames = append(targetFieldNames, "binaryData")
-		} else if targetType == "Secret" {
+			targetFieldNames = []string{"data", "binaryData"}
+		case targetKindSecret:
 			key = bundle.Spec.Target.Secret.Key
-		} else {
-			return false, fmt.Errorf("unknown targetType: %s", targetType)
+			targetFieldNames = []string{"data"}
+		default:
+			return false, fmt.Errorf("unknown targetType: %s", kind)
 		}
 
 		properties, err := listManagedProperties(obj, fieldManager, targetFieldNames...)
@@ -604,7 +612,7 @@ func (b *bundle) needsUpdate(ctx context.Context, log logr.Logger, obj *metav1.P
 			needsUpdate = true
 		}
 
-		if targetType == "ConfigMap" {
+		if kind == targetKindConfigMap {
 			if bundle.Spec.Target.ConfigMap != nil {
 				// Check if we need to migrate the ConfigMap managed fields to the Apply field operation
 				if didMigrate, err := b.migrateConfigMapToApply(ctx, obj, bundle.Spec.Target.ConfigMap.Key); err != nil {
