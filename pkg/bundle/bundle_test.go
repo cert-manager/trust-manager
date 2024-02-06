@@ -240,7 +240,7 @@ func Test_Reconcile(t *testing.T) {
 			}
 
 			secret := &corev1.Secret{
-				TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+				TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace:       namespace,
 					Name:            baseBundle.Name,
@@ -1273,18 +1273,26 @@ func Test_Reconcile(t *testing.T) {
 		},
 	}
 
+	deepCopyArray := func(arr []client.Object) []client.Object {
+		newArr := make([]client.Object, len(arr))
+		for i, obj := range arr {
+			newArr[i] = obj.DeepCopyObject().(client.Object)
+		}
+		return newArr
+	}
+
 	for name, test := range tests {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			fakeclient := fakeclient.NewClientBuilder().
 				WithScheme(trustapi.GlobalScheme).
-				WithObjects(test.existingConfigMaps...).
-				WithObjects(test.existingBundles...).
-				WithObjects(test.existingNamespaces...).
-				WithObjects(test.existingSecrets...).
-				WithStatusSubresource(test.existingNamespaces...).
-				WithStatusSubresource(test.existingBundles...).
+				WithObjects(deepCopyArray(test.existingConfigMaps)...).
+				WithObjects(deepCopyArray(test.existingBundles)...).
+				WithObjects(deepCopyArray(test.existingNamespaces)...).
+				WithObjects(deepCopyArray(test.existingSecrets)...).
+				WithStatusSubresource(deepCopyArray(test.existingNamespaces)...).
+				WithStatusSubresource(deepCopyArray(test.existingBundles)...).
 				Build()
 
 			fakerecorder := record.NewFakeRecorder(1)
