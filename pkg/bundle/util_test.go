@@ -117,7 +117,6 @@ func Test_setBundleCondition(t *testing.T) {
 				Message: "C",
 			},
 			expectedConditions: []trustapi.BundleCondition{
-				{Type: "B"},
 				{
 					Type:               "A",
 					Status:             metav1.ConditionTrue,
@@ -130,7 +129,6 @@ func Test_setBundleCondition(t *testing.T) {
 		},
 		"an existing condition of the same type but different status should be replaced with new time if it has a different status": {
 			existingConditions: []trustapi.BundleCondition{
-				{Type: "B"},
 				{
 					Type:               "A",
 					Status:             metav1.ConditionFalse,
@@ -147,7 +145,6 @@ func Test_setBundleCondition(t *testing.T) {
 				Message: "C",
 			},
 			expectedConditions: []trustapi.BundleCondition{
-				{Type: "B"},
 				{
 					Type:               "A",
 					Status:             metav1.ConditionTrue,
@@ -160,7 +157,6 @@ func Test_setBundleCondition(t *testing.T) {
 		},
 		"an existing condition of the same type and status should be replaced with same time": {
 			existingConditions: []trustapi.BundleCondition{
-				{Type: "B"},
 				{
 					Type:               "A",
 					Status:             metav1.ConditionTrue,
@@ -177,7 +173,6 @@ func Test_setBundleCondition(t *testing.T) {
 				Message: "C",
 			},
 			expectedConditions: []trustapi.BundleCondition{
-				{Type: "B"},
 				{
 					Type:               "A",
 					Status:             metav1.ConditionTrue,
@@ -202,9 +197,10 @@ func Test_setBundleCondition(t *testing.T) {
 				},
 			}
 
+			var patchConditions []trustapi.BundleCondition
 			b.setBundleCondition(
 				bundle.Status.Conditions,
-				&bundle.Status.Conditions,
+				&patchConditions,
 				trustapi.BundleCondition{
 					Type:               test.newCondition.Type,
 					Status:             test.newCondition.Status,
@@ -214,7 +210,7 @@ func Test_setBundleCondition(t *testing.T) {
 				},
 			)
 
-			if !apiequality.Semantic.DeepEqual(bundle.Status.Conditions, test.expectedConditions) {
+			if !apiequality.Semantic.DeepEqual(patchConditions, test.expectedConditions) {
 				t.Errorf("unexpected resulting conditions, exp=%v got=%v", test.expectedConditions, bundle.Status.Conditions)
 			}
 		})
