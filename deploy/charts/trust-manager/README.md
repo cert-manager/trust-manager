@@ -26,153 +26,66 @@ Kubernetes: `>= 1.25.0-0`
 
 ### CRDs
 
-
-<table>
-<tr>
-<th>Property</th>
-<th>Description</th>
-<th>Type</th>
-<th>Default</th>
-</tr>
-<tr>
-
-<td>crds.enabled</td>
-<td>
+#### **crds.enabled** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
 
 Whether or not to install the CRDs.
-
-</td>
-<td>bool</td>
-<td>
-
-```yaml
-true
-```
-
-</td>
-</tr>
-</table>
-
 ### Trust Manager
 
-
-<table>
-<tr>
-<th>Property</th>
-<th>Description</th>
-<th>Type</th>
-<th>Default</th>
-</tr>
-<tr>
-
-<td>replicaCount</td>
-<td>
+#### **replicaCount** ~ `number`
+> Default value:
+> ```yaml
+> 1
+> ```
 
 The number of replicas of trust-manager to run.
-
-</td>
-<td>number</td>
-<td>
-
-```yaml
-1
-```
-
-</td>
-</tr>
-<tr>
-
-<td>namespace</td>
-<td>
+#### **namespace** ~ `string`
+> Default value:
+> ```yaml
+> ""
+> ```
 
 The namespace to install trust-manager into.  
 If not set, the namespace of the release is used.  
 This is helpful when installing trust-manager as a chart dependency (sub chart).
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-""
-```
-
-</td>
-</tr>
-<tr>
-
-<td>imagePullSecrets</td>
-<td>
+#### **imagePullSecrets** ~ `array`
+> Default value:
+> ```yaml
+> []
+> ```
 
 For Private docker registries, authentication is needed. Registry secrets are applied to the service account.
-
-</td>
-<td>array</td>
-<td>
-
-```yaml
-[]
-```
-
-</td>
-</tr>
-<tr>
-
-<td>image.repository</td>
-<td>
+#### **image.repository** ~ `string`
+> Default value:
+> ```yaml
+> quay.io/jetstack/trust-manager
+> ```
 
 Target image repository.
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-quay.io/jetstack/trust-manager
-```
-
-</td>
-</tr>
-<tr>
-
-<td>image.registry</td>
-<td>
+#### **image.registry** ~ `string`
+> Default value:
+> ```yaml
+> null
+> ```
 
 Target image registry. If set, this value is prepended to the target image repository.
 
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-null
-```
-
-</td>
-</tr>
-<tr>
-
-<td>image.tag</td>
-<td>
+#### **image.tag** ~ `string`
+> Default value:
+> ```yaml
+> null
+> ```
 
 Target image version tag. Defaults to the chart's appVersion.
 
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-null
-```
-
-</td>
-</tr>
-<tr>
-
-<td>image.digest</td>
-<td>
+#### **image.digest** ~ `string`
+> Default value:
+> ```yaml
+> null
+> ```
 
 Target image digest. If set, this value overrides any tag.  
 For example:
@@ -181,107 +94,47 @@ For example:
 digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
 ```
 
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-null
-```
-
-</td>
-</tr>
-<tr>
-
-<td>image.pullPolicy</td>
-<td>
+#### **image.pullPolicy** ~ `string`
+> Default value:
+> ```yaml
+> IfNotPresent
+> ```
 
 Kubernetes imagePullPolicy on Deployment.
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-IfNotPresent
-```
-
-</td>
-</tr>
-<tr>
-
-<td>defaultPackage.enabled</td>
-<td>
+#### **defaultPackage.enabled** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
 
 Whether to load the default trust package during pod initialization, and include it in main container args. This container enables the 'useDefaultCAs' source on Bundles.
-
-</td>
-<td>bool</td>
-<td>
-
-```yaml
-true
-```
-
-</td>
-</tr>
-<tr>
-
-<td>defaultPackageImage.repository</td>
-<td>
+#### **defaultPackageImage.repository** ~ `string`
+> Default value:
+> ```yaml
+> quay.io/jetstack/cert-manager-package-debian
+> ```
 
 The repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles.
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-quay.io/jetstack/cert-manager-package-debian
-```
-
-</td>
-</tr>
-<tr>
-
-<td>defaultPackageImage.registry</td>
-<td>
+#### **defaultPackageImage.registry** ~ `string`
+> Default value:
+> ```yaml
+> null
+> ```
 
 Target image registry. If set, this value is prepended to the target image repository.
 
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-null
-```
-
-</td>
-</tr>
-<tr>
-
-<td>defaultPackageImage.tag</td>
-<td>
+#### **defaultPackageImage.tag** ~ `string`
+> Default value:
+> ```yaml
+> "20210119.0"
+> ```
 
 Tag for the default package image.
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-"20210119.0"
-```
-
-</td>
-</tr>
-<tr>
-
-<td>defaultPackageImage.digest</td>
-<td>
+#### **defaultPackageImage.digest** ~ `string`
+> Default value:
+> ```yaml
+> null
+> ```
 
 Target image digest. If set, this value overrides any tag.  
 For example:
@@ -290,90 +143,40 @@ For example:
 digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
 ```
 
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-null
-```
-
-</td>
-</tr>
-<tr>
-
-<td>defaultPackageImage.pullPolicy</td>
-<td>
+#### **defaultPackageImage.pullPolicy** ~ `string`
+> Default value:
+> ```yaml
+> IfNotPresent
+> ```
 
 imagePullPolicy for the default package image.
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-IfNotPresent
-```
-
-</td>
-</tr>
-<tr>
-
-<td>secretTargets.enabled</td>
-<td>
+#### **secretTargets.enabled** ~ `bool`
+> Default value:
+> ```yaml
+> false
+> ```
 
 If set to true, enable writing trust bundles to Kubernetes Secrets as a target. trust-manager can only write to secrets which are explicitly allowed via either authorizedSecrets or authorizedSecretsAll. Note that enabling secret targets will grant trust-manager read access to all secrets in the cluster.
-
-</td>
-<td>bool</td>
-<td>
-
-```yaml
-false
-```
-
-</td>
-</tr>
-<tr>
-
-<td>secretTargets.authorizedSecretsAll</td>
-<td>
+#### **secretTargets.authorizedSecretsAll** ~ `bool`
+> Default value:
+> ```yaml
+> false
+> ```
 
 If set to true, grant read/write permission to all secrets across the cluster. Use with caution!  
 If set, ignores the authorizedSecrets list.
-
-</td>
-<td>bool</td>
-<td>
-
-```yaml
-false
-```
-
-</td>
-</tr>
-<tr>
-
-<td>secretTargets.authorizedSecrets</td>
-<td>
+#### **secretTargets.authorizedSecrets** ~ `array`
+> Default value:
+> ```yaml
+> []
+> ```
 
 A list of secret names which trust-manager will be permitted to read and write across all namespaces. These are the only allowable Secrets that can be used as targets. If the list is empty (and authorizedSecretsAll is false), trust-manager can't write to secrets and can only read secrets in the trust namespace for use as sources.
-
-</td>
-<td>array</td>
-<td>
-
-```yaml
-[]
-```
-
-</td>
-</tr>
-<tr>
-
-<td>resources</td>
-<td>
+#### **resources** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
 
 Kubernetes pod resource limits for trust.  
   
@@ -388,56 +191,26 @@ resources:
     cpu: 100m
     memory: 128Mi
 ```
-
-</td>
-<td>object</td>
-<td>
-
-```yaml
-{}
-```
-
-</td>
-</tr>
-<tr>
-
-<td>priorityClassName</td>
-<td>
+#### **priorityClassName** ~ `string`
+> Default value:
+> ```yaml
+> ""
+> ```
 
 Configure the priority class of the pod. For more information, see [PriorityClass](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass).
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-""
-```
-
-</td>
-</tr>
-<tr>
-
-<td>nodeSelector</td>
-<td>
+#### **nodeSelector** ~ `object`
+> Default value:
+> ```yaml
+> kubernetes.io/os: linux
+> ```
 
 Configure the nodeSelector; defaults to any Linux node (trust-manager doesn't support Windows nodes)
 
-
-</td>
-<td>object</td>
-<td>
-
-```yaml
-kubernetes.io/os: linux
-```
-
-</td>
-</tr>
-<tr>
-
-<td>affinity</td>
-<td>
+#### **affinity** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
 
 Kubernetes Affinity. For more information, see [Affinity v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core).  
 For example:
@@ -453,21 +226,11 @@ affinity:
          values:
          - master
 ```
-
-</td>
-<td>object</td>
-<td>
-
-```yaml
-{}
-```
-
-</td>
-</tr>
-<tr>
-
-<td>tolerations</td>
-<td>
+#### **tolerations** ~ `array`
+> Default value:
+> ```yaml
+> []
+> ```
 
 List of Kubernetes Tolerations, if required. For more information, see [Toleration v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core).  
 For example:
@@ -479,21 +242,11 @@ tolerations:
   value: master
   effect: NoSchedule
 ```
-
-</td>
-<td>array</td>
-<td>
-
-```yaml
-[]
-```
-
-</td>
-</tr>
-<tr>
-
-<td>topologySpreadConstraints</td>
-<td>
+#### **topologySpreadConstraints** ~ `array`
+> Default value:
+> ```yaml
+> []
+> ```
 
 List of Kubernetes TopologySpreadConstraints. For more information, see [TopologySpreadConstraint v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core).  
 For example:
@@ -508,449 +261,177 @@ topologySpreadConstraints:
       app.kubernetes.io/instance: cert-manager
       app.kubernetes.io/component: controller
 ```
-
-</td>
-<td>array</td>
-<td>
-
-```yaml
-[]
-```
-
-</td>
-</tr>
-<tr>
-
-<td>filterExpiredCertificates.enabled</td>
-<td>
+#### **filterExpiredCertificates.enabled** ~ `bool`
+> Default value:
+> ```yaml
+> false
+> ```
 
 Whether to filter expired certificates from the trust bundle.
-
-</td>
-<td>bool</td>
-<td>
-
-```yaml
-false
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.logLevel</td>
-<td>
+#### **app.logLevel** ~ `number`
+> Default value:
+> ```yaml
+> 1
+> ```
 
 The verbosity of trust-manager logging. This takes a value from 1-5, with the higher value being more verbose.
-
-</td>
-<td>number</td>
-<td>
-
-```yaml
-1
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.readinessProbe.port</td>
-<td>
+#### **app.readinessProbe.port** ~ `number`
+> Default value:
+> ```yaml
+> 6060
+> ```
 
 The container port on which to expose the trust-manager HTTP readiness probe using the default network interface.
-
-</td>
-<td>number</td>
-<td>
-
-```yaml
-6060
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.readinessProbe.path</td>
-<td>
+#### **app.readinessProbe.path** ~ `string`
+> Default value:
+> ```yaml
+> /readyz
+> ```
 
 The path on which to expose the trust-manager HTTP readiness probe using the default network interface.
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-/readyz
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.trust.namespace</td>
-<td>
+#### **app.trust.namespace** ~ `string`
+> Default value:
+> ```yaml
+> cert-manager
+> ```
 
 The namespace used as the trust source. Note that the namespace _must_ exist before installing trust-manager.
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-cert-manager
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.securityContext.seccompProfileEnabled</td>
-<td>
+#### **app.securityContext.seccompProfileEnabled** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
 
 If false, disables the default seccomp profile, which might be required to run on certain platforms.
-
-</td>
-<td>bool</td>
-<td>
-
-```yaml
-true
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.podLabels</td>
-<td>
+#### **app.podLabels** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
 
 Pod labels to add to trust-manager pods.
-
-</td>
-<td>object</td>
-<td>
-
-```yaml
-{}
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.podAnnotations</td>
-<td>
+#### **app.podAnnotations** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
 
 Pod annotations to add to trust-manager pods.
-
-</td>
-<td>object</td>
-<td>
-
-```yaml
-{}
-```
-
-</td>
-</tr>
-</table>
-
 ### Webhook
 
-
-<table>
-<tr>
-<th>Property</th>
-<th>Description</th>
-<th>Type</th>
-<th>Default</th>
-</tr>
-<tr>
-
-<td>app.webhook.host</td>
-<td>
+#### **app.webhook.host** ~ `string`
+> Default value:
+> ```yaml
+> 0.0.0.0
+> ```
 
 Host that the webhook listens on.
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-0.0.0.0
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.webhook.port</td>
-<td>
+#### **app.webhook.port** ~ `number`
+> Default value:
+> ```yaml
+> 6443
+> ```
 
 Port that the webhook listens on.
-
-</td>
-<td>number</td>
-<td>
-
-```yaml
-6443
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.webhook.timeoutSeconds</td>
-<td>
+#### **app.webhook.timeoutSeconds** ~ `number`
+> Default value:
+> ```yaml
+> 5
+> ```
 
 Timeout of webhook HTTP request.
-
-</td>
-<td>number</td>
-<td>
-
-```yaml
-5
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.webhook.service.type</td>
-<td>
+#### **app.webhook.service.type** ~ `string`
+> Default value:
+> ```yaml
+> ClusterIP
+> ```
 
 The type of Kubernetes Service used by the Webhook.
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-ClusterIP
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.webhook.tls.approverPolicy.enabled</td>
-<td>
+#### **app.webhook.tls.approverPolicy.enabled** ~ `bool`
+> Default value:
+> ```yaml
+> false
+> ```
 
 Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this.
-
-</td>
-<td>bool</td>
-<td>
-
-```yaml
-false
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.webhook.tls.approverPolicy.certManagerNamespace</td>
-<td>
+#### **app.webhook.tls.approverPolicy.certManagerNamespace** ~ `string`
+> Default value:
+> ```yaml
+> cert-manager
+> ```
 
 The namespace in which cert-manager was installed. Only used if `app.webhook.tls.approverPolicy.enabled` is true.
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-cert-manager
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.webhook.tls.approverPolicy.certManagerServiceAccount</td>
-<td>
+#### **app.webhook.tls.approverPolicy.certManagerServiceAccount** ~ `string`
+> Default value:
+> ```yaml
+> cert-manager
+> ```
 
 The name of cert-manager's Service Account. Only used if `app.webhook.tls.approverPolicy.enabled` is true.
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-cert-manager
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.webhook.hostNetwork</td>
-<td>
+#### **app.webhook.hostNetwork** ~ `bool`
+> Default value:
+> ```yaml
+> false
+> ```
 
 This value specifies if the app should be started in hostNetwork mode. It is required for use in some managed Kubernetes clusters (such as AWS EKS) with custom CNI.
-
-</td>
-<td>bool</td>
-<td>
-
-```yaml
-false
-```
-
-</td>
-</tr>
-</table>
-
 ### Metrics
 
-
-<table>
-<tr>
-<th>Property</th>
-<th>Description</th>
-<th>Type</th>
-<th>Default</th>
-</tr>
-<tr>
-
-<td>app.metrics.port</td>
-<td>
+#### **app.metrics.port** ~ `number`
+> Default value:
+> ```yaml
+> 9402
+> ```
 
 The port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'.
-
-</td>
-<td>number</td>
-<td>
-
-```yaml
-9402
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.metrics.service.servicemonitor</td>
-<td>
+#### **app.metrics.service.enabled** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
 
 Create a Service resource to expose the metrics endpoint.
-
-</td>
-<td>bool</td>
-<td>
-
-```yaml
-true
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.metrics.service.servicemonitor</td>
-<td>
+#### **app.metrics.service.type** ~ `string`
+> Default value:
+> ```yaml
+> ClusterIP
+> ```
 
 The Service type to expose metrics.
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-ClusterIP
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.metrics.service.servicemonitor.enabled</td>
-<td>
+#### **app.metrics.service.servicemonitor.enabled** ~ `bool`
+> Default value:
+> ```yaml
+> false
+> ```
 
 Create a Prometheus ServiceMonitor for trust-manager.
-
-</td>
-<td>bool</td>
-<td>
-
-```yaml
-false
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.metrics.service.servicemonitor.prometheusInstance</td>
-<td>
+#### **app.metrics.service.servicemonitor.prometheusInstance** ~ `string`
+> Default value:
+> ```yaml
+> default
+> ```
 
 Sets the value of the "prometheus" label on the ServiceMonitor. This is used so that separate Prometheus instances can select different ServiceMonitors using labels.
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-default
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.metrics.service.servicemonitor.interval</td>
-<td>
+#### **app.metrics.service.servicemonitor.interval** ~ `string`
+> Default value:
+> ```yaml
+> 10s
+> ```
 
 The interval to scrape the metrics.
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-10s
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.metrics.service.servicemonitor.scrapeTimeout</td>
-<td>
+#### **app.metrics.service.servicemonitor.scrapeTimeout** ~ `string`
+> Default value:
+> ```yaml
+> 5s
+> ```
 
 The timeout for a metrics scrape.
-
-</td>
-<td>string</td>
-<td>
-
-```yaml
-5s
-```
-
-</td>
-</tr>
-<tr>
-
-<td>app.metrics.service.servicemonitor.labels</td>
-<td>
+#### **app.metrics.service.servicemonitor.labels** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
 
 Additional labels to add to the ServiceMonitor.
-
-</td>
-<td>object</td>
-<td>
-
-```yaml
-{}
-```
-
-</td>
-</tr>
-</table>
 
 <!-- /AUTO-GENERATED -->
