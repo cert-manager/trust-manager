@@ -1,26 +1,8 @@
 # trust-manager
 
-![Version: v0.8.0](https://img.shields.io/badge/Version-v0.8.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.8.0](https://img.shields.io/badge/AppVersion-v0.8.0-informational?style=flat-square)
+<!-- see https://artifacthub.io/packages/helm/cert-manager/trust-manager for the rendered version -->
 
-trust-manager is the easiest way to manage TLS trust bundles in Kubernetes and OpenShift clusters
-
-**Homepage:** <https://github.com/cert-manager/trust-manager>
-
-## Maintainers
-
-| Name | Email | Url |
-| ---- | ------ | --- |
-| cert-manager-maintainers | <cert-manager-maintainers@googlegroups.com> | <https://cert-manager.io> |
-
-## Source Code
-
-* <https://github.com/cert-manager/trust-manager>
-
-## Requirements
-
-Kubernetes: `>= 1.25.0-0`
-
-## Values
+## Helm Values
 
 <!-- AUTO-GENERATED -->
 
