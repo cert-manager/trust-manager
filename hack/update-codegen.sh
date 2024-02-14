@@ -20,12 +20,13 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-if [[ -z "${1:-}"  ]]; then
-	echo "usage: $0 <path-to-controller-gen>" >&2
+if [[ -z "${1:-}" || -z "${2:-}" ]]; then
+	echo "usage: $0 <path-to-controller-gen> <path-to-yq>" >&2
 	exit 1
 fi
 
 CONTROLLER_GEN=$(realpath "$1")
+YQ=$(realpath "$2")
 
 echo "Generating CRDs in ./deploy/crds"
 $CONTROLLER_GEN crd schemapatch:manifests=./deploy/crds output:dir=./deploy/crds paths=./pkg/apis/...
@@ -33,10 +34,25 @@ $CONTROLLER_GEN crd schemapatch:manifests=./deploy/crds output:dir=./deploy/crds
 echo "Updating CRDs with helm templating, writing to ./deploy/charts/trust-manager/templates"
 for i in $(ls ./deploy/crds); do
 
-  cat << EOF > ./deploy/charts/trust-manager/templates/$i
-{{ if .Values.crds.enabled }}
-$(cat ./deploy/crds/$i)
-{{ end }}
+	crd_name=$($YQ eval '.metadata.name' "./deploy/crds/$i")
+
+	cat << EOF > ./deploy/charts/trust-manager/templates/$i
+{{- if .Values.crds.enabled }}
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: "$crd_name"
+  {{- if .Values.crds.keep }}
+  annotations:
+    helm.sh/resource-policy: keep
+  {{- end }}
+  labels:
+    {{- include "trust-manager.labels" . | nindent 4 }}
 EOF
 
+	$YQ -I2 '{"spec": .spec}' "./deploy/crds/$i" >> ./deploy/charts/trust-manager/templates/$i
+
+	cat << EOF >> ./deploy/charts/trust-manager/templates/$i
+{{- end }}
+EOF
 done
