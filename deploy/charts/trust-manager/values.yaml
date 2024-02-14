@@ -18,21 +18,26 @@ namespace: ""
 imagePullSecrets: []
 
 image:
+  # Target image registry. This value is prepended to the target image repository, if set.
+  # For example:
+  #   registry: quay.io
+  #   repository: jetstack/trust-manager
+  # +docs:property
+  # registry: quay.io
+
   # Target image repository.
   repository: quay.io/jetstack/trust-manager
-  # Target image registry. If set, this value is prepended to the target image repository.
-  # +docs:type=string
-  registry: 
 
-  # Target image version tag. Defaults to the chart's appVersion.
-  # +docs:type=string
-  tag:
+  # Override the image tag to deploy by setting this variable.
+  # If no value is set, the chart's appVersion is used.
+  # +docs:property
+  # tag: vX.Y.Z
 
-  # Target image digest. If set, this value overrides any tag.
+  # Target image digest. Override any tag, if set.
   # For example:
-  # digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
-  # +docs:type=string
-  digest:
+  #   digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
+  # +docs:property
+  # digest: sha256:...
 
   # Kubernetes imagePullPolicy on Deployment.
   pullPolicy: IfNotPresent
@@ -42,20 +47,26 @@ defaultPackage:
   enabled: true
 
 defaultPackageImage:
+  # Target image registry. This value is prepended to the target image repository, if set.
+  # For example:
+  #   registry: quay.io
+  #   repository: jetstack/cert-manager-package-debian
+  # +docs:property
+  # registry: quay.io
+
   # The repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles.
   repository: quay.io/jetstack/cert-manager-package-debian
-  # Target image registry. If set, this value is prepended to the target image repository.
-  # +docs:type=string
-  registry:
 
-  # Tag for the default package image.
+  # Override the image tag of the default package image.
+  # If no value is set, the chart's appVersion is used.
+  # +docs:property
   tag: "20210119.0"
 
-  # Target image digest. If set, this value overrides any tag.
+  # Target image digest. Override any tag, if set.
   # For example:
-  # digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
-  # +docs:type=string
-  digest:
+  #   digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
+  # +docs:property
+  # digest: sha256:...
 
   # imagePullPolicy for the default package image.
   pullPolicy: IfNotPresent
