@@ -5,7 +5,7 @@ type: application
 description: trust-manager is the easiest way to manage TLS trust bundles in Kubernetes and OpenShift clusters
 
 home: https://cert-manager.io/docs/trust/trust-manager
-icon: https://raw.githubusercontent.com/cert-manager/cert-manager/4d35a69437d21b76322157e6284be4cd64e6d2b7/logo/logo-small.png
+icon: https://raw.githubusercontent.com/cert-manager/community/4d35a69437d21b76322157e6284be4cd64e6d2b7/logo/logo-small.png
 keywords:
   - trust-manager
   - cert-manager
