@@ -27,6 +27,7 @@ OS     ?= $(shell go env GOOS)
 HELM_VERSION ?= 3.12.3
 KUBEBUILDER_TOOLS_VERISON ?= 1.28.0
 KUBECTL_VERSION ?= 1.28.2
+YQ_VERSION ?= v4.40.5
 KIND_VERSION ?= $(shell grep "sigs.k8s.io/kind" go.mod | awk '{print $$NF}')
 GINKGO_VERSION ?= $(shell grep "github.com/onsi/ginkgo/v2" go.mod | awk '{print $$NF}')
 HELM_TOOL_VERSION ?= $(shell grep "github.com/cert-manager/helm-tool" hack/tools/go.mod | awk '{print $$NF}')
@@ -138,8 +139,8 @@ generate-applyconfigurations: | $(BINDIR)/code-generator-$(CODE_GENERATOR_VERSIO
 
 .PHONY: generate-manifests
 generate-manifests: ## Generate CustomResourceDefinition objects.
-generate-manifests: $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)/controller-gen
-	./hack/update-codegen.sh $<
+generate-manifests: $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)/controller-gen $(BINDIR)/yq-$(YQ_VERSION)/yq
+	./hack/update-codegen.sh $^
 
 # See wait-for-buildx.sh for an explanation of why it's needed
 .PHONY: provision-buildx
@@ -253,6 +254,7 @@ depend: $(BINDIR)/ginkgo-$(GINKGO_VERSION)/ginkgo
 depend: $(BINDIR)/kubectl-$(KUBECTL_VERSION)/kubectl
 depend: $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/kube-apiserver
 depend: $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/etcd
+depend: $(BINDIR)/yq-$(YQ_VERSION)/yq
 
 $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)/controller-gen: | $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION)
 	cd hack/tools && go build -o $@ sigs.k8s.io/controller-tools/cmd/controller-gen
@@ -290,7 +292,10 @@ $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/kube-apiserver: $(BINDIR)/kub
 $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)/envtest-bins.tar.gz: | $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON)
 	curl -sSL -o $@ "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-$(KUBEBUILDER_TOOLS_VERISON)-$(OS)-$(ARCH).tar.gz"
 
-$(BINDIR) $(BINDIR)/kubectl-$(KUBECTL_VERSION) $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON) $(BINDIR)/chart $(BINDIR)/ginkgo-$(GINKGO_VERSION) $(BINDIR)/helm-$(HELM_VERSION) $(BINDIR)/helm-tool-$(HELM_TOOL_VERSION) $(BINDIR)/kind-$(KIND_VERSION) $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION) $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION) $(BINDIR)/code-generator-$(CODE_GENERATOR_VERSION):
+$(BINDIR)/yq-$(YQ_VERSION)/yq: | $(BINDIR)/yq-$(YQ_VERSION)
+	curl -o $@ -L "https://github.com/mikefarah/yq/releases/download/$(YQ_VERSION)/yq_$(OS)_$(ARCH)" && chmod +x $@
+
+$(BINDIR) $(BINDIR)/kubectl-$(KUBECTL_VERSION) $(BINDIR)/kubebuilder-$(KUBEBUILDER_TOOLS_VERISON) $(BINDIR)/chart $(BINDIR)/ginkgo-$(GINKGO_VERSION) $(BINDIR)/helm-$(HELM_VERSION) $(BINDIR)/helm-tool-$(HELM_TOOL_VERSION) $(BINDIR)/kind-$(KIND_VERSION) $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION) $(BINDIR)/controller-tools-$(CONTROLLER_TOOLS_VERSION) $(BINDIR)/code-generator-$(CODE_GENERATOR_VERSION) $(BINDIR)/yq-$(YQ_VERSION):
 	@mkdir -p $@
 
 _FORCE:
