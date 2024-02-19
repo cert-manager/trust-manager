@@ -221,7 +221,7 @@ ensure-trust-manager: ensure-kind kind-load ensure-cert-manager | $(BINDIR)/helm
 	$(BINDIR)/helm-$(HELM_VERSION)/helm uninstall --kubeconfig $(BINDIR)/kubeconfig.yaml -n cert-manager trust-manager || :
 	$(BINDIR)/helm-$(HELM_VERSION)/helm upgrade --kubeconfig $(BINDIR)/kubeconfig.yaml -i -n cert-manager trust-manager deploy/charts/trust-manager/. \
 		--set image.tag=latest \
-		--set defaultTrustPackage.tag=latest$(DEBIAN_TRUST_PACKAGE_SUFFIX) \
+		--set defaultPackageImage.tag=latest$(DEBIAN_TRUST_PACKAGE_SUFFIX) \
 		--set app.logLevel=2 \
 		--set secretTargets.enabled=true --set secretTargets.authorizedSecretsAll=true \
 		--wait
