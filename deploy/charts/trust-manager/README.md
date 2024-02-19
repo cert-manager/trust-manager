@@ -330,6 +330,10 @@ Timeout of webhook HTTP request.
 > ```
 
 The type of Kubernetes Service used by the Webhook.
+#### **app.webhook.service.nodePort** ~ `number`
+
+The nodePort set on the Service used by the webhook.
+
 #### **app.webhook.tls.approverPolicy.enabled** ~ `bool`
 > Default value:
 > ```yaml

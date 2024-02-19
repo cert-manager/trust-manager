@@ -190,6 +190,10 @@ app:
       # The type of Kubernetes Service used by the Webhook.
       type: ClusterIP
 
+      # The nodePort set on the Service used by the webhook.
+      # +docs:property
+      # nodePort: 8080
+
     tls:
       approverPolicy:
         # Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this.
