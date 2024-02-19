@@ -89,7 +89,6 @@ verify-%: FORCE
 verify: ## build, test and verify generate tagets
 verify: depend build test
 verify: verify-generate
-verify: verify-update-helm-docs
 
 .PHONY: verify-boilerplate
 verify-boilerplate: | $(BINDIR)/boilersuite-$(BOILERSUITE_VERSION)/boilersuite
@@ -115,7 +114,7 @@ $(BINDIR)/trust-manager-linux-amd64 $(BINDIR)/trust-manager-linux-arm64 $(BINDIR
 		go build -o $@ ./cmd/trust-manager
 
 .PHONY: generate
-generate: depend generate-deepcopy generate-applyconfigurations generate-manifests
+generate: depend generate-deepcopy generate-applyconfigurations generate-manifests generate-helm-docs generate-helm-schema
 
 .PHONY: generate-deepcopy
 generate-deepcopy: ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -174,9 +173,13 @@ kind-load: local-images | $(BINDIR)/kind-$(KIND_VERSION)/kind  ## same as local-
 chart: | $(BINDIR)/helm-$(HELM_VERSION)/helm $(BINDIR)/chart
 	$(BINDIR)/helm-$(HELM_VERSION)/helm package --app-version=$(RELEASE_VERSION) --version=$(RELEASE_VERSION) --destination "$(BINDIR)/chart" ./deploy/charts/trust-manager
 
-.PHONY: update-helm-docs
-update-helm-docs: | $(BINDIR)/helm-tool-$(HELM_TOOL_VERSION)/helm-tool  ## update Helm README, generated from other Helm files
+.PHONY: generate-helm-docs
+generate-helm-docs: | $(BINDIR)/helm-tool-$(HELM_TOOL_VERSION)/helm-tool  ## update Helm README, generated from other Helm files
 	./hack/update-helm-tool.sh $(BINDIR)/helm-tool-$(HELM_TOOL_VERSION)/helm-tool
+
+.PHONY: generate-helm-schema
+generate-helm-schema: | $(BINDIR)/helm-tool-$(HELM_TOOL_VERSION)/helm-tool  ## update Helm README, generated from other Helm files
+	$(BINDIR)/helm-tool-$(HELM_TOOL_VERSION)/helm-tool schema -i ./deploy/charts/trust-manager/values.yaml | jq > ./deploy/charts/trust-manager/values.schema.json
 
 .PHONY: clean
 clean: ## clean up created files
