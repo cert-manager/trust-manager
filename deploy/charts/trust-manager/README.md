@@ -48,6 +48,16 @@ This is helpful when installing trust-manager as a chart dependency (sub chart).
 > ```
 
 For Private docker registries, authentication is needed. Registry secrets are applied to the service account.
+#### **image.registry** ~ `string`
+
+Target image registry. This value is prepended to the target image repository, if set.  
+For example:
+
+```yaml
+registry: quay.io
+repository: jetstack/trust-manager
+```
+
 #### **image.repository** ~ `string`
 > Default value:
 > ```yaml
@@ -55,29 +65,13 @@ For Private docker registries, authentication is needed. Registry secrets are ap
 > ```
 
 Target image repository.
-#### **image.registry** ~ `string`
-> Default value:
-> ```yaml
-> null
-> ```
-
-Target image registry. If set, this value is prepended to the target image repository.
-
 #### **image.tag** ~ `string`
-> Default value:
-> ```yaml
-> null
-> ```
 
-Target image version tag. Defaults to the chart's appVersion.
+Override the image tag to deploy by setting this variable. If no value is set, the chart's appVersion is used.
 
 #### **image.digest** ~ `string`
-> Default value:
-> ```yaml
-> null
-> ```
 
-Target image digest. If set, this value overrides any tag.  
+Target image digest. Override any tag, if set.  
 For example:
 
 ```yaml
@@ -98,6 +92,16 @@ Kubernetes imagePullPolicy on Deployment.
 > ```
 
 Whether to load the default trust package during pod initialization, and include it in main container args. This container enables the 'useDefaultCAs' source on Bundles.
+#### **defaultPackageImage.registry** ~ `string`
+
+Target image registry. This value is prepended to the target image repository, if set.  
+For example:
+
+```yaml
+registry: quay.io
+repository: jetstack/cert-manager-package-debian
+```
+
 #### **defaultPackageImage.repository** ~ `string`
 > Default value:
 > ```yaml
@@ -105,28 +109,17 @@ Whether to load the default trust package during pod initialization, and include
 > ```
 
 The repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles.
-#### **defaultPackageImage.registry** ~ `string`
-> Default value:
-> ```yaml
-> null
-> ```
-
-Target image registry. If set, this value is prepended to the target image repository.
-
 #### **defaultPackageImage.tag** ~ `string`
 > Default value:
 > ```yaml
 > "20210119.0"
 > ```
 
-Tag for the default package image.
-#### **defaultPackageImage.digest** ~ `string`
-> Default value:
-> ```yaml
-> null
-> ```
+Override the image tag of the default package image. If no value is set, the chart's appVersion is used.
 
-Target image digest. If set, this value overrides any tag.  
+#### **defaultPackageImage.digest** ~ `string`
+
+Target image digest. Override any tag, if set.  
 For example:
 
 ```yaml
