@@ -21,6 +21,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"strings"
@@ -130,7 +131,12 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 		return bundleData{}, fmt.Errorf("couldn't find any valid certificates in bundle")
 	}
 
-	if err := resolvedBundle.populateData(bundles, bundle.Spec.Target); err != nil {
+	deduplicatedBundles, err := deduplicateBundles(bundles)
+	if err != nil {
+		return bundleData{}, err
+	}
+
+	if err := resolvedBundle.populateData(deduplicatedBundles, bundle.Spec.Target); err != nil {
 		return bundleData{}, err
 	}
 
@@ -776,4 +782,40 @@ func (b *bundle) migrateConfigMapToApply(ctx context.Context, obj client.Object,
 
 	cm.SetManagedFields(managedFields)
 	return true, b.directClient.Update(ctx, &cm)
+}
+
+// remove duplicate certificates from bundles
+func deduplicateBundles(bundles []string) ([]string, error) {
+	var block *pem.Block
+
+	var certificatesHashes = make(map[[32]byte]struct{})
+	var dedupCerts []string
+
+	for _, cert := range bundles {
+		certBytes := []byte(cert)
+
+	LOOP:
+		for {
+			block, certBytes = pem.Decode([]byte(certBytes))
+			if block == nil {
+				break LOOP
+			}
+
+			if block.Type != "CERTIFICATE" {
+				return nil, fmt.Errorf("couldn't decode PEM block containing certificate")
+			}
+
+			// calculate hash sum of the given certificate
+			hash := sha256.Sum256(block.Bytes)
+			// check existence of the hash
+			if _, ok := certificatesHashes[hash]; !ok {
+				// neew to trim a newline which is added by Encoder
+				dedupCerts = append(dedupCerts, string(bytes.Trim(pem.EncodeToMemory(block), "\n")))
+				certificatesHashes[hash] = struct{}{}
+			}
+		}
+
+	}
+
+	return dedupCerts, nil
 }
