@@ -185,7 +185,7 @@ app:
     port: 6443
     # Timeout of webhook HTTP request.
     timeoutSeconds: 5
-    
+
     service:
       # The type of Kubernetes Service used by the Webhook.
       type: ClusterIP
@@ -231,3 +231,19 @@ app:
         scrapeTimeout: 5s
         # Additional labels to add to the ServiceMonitor.
         labels: {}
+    # Note that you can not enable both PodMonitor and ServiceMonitor as they are mutually exclusive. Enabling both will result in a error.
+    podmonitor:
+      # The PodMonitor resource for this Service.
+      enabled: false
+      # Specifies the `prometheus` label on the created PodMonitor. This is
+      # used when different Prometheus instances have label selectors matching
+      # different PodMonitors.
+      prometheusInstance: default
+      # The interval to scrape metrics.
+      interval: 10s
+      # The timeout before a metrics scrape fails.
+      scrapeTimeout: 5s
+      # Additional labels to add to the PodMonitor.
+      labels: {}
+      # Additional annotations to add to the PodMonitor.
+      annotations: {}
