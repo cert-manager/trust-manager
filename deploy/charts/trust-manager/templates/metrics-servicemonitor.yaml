@@ -6,7 +6,7 @@ metadata:
   namespace: {{ include "trust-manager.namespace" . }}
   labels:
     app: {{ include "trust-manager.name" . }}
-{{ include "trust-manager.labels" . | indent 4 }}
+    {{- include "trust-manager.labels" . | nindent 4 }}
     prometheus: {{ .Values.app.metrics.service.servicemonitor.prometheusInstance }}
 {{- if .Values.app.metrics.service.servicemonitor.labels }}
 {{ toYaml .Values.app.metrics.service.servicemonitor.labels | indent 4}}
