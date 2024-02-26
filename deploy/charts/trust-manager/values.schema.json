@@ -11,6 +11,9 @@
         "app": {
           "$ref": "#/$defs/helm-values.app"
         },
+        "commonLabels": {
+          "$ref": "#/$defs/helm-values.commonLabels"
+        },
         "crds": {
           "$ref": "#/$defs/helm-values.crds"
         },
@@ -34,6 +37,9 @@
         },
         "nodeSelector": {
           "$ref": "#/$defs/helm-values.nodeSelector"
+        },
+        "podDisruptionBudget": {
+          "$ref": "#/$defs/helm-values.podDisruptionBudget"
         },
         "priorityClassName": {
           "$ref": "#/$defs/helm-values.priorityClassName"
@@ -348,6 +354,11 @@
       "type": "boolean",
       "default": false
     },
+    "helm-values.commonLabels": {
+      "description": "Labels to apply to all resources",
+      "type": "object",
+      "default": {}
+    },
     "helm-values.crds": {
       "type": "object",
       "properties": {
@@ -502,6 +513,32 @@
       "default": {
         "kubernetes.io/os": "linux"
       }
+    },
+    "helm-values.podDisruptionBudget": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "$ref": "#/$defs/helm-values.podDisruptionBudget.enabled"
+        },
+        "maxUnavailable": {
+          "$ref": "#/$defs/helm-values.podDisruptionBudget.maxUnavailable"
+        },
+        "minAvailable": {
+          "$ref": "#/$defs/helm-values.podDisruptionBudget.minAvailable"
+        }
+      },
+      "additionalProperties": false
+    },
+    "helm-values.podDisruptionBudget.enabled": {
+      "description": "Enable or disable the PodDisruptionBudget resource.\n\nThis prevents downtime during voluntary disruptions such as during a Node upgrade. For example, the PodDisruptionBudget will block `kubectl drain` if it is used on the Node where the only remaining cert-manager\nPod is currently running.",
+      "type": "boolean",
+      "default": false
+    },
+    "helm-values.podDisruptionBudget.maxUnavailable": {
+      "description": "This configures the maximum unavailable pods for disruptions. It can either be set to an integer (e.g. 1) or a percentage value (e.g. 25%). it cannot be used if `minAvailable` is set."
+    },
+    "helm-values.podDisruptionBudget.minAvailable": {
+      "description": "This configures the minimum available pods for disruptions. It can either be set to an integer (e.g. 1) or a percentage value (e.g. 25%).\nIt cannot be used if `maxUnavailable` is set."
     },
     "helm-values.priorityClassName": {
       "description": "Configure the priority class of the pod. For more information, see [PriorityClass](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass).",

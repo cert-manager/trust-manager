@@ -420,5 +420,33 @@ The timeout for a metrics scrape.
 > ```
 
 Additional labels to add to the ServiceMonitor.
+#### **podDisruptionBudget.enabled** ~ `bool`
+> Default value:
+> ```yaml
+> false
+> ```
+
+Enable or disable the PodDisruptionBudget resource.  
+  
+This prevents downtime during voluntary disruptions such as during a Node upgrade. For example, the PodDisruptionBudget will block `kubectl drain` if it is used on the Node where the only remaining cert-manager  
+Pod is currently running.
+#### **podDisruptionBudget.minAvailable** ~ `unknown`
+
+This configures the minimum available pods for disruptions. It can either be set to an integer (e.g. 1) or a percentage value (e.g. 25%).  
+It cannot be used if `maxUnavailable` is set.
+
+
+#### **podDisruptionBudget.maxUnavailable** ~ `unknown`
+
+This configures the maximum unavailable pods for disruptions. It can either be set to an integer (e.g. 1) or a percentage value (e.g. 25%). it cannot be used if `minAvailable` is set.
+
+
+#### **commonLabels** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+
+Labels to apply to all resources
 
 <!-- /AUTO-GENERATED -->
