@@ -320,7 +320,13 @@ func (e pkcs12Encoder) encode(trustBundle string) ([]byte, error) {
 		})
 	}
 
-	return pkcs12.LegacyRC2.EncodeTrustStoreEntries(entries, e.password)
+	encoder := pkcs12.LegacyRC2
+
+	if e.password == "" {
+		encoder = pkcs12.Passwordless
+	}
+
+	return encoder.EncodeTrustStoreEntries(entries, e.password)
 }
 
 // syncConfigMapTarget syncs the given data to the target ConfigMap in the given namespace.
