@@ -124,7 +124,8 @@ spec:
       {{- end }}
       volumes:
       - name: packages
-        emptyDir: {}
+        emptyDir:
+          sizeLimit: 50M
       - name: tls
         secret:
           defaultMode: 420
