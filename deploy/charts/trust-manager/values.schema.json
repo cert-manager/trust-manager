@@ -530,7 +530,7 @@
       "additionalProperties": false
     },
     "helm-values.podDisruptionBudget.enabled": {
-      "description": "Enable or disable the PodDisruptionBudget resource.\n\nThis prevents downtime during voluntary disruptions such as during a Node upgrade. For example, the PodDisruptionBudget will block `kubectl drain` if it is used on the Node where the only remaining cert-manager\nPod is currently running.",
+      "description": "Enable or disable the PodDisruptionBudget resource.\n\nThis prevents downtime during voluntary disruptions such as during a Node upgrade. For example, the PodDisruptionBudget will block `kubectl drain` if it is used on the Node where the only remaining trust-manager\nPod is currently running.",
       "type": "boolean",
       "default": false
     },
