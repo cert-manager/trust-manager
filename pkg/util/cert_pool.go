@@ -17,7 +17,6 @@ limitations under the License.
 package util
 
 import (
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -26,34 +25,16 @@ import (
 
 // CertPool is a set of certificates.
 type certPool struct {
-	certificatesHashes map[[32]byte]struct{}
-	certificates       []*x509.Certificate
-	filterExpired      bool
+	certificates  []*x509.Certificate
+	filterExpired bool
 }
 
 // newCertPool returns a new, empty CertPool.
 func newCertPool(filterExpired bool) *certPool {
 	return &certPool{
-		certificatesHashes: make(map[[32]byte]struct{}),
-		certificates:       make([]*x509.Certificate, 0),
-		filterExpired:      filterExpired,
+		certificates:  make([]*x509.Certificate, 0),
+		filterExpired: filterExpired,
 	}
-}
-
-// Check if the given certificate was added to certificates bundle already
-func (cp *certPool) isCertificateDuplicate(certData []byte) bool {
-	// calculate hash sum of the given certificate
-	hash := sha256.Sum256(certData)
-
-	// check a hash existence
-	if _, ok := cp.certificatesHashes[hash]; ok {
-		return ok
-	}
-
-	// put certificate hash into a set of hashes
-	cp.certificatesHashes[hash] = struct{}{}
-
-	return false
 }
 
 // Append certificate to a pool
@@ -94,9 +75,7 @@ func (cp *certPool) appendCertFromPEM(PEMdata []byte) error {
 			continue
 		}
 
-		if !cp.isCertificateDuplicate(block.Bytes) {
-			cp.certificates = append(cp.certificates, certificate)
-		}
+		cp.certificates = append(cp.certificates, certificate)
 	}
 
 	return nil
