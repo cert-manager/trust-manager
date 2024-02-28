@@ -185,7 +185,7 @@ app:
     port: 6443
     # Timeout of webhook HTTP request.
     timeoutSeconds: 5
-    
+
     service:
       # The type of Kubernetes Service used by the Webhook.
       type: ClusterIP
@@ -237,7 +237,7 @@ podDisruptionBudget:
   #
   # This prevents downtime during voluntary disruptions such as during a Node upgrade.
   # For example, the PodDisruptionBudget will block `kubectl drain`
-  # if it is used on the Node where the only remaining cert-manager
+  # if it is used on the Node where the only remaining trust-manager
   # Pod is currently running.
   enabled: false
 
