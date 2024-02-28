@@ -428,7 +428,7 @@ Additional labels to add to the ServiceMonitor.
 
 Enable or disable the PodDisruptionBudget resource.  
   
-This prevents downtime during voluntary disruptions such as during a Node upgrade. For example, the PodDisruptionBudget will block `kubectl drain` if it is used on the Node where the only remaining cert-manager  
+This prevents downtime during voluntary disruptions such as during a Node upgrade. For example, the PodDisruptionBudget will block `kubectl drain` if it is used on the Node where the only remaining trust-manager  
 Pod is currently running.
 #### **podDisruptionBudget.minAvailable** ~ `unknown`
 
