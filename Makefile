@@ -35,7 +35,7 @@ BOILERSUITE_VERSION ?= $(shell grep "github.com/cert-manager/boilersuite" hack/t
 CONTROLLER_TOOLS_VERSION ?= $(shell grep "sigs.k8s.io/controller-tools" hack/tools/go.mod | awk '{print $$NF}')
 CODE_GENERATOR_VERSION ?= $(shell grep "k8s.io/code-generator" hack/tools/go.mod | awk '{print $$NF}')
 
-IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le
+IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le,linux/s390x
 
 RELEASE_VERSION ?= v0.8.0
 
@@ -101,14 +101,14 @@ vet:
 .PHONY: build
 build: $(BINDIR)/trust-manager | $(BINDIR) ## build trust-manager for the host system architecture
 
-.PHONY: build-linux-amd64 build-linux-arm64 build-linux-ppc64le build-linux-arm
-build-linux-amd64 build-linux-arm64 build-linux-ppc64le build-linux-arm: build-linux-%: $(BINDIR)/trust-manager-linux-%
+.PHONY: build-linux-amd64 build-linux-arm64 build-linux-ppc64le build-linux-arm build-linux-s390x
+build-linux-amd64 build-linux-arm64 build-linux-ppc64le build-linux-arm build-linux-s390x: build-linux-%: $(BINDIR)/trust-manager-linux-%
 
 $(BINDIR)/trust-manager: $(GO_SOURCES) | $(BINDIR)
 	CGO_ENABLED=$(CGO_ENABLED) GOEXPERIMENT=$(GOEXPERIMENT) \
 		go build -o $(BINDIR)/trust-manager ./cmd/trust-manager
 
-$(BINDIR)/trust-manager-linux-amd64 $(BINDIR)/trust-manager-linux-arm64 $(BINDIR)/trust-manager-linux-ppc64le $(BINDIR)/trust-manager-linux-arm: $(BINDIR)/trust-manager-linux-%: $(GO_SOURCES) | $(BINDIR)
+$(BINDIR)/trust-manager-linux-amd64 $(BINDIR)/trust-manager-linux-arm64 $(BINDIR)/trust-manager-linux-ppc64le $(BINDIR)/trust-manager-linux-arm $(BINDIR)/trust-manager-linux-s390x: $(BINDIR)/trust-manager-linux-%: $(GO_SOURCES) | $(BINDIR)
 	CGO_ENABLED=$(CGO_ENABLED) GOEXPERIMENT=$(GOEXPERIMENT) \
 		GOOS=linux GOARCH=$* \
 		go build -o $@ ./cmd/trust-manager
