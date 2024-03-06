@@ -4,10 +4,10 @@ go 1.21
 
 require (
 	github.com/cert-manager/boilersuite v0.1.0
-	github.com/cert-manager/helm-tool v0.4.1
-	k8s.io/code-generator v0.29.1
+	github.com/cert-manager/helm-tool v0.4.2
+	k8s.io/code-generator v0.29.2
 	sigs.k8s.io/controller-tools v0.14.0
-	sigs.k8s.io/kind v0.21.0
+	sigs.k8s.io/kind v0.22.0
 )
 
 require (
