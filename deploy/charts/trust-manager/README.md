@@ -92,6 +92,25 @@ Kubernetes imagePullPolicy on Deployment.
 > ```
 
 Whether to load the default trust package during pod initialization, and include it in main container args. This container enables the 'useDefaultCAs' source on Bundles.
+#### **defaultPackage.resources** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+
+Kubernetes pod resource limits for default package init container.  
+  
+For example:
+
+```yaml
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+```
 #### **defaultPackageImage.registry** ~ `string`
 
 Target image registry. This value is prepended to the target image repository, if set.  
