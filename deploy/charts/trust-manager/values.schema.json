@@ -26,6 +26,9 @@
         "filterExpiredCertificates": {
           "$ref": "#/$defs/helm-values.filterExpiredCertificates"
         },
+        "global": {
+          "$ref": "#/$defs/helm-values.global"
+        },
         "image": {
           "$ref": "#/$defs/helm-values.image"
         },
@@ -460,6 +463,9 @@
       "description": "Whether to filter expired certificates from the trust bundle.",
       "type": "boolean",
       "default": false
+    },
+    "helm-values.global": {
+      "description": "Global values shared across all (sub)charts"
     },
     "helm-values.image": {
       "type": "object",
