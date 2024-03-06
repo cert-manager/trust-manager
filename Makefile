@@ -37,7 +37,7 @@ CODE_GENERATOR_VERSION ?= $(shell grep "k8s.io/code-generator" hack/tools/go.mod
 
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le,linux/s390x
 
-RELEASE_VERSION ?= v0.8.0
+RELEASE_VERSION ?= v0.9.0
 
 BUILDX_BUILDER ?= trust-manager-builder
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Build the trust binary
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.21 as builder
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.22 as builder
 
 ARG GOPROXY
 ARG TARGETARCH
