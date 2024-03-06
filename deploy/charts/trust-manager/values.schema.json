@@ -386,6 +386,9 @@
       "properties": {
         "enabled": {
           "$ref": "#/$defs/helm-values.defaultPackage.enabled"
+        },
+        "resources": {
+          "$ref": "#/$defs/helm-values.defaultPackage.resources"
         }
       },
       "additionalProperties": false
@@ -394,6 +397,11 @@
       "description": "Whether to load the default trust package during pod initialization, and include it in main container args. This container enables the 'useDefaultCAs' source on Bundles.",
       "type": "boolean",
       "default": true
+    },
+    "helm-values.defaultPackage.resources": {
+      "description": "Kubernetes pod resource limits for default package init container.\n\nFor example:\nresources:\n  limits:\n    cpu: 100m\n    memory: 128Mi\n  requests:\n    cpu: 100m\n    memory: 128Mi",
+      "type": "object",
+      "default": {}
     },
     "helm-values.defaultPackageImage": {
       "type": "object",
