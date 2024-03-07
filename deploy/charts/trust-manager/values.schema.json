@@ -560,8 +560,7 @@
       "default": ""
     },
     "helm-values.replicaCount": {
-      "description": "The number of replicas of trust-manager to run.",
-      "type": "number",
+      "description": "The number of replicas of trust-manager to run.\n\nFor example:\n Use integer to set a fixed number of replicas\nreplicaCount: 2\nUse null, if you want to omit the replicas field and use the Kubernetes default value.\nreplicaCount: null\nUse a string if you want to insert a variable for post-processing of the rendered template.\nreplicaCount: ${REPLICAS_OVERRIDE:=3}",
       "default": 1
     },
     "helm-values.resources": {

@@ -15,6 +15,18 @@ crds:
 # +docs:section=Trust Manager
 
 # The number of replicas of trust-manager to run.
+#
+# For example:
+#  Use integer to set a fixed number of replicas
+#   replicaCount: 2
+#
+#  Use null, if you want to omit the replicas field and use the Kubernetes default value.
+#   replicaCount: null
+#
+#  Use a string if you want to insert a variable for post-processing of the rendered template.
+#   replicaCount: ${REPLICAS_OVERRIDE:=3}
+#
+# +docs:type=number,string,null
 replicaCount: 1
 
 # The namespace to install trust-manager into.
