@@ -1729,3 +1729,80 @@ func Test_certAlias(t *testing.T) {
 		t.Fatalf("expected alias to be %q but got %q", expectedAlias, alias)
 	}
 }
+
+func TestBundlesDeduplication(t *testing.T) {
+	tests := map[string]struct {
+		name       string
+		bundle     []string
+		testBundle []string
+	}{
+		"single, different cert per source": {
+			bundle: []string{
+				dummy.TestCertificate1,
+				dummy.TestCertificate2,
+			},
+			testBundle: []string{
+				dummy.TestCertificate1,
+				dummy.TestCertificate2,
+			},
+		},
+		"no certs in sources": {
+			bundle:     []string{},
+			testBundle: []string{},
+		},
+		"single cert in the first source, joined certs in the second source": {
+			bundle: []string{
+				dummy.TestCertificate1,
+				dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate3),
+			},
+			testBundle: []string{
+				dummy.TestCertificate1,
+				dummy.TestCertificate3,
+			},
+		},
+		"joined certs in the first source, single cert in the second source": {
+			bundle: []string{
+				dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate3),
+				dummy.TestCertificate1,
+			},
+			testBundle: []string{
+				dummy.TestCertificate3,
+				dummy.TestCertificate1,
+			},
+		},
+		"joined, different certs in the first source; joined,different certs in the second source": {
+			bundle: []string{
+				dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2),
+				dummy.JoinCerts(dummy.TestCertificate4, dummy.TestCertificate5),
+			},
+			testBundle: []string{
+				dummy.TestCertificate1,
+				dummy.TestCertificate2,
+				dummy.TestCertificate4,
+				dummy.TestCertificate5,
+			},
+		},
+		"all certs are joined ones and equal ones in all sources": {
+			bundle: []string{
+				dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate1),
+				dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate1),
+			},
+			testBundle: []string{
+				dummy.TestCertificate1,
+			},
+		},
+	}
+	for name, test := range tests {
+		test := test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			resultBundle, err := deduplicateBundles(test.bundle)
+
+			assert.Nil(t, err)
+
+			// check certificates bundle for duplicated certificates
+			assert.ElementsMatch(t, test.testBundle, resultBundle)
+		})
+	}
+}

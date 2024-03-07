@@ -4,7 +4,7 @@ metadata:
   name: {{ include "trust-manager.name" . }}
   namespace: {{ include "trust-manager.namespace" . }}
   labels:
-{{ include "trust-manager.labels" . | indent 4 }}
+    {{- include "trust-manager.labels" . | nindent 4 }}
 spec:
   selfSigned: {}
 
@@ -16,7 +16,7 @@ metadata:
   name: {{ include "trust-manager.name" . }}
   namespace: {{ include "trust-manager.namespace" . }}
   labels:
-{{ include "trust-manager.labels" . | indent 4 }}
+    {{- include "trust-manager.labels" . | nindent 4 }}
 spec:
   commonName: "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc"
   dnsNames:
@@ -36,6 +36,8 @@ apiVersion: policy.cert-manager.io/v1alpha1
 kind: CertificateRequestPolicy
 metadata:
   name: trust-manager-policy
+  labels:
+    {{- include "trust-manager.labels" . | nindent 4 }}
 spec:
   allowed:
     commonName:
@@ -56,6 +58,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: trust-manager-policy-role
+  labels:
+    {{- include "trust-manager.labels" . | nindent 4 }}
 rules:
   - apiGroups: ["policy.cert-manager.io"]
     resources: ["certificaterequestpolicies"]
@@ -68,6 +72,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: trust-manager-policy-binding
+  labels:
+    {{- include "trust-manager.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

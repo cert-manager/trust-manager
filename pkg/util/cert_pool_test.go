@@ -30,69 +30,6 @@ func TestNewCertPool(t *testing.T) {
 	}
 }
 
-func TestCertificatesDeduplication(t *testing.T) {
-	// create a pool
-	certPool := newCertPool(false)
-
-	// list of certificates
-	certificateList := [...]struct {
-		certificateName string
-		certificate     string
-	}{
-		{
-			"TestCertificate3Duplicate", // this certificate is duplicate of TestCertificate3
-			dummy.TestCertificate3Duplicate,
-		},
-		{
-			"TestCertificate1",
-			dummy.TestCertificate1,
-		},
-		{
-			"TestCertificate2",
-			dummy.TestCertificate2,
-		},
-		{
-			"TestCertificate3",
-			dummy.TestCertificate3,
-		},
-		{
-			"TestCertificate5Duplicate", // this certificate is duplicate of TestCertificate5
-			dummy.TestCertificate5Duplicate,
-		},
-		{
-			"TestCertificate4",
-			dummy.TestCertificate4,
-		},
-		{
-			"TestCertificate5",
-			dummy.TestCertificate5,
-		},
-	}
-
-	// certificates bundle structure
-	certificateBundle := []struct {
-		certificateName string
-		certificate     string
-	}{}
-
-	// populate certificates bundle
-	for _, crt := range certificateList {
-		if !certPool.isCertificateDuplicate([]byte(crt.certificate)) {
-			certificateBundle = append(certificateBundle, crt)
-		}
-	}
-
-	// create a new pool
-	newCertPool := newCertPool(false)
-
-	// check certificates bundle for duplicated certificates
-	for _, crt := range certificateBundle {
-		if newCertPool.isCertificateDuplicate([]byte(crt.certificate)) {
-			t.Errorf("duplicate certificate found %s\n", crt.certificateName)
-		}
-	}
-}
-
 func TestAppendCertFromPEM(t *testing.T) {
 	// list of certificates
 	certificateList := [...]struct {

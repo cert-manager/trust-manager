@@ -6,7 +6,7 @@ metadata:
   namespace: {{ include "trust-manager.namespace" . }}
   labels:
     app: {{ include "trust-manager.name" . }}
-{{ include "trust-manager.labels" . | indent 4 }}
+    {{- include "trust-manager.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.app.metrics.service.type }}
   ports:
