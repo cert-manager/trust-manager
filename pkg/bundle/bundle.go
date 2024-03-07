@@ -28,7 +28,9 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/csaupgrade"
 	"k8s.io/utils/clock"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -65,9 +67,6 @@ type Options struct {
 type bundle struct {
 	// a cache-backed Kubernetes client
 	client client.Client
-
-	// a direct Kubernetes client (only used for CSA to CSA migration)
-	directClient client.Client
 
 	// targetCache is a cache.Cache that holds cached ConfigMap and Secret
 	// resources that are used as targets for Bundles.
@@ -454,32 +453,13 @@ func (b *bundle) bundleTargetNamespaceSelector(bundleObj *trustapi.Bundle) (labe
 // to ensure that the apply operations will also remove fields that were
 // created by the Update operation.
 func (b *bundle) migrateBundleStatusToApply(ctx context.Context, obj client.Object) (bool, error) {
-	// isOldBundleStatusManagedFieldsEntry returns true if the given ManagedFieldsEntry is
-	// an entry that was created by the old fieldManager and is an update to the status
-	// subresource. We need to check for this as we need to migrate the entry to the new
-	// fieldManager.
-	isOldBundleStatusManagedFieldsEntry := func(mf *metav1.ManagedFieldsEntry) bool {
-		return (mf.Manager == fieldManager || mf.Manager == crRegressionFieldManager) &&
-			mf.Operation == metav1.ManagedFieldsOperationUpdate &&
-			mf.Subresource == "status"
+	patch, err := csaupgrade.UpgradeManagedFieldsPatch(obj, sets.New(fieldManager, crRegressionFieldManager), fieldManager, csaupgrade.Subresource("status"))
+	if err != nil {
+		return false, err
 	}
-
-	needsUpdate := false
-	managedFields := obj.GetManagedFields()
-	for i, mf := range managedFields {
-		if !isOldBundleStatusManagedFieldsEntry(&mf) {
-			continue
-		}
-
-		needsUpdate = true
-		managedFields[i].Operation = metav1.ManagedFieldsOperationApply
-		managedFields[i].Manager = fieldManager
+	if patch != nil {
+		return true, b.client.Patch(ctx, obj, client.RawPatch(types.JSONPatchType, patch))
 	}
-
-	if !needsUpdate {
-		return false, nil
-	}
-
-	obj.SetManagedFields(managedFields)
-	return true, b.directClient.Update(ctx, obj)
+	// No work to be done - already upgraded
+	return false, nil
 }

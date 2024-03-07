@@ -29,9 +29,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	"k8s.io/client-go/util/csaupgrade"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/structured-merge-diff/fieldpath"
@@ -627,7 +629,7 @@ func (b *bundle) needsUpdate(ctx context.Context, kind targetKind, log logr.Logg
 		if kind == targetKindConfigMap {
 			if bundle.Spec.Target.ConfigMap != nil {
 				// Check if we need to migrate the ConfigMap managed fields to the Apply field operation
-				if didMigrate, err := b.migrateConfigMapToApply(ctx, obj, bundle.Spec.Target.ConfigMap.Key); err != nil {
+				if didMigrate, err := b.migrateConfigMapToApply(ctx, obj); err != nil {
 					return false, fmt.Errorf("failed to migrate ConfigMap %s/%s to Apply: %w", obj.Namespace, obj.Name, err)
 				} else if didMigrate {
 					log.V(2).Info("migrated configmap from CSA to SSA")
@@ -727,67 +729,16 @@ func (b *bundle) patchSecretResource(ctx context.Context, applyConfig *coreapply
 // fields from the Update operation to the Apply operation. This is required
 // to ensure that the apply operations will also remove fields that were
 // created by the Update operation.
-func (b *bundle) migrateConfigMapToApply(ctx context.Context, obj client.Object, key string) (bool, error) {
-	// isOldConfigMapManagedFieldsEntry returns a function that checks if the given ManagedFieldsEntry is an old
-	// ConfigMap managed fields entry. We use this to check if we need to migrate the ConfigMap managed fields to
-	// the Apply field operation.
-	// Because crRegressionFieldManager is not unique, we also check that the managed fields contains the data key we know was
-	// set by trust-manager (bundle.Status.Target.ConfigMap.Key).
-	isOldConfigMapManagedFieldsEntry := func(mf *metav1.ManagedFieldsEntry) bool {
-		if (mf.Manager != fieldManager && mf.Manager != crRegressionFieldManager) ||
-			mf.Operation != metav1.ManagedFieldsOperationUpdate ||
-			mf.Subresource != "" {
-			return false
-		}
-
-		if mf.FieldsV1 == nil || mf.FieldsV1.Raw == nil {
-			return false
-		}
-
-		var fieldset fieldpath.Set
-		if err := fieldset.FromJSON(bytes.NewReader(mf.FieldsV1.Raw)); err != nil {
-			return false // in case we cannot parse the fieldset, we assume it's not an old target
-		}
-
-		return fieldset.Has([]fieldpath.PathElement{
-			{
-				FieldName: ptr.To("data"),
-			},
-			{
-				FieldName: ptr.To(key),
-			},
-		})
-	}
-
-	needsUpdate := false
-	for _, mf := range obj.GetManagedFields() {
-		if !isOldConfigMapManagedFieldsEntry(&mf) {
-			continue
-		}
-		needsUpdate = true
-	}
-	if !needsUpdate {
-		return false, nil
-	}
-
-	var cm corev1.ConfigMap
-	if err := b.directClient.Get(ctx, client.ObjectKeyFromObject(obj), &cm); err != nil {
+func (b *bundle) migrateConfigMapToApply(ctx context.Context, obj client.Object) (bool, error) {
+	patch, err := csaupgrade.UpgradeManagedFieldsPatch(obj, sets.New(fieldManager, crRegressionFieldManager), fieldManager)
+	if err != nil {
 		return false, err
 	}
-
-	managedFields := cm.GetManagedFields()
-	for i, mf := range managedFields {
-		if !isOldConfigMapManagedFieldsEntry(&mf) {
-			continue
-		}
-
-		needsUpdate = true
-		managedFields[i].Operation = metav1.ManagedFieldsOperationApply
-		managedFields[i].Manager = fieldManager
+	if patch != nil {
+		return true, b.client.Patch(ctx, obj, client.RawPatch(types.JSONPatchType, patch))
 	}
-
-	cm.SetManagedFields(managedFields)
-	return true, b.directClient.Update(ctx, &cm)
+	// No work to be done - already upgraded
+	return false, nil
 }
 
 // remove duplicate certificates from bundles
