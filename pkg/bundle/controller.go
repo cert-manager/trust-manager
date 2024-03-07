@@ -51,22 +51,12 @@ func AddBundleController(
 	opts Options,
 	targetCache cache.Cache,
 ) error {
-	directClient, err := client.New(mgr.GetConfig(), client.Options{
-		HTTPClient: mgr.GetHTTPClient(),
-		Scheme:     mgr.GetScheme(),
-		Mapper:     mgr.GetRESTMapper(),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create direct client: %w", err)
-	}
-
 	b := &bundle{
-		client:       mgr.GetClient(),
-		directClient: directClient,
-		targetCache:  targetCache,
-		recorder:     mgr.GetEventRecorderFor("bundles"),
-		clock:        clock.RealClock{},
-		Options:      opts,
+		client:      mgr.GetClient(),
+		targetCache: targetCache,
+		recorder:    mgr.GetEventRecorderFor("bundles"),
+		clock:       clock.RealClock{},
+		Options:     opts,
 	}
 
 	if b.Options.DefaultPackageLocation != "" {
