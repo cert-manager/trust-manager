@@ -25,13 +25,35 @@ This option makes it so that the "helm.sh/resource-policy": keep annotation is a
 (Certificates, Issuers, ...) will be removed too by the garbage collector.
 ### Trust Manager
 
-#### **replicaCount** ~ `number`
+#### **replicaCount** ~ `number,string,null`
 > Default value:
 > ```yaml
 > 1
 > ```
 
-The number of replicas of trust-manager to run.
+The number of replicas of trust-manager to run.  
+  
+For example:  
+ Use integer to set a fixed number of replicas
+
+```yaml
+replicaCount: 2
+```
+
+Use null, if you want to omit the replicas field and use the Kubernetes default value.
+
+```yaml
+replicaCount: null
+```
+
+Use a string if you want to insert a variable for post-processing of the rendered template.
+
+```yaml
+replicaCount: ${REPLICAS_OVERRIDE:=3}
+```
+
+
+
 #### **namespace** ~ `string`
 > Default value:
 > ```yaml
