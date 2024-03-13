@@ -88,19 +88,45 @@ IMAGE_TAG=$CA_CERTIFICATES_VERSION$DEBIAN_TRUST_PACKAGE_SUFFIX
 
 FULL_IMAGE=$REPO:$IMAGE_TAG
 
+# This ACCEPT_HEADER matches what `crane` sends, and causes the server to
+# return a manifest we can parse as expected
+ACCEPT_HEADER="Accept: application/vnd.docker.distribution.manifest.v1+json,application/vnd.docker.distribution.manifest.v1+prettyjws,application/vnd.docker.distribution.manifest.v2+json,application/vnd.oci.image.manifest.v1+json,application/vnd.docker.distribution.manifest.list.v2+json,application/vnd.oci.image.index.v1+json"
+
+manifest=$(mktemp)
+
+trap 'rm -f -- "$manifest"' EXIT
+
 echo "+++ searching for $FULL_IMAGE in upstream registry"
 
 # Look for an image tagged with IMAGE_TAG; if this is successful, we're done. If we get a 404 we need to build + upload it. If we get any other error, we need to quit
-STATUS_CODE=$(curl --silent --show-error --location --retry 5 --retry-connrefused --output /dev/null --write-out "%{http_code}" $REGISTRY_API_URL/$IMAGE_TAG)
+STATUS_CODE=$(curl --silent --show-error --location --retry 5 --retry-connrefused --output $manifest --write-out "%{http_code}" --header "$ACCEPT_HEADER" $REGISTRY_API_URL/$IMAGE_TAG)
 
 if [[ $STATUS_CODE = "200" ]]; then
-	echo "upstream registry appears to contain $FULL_IMAGE, exiting"
-	exit 0
+	echo "upstream registry appears to contain $FULL_IMAGE, will check supported architectures"
+
+	# NB: This ignores 32-bit ARM versions and other variables, but it works OK for now
+	EXPECTED_ARCHES="amd64
+arm
+arm64
+ppc64le
+s390x"
+
+	GOT_ARCHES=$(jq '.manifests[].platform.architecture' -r <$manifest | sort)
+
+	if [[ "$GOT_ARCHES" == "$EXPECTED_ARCHES" ]]; then
+		echo "upstream registry has all expected arches, exiting"
+		exit 0
+	fi
+
+	echo "+++ architectures didn't match"
+	echo -e "+++ wanted:\n$EXPECTED_ARCHES"
+	echo -e "+++ got:\n$GOT_ARCHES"
+
 elif [[ $STATUS_CODE != "404" ]]; then
 	echo "fatal: upstream registry returned an unexpected error response $STATUS_CODE, exiting"
 	exit 1
 fi
 
-echo "+++ latest image appears not to exist; building and pushing $FULL_IMAGE"
+echo "+++ latest image appears not to exist or to be missing archictures; building and pushing $FULL_IMAGE"
 
 make DEBIAN_TRUST_PACKAGE_VERSION=$CA_CERTIFICATES_VERSION DEBIAN_TRUST_PACKAGE_SUFFIX=$DEBIAN_TRUST_PACKAGE_SUFFIX trust-package-debian-push
