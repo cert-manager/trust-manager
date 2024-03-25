@@ -54,6 +54,11 @@ replicaCount: ${REPLICAS_OVERRIDE:=3}
 
 
 
+#### **nameOverride** ~ `string`
+> Default value:
+> ```yaml
+> ""
+> ```
 #### **namespace** ~ `string`
 > Default value:
 > ```yaml

@@ -35,6 +35,9 @@
         "imagePullSecrets": {
           "$ref": "#/$defs/helm-values.imagePullSecrets"
         },
+        "nameOverride": {
+          "$ref": "#/$defs/helm-values.nameOverride"
+        },
         "namespace": {
           "$ref": "#/$defs/helm-values.namespace"
         },
@@ -515,6 +518,10 @@
       "type": "array",
       "default": [],
       "items": {}
+    },
+    "helm-values.nameOverride": {
+      "type": "string",
+      "default": ""
     },
     "helm-values.namespace": {
       "description": "The namespace to install trust-manager into.\nIf not set, the namespace of the release is used.\nThis is helpful when installing trust-manager as a chart dependency (sub chart).",
