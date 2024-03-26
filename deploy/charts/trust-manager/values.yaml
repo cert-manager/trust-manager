@@ -29,6 +29,8 @@ crds:
 # +docs:type=number,string,null
 replicaCount: 1
 
+nameOverride: ""
+
 # The namespace to install trust-manager into.
 # If not set, the namespace of the release is used.
 # This is helpful when installing trust-manager as a chart dependency (sub chart).
@@ -172,7 +174,6 @@ topologySpreadConstraints: []
 filterExpiredCertificates:
   # Whether to filter expired certificates from the trust bundle.
   enabled: false
-
 
 app:
   # The verbosity of trust-manager logging. This takes a value from 1-5, with the higher value being more verbose.
