@@ -27,5 +27,5 @@ sources:
 
 kubeVersion: ">= 1.25.0-0"  # The -0 is required for EKS: https://github.com/helm/helm/issues/10375
 
-appVersion: v0.9.1
-version: v0.9.1
+appVersion: v0.9.2
+version: v0.9.2
