@@ -12,16 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-debian_package_json := trust-packages/debian/debian-trust-package.json
-
-$(debian_package_json): | $(bin_dir)/bin/validate_trust_package
-	./make/update-debian-trust-package.sh $@ $(bin_dir)/bin/validate_trust_package
-
-oci-build-package_debian: set-debian-image-tag
-run-package_debian: set-debian-image-tag
-build-package_debian: set-debian-image-tag
-ci-update-debian-trust-package: set-debian-image-tag
-$(helm_chart_archive): set-debian-image-tag
-
-set-debian-image-tag: $(debian_package_json) | $(NEEDS_GOJQ)
-	$(eval oci_package_debian_image_tag := $(shell $(GOJQ) -r .version $<))
+cert_manager_crds := $(bin_dir)/scratch/cert-manager-$(cert_manager_version).yaml
+$(cert_manager_crds): | $(bin_dir)/scratch
+	curl -sSLo $@ https://github.com/cert-manager/cert-manager/releases/download/$(cert_manager_version)/cert-manager.crds.yaml

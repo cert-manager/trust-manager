@@ -12,16 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-debian_package_json := trust-packages/debian/debian-trust-package.json
+################
+# Check Inputs #
+################
 
-$(debian_package_json): | $(bin_dir)/bin/validate_trust_package
-	./make/update-debian-trust-package.sh $@ $(bin_dir)/bin/validate_trust_package
+ifndef go_header_file
+$(error go_header_file is not set)
+endif
 
-oci-build-package_debian: set-debian-image-tag
-run-package_debian: set-debian-image-tag
-build-package_debian: set-debian-image-tag
-ci-update-debian-trust-package: set-debian-image-tag
-$(helm_chart_archive): set-debian-image-tag
+################
+# Add targets #
+################
 
-set-debian-image-tag: $(debian_package_json) | $(NEEDS_GOJQ)
-	$(eval oci_package_debian_image_tag := $(shell $(GOJQ) -r .version $<))
+.PHONY: generate-deepcopy
+## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+## @category [shared] Generate/ Verify
+generate-deepcopy: | $(NEEDS_CONTROLLER-GEN)
+	$(eval directories := $(shell ls -d */ | grep -v '_bin' | grep -v 'make'))
+	$(CONTROLLER-GEN) object:headerFile=$(go_header_file) $(directories:%=paths=./%...)
+
+shared_generate_targets += generate-deepcopy
