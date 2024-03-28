@@ -12,16 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-debian_package_json := trust-packages/debian/debian-trust-package.json
-
-$(debian_package_json): | $(bin_dir)/bin/validate_trust_package
-	./make/update-debian-trust-package.sh $@ $(bin_dir)/bin/validate_trust_package
-
-oci-build-package_debian: set-debian-image-tag
-run-package_debian: set-debian-image-tag
-build-package_debian: set-debian-image-tag
-ci-update-debian-trust-package: set-debian-image-tag
-$(helm_chart_archive): set-debian-image-tag
-
-set-debian-image-tag: $(debian_package_json) | $(NEEDS_GOJQ)
-	$(eval oci_package_debian_image_tag := $(shell $(GOJQ) -r .version $<))
+.PHONY: test-unit
+## Unit tests
+## @category Testing
+test-unit: | $(NEEDS_GOTESTSUM)
+	$(GOTESTSUM) \
+		./cmd/... ./pkg/... \
+		-- \
+		-ldflags $(go_manager_ldflags) \
+		-test.timeout 2m \
+		-coverprofile cover.out

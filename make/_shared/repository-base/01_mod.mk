@@ -12,16 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-debian_package_json := trust-packages/debian/debian-trust-package.json
+base_dir := $(dir $(lastword $(MAKEFILE_LIST)))/base/
 
-$(debian_package_json): | $(bin_dir)/bin/validate_trust_package
-	./make/update-debian-trust-package.sh $@ $(bin_dir)/bin/validate_trust_package
+.PHONY: generate-base
+## Generate base files in the repository
+## @category [shared] Generate/ Verify
+generate-base:
+	cp -r $(base_dir)/. ./
 
-oci-build-package_debian: set-debian-image-tag
-run-package_debian: set-debian-image-tag
-build-package_debian: set-debian-image-tag
-ci-update-debian-trust-package: set-debian-image-tag
-$(helm_chart_archive): set-debian-image-tag
-
-set-debian-image-tag: $(debian_package_json) | $(NEEDS_GOJQ)
-	$(eval oci_package_debian_image_tag := $(shell $(GOJQ) -r .version $<))
+shared_generate_targets += generate-base

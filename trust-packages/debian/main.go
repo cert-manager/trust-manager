@@ -18,24 +18,22 @@ package main
 
 import (
 	"bytes"
+	"embed"
 	"flag"
-	"fmt"
 	"io"
-	"io/fs"
 	"log"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"strings"
-	"syscall"
 )
 
-var waitFlag = flag.Bool("wait", false, "if true, wait for a signal before exiting\nif false, exit with a status code after copying")
+//go:embed debian-trust-package.json
+var input embed.FS
 
 // usage ensures that printing arg defaults from the flag package goes through the logger
 func usage(logger *log.Logger) func() {
 	return func() {
-		logger.Printf("usage: %s [flags] <input-folder> <output-folder>", os.Args[0])
+		logger.Printf("usage: %s [flags] <output-file>", os.Args[0])
 
 		buf := &bytes.Buffer{}
 
@@ -59,99 +57,38 @@ func main() {
 
 	flag.Parse()
 
-	if flag.NArg() != 2 {
+	if flag.NArg() != 1 {
 		flag.Usage()
 		os.Exit(1)
 	}
 
-	inputDir := flag.Arg(0)
-	destinationDir := flag.Arg(1)
+	destinationFile := flag.Arg(0)
+	destinationFolder := filepath.Dir(destinationFile)
 
-	stderrLogger.Printf("reading from %s", inputDir)
-	stderrLogger.Printf("writing to   %s", destinationDir)
-
-	if err := dirOrError(inputDir); err != nil {
-		stderrLogger.Fatalf("couldn't confirm that input path is a directory that exists: %s", err.Error())
+	if err := os.MkdirAll(destinationFolder, 0o755); err != nil {
+		stderrLogger.Fatalf("failed to create directory %q: %s", destinationFolder, err.Error())
 	}
 
-	if err := dirOrError(destinationDir); err != nil {
-		stderrLogger.Fatalf("couldn't confirm that output path is a directory that exists: %s", err.Error())
-	}
-
-	walkErr := filepath.Walk(inputDir, func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if filepath.Ext(path) != ".json" {
-			return nil
-		}
-
-		var input *os.File
-		var target *os.File
-
-		input, err = os.Open(path)
-		if err != nil {
-			return fmt.Errorf("failed to open file %q for reading: %w", path, err)
-		}
-
-		defer func() {
-			err := input.Close()
-			if err != nil {
-				stderrLogger.Printf("failed to close input file: %s", err.Error())
-			}
-		}()
-
-		destinationFile := filepath.Join(destinationDir, filepath.Base(path))
-
-		target, err = os.OpenFile(destinationFile, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0o664)
-		if err != nil {
-			return fmt.Errorf("failed to open file %q for writing: %w", destinationFile, err)
-		}
-
-		defer func() {
-			err := target.Close()
-			if err != nil {
-				stderrLogger.Printf("failed to close output file: %s", err.Error())
-			}
-		}()
-
-		if _, err := io.Copy(target, input); err != nil {
-			return fmt.Errorf("failed to copy source %q to destination %q: %w", path, destinationFile, err)
-		}
-
-		stderrLogger.Printf("successfully copied %s to %s", path, destinationFile)
-
-		return nil
-	})
-
-	if walkErr != nil {
-		stderrLogger.Fatalf("failed to walk input dir %q: %s", inputDir, walkErr.Error())
-	}
-
-	if *waitFlag {
-		stderrLogger.Printf("finished copying, waiting for termination signal")
-
-		// TODO: if we add the ability to reap zombie processes, this could function as a full init
-
-		sigs := make(chan os.Signal, 1)
-
-		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-		<-sigs
-
-		stderrLogger.Println("received interrupt, closing")
-	}
-}
-
-func dirOrError(name string) error {
-	info, err := os.Stat(name)
+	target, err := os.OpenFile(destinationFile, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0o664)
 	if err != nil {
-		return err
+		stderrLogger.Fatalf("failed to open file %q for writing: %w", destinationFile, err)
 	}
 
-	if !info.IsDir() {
-		return fmt.Errorf("%q is not a directory", name)
+	defer func() {
+		err := target.Close()
+		if err != nil {
+			stderrLogger.Printf("failed to close output file: %s", err.Error())
+		}
+	}()
+
+	inputFile, err := input.Open("debian-trust-package.json")
+	if err != nil {
+		stderrLogger.Fatalf("failed to open embedded file: %w", err)
 	}
 
-	return nil
+	if _, err := io.Copy(target, inputFile); err != nil {
+		stderrLogger.Fatalf("failed to copy source to destination %q: %w", destinationFile, err)
+	}
+
+	stderrLogger.Printf("successfully copied to %s", destinationFile)
 }

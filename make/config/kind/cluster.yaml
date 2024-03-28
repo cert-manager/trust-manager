@@ -1,0 +1,19 @@
+apiVersion: kind.x-k8s.io/v1alpha4
+kind: Cluster
+kubeadmConfigPatches:
+  - |
+    kind: ClusterConfiguration
+    metadata:
+      name: config
+    etcd:
+      local:
+        extraArgs:
+          unsafe-no-fsync: "true"
+    networking:
+      serviceSubnet: 10.0.0.0/16
+nodes:
+- role: control-plane
+
+  extraMounts:
+  - hostPath: {{KIND_IMAGES}}
+    containerPath: /mounted_images

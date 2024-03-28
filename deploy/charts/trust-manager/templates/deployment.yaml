@@ -30,9 +30,7 @@ spec:
         image: "{{ template "image" (tuple .Values.defaultPackageImage "missing") }}"
         imagePullPolicy: {{ .Values.defaultPackageImage.pullPolicy }}
         args:
-          - "/copyandmaybepause"
-          - "/debian-package"
-          - "/packages"
+          - "/packages/cert-manager-package-debian.json"
         volumeMounts:
         - mountPath: /packages
           name: packages
@@ -66,7 +64,6 @@ spec:
             path: {{ .Values.app.readinessProbe.path }}
           initialDelaySeconds: 3
           periodSeconds: 7
-        command: ["trust-manager"]
         args:
           - "--log-level={{.Values.app.logLevel}}"
           - "--metrics-port={{.Values.app.metrics.port}}"
