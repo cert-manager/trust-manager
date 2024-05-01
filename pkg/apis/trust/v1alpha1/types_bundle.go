@@ -26,7 +26,8 @@ var BundleLabelKey = "trust.cert-manager.io/bundle"
 var BundleHashAnnotationKey = "trust.cert-manager.io/hash"
 
 // +kubebuilder:object:root=true
-// +kubebuilder:printcolumn:name="Target",type="string",JSONPath=".status.target.configMap.key",description="Bundle Target Key"
+// +kubebuilder:printcolumn:name="ConfigMap Target",type="string",JSONPath=".spec.target.configMap.key",description="Bundle ConfigMap Target Key"
+// +kubebuilder:printcolumn:name="Secret Target",type="string",JSONPath=".spec.target.secret.key",description="Bundle Secret Target Key"
 // +kubebuilder:printcolumn:name="Synced",type="string",JSONPath=`.status.conditions[?(@.type == "Synced")].status`,description="Bundle has been synced"
 // +kubebuilder:printcolumn:name="Reason",type="string",JSONPath=`.status.conditions[?(@.type == "Synced")].reason`,description="Reason Bundle has Synced status"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Timestamp Bundle was created"
