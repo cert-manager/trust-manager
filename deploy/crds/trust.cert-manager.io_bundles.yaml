@@ -121,6 +121,8 @@ spec:
                                       type: array
                                       items:
                                         type: string
+                                      x-kubernetes-list-type: atomic
+                                x-kubernetes-list-type: atomic
                               matchLabels:
                                 description: |-
                                   matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
@@ -184,6 +186,8 @@ spec:
                                       type: array
                                       items:
                                         type: string
+                                      x-kubernetes-list-type: atomic
+                                x-kubernetes-list-type: atomic
                               matchLabels:
                                 description: |-
                                   matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
