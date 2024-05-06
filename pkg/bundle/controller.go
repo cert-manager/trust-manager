@@ -89,28 +89,32 @@ func AddBundleController(
 		// Reconcile a Bundle on events against a ConfigMap that it
 		// owns. Only cache ConfigMap metadata.
 		WatchesRawSource(
-			source.Kind(targetCache, &corev1.ConfigMap{}),
-			handler.EnqueueRequestForOwner(
-				mgr.GetScheme(),
-				mgr.GetRESTMapper(),
-				&trustapi.Bundle{},
-				handler.OnlyControllerOwner(),
+			source.Kind(
+				targetCache,
+				&metav1.PartialObjectMetadata{TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"}},
+				handler.TypedEnqueueRequestForOwner[*metav1.PartialObjectMetadata](
+					mgr.GetScheme(),
+					mgr.GetRESTMapper(),
+					&trustapi.Bundle{},
+					handler.OnlyControllerOwner(),
+				),
 			),
-			builder.OnlyMetadata,
 		)
 
 	if opts.SecretTargetsEnabled {
 		// Reconcile a Bundle on events against a Secret that it
 		// owns. Only cache Secret metadata.
 		controller.WatchesRawSource(
-			source.Kind(targetCache, &corev1.Secret{}),
-			handler.EnqueueRequestForOwner(
-				mgr.GetScheme(),
-				mgr.GetRESTMapper(),
-				&trustapi.Bundle{},
-				handler.OnlyControllerOwner(),
+			source.Kind(
+				targetCache,
+				&metav1.PartialObjectMetadata{TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"}},
+				handler.TypedEnqueueRequestForOwner[*metav1.PartialObjectMetadata](
+					mgr.GetScheme(),
+					mgr.GetRESTMapper(),
+					&trustapi.Bundle{},
+					handler.OnlyControllerOwner(),
+				),
 			),
-			builder.OnlyMetadata,
 		)
 	}
 
