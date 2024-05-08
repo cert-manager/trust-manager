@@ -59,13 +59,19 @@ func main() {
 
 	flag.Parse()
 
-	if flag.NArg() != 2 {
+	var inputDir, destinationDir string
+	switch {
+	case flag.NArg() == 3 && flag.Arg(0) == "/copyandmaybepause":
+		stderrLogger.Printf("DEPRECATED: use the image's entrypoint instead of /copyandmaybepause")
+		inputDir = flag.Arg(1)
+		destinationDir = flag.Arg(2)
+	case flag.NArg() == 2:
+		inputDir = flag.Arg(0)
+		destinationDir = flag.Arg(1)
+	default:
 		flag.Usage()
 		os.Exit(1)
 	}
-
-	inputDir := flag.Arg(0)
-	destinationDir := flag.Arg(1)
 
 	stderrLogger.Printf("reading from %s", inputDir)
 	stderrLogger.Printf("writing to   %s", destinationDir)

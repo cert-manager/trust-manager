@@ -1,9 +1,7 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$ref": "#/$defs/helm-values",
   "$defs": {
     "helm-values": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "affinity": {
           "$ref": "#/$defs/helm-values.affinity"
@@ -66,15 +64,15 @@
           "$ref": "#/$defs/helm-values.topologySpreadConstraints"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.affinity": {
+      "default": {},
       "description": "Kubernetes Affinity. For more information, see [Affinity v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core).\nFor example:\naffinity:\n  nodeAffinity:\n   requiredDuringSchedulingIgnoredDuringExecution:\n     nodeSelectorTerms:\n     - matchExpressions:\n       - key: foo.bar.com/role\n         operator: In\n         values:\n         - master",
-      "type": "object",
-      "default": {}
+      "type": "object"
     },
     "helm-values.app": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "logLevel": {
           "$ref": "#/$defs/helm-values.app.logLevel"
@@ -101,15 +99,15 @@
           "$ref": "#/$defs/helm-values.app.webhook"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.app.logLevel": {
+      "default": 1,
       "description": "The verbosity of trust-manager logging. This takes a value from 1-5, with the higher value being more verbose.",
-      "type": "number",
-      "default": 1
+      "type": "number"
     },
     "helm-values.app.metrics": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "port": {
           "$ref": "#/$defs/helm-values.app.metrics.port"
@@ -118,15 +116,15 @@
           "$ref": "#/$defs/helm-values.app.metrics.service"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.app.metrics.port": {
+      "default": 9402,
       "description": "The port for exposing Prometheus metrics on 0.0.0.0 on path '/metrics'.",
-      "type": "number",
-      "default": 9402
+      "type": "number"
     },
     "helm-values.app.metrics.service": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "enabled": {
           "$ref": "#/$defs/helm-values.app.metrics.service.enabled"
@@ -138,15 +136,15 @@
           "$ref": "#/$defs/helm-values.app.metrics.service.type"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.app.metrics.service.enabled": {
+      "default": true,
       "description": "Create a Service resource to expose the metrics endpoint.",
-      "type": "boolean",
-      "default": true
+      "type": "boolean"
     },
     "helm-values.app.metrics.service.servicemonitor": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "enabled": {
           "$ref": "#/$defs/helm-values.app.metrics.service.servicemonitor.enabled"
@@ -164,50 +162,50 @@
           "$ref": "#/$defs/helm-values.app.metrics.service.servicemonitor.scrapeTimeout"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.app.metrics.service.servicemonitor.enabled": {
+      "default": false,
       "description": "Create a Prometheus ServiceMonitor for trust-manager.",
-      "type": "boolean",
-      "default": false
+      "type": "boolean"
     },
     "helm-values.app.metrics.service.servicemonitor.interval": {
+      "default": "10s",
       "description": "The interval to scrape the metrics.",
-      "type": "string",
-      "default": "10s"
+      "type": "string"
     },
     "helm-values.app.metrics.service.servicemonitor.labels": {
+      "default": {},
       "description": "Additional labels to add to the ServiceMonitor.",
-      "type": "object",
-      "default": {}
+      "type": "object"
     },
     "helm-values.app.metrics.service.servicemonitor.prometheusInstance": {
+      "default": "default",
       "description": "Sets the value of the \"prometheus\" label on the ServiceMonitor. This is used so that separate Prometheus instances can select different ServiceMonitors using labels.",
-      "type": "string",
-      "default": "default"
+      "type": "string"
     },
     "helm-values.app.metrics.service.servicemonitor.scrapeTimeout": {
+      "default": "5s",
       "description": "The timeout for a metrics scrape.",
-      "type": "string",
-      "default": "5s"
+      "type": "string"
     },
     "helm-values.app.metrics.service.type": {
+      "default": "ClusterIP",
       "description": "The Service type to expose metrics.",
-      "type": "string",
-      "default": "ClusterIP"
+      "type": "string"
     },
     "helm-values.app.podAnnotations": {
+      "default": {},
       "description": "Pod annotations to add to trust-manager pods.",
-      "type": "object",
-      "default": {}
+      "type": "object"
     },
     "helm-values.app.podLabels": {
+      "default": {},
       "description": "Pod labels to add to trust-manager pods.",
-      "type": "object",
-      "default": {}
+      "type": "object"
     },
     "helm-values.app.readinessProbe": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "path": {
           "$ref": "#/$defs/helm-values.app.readinessProbe.path"
@@ -216,48 +214,48 @@
           "$ref": "#/$defs/helm-values.app.readinessProbe.port"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.app.readinessProbe.path": {
+      "default": "/readyz",
       "description": "The path on which to expose the trust-manager HTTP readiness probe using the default network interface.",
-      "type": "string",
-      "default": "/readyz"
+      "type": "string"
     },
     "helm-values.app.readinessProbe.port": {
+      "default": 6060,
       "description": "The container port on which to expose the trust-manager HTTP readiness probe using the default network interface.",
-      "type": "number",
-      "default": 6060
+      "type": "number"
     },
     "helm-values.app.securityContext": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "seccompProfileEnabled": {
           "$ref": "#/$defs/helm-values.app.securityContext.seccompProfileEnabled"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.app.securityContext.seccompProfileEnabled": {
+      "default": true,
       "description": "If false, disables the default seccomp profile, which might be required to run on certain platforms.",
-      "type": "boolean",
-      "default": true
+      "type": "boolean"
     },
     "helm-values.app.trust": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "namespace": {
           "$ref": "#/$defs/helm-values.app.trust.namespace"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.app.trust.namespace": {
+      "default": "cert-manager",
       "description": "The namespace used as the trust source. Note that the namespace _must_ exist before installing trust-manager.",
-      "type": "string",
-      "default": "cert-manager"
+      "type": "string"
     },
     "helm-values.app.webhook": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "host": {
           "$ref": "#/$defs/helm-values.app.webhook.host"
@@ -278,25 +276,25 @@
           "$ref": "#/$defs/helm-values.app.webhook.tls"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.app.webhook.host": {
+      "default": "0.0.0.0",
       "description": "Host that the webhook listens on.",
-      "type": "string",
-      "default": "0.0.0.0"
+      "type": "string"
     },
     "helm-values.app.webhook.hostNetwork": {
+      "default": false,
       "description": "This value specifies if the app should be started in hostNetwork mode. It is required for use in some managed Kubernetes clusters (such as AWS EKS) with custom CNI.",
-      "type": "boolean",
-      "default": false
+      "type": "boolean"
     },
     "helm-values.app.webhook.port": {
+      "default": 6443,
       "description": "Port that the webhook listens on.",
-      "type": "number",
-      "default": 6443
+      "type": "number"
     },
     "helm-values.app.webhook.service": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "nodePort": {
           "$ref": "#/$defs/helm-values.app.webhook.service.nodePort"
@@ -305,33 +303,33 @@
           "$ref": "#/$defs/helm-values.app.webhook.service.type"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.app.webhook.service.nodePort": {
       "description": "The nodePort set on the Service used by the webhook.",
       "type": "number"
     },
     "helm-values.app.webhook.service.type": {
+      "default": "ClusterIP",
       "description": "The type of Kubernetes Service used by the Webhook.",
-      "type": "string",
-      "default": "ClusterIP"
+      "type": "string"
     },
     "helm-values.app.webhook.timeoutSeconds": {
+      "default": 5,
       "description": "Timeout of webhook HTTP request.",
-      "type": "number",
-      "default": 5
+      "type": "number"
     },
     "helm-values.app.webhook.tls": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "approverPolicy": {
           "$ref": "#/$defs/helm-values.app.webhook.tls.approverPolicy"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.app.webhook.tls.approverPolicy": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "certManagerNamespace": {
           "$ref": "#/$defs/helm-values.app.webhook.tls.approverPolicy.certManagerNamespace"
@@ -343,30 +341,30 @@
           "$ref": "#/$defs/helm-values.app.webhook.tls.approverPolicy.enabled"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.app.webhook.tls.approverPolicy.certManagerNamespace": {
+      "default": "cert-manager",
       "description": "The namespace in which cert-manager was installed. Only used if `app.webhook.tls.approverPolicy.enabled` is true.",
-      "type": "string",
-      "default": "cert-manager"
+      "type": "string"
     },
     "helm-values.app.webhook.tls.approverPolicy.certManagerServiceAccount": {
+      "default": "cert-manager",
       "description": "The name of cert-manager's Service Account. Only used if `app.webhook.tls.approverPolicy.enabled` is true.",
-      "type": "string",
-      "default": "cert-manager"
+      "type": "string"
     },
     "helm-values.app.webhook.tls.approverPolicy.enabled": {
+      "default": false,
       "description": "Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this.",
-      "type": "boolean",
-      "default": false
+      "type": "boolean"
     },
     "helm-values.commonLabels": {
+      "default": {},
       "description": "Labels to apply to all resources",
-      "type": "object",
-      "default": {}
+      "type": "object"
     },
     "helm-values.crds": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "enabled": {
           "$ref": "#/$defs/helm-values.crds.enabled"
@@ -375,20 +373,20 @@
           "$ref": "#/$defs/helm-values.crds.keep"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.crds.enabled": {
+      "default": true,
       "description": "This option decides if the CRDs should be installed as part of the Helm installation.",
-      "type": "boolean",
-      "default": true
+      "type": "boolean"
     },
     "helm-values.crds.keep": {
+      "default": true,
       "description": "This option makes it so that the \"helm.sh/resource-policy\": keep annotation is added to the CRD. This will prevent Helm from uninstalling the CRD when the Helm release is uninstalled. WARNING: when the CRDs are removed, all cert-manager custom resources\n(Certificates, Issuers, ...) will be removed too by the garbage collector.",
-      "type": "boolean",
-      "default": true
+      "type": "boolean"
     },
     "helm-values.defaultPackage": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "enabled": {
           "$ref": "#/$defs/helm-values.defaultPackage.enabled"
@@ -397,20 +395,20 @@
           "$ref": "#/$defs/helm-values.defaultPackage.resources"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.defaultPackage.enabled": {
+      "default": true,
       "description": "Whether to load the default trust package during pod initialization, and include it in main container args. This container enables the 'useDefaultCAs' source on Bundles.",
-      "type": "boolean",
-      "default": true
+      "type": "boolean"
     },
     "helm-values.defaultPackage.resources": {
+      "default": {},
       "description": "Kubernetes pod resource limits for default package init container.\n\nFor example:\nresources:\n  limits:\n    cpu: 100m\n    memory: 128Mi\n  requests:\n    cpu: 100m\n    memory: 128Mi",
-      "type": "object",
-      "default": {}
+      "type": "object"
     },
     "helm-values.defaultPackageImage": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "digest": {
           "$ref": "#/$defs/helm-values.defaultPackageImage.digest"
@@ -428,50 +426,50 @@
           "$ref": "#/$defs/helm-values.defaultPackageImage.tag"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.defaultPackageImage.digest": {
       "description": "Target image digest. Override any tag, if set.\nFor example:\ndigest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20",
       "type": "string"
     },
     "helm-values.defaultPackageImage.pullPolicy": {
+      "default": "IfNotPresent",
       "description": "imagePullPolicy for the default package image.",
-      "type": "string",
-      "default": "IfNotPresent"
+      "type": "string"
     },
     "helm-values.defaultPackageImage.registry": {
       "description": "Target image registry. This value is prepended to the target image repository, if set.\nFor example:\nregistry: quay.io\nrepository: jetstack/cert-manager-package-debian",
       "type": "string"
     },
     "helm-values.defaultPackageImage.repository": {
+      "default": "quay.io/jetstack/cert-manager-package-debian",
       "description": "The repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles.",
-      "type": "string",
-      "default": "quay.io/jetstack/cert-manager-package-debian"
+      "type": "string"
     },
     "helm-values.defaultPackageImage.tag": {
+      "default": "20210119.0",
       "description": "Override the image tag of the default package image. If no value is set, the chart's appVersion is used.",
-      "type": "string",
-      "default": "20210119.0"
+      "type": "string"
     },
     "helm-values.filterExpiredCertificates": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "enabled": {
           "$ref": "#/$defs/helm-values.filterExpiredCertificates.enabled"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.filterExpiredCertificates.enabled": {
+      "default": false,
       "description": "Whether to filter expired certificates from the trust bundle.",
-      "type": "boolean",
-      "default": false
+      "type": "boolean"
     },
     "helm-values.global": {
       "description": "Global values shared across all (sub)charts"
     },
     "helm-values.image": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "digest": {
           "$ref": "#/$defs/helm-values.image.digest"
@@ -489,54 +487,54 @@
           "$ref": "#/$defs/helm-values.image.tag"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.image.digest": {
       "description": "Target image digest. Override any tag, if set.\nFor example:\ndigest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20",
       "type": "string"
     },
     "helm-values.image.pullPolicy": {
+      "default": "IfNotPresent",
       "description": "Kubernetes imagePullPolicy on Deployment.",
-      "type": "string",
-      "default": "IfNotPresent"
+      "type": "string"
     },
     "helm-values.image.registry": {
       "description": "Target image registry. This value is prepended to the target image repository, if set.\nFor example:\nregistry: quay.io\nrepository: jetstack/trust-manager",
       "type": "string"
     },
     "helm-values.image.repository": {
+      "default": "quay.io/jetstack/trust-manager",
       "description": "Target image repository.",
-      "type": "string",
-      "default": "quay.io/jetstack/trust-manager"
+      "type": "string"
     },
     "helm-values.image.tag": {
       "description": "Override the image tag to deploy by setting this variable. If no value is set, the chart's appVersion is used.",
       "type": "string"
     },
     "helm-values.imagePullSecrets": {
-      "description": "For Private docker registries, authentication is needed. Registry secrets are applied to the service account.",
-      "type": "array",
       "default": [],
-      "items": {}
+      "description": "For Private docker registries, authentication is needed. Registry secrets are applied to the service account.",
+      "items": {},
+      "type": "array"
     },
     "helm-values.nameOverride": {
-      "type": "string",
-      "default": ""
+      "default": "",
+      "type": "string"
     },
     "helm-values.namespace": {
+      "default": "",
       "description": "The namespace to install trust-manager into.\nIf not set, the namespace of the release is used.\nThis is helpful when installing trust-manager as a chart dependency (sub chart).",
-      "type": "string",
-      "default": ""
+      "type": "string"
     },
     "helm-values.nodeSelector": {
-      "description": "Configure the nodeSelector; defaults to any Linux node (trust-manager doesn't support Windows nodes)",
-      "type": "object",
       "default": {
         "kubernetes.io/os": "linux"
-      }
+      },
+      "description": "Configure the nodeSelector; defaults to any Linux node (trust-manager doesn't support Windows nodes)",
+      "type": "object"
     },
     "helm-values.podDisruptionBudget": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "enabled": {
           "$ref": "#/$defs/helm-values.podDisruptionBudget.enabled"
@@ -548,12 +546,12 @@
           "$ref": "#/$defs/helm-values.podDisruptionBudget.minAvailable"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.podDisruptionBudget.enabled": {
+      "default": false,
       "description": "Enable or disable the PodDisruptionBudget resource.\n\nThis prevents downtime during voluntary disruptions such as during a Node upgrade. For example, the PodDisruptionBudget will block `kubectl drain` if it is used on the Node where the only remaining trust-manager\nPod is currently running.",
-      "type": "boolean",
-      "default": false
+      "type": "boolean"
     },
     "helm-values.podDisruptionBudget.maxUnavailable": {
       "description": "This configures the maximum unavailable pods for disruptions. It can either be set to an integer (e.g. 1) or a percentage value (e.g. 25%). it cannot be used if `minAvailable` is set."
@@ -562,21 +560,21 @@
       "description": "This configures the minimum available pods for disruptions. It can either be set to an integer (e.g. 1) or a percentage value (e.g. 25%).\nIt cannot be used if `maxUnavailable` is set."
     },
     "helm-values.priorityClassName": {
+      "default": "",
       "description": "Configure the priority class of the pod. For more information, see [PriorityClass](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass).",
-      "type": "string",
-      "default": ""
+      "type": "string"
     },
     "helm-values.replicaCount": {
-      "description": "The number of replicas of trust-manager to run.\n\nFor example:\n Use integer to set a fixed number of replicas\nreplicaCount: 2\nUse null, if you want to omit the replicas field and use the Kubernetes default value.\nreplicaCount: null\nUse a string if you want to insert a variable for post-processing of the rendered template.\nreplicaCount: ${REPLICAS_OVERRIDE:=3}",
-      "default": 1
+      "default": 1,
+      "description": "The number of replicas of trust-manager to run.\n\nFor example:\n Use integer to set a fixed number of replicas\nreplicaCount: 2\nUse null, if you want to omit the replicas field and use the Kubernetes default value.\nreplicaCount: null\nUse a string if you want to insert a variable for post-processing of the rendered template.\nreplicaCount: ${REPLICAS_OVERRIDE:=3}"
     },
     "helm-values.resources": {
+      "default": {},
       "description": "Kubernetes pod resource limits for trust.\n\nFor example:\nresources:\n  limits:\n    cpu: 100m\n    memory: 128Mi\n  requests:\n    cpu: 100m\n    memory: 128Mi",
-      "type": "object",
-      "default": {}
+      "type": "object"
     },
     "helm-values.secretTargets": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "authorizedSecrets": {
           "$ref": "#/$defs/helm-values.secretTargets.authorizedSecrets"
@@ -588,35 +586,37 @@
           "$ref": "#/$defs/helm-values.secretTargets.enabled"
         }
       },
-      "additionalProperties": false
+      "type": "object"
     },
     "helm-values.secretTargets.authorizedSecrets": {
-      "description": "A list of secret names which trust-manager will be permitted to read and write across all namespaces. These are the only allowable Secrets that can be used as targets. If the list is empty (and authorizedSecretsAll is false), trust-manager can't write to secrets and can only read secrets in the trust namespace for use as sources.",
-      "type": "array",
       "default": [],
-      "items": {}
+      "description": "A list of secret names which trust-manager will be permitted to read and write across all namespaces. These are the only allowable Secrets that can be used as targets. If the list is empty (and authorizedSecretsAll is false), trust-manager can't write to secrets and can only read secrets in the trust namespace for use as sources.",
+      "items": {},
+      "type": "array"
     },
     "helm-values.secretTargets.authorizedSecretsAll": {
+      "default": false,
       "description": "If set to true, grant read/write permission to all secrets across the cluster. Use with caution!\nIf set, ignores the authorizedSecrets list.",
-      "type": "boolean",
-      "default": false
+      "type": "boolean"
     },
     "helm-values.secretTargets.enabled": {
+      "default": false,
       "description": "If set to true, enable writing trust bundles to Kubernetes Secrets as a target. trust-manager can only write to secrets which are explicitly allowed via either authorizedSecrets or authorizedSecretsAll. Note that enabling secret targets will grant trust-manager read access to all secrets in the cluster.",
-      "type": "boolean",
-      "default": false
+      "type": "boolean"
     },
     "helm-values.tolerations": {
-      "description": "List of Kubernetes Tolerations, if required. For more information, see [Toleration v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core).\nFor example:\ntolerations:\n- key: foo.bar.com/role\n  operator: Equal\n  value: master\n  effect: NoSchedule",
-      "type": "array",
       "default": [],
-      "items": {}
+      "description": "List of Kubernetes Tolerations, if required. For more information, see [Toleration v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core).\nFor example:\ntolerations:\n- key: foo.bar.com/role\n  operator: Equal\n  value: master\n  effect: NoSchedule",
+      "items": {},
+      "type": "array"
     },
     "helm-values.topologySpreadConstraints": {
-      "description": "List of Kubernetes TopologySpreadConstraints. For more information, see [TopologySpreadConstraint v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core).\nFor example:\ntopologySpreadConstraints:\n- maxSkew: 2\n  topologyKey: topology.kubernetes.io/zone\n  whenUnsatisfiable: ScheduleAnyway\n  labelSelector:\n    matchLabels:\n      app.kubernetes.io/instance: cert-manager\n      app.kubernetes.io/component: controller",
-      "type": "array",
       "default": [],
-      "items": {}
+      "description": "List of Kubernetes TopologySpreadConstraints. For more information, see [TopologySpreadConstraint v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core).\nFor example:\ntopologySpreadConstraints:\n- maxSkew: 2\n  topologyKey: topology.kubernetes.io/zone\n  whenUnsatisfiable: ScheduleAnyway\n  labelSelector:\n    matchLabels:\n      app.kubernetes.io/instance: cert-manager\n      app.kubernetes.io/component: controller",
+      "items": {},
+      "type": "array"
     }
-  }
+  },
+  "$ref": "#/$defs/helm-values",
+  "$schema": "http://json-schema.org/draft-07/schema#"
 }
