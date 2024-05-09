@@ -18,8 +18,8 @@ debian_package_json := $(debian_package_layer)/debian-package/cert-manager-packa
 $(debian_package_layer)/debian-package $(bin_dir)/bin:
 	mkdir -p $@
 
-$(bin_dir)/bin/validate-trust-package: | $(bin_dir)/bin
-	go build -o $@ ./cmd/validate-trust-package
+$(bin_dir)/bin/validate-trust-package: cmd/validate-trust-package/*.go pkg/fspkg/*.go | $(NEEDS_GO) $(bin_dir)/bin
+	$(GO) build -o $@ ./cmd/validate-trust-package
 
 $(debian_package_json): | $(bin_dir)/bin/validate-trust-package $(debian_package_layer)/debian-package
 	BIN_VALIDATE_TRUST_PACKAGE=$(bin_dir)/bin/validate-trust-package \
