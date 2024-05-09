@@ -21,6 +21,17 @@ include make/test-smoke.mk
 include make/test-integration.mk
 include make/test-unit.mk
 
+# Deprecated ci-target for backwards compatibility
+.PHONY: smoke-setup-trust-manager
+provision-buildx: noop
+
+# Deprecated ci-target for backwards compatibility
+.PHONY: smoke
+smoke:
+	$(MAKE) test-unit
+	$(MAKE) test-integration
+	$(MAKE) test-smoke
+
 include make/debian-trust-package.mk
 
 .PHONY: release
