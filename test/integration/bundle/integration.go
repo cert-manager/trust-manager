@@ -17,6 +17,8 @@ limitations under the License.
 package test
 
 import (
+	"os"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
@@ -34,10 +36,14 @@ var (
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+
+	crdsYamlFile := os.Getenv("TRUST_MANAGER_CRDS")
+	Expect(crdsYamlFile).NotTo(BeEmpty(), "TRUST_MANAGER_CRDS must be set to the path of the CRDs to install")
+
 	env = &envtest.Environment{
 		UseExistingCluster: ptr.To(false),
 		CRDDirectoryPaths: []string{
-			"../../../deploy/crds/trust.cert-manager.io_bundles.yaml",
+			crdsYamlFile,
 		},
 		Scheme: trustapi.GlobalScheme,
 	}
