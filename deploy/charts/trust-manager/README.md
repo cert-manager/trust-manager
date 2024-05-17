@@ -297,6 +297,13 @@ topologySpreadConstraints:
 > ```
 
 Whether to filter expired certificates from the trust bundle.
+#### **app.logFormat** ~ `string`
+> Default value:
+> ```yaml
+> text
+> ```
+
+The format of trust-manager logging. Accepted values are text or json.
 #### **app.logLevel** ~ `number`
 > Default value:
 > ```yaml

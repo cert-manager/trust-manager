@@ -67,6 +67,7 @@ spec:
           initialDelaySeconds: 3
           periodSeconds: 7
         args:
+          - "--log-format={{.Values.app.logFormat}}"
           - "--log-level={{.Values.app.logLevel}}"
           - "--metrics-port={{.Values.app.metrics.port}}"
           - "--readiness-probe-port={{.Values.app.readinessProbe.port}}"

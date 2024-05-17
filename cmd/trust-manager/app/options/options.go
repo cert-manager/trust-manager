@@ -17,8 +17,10 @@ limitations under the License.
 package options
 
 import (
-	"flag"
+	"errors"
 	"fmt"
+	"log/slog"
+	"os"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
@@ -28,14 +30,12 @@ import (
 	"k8s.io/client-go/rest"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
 
 	"github.com/cert-manager/trust-manager/pkg/bundle"
 )
 
 // Options is a struct to hold options for trust-manager
 type Options struct {
-	logLevel        string
 	kubeConfigFlags *genericclioptions.ConfigFlags
 
 	// ReadyzPort if the port used to expose Prometheus metrics.
@@ -59,6 +59,45 @@ type Options struct {
 
 	// Bundle are options specific to the Bundle controller.
 	Bundle bundle.Options
+
+	// log are options controlling logging
+	log logOptions
+}
+
+type logOptions struct {
+	format logFormat
+	level  int
+}
+
+const (
+	logFormatText logFormat = "text"
+	logFormatJSON logFormat = "json"
+)
+
+type logFormat string
+
+// String is used both by fmt.Print and by Cobra in help text
+func (e *logFormat) String() string {
+	if len(*e) == 0 {
+		return string(logFormatText)
+	}
+	return string(*e)
+}
+
+// Set must have pointer receiver to avoid changing the value of a copy
+func (e *logFormat) Set(v string) error {
+	switch v {
+	case "text", "json":
+		*e = logFormat(v)
+		return nil
+	default:
+		return errors.New(`must be one of "text" or "json"`)
+	}
+}
+
+// Type is only used in help text
+func (e *logFormat) Type() string {
+	return "string"
 }
 
 // Webhook holds options specific to running the trust Webhook service.
@@ -82,9 +121,20 @@ func (o *Options) Prepare(cmd *cobra.Command) *Options {
 // Complete will populate the remaining Options from the CLI flags. Must be run
 // before consuming Options.
 func (o *Options) Complete() error {
-	klog.InitFlags(nil)
-	log := klogr.New()
-	flag.Set("v", o.logLevel)
+	opts := &slog.HandlerOptions{
+		// To avoid a breaking change in application configuration,
+		// we negate the (configured) logr verbosity level to get the corresponding slog level
+		Level: slog.Level(-o.log.level),
+	}
+	var handler slog.Handler = slog.NewTextHandler(os.Stdout, opts)
+	if o.log.format == logFormatJSON {
+		handler = slog.NewJSONHandler(os.Stdout, opts)
+	}
+
+	slog.SetDefault(slog.New(handler))
+
+	log := logr.FromSlogHandler(handler)
+	klog.SetLogger(log)
 	o.Logr = log.WithName("trust")
 
 	var err error
@@ -104,6 +154,7 @@ func (o *Options) addFlags(cmd *cobra.Command) {
 
 	o.addAppFlags(nfs.FlagSet("App"))
 	o.addBundleFlags(nfs.FlagSet("Bundle"))
+	o.addLoggingFlags(nfs.FlagSet("Logging"))
 	o.addWebhookFlags(nfs.FlagSet("Webhook"))
 	o.kubeConfigFlags = genericclioptions.NewConfigFlags(true)
 	o.kubeConfigFlags.AddFlags(nfs.FlagSet("Kubernetes"))
@@ -127,10 +178,6 @@ func (o *Options) addFlags(cmd *cobra.Command) {
 }
 
 func (o *Options) addAppFlags(fs *pflag.FlagSet) {
-	fs.StringVarP(&o.logLevel,
-		"log-level", "v", "1",
-		"Log level (1-5).")
-
 	fs.IntVar(&o.ReadyzPort,
 		"readiness-probe-port", 6060,
 		"Port to expose the readiness probe.")
@@ -160,6 +207,16 @@ func (o *Options) addBundleFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&o.Bundle.FilterExpiredCerts,
 		"filter-expired-certificates", false,
 		"Filter expired certificates from the bundle.")
+}
+
+func (o *Options) addLoggingFlags(fs *pflag.FlagSet) {
+	fs.Var(&o.log.format,
+		"log-format",
+		"Log format (text or json)")
+
+	fs.IntVarP(&o.log.level,
+		"log-level", "v", 1,
+		"Log level (1-5).")
 }
 
 func (o *Options) addWebhookFlags(fs *pflag.FlagSet) {
