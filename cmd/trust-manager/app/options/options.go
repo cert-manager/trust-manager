@@ -17,6 +17,7 @@ limitations under the License.
 package options
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 
@@ -31,6 +32,18 @@ import (
 	"k8s.io/klog/v2/klogr"
 
 	"github.com/cert-manager/trust-manager/pkg/bundle"
+)
+
+const (
+	defaultCipherSuites = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256," +
+		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384," +
+		"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305," +
+		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA," +
+		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA," +
+		"TLS_RSA_WITH_AES_128_GCM_SHA256," +
+		"TLS_RSA_WITH_AES_256_GCM_SHA384," +
+		"TLS_RSA_WITH_AES_128_CBC_SHA," +
+		"TLS_RSA_WITH_AES_256_CBC_SHA"
 )
 
 // Options is a struct to hold options for trust-manager
@@ -63,9 +76,11 @@ type Options struct {
 
 // Webhook holds options specific to running the trust Webhook service.
 type Webhook struct {
-	Host    string
-	Port    int
-	CertDir string
+	Host            string
+	Port            int
+	CertDir         string
+	MinTlsVersion   int
+	TlsCipherSuites string
 }
 
 // New constructs a new Options.
@@ -174,4 +189,10 @@ func (o *Options) addWebhookFlags(fs *pflag.FlagSet) {
 		"Directory where the Webhook certificate and private key are located. "+
 			"Certificate and private key must be named 'tls.crt' and 'tls.key' "+
 			"respectively.")
+	fs.IntVar(&o.Webhook.MinTlsVersion,
+		"min-tls-version", tls.VersionTLS12,
+		"Minimal TLS version to serve webhook.")
+	fs.StringVar(&o.Webhook.TlsCipherSuites,
+		"tls-cipher-suites", defaultCipherSuites,
+		"Comma separated list of TLS 1.2 cipher suites to use (TLS 1.3 cipher suites are not configurable).")
 }

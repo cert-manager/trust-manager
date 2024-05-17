@@ -17,9 +17,12 @@ limitations under the License.
 package app
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -86,6 +89,12 @@ func NewCommand() *cobra.Command {
 					Port:    opts.Webhook.Port,
 					Host:    opts.Webhook.Host,
 					CertDir: opts.Webhook.CertDir,
+					TLSOpts: []func(config *tls.Config){
+						func(config *tls.Config) {
+							config.CipherSuites = parseCipherSuitesToUint16Slice(opts.Webhook.TlsCipherSuites)
+							config.MinVersion = uint16(opts.Webhook.MinTlsVersion)
+						},
+					},
 				}),
 				Metrics: server.Options{
 					BindAddress: fmt.Sprintf("0.0.0.0:%d", opts.MetricsPort),
@@ -165,4 +174,27 @@ func NewCommand() *cobra.Command {
 	opts = opts.Prepare(cmd)
 
 	return cmd
+}
+
+func parseCipherSuitesToUint16Slice(input string) []uint16 {
+	values := strings.Split(input, ",")
+	var result []uint16
+
+	// Iterate over the split values
+	for _, v := range values {
+		v = strings.TrimSpace(v)
+
+		parsedValue, err := strconv.ParseUint(v, 10, 16)
+		if err != nil {
+			continue
+		}
+		result[] = uint16(parsedValue)
+	}
+
+	if len(result) == 0 {
+		// Will be used default FIPS-allowed cipher suites
+		return nil
+	}
+
+	return result
 }
