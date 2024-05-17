@@ -17,7 +17,6 @@ limitations under the License.
 package webhook
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2/ktesting"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -395,8 +394,9 @@ func Test_validate(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := &validator{log: klogr.New()}
-			gotWarnings, gotErr := v.validate(context.TODO(), test.bundle)
+			log, ctx := ktesting.NewTestContext(t)
+			v := &validator{log: log}
+			gotWarnings, gotErr := v.validate(ctx, test.bundle)
 			if test.expErr == nil && gotErr != nil {
 				t.Errorf("got an unexpected error: %v", gotErr)
 			} else if test.expErr != nil && (gotErr == nil || *test.expErr != gotErr.Error()) {
@@ -447,8 +447,9 @@ func Test_validate_update(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			v := &validator{log: klogr.New()}
-			gotWarnings, gotErr := v.ValidateUpdate(context.TODO(), test.oldBundle, test.newBundle)
+			log, ctx := ktesting.NewTestContext(t)
+			v := &validator{log: log}
+			gotWarnings, gotErr := v.ValidateUpdate(ctx, test.oldBundle, test.newBundle)
 			if test.expErr == nil && gotErr != nil {
 				t.Errorf("got an unexpected error: %v", gotErr)
 			} else if test.expErr != nil && (gotErr == nil || *test.expErr != gotErr.Error()) {

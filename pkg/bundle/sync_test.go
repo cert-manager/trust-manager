@@ -35,7 +35,7 @@ import (
 	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
 	metav1applyconfig "k8s.io/client-go/applyconfigurations/meta/v1"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2/ktesting"
 	"k8s.io/utils/ptr"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/structured-merge-diff/fieldpath"
@@ -642,7 +642,8 @@ func Test_syncConfigMapTarget(t *testing.T) {
 				resolvedBundle.binaryData[pkcs12Key] = pkcs12Data
 			}
 
-			needsUpdate, err := b.syncConfigMapTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
+			log, ctx := ktesting.NewTestContext(t)
+			needsUpdate, err := b.syncConfigMapTarget(ctx, log, &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       spec,
 			}, bundleName, test.namespace.Name, resolvedBundle, test.shouldExist)
@@ -1261,7 +1262,8 @@ func Test_syncSecretTarget(t *testing.T) {
 				resolvedBundle.binaryData[pkcs12Key] = pkcs12Data
 			}
 
-			needsUpdate, err := b.syncSecretTarget(context.TODO(), klogr.New(), &trustapi.Bundle{
+			log, ctx := ktesting.NewTestContext(t)
+			needsUpdate, err := b.syncSecretTarget(ctx, log, &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       spec,
 			}, bundleName, test.namespace.Name, resolvedBundle, test.shouldExist)
