@@ -22,10 +22,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2/ktesting"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -41,10 +42,23 @@ const (
 )
 
 var _ = Describe("Smoke", func() {
-	It("should create a bundle, sync to ConfigMap target, and then remove all configmap targets when deleted", func() {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+	var (
+		ctx    context.Context
+		cancel func()
 
+		log logr.Logger
+	)
+
+	BeforeEach(func() {
+		log, ctx = ktesting.NewTestContext(GinkgoT())
+		ctx, cancel = context.WithCancel(ctx)
+	})
+
+	AfterEach(func() {
+		cancel()
+	})
+
+	It("should create a bundle, sync to ConfigMap target, and then remove all configmap targets when deleted", func() {
 		cl, err := client.New(cnf.RestConfig, client.Options{
 			Scheme: trustapi.GlobalScheme,
 		})
@@ -54,7 +68,7 @@ var _ = Describe("Smoke", func() {
 		testData := env.DefaultTrustData()
 
 		testBundle := env.NewTestBundleConfigMapTarget(ctx, cl, bundle.Options{
-			Log:       klogr.New(),
+			Log:       log,
 			Namespace: cnf.TrustNamespace,
 		}, testData)
 
@@ -65,9 +79,6 @@ var _ = Describe("Smoke", func() {
 	})
 
 	It("should create a bundle, sync to Secret target, and then remove all secret targets when deleted", func() {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
 		cl, err := client.New(cnf.RestConfig, client.Options{
 			Scheme: trustapi.GlobalScheme,
 		})
@@ -77,7 +88,7 @@ var _ = Describe("Smoke", func() {
 		testData := env.DefaultTrustData()
 
 		testBundle := env.NewTestBundleSecretTarget(ctx, cl, bundle.Options{
-			Log:       klogr.New(),
+			Log:       log,
 			Namespace: cnf.TrustNamespace,
 		}, testData)
 

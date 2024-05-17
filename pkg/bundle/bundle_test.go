@@ -32,7 +32,7 @@ import (
 	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/v2/klogr"
+	"k8s.io/klog/v2/ktesting"
 	fakeclock "k8s.io/utils/clock/testing"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -1302,13 +1302,14 @@ func Test_Reconcile(t *testing.T) {
 				resourcePatches []interface{}
 			)
 
+			log, ctx := ktesting.NewTestContext(t)
 			b := &bundle{
 				client:      fakeclient,
 				targetCache: fakeclient,
 				recorder:    fakerecorder,
 				clock:       fixedclock,
 				Options: Options{
-					Log:                  klogr.New(),
+					Log:                  log,
 					Namespace:            trustNamespace,
 					SecretTargetsEnabled: !test.disableSecretTargets,
 					FilterExpiredCerts:   true,
@@ -1325,7 +1326,7 @@ func Test_Reconcile(t *testing.T) {
 			if test.configureDefaultPackage {
 				b.defaultPackage = testDefaultPackage.Clone()
 			}
-			resp, result, err := b.reconcileBundle(context.TODO(), ctrl.Request{NamespacedName: types.NamespacedName{Name: bundleName}})
+			resp, result, err := b.reconcileBundle(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: bundleName}})
 			if (err != nil) != test.expError {
 				t.Errorf("unexpected error, exp=%t got=%v", test.expError, err)
 			}
