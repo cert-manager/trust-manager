@@ -20,10 +20,10 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"net/http"
-	"strconv"
-	"strings"
-
+	"github.com/cert-manager/trust-manager/cmd/trust-manager/app/options"
+	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle"
+	"github.com/cert-manager/trust-manager/pkg/webhook"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -31,16 +31,14 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
+	ciphers "k8s.io/component-base/cli/flag"
+	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	ctrlwebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
-
-	"github.com/cert-manager/trust-manager/cmd/trust-manager/app/options"
-	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust-manager/pkg/bundle"
-	"github.com/cert-manager/trust-manager/pkg/webhook"
+	"strings"
 )
 
 const (
@@ -77,6 +75,12 @@ func NewCommand() *cobra.Command {
 			eventBroadcaster.StartLogging(func(format string, args ...any) { mlog.V(3).Info(fmt.Sprintf(format, args...)) })
 			eventBroadcaster.StartRecordingToSink(&clientv1.EventSinkImpl{Interface: cl.CoreV1().Events("")})
 
+			cipherSuitesStrings := strings.Split(opts.Webhook.TlsCipherSuites, ",")
+			cipherSuitesUint16, err := ciphers.TLSCipherSuites(cipherSuitesStrings)
+			if err != nil {
+				return fmt.Errorf("error parsing a list of cipher suite IDs from the passed cipher suite names: %s", err.Error())
+			}
+
 			mgr, err := ctrl.NewManager(opts.RestConfig, ctrl.Options{
 				Scheme:                        trustapi.GlobalScheme,
 				EventBroadcaster:              eventBroadcaster,
@@ -91,7 +95,7 @@ func NewCommand() *cobra.Command {
 					CertDir: opts.Webhook.CertDir,
 					TLSOpts: []func(config *tls.Config){
 						func(config *tls.Config) {
-							config.CipherSuites = parseCipherSuitesToUint16Slice(opts.Webhook.TlsCipherSuites)
+							config.CipherSuites = cipherSuitesUint16
 							config.MinVersion = uint16(opts.Webhook.MinTlsVersion)
 						},
 					},
@@ -174,27 +178,4 @@ func NewCommand() *cobra.Command {
 	opts = opts.Prepare(cmd)
 
 	return cmd
-}
-
-func parseCipherSuitesToUint16Slice(input string) []uint16 {
-	values := strings.Split(input, ",")
-	var result []uint16
-
-	// Iterate over the split values
-	for _, v := range values {
-		v = strings.TrimSpace(v)
-
-		parsedValue, err := strconv.ParseUint(v, 10, 16)
-		if err != nil {
-			continue
-		}
-		result[] = uint16(parsedValue)
-	}
-
-	if len(result) == 0 {
-		// Will be used default FIPS-allowed cipher suites
-		return nil
-	}
-
-	return result
 }
