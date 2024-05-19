@@ -194,5 +194,5 @@ func (o *Options) addWebhookFlags(fs *pflag.FlagSet) {
 		"Minimal TLS version to serve webhook.")
 	fs.StringVar(&o.Webhook.TlsCipherSuites,
 		"tls-cipher-suites", defaultCipherSuites,
-		"Comma separated list of TLS 1.2 cipher suites to use (TLS 1.3 cipher suites are not configurable).")
+		"Comma separated list of cipher suite names.")
 }
