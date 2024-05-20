@@ -134,7 +134,7 @@ if [[ "$ACTION" == "latest" && "$installed_version" == "$target_ca_certificates_
 fi
 
 echo "{}" | jq \
-	--rawfile bundle /etc/ssl/certs/ca-certificates.crt \
+	--rawfile bundle $TMP_DIR/ca-certificates.crt \
 	--arg name "cert-manager-debian" \
 	--arg version "$installed_version$version_suffix" \
 	'.name = $name | .bundle = $bundle | .version = $version' \
