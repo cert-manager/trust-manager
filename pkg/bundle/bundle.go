@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -201,12 +202,9 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		secretTarget    targetKind = "Secret"
 	)
 
-	type targetResource struct {
-		Kind targetKind
-		types.NamespacedName
-	}
-
-	targetResources := map[targetResource]bool{}
+	targetResources := map[targetKind]map[types.NamespacedName]bool{}
+	targetResources[configMapTarget] = map[types.NamespacedName]bool{}
+	targetResources[secretTarget] = map[types.NamespacedName]bool{}
 
 	namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
 	if err != nil {
@@ -239,126 +237,86 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 			}
 
 			if bundle.Spec.Target.Secret != nil {
-				targetResources[targetResource{Kind: secretTarget, NamespacedName: namespacedName}] = true
+				targetResources[secretTarget][namespacedName] = true
 			}
 			if bundle.Spec.Target.ConfigMap != nil {
-				targetResources[targetResource{Kind: configMapTarget, NamespacedName: namespacedName}] = true
+				targetResources[configMapTarget][namespacedName] = true
 			}
 		}
 	}
 
-	// Find all old existing ConfigMap targetResources.
-	{
-		configMapList := &metav1.PartialObjectMetadataList{
+	// Find all old existing target resources.
+	for _, kind := range []targetKind{configMapTarget, secretTarget} {
+		targetLog := log.WithValues("kind", kind)
+
+		targetList := &metav1.PartialObjectMetadataList{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "v1",
-				Kind:       "ConfigMap",
+				Kind:       string(kind),
 			},
 		}
-		err := b.targetCache.List(ctx, configMapList, &client.ListOptions{
+		err := b.targetCache.List(ctx, targetList, &client.ListOptions{
 			LabelSelector: labels.SelectorFromSet(map[string]string{
 				trustapi.BundleLabelKey: bundle.Name,
 			}),
 		})
 		if err != nil {
-			log.Error(err, "failed to list configmaps")
-			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "ConfigMapListError", "Failed to list configmaps: %s", err)
-			return ctrl.Result{}, nil, fmt.Errorf("failed to list ConfigMaps: %w", err)
+			targetLog.Error(err, "failed to list targets")
+			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, fmt.Sprintf("%sListError", kind), "Failed to list %ss: %s", strings.ToLower(string(kind)), err)
+			return ctrl.Result{}, nil, fmt.Errorf("failed to list %ss: %w", kind, err)
 		}
 
-		for _, configMap := range configMapList.Items {
-			key := targetResource{
-				Kind: configMapTarget,
-				NamespacedName: types.NamespacedName{
-					Name:      configMap.Name,
-					Namespace: configMap.Namespace,
-				},
+		for _, target := range targetList.Items {
+			key := types.NamespacedName{
+				Name:      target.Name,
+				Namespace: target.Namespace,
 			}
 
-			configmapLog := log.WithValues("configmap", key)
+			targetLog = targetLog.WithValues("target", key)
 
-			if _, ok := targetResources[key]; ok {
-				// This ConfigMap is still a target, so we don't need to remove it.
+			if _, ok := targetResources[kind][key]; ok {
+				// This target is still a target, so we don't need to remove it.
 				continue
 			}
 
-			// Don't reconcile target for ConfigMaps that are being deleted.
-			if configMap.GetDeletionTimestamp() != nil {
-				configmapLog.V(2).WithValues("deletionTimestamp", configMap.GetDeletionTimestamp()).Info("skipping sync for configmap as it is being deleted")
+			// Don't reconcile target for targets that are being deleted.
+			if target.GetDeletionTimestamp() != nil {
+				targetLog.V(2).WithValues("deletionTimestamp", target.GetDeletionTimestamp()).Info("skipping sync for target as it is being deleted")
 				continue
 			}
 
-			if !metav1.IsControlledBy(&configMap, &bundle) {
-				configmapLog.V(2).Info("skipping sync for configmap as it is not controlled by bundle")
+			if !metav1.IsControlledBy(&target, &bundle) {
+				targetLog.V(2).Info("skipping sync for target as it is not controlled by bundle")
 				continue
 			}
 
-			targetResources[key] = false
-		}
-	}
-
-	// Find all old existing Secret targetResources.
-	if b.Options.SecretTargetsEnabled {
-		secretLists := &metav1.PartialObjectMetadataList{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "v1",
-				Kind:       "Secret",
-			},
-		}
-		err := b.targetCache.List(ctx, secretLists, &client.ListOptions{
-			LabelSelector: labels.SelectorFromSet(map[string]string{
-				trustapi.BundleLabelKey: bundle.Name,
-			}),
-		})
-		if err != nil {
-			log.Error(err, "failed to list secrets")
-			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SecretListError", "Failed to list secrets: %s", err)
-			return ctrl.Result{}, nil, fmt.Errorf("failed to list Secrets: %w", err)
-		}
-
-		for _, secret := range secretLists.Items {
-			key := targetResource{
-				Kind: secretTarget,
-				NamespacedName: types.NamespacedName{
-					Name:      secret.Name,
-					Namespace: secret.Namespace,
-				},
-			}
-
-			secretLog := log.WithValues("secret", key)
-
-			if _, ok := targetResources[key]; ok {
-				// This Secret is still a target, so we don't need to remove it.
-				continue
-			}
-
-			// Don't reconcile target for Secrets that are being deleted.
-			if secret.GetDeletionTimestamp() != nil {
-				secretLog.V(2).WithValues("deletionTimestamp", secret.GetDeletionTimestamp()).Info("skipping sync for secret as it is being deleted")
-				continue
-			}
-
-			if !metav1.IsControlledBy(&secret, &bundle) {
-				secretLog.V(2).Info("skipping sync for configmap as it is not controlled by bundle")
-				continue
-			}
-
-			targetResources[key] = false
+			targetResources[kind][key] = false
 		}
 	}
 
 	var needsUpdate bool
 
-	for target, shouldExist := range targetResources {
-		targetLog := log.WithValues("target", target)
-		var cmSynced, secretSynced bool
-		var err error
+	for kind, targets := range targetResources {
+		var syncFunc func(logr.Logger, types.NamespacedName, bool) (bool, error)
 
-		if target.Kind == configMapTarget {
-			cmSynced, err = b.syncConfigMapTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle, shouldExist)
+		if kind == configMapTarget {
+			syncFunc = func(targetLog logr.Logger, target types.NamespacedName, shouldExist bool) (bool, error) {
+				return b.syncConfigMapTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle, shouldExist)
+			}
+		}
+		if kind == secretTarget {
+			syncFunc = func(targetLog logr.Logger, target types.NamespacedName, shouldExist bool) (bool, error) {
+				return b.syncSecretTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle, shouldExist)
+			}
+		}
+
+		for target, shouldExists := range targets {
+			targetLog := log.WithValues("kind", kind, "target", target)
+
+			synced, err := syncFunc(targetLog, target, shouldExists)
 			if err != nil {
-				targetLog.Error(err, "failed sync bundle to ConfigMap target namespace")
-				b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncConfigMapTargetFailed", "Failed to sync target in Namespace %q: %s", target.Namespace, err)
+				targetLog.Error(err, "failed sync bundle to target namespace")
+				b.recorder.Eventf(&bundle, corev1.EventTypeWarning, fmt.Sprintf("Sync%sTargetFailed", kind), "Failed to sync target %s in Namespace %q: %s", kind, target.Namespace, err)
 
 				b.setBundleCondition(
 					bundle.Status.Conditions,
@@ -366,41 +324,19 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 					trustapi.BundleCondition{
 						Type:               trustapi.BundleConditionSynced,
 						Status:             metav1.ConditionFalse,
-						Reason:             "SyncConfigMapTargetFailed",
-						Message:            fmt.Sprintf("Failed to sync bundle to namespace %q: %s", target.Namespace, err),
+						Reason:             fmt.Sprintf("Sync%sTargetFailed", kind),
+						Message:            fmt.Sprintf("Failed to sync bundle %s to namespace %q: %s", kind, target.Namespace, err),
 						ObservedGeneration: bundle.Generation,
 					},
 				)
 
 				return ctrl.Result{Requeue: true}, statusPatch, nil
 			}
-		}
 
-		if target.Kind == secretTarget {
-			secretSynced, err = b.syncSecretTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle, shouldExist)
-			if err != nil {
-				targetLog.Error(err, "failed sync bundle to Secret target namespace")
-				b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SyncSecretTargetFailed", "Failed to sync target in Namespace %q: %s", target.Namespace, err)
-
-				b.setBundleCondition(
-					bundle.Status.Conditions,
-					&statusPatch.Conditions,
-					trustapi.BundleCondition{
-						Type:               trustapi.BundleConditionSynced,
-						Status:             metav1.ConditionFalse,
-						Reason:             "SyncSecretTargetFailed",
-						Message:            fmt.Sprintf("Failed to sync bundle to namespace %q: %s", target.Namespace, err),
-						ObservedGeneration: bundle.Generation,
-					},
-				)
-
-				return ctrl.Result{Requeue: true}, statusPatch, nil
+			if synced {
+				// We need to update if any target is synced.
+				needsUpdate = true
 			}
-		}
-
-		if cmSynced || secretSynced {
-			// We need to update if any target is synced.
-			needsUpdate = true
 		}
 	}
 
