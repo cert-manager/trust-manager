@@ -74,6 +74,9 @@
     "helm-values.app": {
       "additionalProperties": false,
       "properties": {
+        "logFormat": {
+          "$ref": "#/$defs/helm-values.app.logFormat"
+        },
         "logLevel": {
           "$ref": "#/$defs/helm-values.app.logLevel"
         },
@@ -100,6 +103,11 @@
         }
       },
       "type": "object"
+    },
+    "helm-values.app.logFormat": {
+      "default": "text",
+      "description": "The format of trust-manager logging. Accepted values are text or json.",
+      "type": "string"
     },
     "helm-values.app.logLevel": {
       "default": 1,
