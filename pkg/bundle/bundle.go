@@ -202,9 +202,12 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		secretTarget    targetKind = "Secret"
 	)
 
-	targetResources := map[targetKind]map[types.NamespacedName]bool{}
-	targetResources[configMapTarget] = map[types.NamespacedName]bool{}
-	targetResources[secretTarget] = map[types.NamespacedName]bool{}
+	type targetResource struct {
+		Kind targetKind
+		types.NamespacedName
+	}
+
+	targetResources := map[targetResource]bool{}
 
 	namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
 	if err != nil {
@@ -237,10 +240,10 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 			}
 
 			if bundle.Spec.Target.Secret != nil {
-				targetResources[secretTarget][namespacedName] = true
+				targetResources[targetResource{Kind: secretTarget, NamespacedName: namespacedName}] = true
 			}
 			if bundle.Spec.Target.ConfigMap != nil {
-				targetResources[configMapTarget][namespacedName] = true
+				targetResources[targetResource{Kind: configMapTarget, NamespacedName: namespacedName}] = true
 			}
 		}
 	}
@@ -251,8 +254,6 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		targetKinds = append(targetKinds, secretTarget)
 	}
 	for _, kind := range targetKinds {
-		targetLog := log.WithValues("kind", kind)
-
 		targetList := &metav1.PartialObjectMetadataList{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "v1",
@@ -265,20 +266,23 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 			}),
 		})
 		if err != nil {
-			targetLog.Error(err, "failed to list targets")
+			log.Error(err, "failed to list targets", "kind", kind)
 			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, fmt.Sprintf("%sListError", kind), "Failed to list %ss: %s", strings.ToLower(string(kind)), err)
 			return ctrl.Result{}, nil, fmt.Errorf("failed to list %ss: %w", kind, err)
 		}
 
 		for _, target := range targetList.Items {
-			key := types.NamespacedName{
-				Name:      target.Name,
-				Namespace: target.Namespace,
+			key := targetResource{
+				Kind: kind,
+				NamespacedName: types.NamespacedName{
+					Name:      target.Name,
+					Namespace: target.Namespace,
+				},
 			}
 
-			targetLog = targetLog.WithValues("target", key)
+			targetLog := log.WithValues("target", key)
 
-			if _, ok := targetResources[kind][key]; ok {
+			if _, ok := targetResources[key]; ok {
 				// This target is still a target, so we don't need to remove it.
 				continue
 			}
@@ -294,53 +298,50 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 				continue
 			}
 
-			targetResources[kind][key] = false
+			targetResources[key] = false
 		}
 	}
 
 	var needsUpdate bool
 
-	for kind, targets := range targetResources {
-		var syncFunc func(logr.Logger, types.NamespacedName, bool) (bool, error)
+	for target, shouldExist := range targetResources {
+		targetLog := log.WithValues("target", target)
+		var syncFunc func(logr.Logger, targetResource, bool) (bool, error)
 
-		if kind == configMapTarget {
-			syncFunc = func(targetLog logr.Logger, target types.NamespacedName, shouldExist bool) (bool, error) {
+		if target.Kind == configMapTarget {
+			syncFunc = func(targetLog logr.Logger, target targetResource, shouldExist bool) (bool, error) {
 				return b.syncConfigMapTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle, shouldExist)
 			}
 		}
-		if kind == secretTarget {
-			syncFunc = func(targetLog logr.Logger, target types.NamespacedName, shouldExist bool) (bool, error) {
+		if target.Kind == secretTarget {
+			syncFunc = func(targetLog logr.Logger, target targetResource, shouldExist bool) (bool, error) {
 				return b.syncSecretTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle, shouldExist)
 			}
 		}
 
-		for target, shouldExists := range targets {
-			targetLog := log.WithValues("kind", kind, "target", target)
+		synced, err := syncFunc(targetLog, target, shouldExist)
+		if err != nil {
+			targetLog.Error(err, "failed sync bundle to target namespace")
+			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, fmt.Sprintf("Sync%sTargetFailed", target.Kind), "Failed to sync target %s in Namespace %q: %s", target.Kind, target.Namespace, err)
 
-			synced, err := syncFunc(targetLog, target, shouldExists)
-			if err != nil {
-				targetLog.Error(err, "failed sync bundle to target namespace")
-				b.recorder.Eventf(&bundle, corev1.EventTypeWarning, fmt.Sprintf("Sync%sTargetFailed", kind), "Failed to sync target %s in Namespace %q: %s", kind, target.Namespace, err)
+			b.setBundleCondition(
+				bundle.Status.Conditions,
+				&statusPatch.Conditions,
+				trustapi.BundleCondition{
+					Type:               trustapi.BundleConditionSynced,
+					Status:             metav1.ConditionFalse,
+					Reason:             fmt.Sprintf("Sync%sTargetFailed", target.Kind),
+					Message:            fmt.Sprintf("Failed to sync bundle %s to namespace %q: %s", target.Kind, target.Namespace, err),
+					ObservedGeneration: bundle.Generation,
+				},
+			)
 
-				b.setBundleCondition(
-					bundle.Status.Conditions,
-					&statusPatch.Conditions,
-					trustapi.BundleCondition{
-						Type:               trustapi.BundleConditionSynced,
-						Status:             metav1.ConditionFalse,
-						Reason:             fmt.Sprintf("Sync%sTargetFailed", kind),
-						Message:            fmt.Sprintf("Failed to sync bundle %s to namespace %q: %s", kind, target.Namespace, err),
-						ObservedGeneration: bundle.Generation,
-					},
-				)
+			return ctrl.Result{Requeue: true}, statusPatch, nil
+		}
 
-				return ctrl.Result{Requeue: true}, statusPatch, nil
-			}
-
-			if synced {
-				// We need to update if any target is synced.
-				needsUpdate = true
-			}
+		if synced {
+			// We need to update if any target is synced.
+			needsUpdate = true
 		}
 	}
 
