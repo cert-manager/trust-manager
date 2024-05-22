@@ -52,31 +52,49 @@ var CommandAppendLayers = cobra.Command{
 		index, err := path.ImageIndex()
 		must("could not load oci image index", err)
 
-		indexMediaType, err := index.MediaType()
-		must("could not get image index media type", err)
-
-		layerType := types.DockerLayer
-		if indexMediaType == types.OCIImageIndex {
-			layerType = types.OCILayer
-		}
-
-		layers := []v1.Layer{}
+		layers := []untypedLayer{}
 		for _, path := range extra {
-			layers = append(layers, loadLayerFromDirOrTarball(path, layerType))
+			layers = append(layers, newUntypedLayerFromPath(path))
 		}
 
-		index = appendLayersToImageIndex(index, layers)
+		index = mutateImage(index, func(img v1.Image) v1.Image {
+			imgMediaType, err := img.MediaType()
+			must("could not get image media type", err)
+
+			layerType := types.DockerLayer
+			if imgMediaType == types.OCIManifestSchema1 {
+				layerType = types.OCILayer
+			}
+
+			for _, untypedLayer := range layers {
+				layer, err := untypedLayer.ToLayer(layerType)
+				must("could not load image layer", err)
+
+				img, err = mutate.AppendLayers(img, layer)
+				must("could not append layer", err)
+			}
+
+			return img
+		})
 
 		_, err = layout.Write(oci, index)
 		must("could not write image", err)
 	},
 }
 
-func loadLayerFromDirOrTarball(path string, mediaType types.MediaType) v1.Layer {
+type untypedLayer struct {
+	tarball tarball.Opener
+}
+
+func newUntypedLayer(tarball tarball.Opener) untypedLayer {
+	return untypedLayer{tarball: tarball}
+}
+
+func newUntypedLayerFromPath(path string) untypedLayer {
 	stat, err := os.Stat(path)
 	must("could not open directory or tarball", err)
 
-	var layer v1.Layer
+	var layer untypedLayer
 	if stat.IsDir() {
 		var buf bytes.Buffer
 
@@ -120,25 +138,29 @@ func loadLayerFromDirOrTarball(path string, mediaType types.MediaType) v1.Layer 
 
 		byts := buf.Bytes()
 
-		layer, err = tarball.LayerFromOpener(
+		layer = newUntypedLayer(
 			func() (io.ReadCloser, error) {
 				return io.NopCloser(bytes.NewReader(byts)), nil
 			},
-			tarball.WithMediaType(mediaType),
 		)
-
 	} else {
-		layer, err = tarball.LayerFromFile(
-			path,
-			tarball.WithMediaType(mediaType),
+		layer = newUntypedLayer(
+			func() (io.ReadCloser, error) {
+				return os.Open(path)
+			},
 		)
 	}
 
-	must("could not open directory or tarball", err)
 	return layer
 }
 
-func appendLayersToImageIndex(index v1.ImageIndex, layers []v1.Layer) v1.ImageIndex {
+func (ul untypedLayer) ToLayer(mediaType types.MediaType) (v1.Layer, error) {
+	return tarball.LayerFromOpener(ul.tarball, tarball.WithMediaType(mediaType))
+}
+
+type imageMutateFn func(index v1.Image) v1.Image
+
+func mutateImage(index v1.ImageIndex, fn imageMutateFn) v1.ImageIndex {
 	manifest, err := index.IndexManifest()
 	must("could not load oci image manifest", err)
 
@@ -150,8 +172,7 @@ func appendLayersToImageIndex(index v1.ImageIndex, layers []v1.Layer) v1.ImageIn
 			img, err := index.Image(descriptor.Digest)
 			must("could not load oci image with digest", err)
 
-			img, err = mutate.AppendLayers(img, layers...)
-			must("could not load append layer to image", err)
+			img = fn(img)
 
 			digest, err := img.Digest()
 			must("could not get image digest", err)
@@ -176,7 +197,7 @@ func appendLayersToImageIndex(index v1.ImageIndex, layers []v1.Layer) v1.ImageIn
 			child, err := index.ImageIndex(descriptor.Digest)
 			must("could not load oci index manifest", err)
 
-			child = appendLayersToImageIndex(child, layers)
+			child = mutateImage(child, fn)
 
 			digest, err := child.Digest()
 			must("could not get index digest", err)
