@@ -246,7 +246,11 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 	}
 
 	// Find all old existing target resources.
-	for _, kind := range []targetKind{configMapTarget, secretTarget} {
+	targetKinds := []targetKind{configMapTarget}
+	if b.Options.SecretTargetsEnabled {
+		targetKinds = append(targetKinds, secretTarget)
+	}
+	for _, kind := range targetKinds {
 		targetLog := log.WithValues("kind", kind)
 
 		targetList := &metav1.PartialObjectMetadataList{
