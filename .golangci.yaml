@@ -5,7 +5,6 @@ issues:
         - contextcheck
         - promlinter
         - containedctx
-        - gosec
         - unparam
         - dupword
       text: ".*"
