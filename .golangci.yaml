@@ -15,7 +15,6 @@ issues:
         - gocritic
         - gofmt
         - unconvert
-        - misspell
         - wastedassign
         - ineffassign
         - unused
