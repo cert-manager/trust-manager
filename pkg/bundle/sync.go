@@ -753,7 +753,7 @@ func deduplicateBundles(bundles []string) ([]string, error) {
 
 	LOOP:
 		for {
-			block, certBytes = pem.Decode([]byte(certBytes))
+			block, certBytes = pem.Decode(certBytes)
 			if block == nil {
 				break LOOP
 			}

@@ -13,7 +13,6 @@ issues:
         - gosec
         - unparam
         - gocritic
-        - unconvert
         - wastedassign
         - ineffassign
         - dupword
