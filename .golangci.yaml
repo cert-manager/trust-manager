@@ -4,7 +4,6 @@ issues:
         - errcheck
         - contextcheck
         - promlinter
-        - containedctx
         - unparam
         - dupword
       text: ".*"
