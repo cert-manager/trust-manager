@@ -5,7 +5,6 @@ issues:
         - contextcheck
         - promlinter
         - containedctx
-        - errorlint
         - gosec
         - unparam
         - dupword
