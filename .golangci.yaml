@@ -1,8 +1,3 @@
-issues:
-  exclude-rules:
-    - linters:
-        - dupword
-      text: ".*"
 linters:
   # Explicitly define all enabled linters
   disable-all: true

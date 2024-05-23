@@ -78,6 +78,7 @@ MEUCIQCeN2/Z7jSJJK7m7kcZ/UgJIqbzKS1ktycUQ50+dhqNogIgaTYRjIxZFJ3u
 VhGzjAqH8YyuEObapwh4bTZkapwoDZQ=
 -----END CERTIFICATE-----`
 
+	// nolint: dupword
 	// NB: TestCertificate2 is expected to have the following properties:
 	// 1. Same Subject as TestCertificate1
 	// 2. Self signed (issuer == subject)
