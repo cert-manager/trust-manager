@@ -35,13 +35,14 @@ type Options struct {
 func Register(mgr manager.Manager, opts Options) error {
 	opts.Log.Info("registering webhook endpoints")
 	validator := &validator{log: opts.Log.WithName("validation")}
-	err := builder.WebhookManagedBy(mgr).
+	if err := builder.WebhookManagedBy(mgr).
 		For(&trustapi.Bundle{}).
 		WithValidator(validator).
-		Complete()
-	if err != nil {
+		Complete(); err != nil {
 		return fmt.Errorf("error registering webhook: %v", err)
 	}
-	mgr.AddReadyzCheck("validator", mgr.GetWebhookServer().StartedChecker())
+	if err := mgr.AddReadyzCheck("validator", mgr.GetWebhookServer().StartedChecker()); err != nil {
+		return fmt.Errorf("error adding ready check: %v", err)
+	}
 	return nil
 }

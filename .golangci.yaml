@@ -1,7 +1,6 @@
 issues:
   exclude-rules:
     - linters:
-        - errcheck
         - promlinter
         - dupword
       text: ".*"
