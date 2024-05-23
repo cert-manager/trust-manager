@@ -16,7 +16,6 @@ issues:
         - gofmt
         - unconvert
         - misspell
-        - mirror
         - wastedassign
         - ineffassign
         - unused

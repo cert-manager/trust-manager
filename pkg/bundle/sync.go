@@ -233,7 +233,7 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 		if !ok {
 			return "", notFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, ref.Key)}
 		}
-		results.WriteString(string(data))
+		results.Write(data)
 		results.WriteByte('\n')
 	}
 	return results.String(), nil
