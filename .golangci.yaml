@@ -3,7 +3,6 @@ issues:
     - linters:
         - errcheck
         - promlinter
-        - unparam
         - dupword
       text: ".*"
 linters:

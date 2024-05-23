@@ -51,7 +51,7 @@ func (b *bundle) setBundleCondition(
 	existingConditions []trustapi.BundleCondition,
 	patchConditions *[]trustapi.BundleCondition,
 	newCondition trustapi.BundleCondition,
-) trustapi.BundleCondition {
+) trustapi.BundleCondition { // nolint:unparam
 	newCondition.LastTransitionTime = metav1.Time{Time: b.clock.Now()}
 
 	// Reset the LastTransitionTime if the status hasn't changed

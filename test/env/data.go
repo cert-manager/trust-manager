@@ -230,7 +230,7 @@ func CheckBundleSyncedStartsWith(ctx context.Context, cl client.Client, name str
 	})
 }
 
-func checkBundleSyncedAllNamespacesInternal(ctx context.Context, cl client.Client, bundleName string, checker func(namespace string) error) error {
+func checkBundleSyncedAllNamespacesInternal(ctx context.Context, cl client.Client, checker func(namespace string) error) error {
 	var namespaceList corev1.NamespaceList
 	if err := cl.List(ctx, &namespaceList); err != nil {
 		return fmt.Errorf("failed to list namespaces: %w", err)
@@ -258,14 +258,14 @@ func checkBundleSyncedAllNamespacesInternal(ctx context.Context, cl client.Clien
 
 // CheckBundleSyncedAllNamespaces calls CheckBundleSynced for all namespaces and returns an error if any of them failed
 func CheckBundleSyncedAllNamespaces(ctx context.Context, cl client.Client, name string, expectedData string) error {
-	return checkBundleSyncedAllNamespacesInternal(ctx, cl, name, func(namespace string) error {
+	return checkBundleSyncedAllNamespacesInternal(ctx, cl, func(namespace string) error {
 		return CheckBundleSynced(ctx, cl, name, namespace, expectedData)
 	})
 }
 
 // CheckBundleSyncedAllNamespacesStartsWith calls CheckBundleSyncedStartsWith for all namespaces and returns an error if any of them failed
 func CheckBundleSyncedAllNamespacesStartsWith(ctx context.Context, cl client.Client, name string, startingData string) error {
-	return checkBundleSyncedAllNamespacesInternal(ctx, cl, name, func(namespace string) error {
+	return checkBundleSyncedAllNamespacesInternal(ctx, cl, func(namespace string) error {
 		return CheckBundleSyncedStartsWith(ctx, cl, name, namespace, startingData)
 	})
 }
