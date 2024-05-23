@@ -4,7 +4,6 @@ issues:
         - errcheck
         - contextcheck
         - promlinter
-        - prealloc
         - containedctx
         - errorlint
         - gosec
