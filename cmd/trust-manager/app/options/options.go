@@ -26,12 +26,13 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 
 	"github.com/cert-manager/trust-manager/pkg/bundle"
+
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 // Options is a struct to hold options for trust-manager

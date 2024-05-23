@@ -20,11 +20,11 @@ import (
 	"flag"
 	"testing"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	"github.com/cert-manager/trust-manager/test/env"
 	"github.com/cert-manager/trust-manager/test/smoke/config"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var (
