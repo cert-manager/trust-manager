@@ -13,7 +13,6 @@ issues:
         - gosec
         - unparam
         - wastedassign
-        - ineffassign
         - dupword
       text: ".*"
 linters:
