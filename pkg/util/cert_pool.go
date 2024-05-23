@@ -38,14 +38,14 @@ func newCertPool(filterExpired bool) *certPool {
 }
 
 // Append certificate to a pool
-func (cp *certPool) appendCertFromPEM(PEMdata []byte) error {
-	if PEMdata == nil {
+func (cp *certPool) appendCertFromPEM(pemData []byte) error {
+	if pemData == nil {
 		return fmt.Errorf("certificate data can't be nil")
 	}
 
 	for {
 		var block *pem.Block
-		block, PEMdata = pem.Decode(PEMdata)
+		block, pemData = pem.Decode(pemData)
 
 		if block == nil {
 			break

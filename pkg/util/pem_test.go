@@ -205,6 +205,8 @@ gySihG5glByO5ZajFBNBIhjOF6+yfN1Bo5XjJ7bGwVIhGoRPHCtbvsnfuQ5ySz95
 CFD1BItRnQM=
 -----END CERTIFICATE-----`
 
+// #nosec G101 -- This is a test PK, ideally we would dynamically
+// generate this pair, but this should not be a security risk.
 const privateKey = `-----BEGIN EC PRIVATE KEY-----
 MHcCAQEEIHThSpdYMjW1k4K2r8RwhIGmknKrr0XKQLOJeL2fVoxToAoGCCqGSM49
 AwEHoUQDQgAEoMocv03WW/kCmyYM7CN7Ge7J5NOhJOKUYjF15NRBevWbxd8GYsvj

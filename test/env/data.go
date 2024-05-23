@@ -22,9 +22,6 @@ import (
 	"fmt"
 	"strings"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,6 +32,9 @@ import (
 	"github.com/cert-manager/trust-manager/pkg/bundle"
 	"github.com/cert-manager/trust-manager/pkg/util"
 	"github.com/cert-manager/trust-manager/test/dummy"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 const (
@@ -161,20 +161,21 @@ func checkBundleSyncedInternal(ctx context.Context, cl client.Client, bundleName
 	var bundle trustapi.Bundle
 	Expect(cl.Get(ctx, client.ObjectKey{Name: bundleName}, &bundle)).NotTo(HaveOccurred())
 
-	gotData := ""
-	if bundle.Spec.Target.ConfigMap != nil {
+	var gotData string
+	switch {
+	case bundle.Spec.Target.ConfigMap != nil:
 		var configMap corev1.ConfigMap
 		if err := cl.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bundle.Name}, &configMap); err != nil {
 			return fmt.Errorf("failed to get configMap %s/%s when checking bundle sync: %w", namespace, bundle.Name, err)
 		}
 		gotData = configMap.Data[bundle.Spec.Target.ConfigMap.Key]
-	} else if bundle.Spec.Target.Secret != nil {
+	case bundle.Spec.Target.Secret != nil:
 		var secret corev1.Secret
 		if err := cl.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bundle.Name}, &secret); err != nil {
 			return fmt.Errorf("failed to get secret %s/%s when checking bundle sync: %w", namespace, bundle.Name, err)
 		}
 		gotData = string(secret.Data[bundle.Spec.Target.Secret.Key])
-	} else {
+	default:
 		return fmt.Errorf("invalid bundle spec targets: %v", bundle.Spec.Target)
 	}
 
@@ -229,7 +230,7 @@ func CheckBundleSyncedStartsWith(ctx context.Context, cl client.Client, name str
 	})
 }
 
-func checkBundleSyncedAllNamespacesInternal(ctx context.Context, cl client.Client, bundleName string, checker func(namespace string) error) error {
+func checkBundleSyncedAllNamespacesInternal(ctx context.Context, cl client.Client, checker func(namespace string) error) error {
 	var namespaceList corev1.NamespaceList
 	if err := cl.List(ctx, &namespaceList); err != nil {
 		return fmt.Errorf("failed to list namespaces: %w", err)
@@ -257,14 +258,14 @@ func checkBundleSyncedAllNamespacesInternal(ctx context.Context, cl client.Clien
 
 // CheckBundleSyncedAllNamespaces calls CheckBundleSynced for all namespaces and returns an error if any of them failed
 func CheckBundleSyncedAllNamespaces(ctx context.Context, cl client.Client, name string, expectedData string) error {
-	return checkBundleSyncedAllNamespacesInternal(ctx, cl, name, func(namespace string) error {
+	return checkBundleSyncedAllNamespacesInternal(ctx, cl, func(namespace string) error {
 		return CheckBundleSynced(ctx, cl, name, namespace, expectedData)
 	})
 }
 
 // CheckBundleSyncedAllNamespacesStartsWith calls CheckBundleSyncedStartsWith for all namespaces and returns an error if any of them failed
 func CheckBundleSyncedAllNamespacesStartsWith(ctx context.Context, cl client.Client, name string, startingData string) error {
-	return checkBundleSyncedAllNamespacesInternal(ctx, cl, name, func(namespace string) error {
+	return checkBundleSyncedAllNamespacesInternal(ctx, cl, func(namespace string) error {
 		return CheckBundleSyncedStartsWith(ctx, cl, name, namespace, startingData)
 	})
 }

@@ -293,7 +293,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 				continue
 			}
 
-			if !metav1.IsControlledBy(&target, &bundle) {
+			if !metav1.IsControlledBy(&target, &bundle) /* #nosec G601 -- False positive. See https://github.com/golang/go/discussions/56010 */ {
 				targetLog.V(2).Info("skipping sync for target as it is not controlled by bundle")
 				continue
 			}

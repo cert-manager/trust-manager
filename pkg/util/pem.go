@@ -27,7 +27,7 @@ import (
 // only valid CERTIFICATE PEM blocks. If successful, returns the validated PEM blocks with any
 // comments or extra data stripped.
 
-// This validation is broadly similar to the standard library funtion
+// This validation is broadly similar to the standard library function
 // crypto/x509.CertPool.AppendCertsFromPEM - that is, we decode each PEM block at a time and parse
 // it as a certificate.
 

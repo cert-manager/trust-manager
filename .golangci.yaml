@@ -1,28 +1,3 @@
-issues:
-  exclude-rules:
-    - linters:
-        - errcheck
-        - typecheck
-        - staticcheck
-        - gosimple
-        - contextcheck
-        - promlinter
-        - prealloc
-        - containedctx
-        - gci
-        - errorlint
-        - gosec
-        - unparam
-        - gocritic
-        - gofmt
-        - unconvert
-        - misspell
-        - mirror
-        - wastedassign
-        - ineffassign
-        - unused
-        - dupword
-      text: ".*"
 linters:
   # Explicitly define all enabled linters
   disable-all: true

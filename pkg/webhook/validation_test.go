@@ -394,9 +394,9 @@ func Test_validate(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			log, ctx := ktesting.NewTestContext(t)
+			log, _ := ktesting.NewTestContext(t)
 			v := &validator{log: log}
-			gotWarnings, gotErr := v.validate(ctx, test.bundle)
+			gotWarnings, gotErr := v.validate(test.bundle)
 			if test.expErr == nil && gotErr != nil {
 				t.Errorf("got an unexpected error: %v", gotErr)
 			} else if test.expErr != nil && (gotErr == nil || *test.expErr != gotErr.Error()) {

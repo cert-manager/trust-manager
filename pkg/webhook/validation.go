@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"sync"
 
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,14 +33,12 @@ import (
 // validator validates against trust.cert-manager.io resources.
 type validator struct {
 	log logr.Logger
-
-	lock sync.RWMutex
 }
 
 var _ admission.CustomValidator = &validator{}
 
 func (v *validator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	return v.validate(ctx, obj)
+	return v.validate(obj)
 }
 
 func (v *validator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
@@ -68,7 +65,7 @@ func (v *validator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.O
 		el = append(el, field.Invalid(path.Child("target", "secret"), "", "target secret removal is not allowed"))
 		return nil, el.ToAggregate()
 	}
-	return v.validate(ctx, newObj)
+	return v.validate(newObj)
 }
 
 func (v *validator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
@@ -76,7 +73,7 @@ func (v *validator) ValidateDelete(ctx context.Context, obj runtime.Object) (adm
 	return nil, nil
 }
 
-func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *validator) validate(obj runtime.Object) (admission.Warnings, error) {
 	bundle, ok := obj.(*trustapi.Bundle)
 	if !ok {
 		return nil, fmt.Errorf("expected a Bundle, but got a %T", obj)

@@ -26,6 +26,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/go-logr/logr"
+	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,8 +44,6 @@ import (
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
 	"github.com/cert-manager/trust-manager/pkg/util"
-	"github.com/go-logr/logr"
-	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 )
 
 const (
@@ -233,7 +233,7 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 		if !ok {
 			return "", notFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, ref.Key)}
 		}
-		results.WriteString(string(data))
+		results.Write(data)
 		results.WriteByte('\n')
 	}
 	return results.String(), nil
@@ -753,7 +753,7 @@ func deduplicateBundles(bundles []string) ([]string, error) {
 
 	LOOP:
 		for {
-			block, certBytes = pem.Decode([]byte(certBytes))
+			block, certBytes = pem.Decode(certBytes)
 			if block == nil {
 				break LOOP
 			}

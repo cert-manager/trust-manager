@@ -140,12 +140,14 @@ func NewCommand() *cobra.Command {
 			}
 
 			// Add readiness check that the manager's informers have been synced.
-			mgr.AddReadyzCheck("informers_synced", func(req *http.Request) error {
+			if err := mgr.AddReadyzCheck("informers_synced", func(req *http.Request) error {
 				if mgr.GetCache().WaitForCacheSync(req.Context()) {
 					return nil
 				}
 				return errors.New("informers not synced")
-			})
+			}); err != nil {
+				return fmt.Errorf("failed to add readiness check: %w", err)
+			}
 
 			ctx := ctrl.SetupSignalHandler()
 
@@ -155,7 +157,9 @@ func NewCommand() *cobra.Command {
 			}
 
 			// Register webhook handlers with manager.
-			webhook.Register(mgr, webhook.Options{Log: opts.Logr.WithName("webhook")})
+			if err := webhook.Register(mgr, webhook.Options{Log: opts.Logr.WithName("webhook")}); err != nil {
+				return fmt.Errorf("failed to register webhook: %w", err)
+			}
 
 			// Start all runnables and controller
 			return mgr.Start(ctx)
