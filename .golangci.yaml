@@ -17,7 +17,6 @@ issues:
         - unconvert
         - wastedassign
         - ineffassign
-        - unused
         - dupword
       text: ".*"
 linters:

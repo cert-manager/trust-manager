@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"sync"
 
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,8 +33,6 @@ import (
 // validator validates against trust.cert-manager.io resources.
 type validator struct {
 	log logr.Logger
-
-	lock sync.RWMutex
 }
 
 var _ admission.CustomValidator = &validator{}
