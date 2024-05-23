@@ -161,7 +161,7 @@ func checkBundleSyncedInternal(ctx context.Context, cl client.Client, bundleName
 	var bundle trustapi.Bundle
 	Expect(cl.Get(ctx, client.ObjectKey{Name: bundleName}, &bundle)).NotTo(HaveOccurred())
 
-	gotData := ""
+	var gotData string
 	switch {
 	case bundle.Spec.Target.ConfigMap != nil:
 		var configMap corev1.ConfigMap

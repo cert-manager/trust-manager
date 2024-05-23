@@ -12,7 +12,6 @@ issues:
         - errorlint
         - gosec
         - unparam
-        - wastedassign
         - dupword
       text: ".*"
 linters:
