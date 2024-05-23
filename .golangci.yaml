@@ -2,7 +2,6 @@ issues:
   exclude-rules:
     - linters:
         - errcheck
-        - contextcheck
         - promlinter
         - unparam
         - dupword
