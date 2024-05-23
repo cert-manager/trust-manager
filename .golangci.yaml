@@ -12,7 +12,6 @@ issues:
         - errorlint
         - gosec
         - unparam
-        - gocritic
         - wastedassign
         - ineffassign
         - dupword

@@ -162,19 +162,20 @@ func checkBundleSyncedInternal(ctx context.Context, cl client.Client, bundleName
 	Expect(cl.Get(ctx, client.ObjectKey{Name: bundleName}, &bundle)).NotTo(HaveOccurred())
 
 	gotData := ""
-	if bundle.Spec.Target.ConfigMap != nil {
+	switch {
+	case bundle.Spec.Target.ConfigMap != nil:
 		var configMap corev1.ConfigMap
 		if err := cl.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bundle.Name}, &configMap); err != nil {
 			return fmt.Errorf("failed to get configMap %s/%s when checking bundle sync: %w", namespace, bundle.Name, err)
 		}
 		gotData = configMap.Data[bundle.Spec.Target.ConfigMap.Key]
-	} else if bundle.Spec.Target.Secret != nil {
+	case bundle.Spec.Target.Secret != nil:
 		var secret corev1.Secret
 		if err := cl.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bundle.Name}, &secret); err != nil {
 			return fmt.Errorf("failed to get secret %s/%s when checking bundle sync: %w", namespace, bundle.Name, err)
 		}
 		gotData = string(secret.Data[bundle.Spec.Target.Secret.Key])
-	} else {
+	default:
 		return fmt.Errorf("invalid bundle spec targets: %v", bundle.Spec.Target)
 	}
 
