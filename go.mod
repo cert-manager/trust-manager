@@ -17,7 +17,7 @@ require (
 	k8s.io/component-base v0.30.1
 	k8s.io/klog/v2 v2.120.1
 	k8s.io/utils v0.0.0-20231127182322-b307cd553661
-	sigs.k8s.io/controller-runtime v0.18.3
+	sigs.k8s.io/controller-runtime v0.18.4
 	sigs.k8s.io/structured-merge-diff v1.0.2
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1
 	software.sslmate.com/src/go-pkcs12 v0.4.0
