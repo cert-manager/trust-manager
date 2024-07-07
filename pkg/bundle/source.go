@@ -62,11 +62,11 @@ type bundleData struct {
 // buildSourceBundle retrieves and concatenates all source bundle data for this Bundle object.
 // Each source data is validated and pruned to ensure that all certificates within are valid, and
 // is each bundle is concatenated together with a new line character.
-func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle) (bundleData, error) {
+func (b *bundle) buildSourceBundle(ctx context.Context, sources []trustapi.BundleSource, formats *trustapi.AdditionalFormats) (bundleData, error) {
 	var resolvedBundle bundleData
 	var bundles []string
 
-	for _, source := range bundle.Spec.Sources {
+	for _, source := range sources {
 		var (
 			sourceData string
 			err        error
@@ -119,7 +119,7 @@ func (b *bundle) buildSourceBundle(ctx context.Context, bundle *trustapi.Bundle)
 		return bundleData{}, err
 	}
 
-	if err := resolvedBundle.populateData(deduplicatedBundles, bundle.Spec.Target); err != nil {
+	if err := resolvedBundle.populateData(deduplicatedBundles, formats); err != nil {
 		return bundleData{}, err
 	}
 
@@ -318,26 +318,26 @@ func (e pkcs12Encoder) encode(trustBundle string) ([]byte, error) {
 	return encoder.EncodeTrustStoreEntries(entries, e.password)
 }
 
-func (b *bundleData) populateData(bundles []string, target trustapi.BundleTarget) error {
+func (b *bundleData) populateData(bundles []string, formats *trustapi.AdditionalFormats) error {
 	b.data = strings.Join(bundles, "\n") + "\n"
 
-	if target.AdditionalFormats != nil {
+	if formats != nil {
 		b.binaryData = make(map[string][]byte)
 
-		if target.AdditionalFormats.JKS != nil {
-			encoded, err := jksEncoder{password: *target.AdditionalFormats.JKS.Password}.encode(b.data)
+		if formats.JKS != nil {
+			encoded, err := jksEncoder{password: *formats.JKS.Password}.encode(b.data)
 			if err != nil {
 				return fmt.Errorf("failed to encode JKS: %w", err)
 			}
-			b.binaryData[target.AdditionalFormats.JKS.Key] = encoded
+			b.binaryData[formats.JKS.Key] = encoded
 		}
 
-		if target.AdditionalFormats.PKCS12 != nil {
-			encoded, err := pkcs12Encoder{password: *target.AdditionalFormats.PKCS12.Password}.encode(b.data)
+		if formats.PKCS12 != nil {
+			encoded, err := pkcs12Encoder{password: *formats.PKCS12.Password}.encode(b.data)
 			if err != nil {
 				return fmt.Errorf("failed to encode PKCS12: %w", err)
 			}
-			b.binaryData[target.AdditionalFormats.PKCS12.Key] = encoded
+			b.binaryData[formats.PKCS12.Key] = encoded
 		}
 	}
 	return nil
