@@ -482,8 +482,8 @@ z40l74JcR+GvcFZWz7/jmJq95YMZ7LawLAr1CaAXxCwsoLbJpbgg4lVo6odACzY=
 
 func DefaultJoinedCerts() string {
 	return JoinCerts(
-		TestCertificate1,
 		TestCertificate2,
+		TestCertificate1,
 		TestCertificate3,
 	)
 }

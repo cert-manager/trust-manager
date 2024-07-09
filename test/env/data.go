@@ -19,6 +19,7 @@ package env
 import (
 	"bytes"
 	"context"
+	"encoding/pem"
 	"fmt"
 	"strings"
 
@@ -209,21 +210,49 @@ func CheckBundleSynced(ctx context.Context, cl client.Client, bundleName string,
 	})
 }
 
-// CheckBundleSyncedStartsWith is similar to CheckBundleSynced but only checks that the synced bundle starts with the given data,
+// CheckBundleSyncedContains is similar to CheckBundleSynced but only checks that the synced bundle contains the given data,
 // along with checking that the rest of the data contains at least one valid certificate
-func CheckBundleSyncedStartsWith(ctx context.Context, cl client.Client, name string, namespace string, startingData string) error {
+func CheckBundleSyncedContains(ctx context.Context, cl client.Client, name string, namespace string, containedData string) error {
 	return checkBundleSyncedInternal(ctx, cl, name, namespace, func(got string) error {
-		if !strings.HasPrefix(got, startingData) {
-			return fmt.Errorf("received data didn't start with expected data")
+		var block *pem.Block
+		certBytes := []byte(containedData)
+
+		for {
+			block, certBytes = pem.Decode(certBytes)
+			if block == nil {
+				break
+			}
+
+			if block.Type != "CERTIFICATE" {
+				return fmt.Errorf("couldn't decode PEM block containing certificate")
+			}
+
+			if !(strings.Contains(got, string(bytes.Trim(pem.EncodeToMemory(block), "\n")))) {
+				return fmt.Errorf("did not find all certs")
+			}
 		}
 
-		remaining := strings.TrimPrefix(got, startingData)
-
+		certBytes = []byte(got)
 		// check that there are a nonzero number of valid certs remaining
+		found := false
 
-		_, err := util.ValidateAndSanitizePEMBundle([]byte(remaining))
-		if err != nil {
-			return fmt.Errorf("received data didn't have any valid certs after valid starting data: %w", err)
+		for {
+			block, certBytes = pem.Decode(certBytes)
+			if block == nil {
+				break
+			}
+
+			if block.Type != "CERTIFICATE" {
+				return fmt.Errorf("couldn't decode PEM block containing certificate")
+			}
+
+			if strings.Contains(containedData, string(bytes.Trim(pem.EncodeToMemory(block), "\n"))) {
+				found = true
+			}
+		}
+
+		if !found {
+			return fmt.Errorf("did not find additional valid certs")
 		}
 
 		return nil
@@ -263,10 +292,10 @@ func CheckBundleSyncedAllNamespaces(ctx context.Context, cl client.Client, name 
 	})
 }
 
-// CheckBundleSyncedAllNamespacesStartsWith calls CheckBundleSyncedStartsWith for all namespaces and returns an error if any of them failed
-func CheckBundleSyncedAllNamespacesStartsWith(ctx context.Context, cl client.Client, name string, startingData string) error {
+// CheckBundleSyncedAllNamespacesContains calls CheckBundleSyncedContains for all namespaces and returns an error if any of them failed
+func CheckBundleSyncedAllNamespacesContains(ctx context.Context, cl client.Client, name string, containedData string) error {
 	return checkBundleSyncedAllNamespacesInternal(ctx, cl, func(namespace string) error {
-		return CheckBundleSyncedStartsWith(ctx, cl, name, namespace, startingData)
+		return CheckBundleSyncedContains(ctx, cl, name, namespace, containedData)
 	})
 }
 
@@ -281,14 +310,14 @@ func EventuallyBundleHasSyncedToNamespace(ctx context.Context, cl client.Client,
 	).Should(BeNil(), fmt.Sprintf("checking bundle %s has synced to namespace %s", bundleName, namespace))
 }
 
-// EventuallyBundleHasSyncedToNamespaceStartsWith tries to assert that the given bundle is synced correctly to the given namespace
+// EventuallyBundleHasSyncedToNamespaceContains tries to assert that the given bundle is synced correctly to the given namespace
 // until either the assertion passes or the timeout is triggered
-func EventuallyBundleHasSyncedToNamespaceStartsWith(ctx context.Context, cl client.Client, bundleName string, namespace string, startingData string) {
+func EventuallyBundleHasSyncedToNamespaceContains(ctx context.Context, cl client.Client, bundleName string, namespace string, containedData string) {
 	Eventually(
-		CheckBundleSyncedStartsWith,
+		CheckBundleSyncedContains,
 		EventuallyTimeout, EventuallyPollInterval, ctx,
 	).WithArguments(
-		ctx, cl, bundleName, namespace, startingData,
+		ctx, cl, bundleName, namespace, containedData,
 	).Should(BeNil(), fmt.Sprintf("checking bundle %s has synced to namespace %s", bundleName, namespace))
 }
 
@@ -303,14 +332,14 @@ func EventuallyBundleHasSyncedAllNamespaces(ctx context.Context, cl client.Clien
 	).Should(BeNil(), fmt.Sprintf("checking bundle %s has synced to all namespaces", bundleName))
 }
 
-// EventuallyBundleHasSyncedAllNamespacesStartsWith tries to assert that the given bundle is synced correctly to every namespace
+// EventuallyBundleHasSyncedAllNamespacesContains tries to assert that the given bundle is synced correctly to every namespace
 // until either the assertion passes or the timeout is triggered
-func EventuallyBundleHasSyncedAllNamespacesStartsWith(ctx context.Context, cl client.Client, bundleName string, startingData string) {
+func EventuallyBundleHasSyncedAllNamespacesContains(ctx context.Context, cl client.Client, bundleName string, containedData string) {
 	Eventually(
-		CheckBundleSyncedAllNamespacesStartsWith,
+		CheckBundleSyncedAllNamespacesContains,
 		EventuallyTimeout, EventuallyPollInterval, ctx,
 	).WithArguments(
-		ctx, cl, bundleName, startingData,
+		ctx, cl, bundleName, containedData,
 	).Should(BeNil(), fmt.Sprintf("checking bundle %s has synced to all namespaces with correct starting data", bundleName))
 }
 
