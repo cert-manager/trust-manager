@@ -376,6 +376,20 @@ Timeout of webhook HTTP request.
 > ```
 
 The type of Kubernetes Service used by the Webhook.
+#### **app.webhook.service.ipFamilyPolicy** ~ `string`
+> Default value:
+> ```yaml
+> ""
+> ```
+
+Set the ip family policy to configure dual-stack see [Configure dual-stack](https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services)
+#### **app.webhook.service.ipFamilies** ~ `array`
+> Default value:
+> ```yaml
+> []
+> ```
+
+Sets the families that should be supported and the order in which they should be applied to ClusterIP as well. Can be IPv4 and/or IPv6.
 #### **app.webhook.service.nodePort** ~ `number`
 
 The nodePort set on the Service used by the webhook.
@@ -431,6 +445,20 @@ Create a Service resource to expose the metrics endpoint.
 > ```
 
 The Service type to expose metrics.
+#### **app.metrics.service.ipFamilyPolicy** ~ `string`
+> Default value:
+> ```yaml
+> ""
+> ```
+
+Set the ip family policy to configure dual-stack see [Configure dual-stack](https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services)
+#### **app.metrics.service.ipFamilies** ~ `array`
+> Default value:
+> ```yaml
+> []
+> ```
+
+Sets the families that should be supported and the order in which they should be applied to ClusterIP as well. Can be IPv4 and/or IPv6.
 #### **app.metrics.service.servicemonitor.enabled** ~ `bool`
 > Default value:
 > ```yaml

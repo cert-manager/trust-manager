@@ -131,6 +131,12 @@
         "enabled": {
           "$ref": "#/$defs/helm-values.app.metrics.service.enabled"
         },
+        "ipFamilies": {
+          "$ref": "#/$defs/helm-values.app.metrics.service.ipFamilies"
+        },
+        "ipFamilyPolicy": {
+          "$ref": "#/$defs/helm-values.app.metrics.service.ipFamilyPolicy"
+        },
         "servicemonitor": {
           "$ref": "#/$defs/helm-values.app.metrics.service.servicemonitor"
         },
@@ -144,6 +150,17 @@
       "description": "Create a Service resource to expose the metrics endpoint.",
       "type": "boolean",
       "default": true
+    },
+    "helm-values.app.metrics.service.ipFamilies": {
+      "default": [],
+      "description": "Sets the families that should be supported and the order in which they should be applied to ClusterIP as well. Can be IPv4 and/or IPv6.",
+      "items": {},
+      "type": "array"
+    },
+    "helm-values.app.metrics.service.ipFamilyPolicy": {
+      "default": "",
+      "description": "Set the ip family policy to configure dual-stack see [Configure dual-stack](https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services)",
+      "type": "string"
     },
     "helm-values.app.metrics.service.servicemonitor": {
       "type": "object",
@@ -298,6 +315,12 @@
     "helm-values.app.webhook.service": {
       "type": "object",
       "properties": {
+        "ipFamilies": {
+          "$ref": "#/$defs/helm-values.app.webhook.service.ipFamilies"
+        },
+        "ipFamilyPolicy": {
+          "$ref": "#/$defs/helm-values.app.webhook.service.ipFamilyPolicy"
+        },
         "nodePort": {
           "$ref": "#/$defs/helm-values.app.webhook.service.nodePort"
         },
@@ -306,6 +329,17 @@
         }
       },
       "additionalProperties": false
+    },
+    "helm-values.app.webhook.service.ipFamilies": {
+      "default": [],
+      "description": "Sets the families that should be supported and the order in which they should be applied to ClusterIP as well. Can be IPv4 and/or IPv6.",
+      "items": {},
+      "type": "array"
+    },
+    "helm-values.app.webhook.service.ipFamilyPolicy": {
+      "default": "",
+      "description": "Set the ip family policy to configure dual-stack see [Configure dual-stack](https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services)",
+      "type": "string"
     },
     "helm-values.app.webhook.service.nodePort": {
       "description": "The nodePort set on the Service used by the webhook.",
