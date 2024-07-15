@@ -110,7 +110,7 @@ func testBundleCommon(ctx context.Context, cl client.Client, testBundle *trustap
 
 	Expect(cl.Update(ctx, &configMap)).NotTo(HaveOccurred())
 
-	env.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate4, dummy.TestCertificate2, dummy.TestCertificate3))
+	env.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate4, dummy.TestCertificate3))
 
 	By("Ensuring targets update when a Secret source is updated")
 	var secret corev1.Secret
@@ -121,7 +121,7 @@ func testBundleCommon(ctx context.Context, cl client.Client, testBundle *trustap
 
 	Expect(cl.Update(ctx, &secret)).NotTo(HaveOccurred())
 
-	env.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate4, dummy.TestCertificate1, dummy.TestCertificate3))
+	env.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3))
 
 	By("Ensuring targets update when an InLine source is updated")
 	Expect(cl.Get(ctx, client.ObjectKey{Name: testBundle.Name}, testBundle)).NotTo(HaveOccurred())
@@ -130,7 +130,7 @@ func testBundleCommon(ctx context.Context, cl client.Client, testBundle *trustap
 
 	Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
-	newBundle := dummy.JoinCerts(dummy.TestCertificate4, dummy.TestCertificate1, dummy.TestCertificate2)
+	newBundle := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4)
 
 	env.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, newBundle)
 
@@ -141,14 +141,14 @@ func testBundleCommon(ctx context.Context, cl client.Client, testBundle *trustap
 
 	Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
-	env.EventuallyBundleHasSyncedAllNamespacesStartsWith(ctx, cl, testBundle.Name, newBundle)
+	env.EventuallyBundleHasSyncedAllNamespacesContains(ctx, cl, testBundle.Name, newBundle)
 
 	By("Ensuring targets update when a Namespace is created")
 	testNamespace := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{GenerateName: "trust-test-smoke-random-namespace-"}}
 
 	Expect(cl.Create(ctx, &testNamespace)).NotTo(HaveOccurred())
 
-	env.EventuallyBundleHasSyncedToNamespaceStartsWith(ctx, cl, testBundle.Name, testNamespace.Name, newBundle)
+	env.EventuallyBundleHasSyncedToNamespaceContains(ctx, cl, testBundle.Name, testNamespace.Name, newBundle)
 
 	By("Setting Namespace Selector should remove Secrets from Namespaces that do not have a match")
 	Expect(cl.Get(ctx, client.ObjectKey{Name: testBundle.Name}, testBundle)).NotTo(HaveOccurred())
@@ -177,7 +177,7 @@ func testBundleCommon(ctx context.Context, cl client.Client, testBundle *trustap
 
 	Expect(cl.Update(ctx, &testNamespace)).NotTo(HaveOccurred())
 
-	env.EventuallyBundleHasSyncedToNamespaceStartsWith(ctx, cl, testBundle.Name, testNamespace.Name, newBundle)
+	env.EventuallyBundleHasSyncedToNamespaceContains(ctx, cl, testBundle.Name, testNamespace.Name, newBundle)
 
 	By("Deleting test Namespace")
 	Expect(cl.Delete(ctx, &testNamespace)).NotTo(HaveOccurred())

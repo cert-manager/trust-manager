@@ -172,7 +172,7 @@ var _ = Describe("Integration", func() {
 			})
 		})()).To(Succeed())
 
-		expectedData := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate4)
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3)
 
 		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
@@ -194,7 +194,7 @@ var _ = Describe("Integration", func() {
 			})
 		})()).To(Succeed())
 
-		expectedData := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate4)
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3)
 
 		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
@@ -206,7 +206,7 @@ var _ = Describe("Integration", func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{InLine: &newInLine})
 		})()).To(Succeed())
 
-		expectedData := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate4)
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3)
 
 		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
@@ -216,7 +216,7 @@ var _ = Describe("Integration", func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{UseDefaultCAs: ptr.To(true)})
 		})()).To(Succeed())
 
-		expectedData := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5)
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3, dummy.TestCertificate5)
 		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
 
@@ -251,7 +251,7 @@ var _ = Describe("Integration", func() {
 			}
 		})()).To(Succeed())
 
-		expectedData := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2)
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1)
 
 		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
@@ -265,7 +265,7 @@ var _ = Describe("Integration", func() {
 
 		Expect(cl.Update(ctx, &configMap)).NotTo(HaveOccurred())
 
-		expectedData := dummy.JoinCerts(dummy.TestCertificate4, dummy.TestCertificate2, dummy.TestCertificate3)
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate4, dummy.TestCertificate3)
 
 		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
@@ -291,7 +291,7 @@ var _ = Describe("Integration", func() {
 			testBundle.Spec.Sources[2].InLine = &newInLine
 		})()).To(Succeed())
 
-		expectedData := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate4)
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4)
 
 		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})

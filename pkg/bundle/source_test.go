@@ -61,7 +61,7 @@ func Test_buildSourceBundle(t *testing.T) {
 				{InLine: ptr.To(dummy.TestCertificate1 + "\n" + dummy.TestCertificate2 + "\n\n")},
 			},
 			objects:          []runtime.Object{},
-			expData:          dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2),
+			expData:          dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1),
 			expError:         false,
 			expNotFoundError: false,
 		},
@@ -98,7 +98,20 @@ func Test_buildSourceBundle(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
 				Data:       map[string]string{"key": dummy.TestCertificate1 + "\n" + dummy.TestCertificate2},
 			}},
-			expData:          dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2),
+			expData:          dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1),
+			expError:         false,
+			expNotFoundError: false,
+		},
+		"if single ConfigMap source, return data even when order changes": {
+			// Test uses the same data as the previous one but with different order
+			sources: []trustapi.BundleSource{
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", KeySelector: trustapi.KeySelector{Key: "key"}}},
+			},
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				Data:       map[string]string{"key": dummy.TestCertificate2 + "\n" + dummy.TestCertificate1},
+			}},
+			expData:          dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1),
 			expError:         false,
 			expNotFoundError: false,
 		},
@@ -111,7 +124,7 @@ func Test_buildSourceBundle(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
 				Data:       map[string]string{"key": dummy.TestCertificate1},
 			}},
-			expData:          dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2),
+			expData:          dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1),
 			expError:         false,
 			expNotFoundError: false,
 		},
@@ -141,7 +154,7 @@ func Test_buildSourceBundle(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
 				Data:       map[string][]byte{"key": []byte(dummy.TestCertificate1 + "\n" + dummy.TestCertificate2)},
 			}},
-			expData:          dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2),
+			expData:          dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1),
 			expError:         false,
 			expNotFoundError: false,
 		},
@@ -174,7 +187,7 @@ func Test_buildSourceBundle(t *testing.T) {
 					Data:       map[string][]byte{"key": []byte(dummy.TestCertificate2)},
 				},
 			},
-			expData:          dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate3, dummy.TestCertificate2),
+			expData:          dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3),
 			expError:         false,
 			expNotFoundError: false,
 		},
@@ -444,13 +457,13 @@ func TestBundlesDeduplication(t *testing.T) {
 				dummy.TestCertificate2,
 			},
 			testBundle: []string{
-				dummy.TestCertificate1,
 				dummy.TestCertificate2,
+				dummy.TestCertificate1,
 			},
 		},
 		"no certs in sources": {
 			bundle:     []string{},
-			testBundle: []string{},
+			testBundle: nil,
 		},
 		"single cert in the first source, joined certs in the second source": {
 			bundle: []string{
@@ -468,8 +481,8 @@ func TestBundlesDeduplication(t *testing.T) {
 				dummy.TestCertificate1,
 			},
 			testBundle: []string{
-				dummy.TestCertificate3,
 				dummy.TestCertificate1,
+				dummy.TestCertificate3,
 			},
 		},
 		"joined, different certs in the first source; joined,different certs in the second source": {
@@ -478,8 +491,8 @@ func TestBundlesDeduplication(t *testing.T) {
 				dummy.JoinCerts(dummy.TestCertificate4, dummy.TestCertificate5),
 			},
 			testBundle: []string{
-				dummy.TestCertificate1,
 				dummy.TestCertificate2,
+				dummy.TestCertificate1,
 				dummy.TestCertificate4,
 				dummy.TestCertificate5,
 			},
@@ -499,12 +512,12 @@ func TestBundlesDeduplication(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			resultBundle, err := deduplicateBundles(test.bundle)
+			resultBundle, err := deduplicateAndSortBundles(test.bundle)
 
 			assert.Nil(t, err)
 
 			// check certificates bundle for duplicated certificates
-			assert.ElementsMatch(t, test.testBundle, resultBundle)
+			assert.Equal(t, test.testBundle, resultBundle)
 		})
 	}
 }

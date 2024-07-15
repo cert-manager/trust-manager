@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
+	"slices"
 	"strings"
 
 	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
@@ -114,7 +115,7 @@ func (b *bundle) buildSourceBundle(ctx context.Context, sources []trustapi.Bundl
 		return bundleData{}, fmt.Errorf("couldn't find any valid certificates in bundle")
 	}
 
-	deduplicatedBundles, err := deduplicateBundles(bundles)
+	deduplicatedBundles, err := deduplicateAndSortBundles(bundles)
 	if err != nil {
 		return bundleData{}, err
 	}
@@ -343,21 +344,19 @@ func (b *bundleData) populateData(bundles []string, formats *trustapi.Additional
 	return nil
 }
 
-// remove duplicate certificates from bundles
-func deduplicateBundles(bundles []string) ([]string, error) {
+// remove duplicate certificates from bundles and sort certificates by hash
+func deduplicateAndSortBundles(bundles []string) ([]string, error) {
 	var block *pem.Block
 
-	var certificatesHashes = make(map[[32]byte]struct{})
-	var dedupCerts []string
+	var certificatesHashes = make(map[[32]byte]string)
 
 	for _, cert := range bundles {
 		certBytes := []byte(cert)
 
-	LOOP:
 		for {
 			block, certBytes = pem.Decode(certBytes)
 			if block == nil {
-				break LOOP
+				break
 			}
 
 			if block.Type != "CERTIFICATE" {
@@ -369,12 +368,23 @@ func deduplicateBundles(bundles []string) ([]string, error) {
 			// check existence of the hash
 			if _, ok := certificatesHashes[hash]; !ok {
 				// neew to trim a newline which is added by Encoder
-				dedupCerts = append(dedupCerts, string(bytes.Trim(pem.EncodeToMemory(block), "\n")))
-				certificatesHashes[hash] = struct{}{}
+				certificatesHashes[hash] = string(bytes.Trim(pem.EncodeToMemory(block), "\n"))
 			}
 		}
-
 	}
 
-	return dedupCerts, nil
+	var orderedKeys [][32]byte
+	for key := range certificatesHashes {
+		orderedKeys = append(orderedKeys, key)
+	}
+	slices.SortFunc(orderedKeys, func(a, b [32]byte) int {
+		return bytes.Compare(a[:], b[:])
+	})
+
+	var sortedDeduplicatedCerts []string
+	for _, key := range orderedKeys {
+		sortedDeduplicatedCerts = append(sortedDeduplicatedCerts, certificatesHashes[key])
+	}
+
+	return sortedDeduplicatedCerts, nil
 }
