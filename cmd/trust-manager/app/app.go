@@ -80,6 +80,8 @@ func NewCommand() *cobra.Command {
 				LeaderElection:                true,
 				LeaderElectionID:              "trust-manager-leader-election",
 				LeaderElectionReleaseOnCancel: true,
+				LeaseDuration:                 &opts.LeaseDuration,
+				RenewDeadline:                 &opts.RenewDeadline,
 				ReadinessEndpointName:         opts.ReadyzPath,
 				HealthProbeBindAddress:        fmt.Sprintf("0.0.0.0:%d", opts.ReadyzPort),
 				WebhookServer: ctrlwebhook.NewServer(ctrlwebhook.Options{
