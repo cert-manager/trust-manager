@@ -616,34 +616,3 @@ endif
 ## Download and setup all tools
 ## @category [shared] Tools
 tools: $(tools_paths)
-
-self_file := $(dir $(lastword $(MAKEFILE_LIST)))/00_mod.mk
-
-# see https://stackoverflow.com/a/53408233
-sed_inplace := sed -i''
-ifeq ($(HOST_OS),darwin)
-	sed_inplace := sed -i ''
-endif
-
-# This target is used to learn the sha256sum of the tools. It is used only
-# in the makefile-modules repo, and should not be used in any other repo.
-.PHONY: tools-learn-sha
-tools-learn-sha: | $(bin_dir)
-	rm -rf ./$(bin_dir)/
-	mkdir -p ./$(bin_dir)/scratch/
-	$(eval export LEARN_FILE=$(CURDIR)/$(bin_dir)/scratch/learn_tools_file)
-	echo -n "" > "$(LEARN_FILE)"
-
-	HOST_OS=linux HOST_ARCH=amd64 $(MAKE) tools
-	HOST_OS=linux HOST_ARCH=arm64 $(MAKE) tools
-	HOST_OS=darwin HOST_ARCH=amd64 $(MAKE) tools
-	HOST_OS=darwin HOST_ARCH=arm64 $(MAKE) tools
-
-	HOST_OS=linux HOST_ARCH=amd64 $(MAKE) vendor-go
-	HOST_OS=linux HOST_ARCH=arm64 $(MAKE) vendor-go
-	HOST_OS=darwin HOST_ARCH=amd64 $(MAKE) vendor-go
-	HOST_OS=darwin HOST_ARCH=arm64 $(MAKE) vendor-go
-
-	while read p; do \
-		$(sed_inplace) "$$p" $(self_file); \
-	done <"$(LEARN_FILE)"
