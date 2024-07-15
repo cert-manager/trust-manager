@@ -9,6 +9,12 @@ metadata:
     {{- include "trust-manager.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.app.metrics.service.type }}
+  {{- if .Values.app.metrics.service.ipFamilyPolicy }}
+  ipFamilyPolicy: {{ .Values.app.metrics.service.ipFamilyPolicy }}
+  {{- end }}
+  {{- if .Values.app.metrics.service.ipFamilies }}
+  ipFamilies: {{ .Values.app.metrics.service.ipFamilies | toYaml | nindent 2 }}
+  {{- end }}
   ports:
     - port: {{ .Values.app.metrics.port }}
       targetPort: {{ .Values.app.metrics.port }}

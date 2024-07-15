@@ -217,6 +217,11 @@ app:
       # The type of Kubernetes Service used by the Webhook.
       type: ClusterIP
 
+      # Set the ip family policy to configure dual-stack see [Configure dual-stack](https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services)
+      ipFamilyPolicy: ""
+      # Sets the families that should be supported and the order in which they should be applied to ClusterIP as well. Can be IPv4 and/or IPv6.
+      ipFamilies: []
+
       # The nodePort set on the Service used by the webhook.
       # +docs:property
       # nodePort: 8080
@@ -245,6 +250,10 @@ app:
       enabled: true
       # The Service type to expose metrics.
       type: ClusterIP
+      # Set the ip family policy to configure dual-stack see [Configure dual-stack](https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services)
+      ipFamilyPolicy: ""
+      # Sets the families that should be supported and the order in which they should be applied to ClusterIP as well. Can be IPv4 and/or IPv6.
+      ipFamilies: []
       # The ServiceMonitor resource for this Service.
       servicemonitor:
         # Create a Prometheus ServiceMonitor for trust-manager.

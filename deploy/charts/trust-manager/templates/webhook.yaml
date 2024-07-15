@@ -8,6 +8,12 @@ metadata:
     {{- include "trust-manager.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.app.webhook.service.type }}
+  {{- if .Values.app.webhook.service.ipFamilyPolicy }}
+  ipFamilyPolicy: {{ .Values.app.webhook.service.ipFamilyPolicy }}
+  {{- end }}
+  {{- if .Values.app.webhook.service.ipFamilies }}
+  ipFamilies: {{ .Values.app.webhook.service.ipFamilies | toYaml | nindent 2 }}
+  {{- end }}
   ports:
     - port: 443
       targetPort: {{ .Values.app.webhook.port }}
