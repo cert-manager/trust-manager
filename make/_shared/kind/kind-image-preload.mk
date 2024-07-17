@@ -32,6 +32,11 @@ images_files := $(foreach image,$(images),$(subst :,+,$(image)))
 images_tar_dir := $(bin_dir)/downloaded/containers/$(HOST_ARCH)
 images_tars := $(images_files:%=$(images_tar_dir)/%.tar)
 
+# Download the images as tarballs. We must use the tag because the digest
+# will change after we docker import the image. The tag is the only way to
+# reference the image after it has been imported. Before downloading the
+# image, we check that the provided digest matches the digest of the image
+# that we are about to pull.
 $(images_tars): $(images_tar_dir)/%.tar: | $(NEEDS_CRANE)
 	@$(eval image=$(subst +,:,$*))
 	@$(eval image_without_digest=$(shell cut -d@ -f1 <<<"$(image)"))

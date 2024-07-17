@@ -39,7 +39,7 @@ $(bin_dir)/scratch/cluster-check: FORCE | $(NEEDS_KIND) $(bin_dir)/scratch
 	$(eval export KUBECONFIG=$(absolute_kubeconfig))
 
 kind_post_create_hook ?= 
-$(kind_kubeconfig): $(kind_cluster_config) $(bin_dir)/scratch/cluster-check | images-preload $(bin_dir)/scratch $(NEEDS_KIND) $(NEEDS_KUBECTL)
+$(kind_kubeconfig): $(kind_cluster_config) $(bin_dir)/scratch/cluster-check | images-preload $(bin_dir)/scratch $(NEEDS_KIND) $(NEEDS_KUBECTL) $(NEEDS_CTR)
 	@[ -f "$(bin_dir)/scratch/cluster-check" ] && ( \
 		$(KIND) delete cluster --name $(kind_cluster_name); \
 		$(CTR) load -i $(docker.io/kindest/node.TAR); \
