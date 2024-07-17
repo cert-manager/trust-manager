@@ -59,7 +59,7 @@ $(kind_kubeconfig): $(kind_cluster_config) $(bin_dir)/scratch/cluster-check | im
 ## @category [shared] Kind cluster
 kind-cluster: $(kind_kubeconfig) | $(NEEDS_KUBECTL)
 	mkdir -p ~/.kube
-	KUBECONFIG=~/.kube/config:$(kind_kubeconfig) $(KUBECTL) config view --flatten > ~/.kube/config
+	KUBECONFIG=~/.kube/config_tmp:$(kind_kubeconfig) $(KUBECTL) config view --flatten > ~/.kube/config_tmp
 	$(KUBECTL) config use-context kind-$(kind_cluster_name)
 
 .PHONY: kind-cluster-clean
