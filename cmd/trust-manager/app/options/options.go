@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
@@ -63,6 +64,12 @@ type Options struct {
 
 	// log are options controlling logging
 	log logOptions
+
+	// Leader election lease duration
+	LeaseDuration time.Duration
+
+	// Leader election lease renew duration
+	RenewDeadline time.Duration
 }
 
 type logOptions struct {
@@ -186,6 +193,14 @@ func (o *Options) addAppFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.ReadyzPath,
 		"readiness-probe-path", "/readyz",
 		"HTTP path to expose the readiness probe server.")
+
+	fs.DurationVar(&o.LeaseDuration,
+		"leader-election-lease-duration", time.Second*15,
+		"Lease duration for leader election")
+
+	fs.DurationVar(&o.RenewDeadline,
+		"leader-election-renew-deadline", time.Second*10,
+		"Lease renew deadline for leader election")
 
 	fs.IntVar(&o.MetricsPort,
 		"metrics-port", 9402,
