@@ -74,6 +74,9 @@
     "helm-values.app": {
       "additionalProperties": false,
       "properties": {
+        "leaderElection": {
+          "$ref": "#/$defs/helm-values.app.leaderElection"
+        },
         "logFormat": {
           "$ref": "#/$defs/helm-values.app.logFormat"
         },
@@ -103,6 +106,28 @@
         }
       },
       "type": "object"
+    },
+    "helm-values.app.leaderElection": {
+      "additionalProperties": false,
+      "properties": {
+        "leaseDuration": {
+          "$ref": "#/$defs/helm-values.app.leaderElection.leaseDuration"
+        },
+        "renewDeadline": {
+          "$ref": "#/$defs/helm-values.app.leaderElection.renewDeadline"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.app.leaderElection.leaseDuration": {
+      "default": "15s",
+      "description": "How long will a lease be valid? You probably want to increase this to 60-120s.",
+      "type": "string"
+    },
+    "helm-values.app.leaderElection.renewDeadline": {
+      "default": "10s",
+      "description": "How long will a controller try to renew a lease before stepping down? You probably want to increase this to 30-45s.",
+      "type": "string"
     },
     "helm-values.app.logFormat": {
       "default": "text",

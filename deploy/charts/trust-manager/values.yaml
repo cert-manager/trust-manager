@@ -182,6 +182,13 @@ app:
   # The verbosity of trust-manager logging. This takes a value from 1-5, with the higher value being more verbose.
   logLevel: 1
 
+  # Leader Election Configuration
+  leaderElection:
+    # How long will a lease be valid? You probably want to increase this to 60-120s.
+    leaseDuration: 15s
+    # How long will a controller try to renew a lease before stepping down? You probably want to increase this to 30-45s.
+    renewDeadline: 10s
+
   readinessProbe:
     # The container port on which to expose the trust-manager HTTP readiness probe using the default network interface.
     port: 6060

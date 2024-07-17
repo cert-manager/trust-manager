@@ -311,6 +311,20 @@ The format of trust-manager logging. Accepted values are text or json.
 > ```
 
 The verbosity of trust-manager logging. This takes a value from 1-5, with the higher value being more verbose.
+#### **app.leaderElection.leaseDuration** ~ `string`
+> Default value:
+> ```yaml
+> 15s
+> ```
+
+How long will a lease be valid? You probably want to increase this to 60-120s.
+#### **app.leaderElection.renewDeadline** ~ `string`
+> Default value:
+> ```yaml
+> 10s
+> ```
+
+How long will a controller try to renew a lease before stepping down? You probably want to increase this to 30-45s.
 #### **app.readinessProbe.port** ~ `number`
 > Default value:
 > ```yaml
