@@ -3,8 +3,8 @@ module image_tool
 go 1.21
 
 require (
-	github.com/google/go-containerregistry v0.19.1
-	github.com/spf13/cobra v1.8.0
+	github.com/google/go-containerregistry v0.20.1
+	github.com/spf13/cobra v1.8.1
 )
 
 require (
