@@ -227,6 +227,12 @@ app:
       # nodePort: 8080
 
     tls:
+      helmCert:
+        # Whether to issue a webhook cert using Helm, which removes the need to install cert-manager.
+        # Helm-issued certificates can be challenging to rotate and maintain, and the issued cert will have a duration of 10 years and be modified when trust-manager is updated.
+        # It's safer and easier to rely on cert-manager for issuing the webhook cert - avoid using Helm-generated certs in production.
+        enabled: false
+
       approverPolicy:
         # Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this.
         enabled: false
