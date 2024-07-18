@@ -48,7 +48,7 @@ import (
 func testEncodeJKS(t *testing.T, data string) []byte {
 	t.Helper()
 
-	encoded, err := jksEncoder{password: DefaultJKSPassword}.encode(data)
+	encoded, err := jksEncoder{password: trustapi.DefaultJKSPassword}.encode(data)
 	if err != nil {
 		t.Error(err)
 	}
@@ -493,7 +493,7 @@ func Test_Reconcile(t *testing.T) {
 							KeySelector: trustapi.KeySelector{
 								Key: "target.jks",
 							},
-							Password: ptr.To(DefaultJKSPassword),
+							Password: ptr.To(trustapi.DefaultJKSPassword),
 						},
 					}),
 				)},
@@ -566,7 +566,7 @@ func Test_Reconcile(t *testing.T) {
 							KeySelector: trustapi.KeySelector{
 								Key: "target.jks",
 							},
-							Password: ptr.To(DefaultJKSPassword),
+							Password: ptr.To(trustapi.DefaultJKSPassword),
 						},
 					}),
 				),
