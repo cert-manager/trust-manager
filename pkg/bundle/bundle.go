@@ -33,7 +33,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/csaupgrade"
 	"k8s.io/utils/clock"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -103,12 +102,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 			return ctrl.Result{}, utilerrors.NewAggregate([]error{resultErr, err})
 		}
 
-		if err := b.client.Status().Patch(ctx, con, patch, &client.SubResourcePatchOptions{
-			PatchOptions: client.PatchOptions{
-				FieldManager: fieldManager,
-				Force:        ptr.To(true),
-			},
-		}); err != nil {
+		if err := b.client.Status().Patch(ctx, con, patch, client.FieldOwner(fieldManager), client.ForceOwnership); err != nil {
 			err = fmt.Errorf("failed to apply bundle status patch: %w", err)
 			return ctrl.Result{}, utilerrors.NewAggregate([]error{resultErr, err})
 		}
