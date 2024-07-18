@@ -317,14 +317,14 @@ The verbosity of trust-manager logging. This takes a value from 1-5, with the hi
 > 15s
 > ```
 
-How long will a lease be valid? You probably want to increase this to 60-120s.
+The duration that non-leader candidates will wait to force acquire leadership. The default should be sufficient in a healthy cluster but can be slightly increased to prevent trust-manager from restart-looping when the API server is overloaded.
 #### **app.leaderElection.renewDeadline** ~ `string`
 > Default value:
 > ```yaml
 > 10s
 > ```
 
-How long will a controller try to renew a lease before stepping down? You probably want to increase this to 30-45s.
+The interval between attempts by the acting leader to renew a leadership slot before it stops leading. This MUST be less than or equal to the lease duration. The default should be sufficient in a healthy cluster but can be slightly increased to prevent trust-manager from restart-looping when the API server is overloaded.
 #### **app.readinessProbe.port** ~ `number`
 > Default value:
 > ```yaml
