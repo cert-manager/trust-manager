@@ -182,6 +182,16 @@ app:
   # The verbosity of trust-manager logging. This takes a value from 1-5, with the higher value being more verbose.
   logLevel: 1
 
+  leaderElection:
+    # The duration that non-leader candidates will wait to force acquire leadership.
+    # The default should be sufficient in a healthy cluster but can be slightly increased to prevent trust-manager from restart-looping when the API server is overloaded.
+    leaseDuration: 15s
+
+    # The interval between attempts by the acting leader to renew a leadership slot before it stops leading.
+    # This MUST be less than or equal to the lease duration.
+    # The default should be sufficient in a healthy cluster but can be slightly increased to prevent trust-manager from restart-looping when the API server is overloaded.
+    renewDeadline: 10s
+
   readinessProbe:
     # The container port on which to expose the trust-manager HTTP readiness probe using the default network interface.
     port: 6060

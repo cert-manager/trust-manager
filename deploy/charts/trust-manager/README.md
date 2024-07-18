@@ -311,6 +311,20 @@ The format of trust-manager logging. Accepted values are text or json.
 > ```
 
 The verbosity of trust-manager logging. This takes a value from 1-5, with the higher value being more verbose.
+#### **app.leaderElection.leaseDuration** ~ `string`
+> Default value:
+> ```yaml
+> 15s
+> ```
+
+The duration that non-leader candidates will wait to force acquire leadership. The default should be sufficient in a healthy cluster but can be slightly increased to prevent trust-manager from restart-looping when the API server is overloaded.
+#### **app.leaderElection.renewDeadline** ~ `string`
+> Default value:
+> ```yaml
+> 10s
+> ```
+
+The interval between attempts by the acting leader to renew a leadership slot before it stops leading. This MUST be less than or equal to the lease duration. The default should be sufficient in a healthy cluster but can be slightly increased to prevent trust-manager from restart-looping when the API server is overloaded.
 #### **app.readinessProbe.port** ~ `number`
 > Default value:
 > ```yaml

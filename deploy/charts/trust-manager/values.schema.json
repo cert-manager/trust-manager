@@ -74,6 +74,9 @@
     "helm-values.app": {
       "additionalProperties": false,
       "properties": {
+        "leaderElection": {
+          "$ref": "#/$defs/helm-values.app.leaderElection"
+        },
         "logFormat": {
           "$ref": "#/$defs/helm-values.app.logFormat"
         },
@@ -103,6 +106,28 @@
         }
       },
       "type": "object"
+    },
+    "helm-values.app.leaderElection": {
+      "additionalProperties": false,
+      "properties": {
+        "leaseDuration": {
+          "$ref": "#/$defs/helm-values.app.leaderElection.leaseDuration"
+        },
+        "renewDeadline": {
+          "$ref": "#/$defs/helm-values.app.leaderElection.renewDeadline"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.app.leaderElection.leaseDuration": {
+      "default": "15s",
+      "description": "The duration that non-leader candidates will wait to force acquire leadership. The default should be sufficient in a healthy cluster but can be slightly increased to prevent trust-manager from restart-looping when the API server is overloaded.",
+      "type": "string"
+    },
+    "helm-values.app.leaderElection.renewDeadline": {
+      "default": "10s",
+      "description": "The interval between attempts by the acting leader to renew a leadership slot before it stops leading. This MUST be less than or equal to the lease duration. The default should be sufficient in a healthy cluster but can be slightly increased to prevent trust-manager from restart-looping when the API server is overloaded.",
+      "type": "string"
     },
     "helm-values.app.logFormat": {
       "default": "text",
