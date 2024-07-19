@@ -17,32 +17,72 @@ limitations under the License.
 package util
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"slices"
 	"time"
 )
 
 // CertPool is a set of certificates.
-type certPool struct {
-	certificates  []*x509.Certificate
+type CertPool struct {
+	certificates map[[32]byte]*x509.Certificate
+
 	filterExpired bool
 }
 
-// newCertPool returns a new, empty CertPool.
-func newCertPool(filterExpired bool) *certPool {
-	return &certPool{
-		certificates:  make([]*x509.Certificate, 0),
-		filterExpired: filterExpired,
+type Option func(*CertPool)
+
+func WithFilteredExpiredCerts(filterExpired bool) Option {
+	return func(cp *CertPool) {
+		cp.filterExpired = filterExpired
 	}
 }
 
-// Append certificate to a pool
-func (cp *certPool) appendCertFromPEM(pemData []byte) error {
+// NewCertPool returns a new, empty CertPool.
+// It will deduplicate certificates based on their SHA256 hash.
+// Optionally, it can filter out expired certificates.
+func NewCertPool(options ...Option) *CertPool {
+	certPool := &CertPool{
+		certificates: make(map[[32]byte]*x509.Certificate),
+	}
+
+	for _, option := range options {
+		option(certPool)
+	}
+
+	return certPool
+}
+
+// AddCertsFromPEM strictly validates a given input PEM bundle to confirm it contains
+// only valid CERTIFICATE PEM blocks. If successful, returns the validated PEM blocks with any
+// comments or extra data stripped.
+//
+// This validation is broadly similar to the standard library function
+// crypto/x509.CertPool.AppendCertsFromPEM - that is, we decode each PEM block at a time and parse
+// it as a certificate.
+//
+// The difference here is that we want to ensure that the bundle _only_ contains certificates, and
+// not just skip over things which aren't certificates.
+//
+// If, for example, someone accidentally used a combined cert + private key as an input to a trust
+// bundle, we wouldn't want to then distribute the private key in the target.
+//
+// In addition, the standard library AppendCertsFromPEM also silently skips PEM blocks with
+// non-empty Headers. We error on such PEM blocks, for the same reason as above; headers could
+// contain (accidental) private information. They're also non-standard according to
+// https://www.rfc-editor.org/rfc/rfc7468
+//
+// Additionally, if the input PEM bundle contains no non-expired certificates, an error is returned.
+// TODO: Reconsider what should happen if the input only contains expired certificates.
+func (cp *CertPool) AddCertsFromPEM(pemData []byte) error {
 	if pemData == nil {
 		return fmt.Errorf("certificate data can't be nil")
 	}
 
+	ok := false
 	for {
 		var block *pem.Block
 		block, pemData = pem.Decode(pemData)
@@ -75,19 +115,68 @@ func (cp *certPool) appendCertFromPEM(pemData []byte) error {
 			continue
 		}
 
-		cp.certificates = append(cp.certificates, certificate)
+		ok = true // at least one non-expired certificate was found in the input
+
+		hash := sha256.Sum256(certificate.Raw)
+		cp.certificates[hash] = certificate
+	}
+
+	if !ok {
+		return fmt.Errorf("no non-expired certificates found in input bundle")
 	}
 
 	return nil
 }
 
-// Get PEM certificates from pool
-func (cp *certPool) getCertsPEM() [][]byte {
-	var certsData [][]byte = make([][]byte, len(cp.certificates))
+// Get certificates quantity in the certificates pool
+func (cp *CertPool) Size() int {
+	return len(cp.certificates)
+}
 
-	for i, cert := range cp.certificates {
-		certsData[i] = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
+func (certPool *CertPool) PEM() string {
+	if certPool == nil || len(certPool.certificates) == 0 {
+		return ""
 	}
 
-	return certsData
+	buffer := bytes.Buffer{}
+
+	for _, cert := range certPool.Certificates() {
+		if err := pem.Encode(&buffer, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw}); err != nil {
+			return ""
+		}
+	}
+
+	return string(bytes.TrimSpace(buffer.Bytes()))
+}
+
+func (certPool *CertPool) PEMSplit() []string {
+	if certPool == nil || len(certPool.certificates) == 0 {
+		return nil
+	}
+
+	pems := make([]string, 0, len(certPool.certificates))
+	for _, cert := range certPool.Certificates() {
+		pems = append(pems, string(bytes.TrimSpace(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw}))))
+	}
+
+	return pems
+}
+
+// Get the list of all x509 Certificates in the certificates pool
+func (certPool *CertPool) Certificates() []*x509.Certificate {
+	hashes := make([][32]byte, 0, len(certPool.certificates))
+	for hash := range certPool.certificates {
+		hashes = append(hashes, hash)
+	}
+
+	slices.SortFunc(hashes, func(i, j [32]byte) int {
+		return bytes.Compare(i[:], j[:])
+	})
+
+	orderedCertificates := make([]*x509.Certificate, 0, len(certPool.certificates))
+	for _, hash := range hashes {
+		orderedCertificates = append(orderedCertificates, certPool.certificates[hash])
+	}
+
+	return orderedCertificates
 }

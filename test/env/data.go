@@ -346,6 +346,7 @@ func EventuallyBundleHasSyncedAllNamespacesContains(ctx context.Context, cl clie
 // CheckJKSFileSynced ensures that the given JKS data
 func CheckJKSFileSynced(jksData []byte, expectedPassword string, expectedCertPEMData string) error {
 	reader := bytes.NewReader(jksData)
+	certPool := util.NewCertPool(util.WithFilteredExpiredCerts(false))
 
 	ks := jks.New()
 
@@ -354,7 +355,7 @@ func CheckJKSFileSynced(jksData []byte, expectedPassword string, expectedCertPEM
 		return err
 	}
 
-	expectedCertList, err := util.ValidateAndSplitPEMBundle([]byte(expectedCertPEMData))
+	err = certPool.AddCertsFromPEM([]byte(expectedCertPEMData))
 	if err != nil {
 		return fmt.Errorf("invalid PEM data passed to CheckJKSFileSynced: %s", err)
 	}
@@ -363,7 +364,7 @@ func CheckJKSFileSynced(jksData []byte, expectedPassword string, expectedCertPEM
 	// that the count is the same
 
 	aliasCount := len(ks.Aliases())
-	expectedPEMCount := len(expectedCertList)
+	expectedPEMCount := certPool.Size()
 
 	if aliasCount != expectedPEMCount {
 		return fmt.Errorf("expected %d certificates in JKS but found %d", expectedPEMCount, aliasCount)

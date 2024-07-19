@@ -29,7 +29,7 @@ import (
 )
 
 type Encoder interface {
-	Encode(trustBundle string) ([]byte, error)
+	Encode(trustBundle *util.CertPool) ([]byte, error)
 }
 
 func NewJKSEncoder(password string) Encoder {
@@ -43,17 +43,12 @@ type jksEncoder struct {
 // Encode creates a binary JKS file from the given PEM-encoded trust bundle and Password.
 // Note that the Password is not treated securely; JKS files generally seem to expect a Password
 // to exist and so we have the option for one.
-func (e jksEncoder) Encode(trustBundle string) ([]byte, error) {
-	cas, err := util.DecodeX509CertificateChainBytes([]byte(trustBundle))
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode trust bundle: %w", err)
-	}
-
+func (e jksEncoder) Encode(trustBundle *util.CertPool) ([]byte, error) {
 	// WithOrderedAliases ensures that trusted certs are added to the JKS file in order,
 	// which makes the files appear to be reliably deterministic.
 	ks := keystore.New(keystore.WithOrderedAliases())
 
-	for _, c := range cas {
+	for _, c := range trustBundle.Certificates() {
 		alias := certAlias(c.Raw, c.Subject.String())
 
 		// Note on CreationTime:
@@ -65,15 +60,13 @@ func (e jksEncoder) Encode(trustBundle string) ([]byte, error) {
 		// - Using a fixed time (i.e. unix epoch)
 		// We use NotBefore here, arbitrarily.
 
-		err = ks.SetTrustedCertificateEntry(alias, keystore.TrustedCertificateEntry{
+		if err := ks.SetTrustedCertificateEntry(alias, keystore.TrustedCertificateEntry{
 			CreationTime: c.NotBefore,
 			Certificate: keystore.Certificate{
 				Type:    "X509",
 				Content: c.Raw,
 			},
-		})
-
-		if err != nil {
+		}); err != nil {
 			// this error should never happen if we set jks.Certificate correctly
 			return nil, fmt.Errorf("failed to add cert with alias %q to trust store: %w", alias, err)
 		}
@@ -81,8 +74,7 @@ func (e jksEncoder) Encode(trustBundle string) ([]byte, error) {
 
 	buf := &bytes.Buffer{}
 
-	err = ks.Store(buf, []byte(e.password))
-	if err != nil {
+	if err := ks.Store(buf, []byte(e.password)); err != nil {
 		return nil, fmt.Errorf("failed to create JKS file: %w", err)
 	}
 
@@ -97,14 +89,9 @@ type pkcs12Encoder struct {
 	password string
 }
 
-func (e pkcs12Encoder) Encode(trustBundle string) ([]byte, error) {
-	cas, err := util.DecodeX509CertificateChainBytes([]byte(trustBundle))
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode trust bundle: %w", err)
-	}
-
+func (e pkcs12Encoder) Encode(trustBundle *util.CertPool) ([]byte, error) {
 	var entries []pkcs12.TrustStoreEntry
-	for _, c := range cas {
+	for _, c := range trustBundle.Certificates() {
 		entries = append(entries, pkcs12.TrustStoreEntry{
 			Cert:         c,
 			FriendlyName: certAlias(c.Raw, c.Subject.String()),

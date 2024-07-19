@@ -17,12 +17,8 @@ limitations under the License.
 package bundle
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/pem"
 	"fmt"
-	"slices"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -52,7 +48,7 @@ type bundleData struct {
 // is each bundle is concatenated together with a new line character.
 func (b *bundle) buildSourceBundle(ctx context.Context, sources []trustapi.BundleSource, formats *trustapi.AdditionalFormats) (bundleData, error) {
 	var resolvedBundle bundleData
-	var bundles []string
+	certPool := util.NewCertPool(util.WithFilteredExpiredCerts(b.FilterExpiredCerts))
 
 	for _, source := range sources {
 		var (
@@ -87,27 +83,17 @@ func (b *bundle) buildSourceBundle(ctx context.Context, sources []trustapi.Bundl
 			return bundleData{}, fmt.Errorf("failed to retrieve bundle from source: %w", err)
 		}
 
-		opts := util.ValidateAndSanitizeOptions{FilterExpired: b.Options.FilterExpiredCerts}
-		sanitizedBundle, err := util.ValidateAndSanitizePEMBundleWithOptions([]byte(sourceData), opts)
-		if err != nil {
+		if err := certPool.AddCertsFromPEM([]byte(sourceData)); err != nil {
 			return bundleData{}, fmt.Errorf("invalid PEM data in source: %w", err)
 		}
-
-		bundles = append(bundles, string(sanitizedBundle))
 	}
 
 	// NB: empty bundles are not valid so check and return an error if one somehow snuck through.
-
-	if len(bundles) == 0 {
+	if certPool.Size() == 0 {
 		return bundleData{}, fmt.Errorf("couldn't find any valid certificates in bundle")
 	}
 
-	deduplicatedBundles, err := deduplicateAndSortBundles(bundles)
-	if err != nil {
-		return bundleData{}, err
-	}
-
-	if err := resolvedBundle.populateData(deduplicatedBundles, formats); err != nil {
+	if err := resolvedBundle.populateData(certPool, formats); err != nil {
 		return bundleData{}, err
 	}
 
@@ -208,14 +194,14 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 	return results.String(), nil
 }
 
-func (b *bundleData) populateData(bundles []string, formats *trustapi.AdditionalFormats) error {
-	b.data = strings.Join(bundles, "\n") + "\n"
+func (b *bundleData) populateData(pool *util.CertPool, formats *trustapi.AdditionalFormats) error {
+	b.data = pool.PEM()
 
 	if formats != nil {
 		b.binaryData = make(map[string][]byte)
 
 		if formats.JKS != nil {
-			encoded, err := truststore.NewJKSEncoder(*formats.JKS.Password).Encode(b.data)
+			encoded, err := truststore.NewJKSEncoder(*formats.JKS.Password).Encode(pool)
 			if err != nil {
 				return fmt.Errorf("failed to encode JKS: %w", err)
 			}
@@ -223,7 +209,7 @@ func (b *bundleData) populateData(bundles []string, formats *trustapi.Additional
 		}
 
 		if formats.PKCS12 != nil {
-			encoded, err := truststore.NewPKCS12Encoder(*formats.PKCS12.Password).Encode(b.data)
+			encoded, err := truststore.NewPKCS12Encoder(*formats.PKCS12.Password).Encode(pool)
 			if err != nil {
 				return fmt.Errorf("failed to encode PKCS12: %w", err)
 			}
@@ -231,49 +217,4 @@ func (b *bundleData) populateData(bundles []string, formats *trustapi.Additional
 		}
 	}
 	return nil
-}
-
-// remove duplicate certificates from bundles and sort certificates by hash
-func deduplicateAndSortBundles(bundles []string) ([]string, error) {
-	var block *pem.Block
-
-	var certificatesHashes = make(map[[32]byte]string)
-
-	for _, cert := range bundles {
-		certBytes := []byte(cert)
-
-		for {
-			block, certBytes = pem.Decode(certBytes)
-			if block == nil {
-				break
-			}
-
-			if block.Type != "CERTIFICATE" {
-				return nil, fmt.Errorf("couldn't decode PEM block containing certificate")
-			}
-
-			// calculate hash sum of the given certificate
-			hash := sha256.Sum256(block.Bytes)
-			// check existence of the hash
-			if _, ok := certificatesHashes[hash]; !ok {
-				// neew to trim a newline which is added by Encoder
-				certificatesHashes[hash] = string(bytes.Trim(pem.EncodeToMemory(block), "\n"))
-			}
-		}
-	}
-
-	var orderedKeys [][32]byte
-	for key := range certificatesHashes {
-		orderedKeys = append(orderedKeys, key)
-	}
-	slices.SortFunc(orderedKeys, func(a, b [32]byte) int {
-		return bytes.Compare(a[:], b[:])
-	})
-
-	var sortedDeduplicatedCerts []string
-	for _, key := range orderedKeys {
-		sortedDeduplicatedCerts = append(sortedDeduplicatedCerts, certificatesHashes[key])
-	}
-
-	return sortedDeduplicatedCerts, nil
 }
