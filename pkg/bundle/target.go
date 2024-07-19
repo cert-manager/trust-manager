@@ -370,10 +370,7 @@ func (b *bundle) patchConfigMapResource(ctx context.Context, applyConfig *coreap
 		return fmt.Errorf("failed to generate patch: %w", err)
 	}
 
-	err = b.client.Patch(ctx, configMap, patch, &client.PatchOptions{
-		FieldManager: fieldManager,
-		Force:        ptr.To(true),
-	})
+	err = b.client.Patch(ctx, configMap, patch, client.FieldOwner(fieldManager), client.ForceOwnership)
 	if err != nil {
 		return err
 	}
@@ -396,10 +393,7 @@ func (b *bundle) patchSecretResource(ctx context.Context, applyConfig *coreapply
 		return fmt.Errorf("failed to generate patch: %w", err)
 	}
 
-	err = b.client.Patch(ctx, secret, patch, &client.PatchOptions{
-		FieldManager: fieldManager,
-		Force:        ptr.To(true),
-	})
+	err = b.client.Patch(ctx, secret, patch, client.FieldOwner(fieldManager), client.ForceOwnership)
 	if err != nil {
 		return err
 	}
