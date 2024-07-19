@@ -40,6 +40,7 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle/internal/truststore"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/test/dummy"
 	"github.com/cert-manager/trust-manager/test/gen"
@@ -48,7 +49,7 @@ import (
 func testEncodeJKS(t *testing.T, data string) []byte {
 	t.Helper()
 
-	encoded, err := jksEncoder{password: trustapi.DefaultJKSPassword}.encode(data)
+	encoded, err := truststore.NewJKSEncoder(trustapi.DefaultJKSPassword).Encode(data)
 	if err != nil {
 		t.Error(err)
 	}
