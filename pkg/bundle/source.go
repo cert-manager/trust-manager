@@ -37,17 +37,6 @@ import (
 	"github.com/cert-manager/trust-manager/pkg/util"
 )
 
-const (
-	// DefaultJKSPassword is the default password that Java uses; it's a Java convention to use this exact password.
-	// Since we're not storing anything secret in the JKS files we generate, this password is not a meaningful security measure
-	// but seems often to be expected by applications consuming JKS files
-	DefaultJKSPassword = "changeit"
-	// DefaultPKCS12Password is the empty string, that will create a password-less PKCS12 truststore.
-	// Password-less PKCS is the new default Java truststore from Java 18.
-	// By password-less, it means the certificates are not encrypted, and it contains no MacData for integrity check.
-	DefaultPKCS12Password = ""
-)
-
 type notFoundError struct{ error }
 
 // bundleData holds the result of a call to buildSourceBundle. It contains the resulting PEM-encoded

@@ -58,10 +58,19 @@ import "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 
 ## Constants
 
-<a name="BundleConditionSynced"></a>
+<a name="DefaultJKSPassword"></a>
 
 ```go
 const (
+    // DefaultJKSPassword is the default password that Java uses; it's a Java convention to use this exact password.
+    // Since we're not storing anything secret in the JKS files we generate, this password is not a meaningful security measure
+    // but seems often to be expected by applications consuming JKS files
+    DefaultJKSPassword = "changeit"
+    // DefaultPKCS12Password is the empty string, that will create a password-less PKCS12 truststore.
+    // Password-less PKCS is the new default Java truststore from Java 18.
+    // By password-less, it means the certificates are not encrypted, and it contains no MacData for integrity check.
+    DefaultPKCS12Password = ""
+
     // BundleConditionSynced indicates that the Bundle has successfully synced
     // all source bundle data to the Bundle target in all Namespaces.
     BundleConditionSynced string = "Synced"

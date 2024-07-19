@@ -230,7 +230,7 @@ func Test_buildSourceBundle(t *testing.T) {
 					KeySelector: trustapi.KeySelector{
 						Key: jksKey,
 					},
-					Password: ptr.To(DefaultJKSPassword),
+					Password: ptr.To(trustapi.DefaultJKSPassword),
 				},
 			},
 			objects: []runtime.Object{&corev1.ConfigMap{
@@ -269,7 +269,7 @@ func Test_buildSourceBundle(t *testing.T) {
 					KeySelector: trustapi.KeySelector{
 						Key: pkcs12Key,
 					},
-					Password: ptr.To(DefaultPKCS12Password),
+					Password: ptr.To(trustapi.DefaultPKCS12Password),
 				},
 			},
 			objects: []runtime.Object{&corev1.ConfigMap{
@@ -326,14 +326,14 @@ func Test_buildSourceBundle(t *testing.T) {
 				if test.expPassword != nil {
 					password = *test.expPassword
 				} else {
-					password = DefaultJKSPassword
+					password = trustapi.DefaultJKSPassword
 				}
 			}
 			if test.expPKCS12 {
 				if test.expPassword != nil {
 					password = *test.expPassword
 				} else {
-					password = DefaultPKCS12Password
+					password = trustapi.DefaultPKCS12Password
 				}
 			}
 
@@ -398,7 +398,7 @@ func Test_encodeJKSAliases(t *testing.T) {
 	// Using different dummy certs would allow this test to pass but wouldn't actually test anything useful!
 	bundle := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2)
 
-	jksFile, err := jksEncoder{password: DefaultJKSPassword}.encode(bundle)
+	jksFile, err := jksEncoder{password: trustapi.DefaultJKSPassword}.encode(bundle)
 	if err != nil {
 		t.Fatalf("didn't expect an error but got: %s", err)
 	}
@@ -407,7 +407,7 @@ func Test_encodeJKSAliases(t *testing.T) {
 
 	ks := jks.New()
 
-	err = ks.Load(reader, []byte(DefaultJKSPassword))
+	err = ks.Load(reader, []byte(trustapi.DefaultJKSPassword))
 	if err != nil {
 		t.Fatalf("failed to parse generated JKS file: %s", err)
 	}

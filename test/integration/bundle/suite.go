@@ -352,7 +352,7 @@ var _ = Describe("Integration", func() {
 			jksData, exists := configMap.BinaryData["myfile.jks"]
 			Expect(exists).To(BeTrue(), "should find an entry called myfile.jks")
 
-			Expect(testenv.CheckJKSFileSynced(jksData, bundle.DefaultJKSPassword, dummy.DefaultJoinedCerts())).ToNot(HaveOccurred())
+			Expect(testenv.CheckJKSFileSynced(jksData, trustapi.DefaultJKSPassword, dummy.DefaultJoinedCerts())).ToNot(HaveOccurred())
 		}
 	})
 
