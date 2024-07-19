@@ -20,20 +20,18 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"slices"
 	"strings"
 
-	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"software.sslmate.com/src/go-pkcs12"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle/internal/truststore"
 	"github.com/cert-manager/trust-manager/pkg/util"
 )
 
@@ -210,104 +208,6 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 	return results.String(), nil
 }
 
-type jksEncoder struct {
-	password string
-}
-
-// encodeJKS creates a binary JKS file from the given PEM-encoded trust bundle and password.
-// Note that the password is not treated securely; JKS files generally seem to expect a password
-// to exist and so we have the option for one.
-func (e jksEncoder) encode(trustBundle string) ([]byte, error) {
-	cas, err := util.DecodeX509CertificateChainBytes([]byte(trustBundle))
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode trust bundle: %w", err)
-	}
-
-	// WithOrderedAliases ensures that trusted certs are added to the JKS file in order,
-	// which makes the files appear to be reliably deterministic.
-	ks := jks.New(jks.WithOrderedAliases())
-
-	for _, c := range cas {
-		alias := certAlias(c.Raw, c.Subject.String())
-
-		// Note on CreationTime:
-		// Debian's JKS trust store sets the creation time to match the time that certs are added to the
-		// trust store (i.e., it's effectively time.Now() at the instant the file is generated).
-		// Using that method would make our JKS files in trust-manager non-deterministic, leaving us with
-		// two options if we want to maintain determinism:
-		// - Using something from the cert being added (e.g. NotBefore / NotAfter)
-		// - Using a fixed time (i.e. unix epoch)
-		// We use NotBefore here, arbitrarily.
-
-		err = ks.SetTrustedCertificateEntry(alias, jks.TrustedCertificateEntry{
-			CreationTime: c.NotBefore,
-			Certificate: jks.Certificate{
-				Type:    "X509",
-				Content: c.Raw,
-			},
-		})
-
-		if err != nil {
-			// this error should never happen if we set jks.Certificate correctly
-			return nil, fmt.Errorf("failed to add cert with alias %q to trust store: %w", alias, err)
-		}
-	}
-
-	buf := &bytes.Buffer{}
-
-	err = ks.Store(buf, []byte(e.password))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create JKS file: %w", err)
-	}
-
-	return buf.Bytes(), nil
-}
-
-// certAlias creates a JKS-safe alias for the given DER-encoded certificate, such that
-// any two certificates will have a different aliases unless they're identical in every way.
-// This unique alias fixes an issue where we used the Issuer field as an alias, leading to
-// different certs being treated as identical.
-// The friendlyName is included in the alias as a UX feature when examining JKS files using a
-// tool like `keytool`.
-func certAlias(derData []byte, friendlyName string) string {
-	certHashBytes := sha256.Sum256(derData)
-	certHash := hex.EncodeToString(certHashBytes[:])
-
-	// Since certHash is the part which actually distinguishes between two
-	// certificates, put it first so that it won't be truncated if a cert
-	// with a really long subject is added. Not sure what the upper limit
-	// for length actually is, but it shouldn't matter here.
-
-	return certHash[:8] + "|" + friendlyName
-}
-
-type pkcs12Encoder struct {
-	password string
-}
-
-func (e pkcs12Encoder) encode(trustBundle string) ([]byte, error) {
-	cas, err := util.DecodeX509CertificateChainBytes([]byte(trustBundle))
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode trust bundle: %w", err)
-	}
-
-	var entries []pkcs12.TrustStoreEntry
-	for _, c := range cas {
-		entries = append(entries, pkcs12.TrustStoreEntry{
-			Cert:         c,
-			FriendlyName: certAlias(c.Raw, c.Subject.String()),
-		})
-	}
-
-	encoder := pkcs12.LegacyRC2
-
-	if e.password == "" {
-		encoder = pkcs12.Passwordless
-	}
-
-	return encoder.EncodeTrustStoreEntries(entries, e.password)
-}
-
 func (b *bundleData) populateData(bundles []string, formats *trustapi.AdditionalFormats) error {
 	b.data = strings.Join(bundles, "\n") + "\n"
 
@@ -315,7 +215,7 @@ func (b *bundleData) populateData(bundles []string, formats *trustapi.Additional
 		b.binaryData = make(map[string][]byte)
 
 		if formats.JKS != nil {
-			encoded, err := jksEncoder{password: *formats.JKS.Password}.encode(b.data)
+			encoded, err := truststore.NewJKSEncoder(*formats.JKS.Password).Encode(b.data)
 			if err != nil {
 				return fmt.Errorf("failed to encode JKS: %w", err)
 			}
@@ -323,7 +223,7 @@ func (b *bundleData) populateData(bundles []string, formats *trustapi.Additional
 		}
 
 		if formats.PKCS12 != nil {
-			encoded, err := pkcs12Encoder{password: *formats.PKCS12.Password}.encode(b.data)
+			encoded, err := truststore.NewPKCS12Encoder(*formats.PKCS12.Password).Encode(b.data)
 			if err != nil {
 				return fmt.Errorf("failed to encode PKCS12: %w", err)
 			}
