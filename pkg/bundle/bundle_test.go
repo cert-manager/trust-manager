@@ -42,6 +42,7 @@ import (
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/truststore"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
+	"github.com/cert-manager/trust-manager/pkg/util"
 	"github.com/cert-manager/trust-manager/test/dummy"
 	"github.com/cert-manager/trust-manager/test/gen"
 )
@@ -49,7 +50,12 @@ import (
 func testEncodeJKS(t *testing.T, data string) []byte {
 	t.Helper()
 
-	encoded, err := truststore.NewJKSEncoder(trustapi.DefaultJKSPassword).Encode(data)
+	certPool := util.NewCertPool()
+	if err := certPool.AddCertsFromPEM([]byte(data)); err != nil {
+		t.Fatal(err)
+	}
+
+	encoded, err := truststore.NewJKSEncoder(trustapi.DefaultJKSPassword).Encode(certPool)
 	if err != nil {
 		t.Error(err)
 	}

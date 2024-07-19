@@ -25,6 +25,7 @@ import (
 	"github.com/pavlo-v-chernykh/keystore-go/v4"
 
 	"github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/util"
 	"github.com/cert-manager/trust-manager/test/dummy"
 )
 
@@ -36,7 +37,12 @@ func Test_encodeJKSAliases(t *testing.T) {
 	// Using different dummy certs would allow this test to pass but wouldn't actually test anything useful!
 	bundle := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2)
 
-	jksFile, err := jksEncoder{password: v1alpha1.DefaultJKSPassword}.Encode(bundle)
+	certPool := util.NewCertPool()
+	if err := certPool.AddCertsFromPEM([]byte(bundle)); err != nil {
+		t.Fatal(err)
+	}
+
+	jksFile, err := jksEncoder{password: v1alpha1.DefaultJKSPassword}.Encode(certPool)
 	if err != nil {
 		t.Fatalf("didn't expect an error but got: %s", err)
 	}

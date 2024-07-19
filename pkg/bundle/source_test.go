@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/pem"
 	"errors"
+	"strings"
 	"testing"
 
 	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
@@ -34,6 +35,7 @@ import (
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
+	"github.com/cert-manager/trust-manager/pkg/util"
 	"github.com/cert-manager/trust-manager/test/dummy"
 )
 
@@ -393,6 +395,7 @@ func TestBundlesDeduplication(t *testing.T) {
 	tests := map[string]struct {
 		name       string
 		bundle     []string
+		expError   string
 		testBundle []string
 	}{
 		"single, different cert per source": {
@@ -408,6 +411,7 @@ func TestBundlesDeduplication(t *testing.T) {
 		"no certs in sources": {
 			bundle:     []string{},
 			testBundle: nil,
+			expError:   "no non-expired certificates found in input bundle",
 		},
 		"single cert in the first source, joined certs in the second source": {
 			bundle: []string{
@@ -456,9 +460,17 @@ func TestBundlesDeduplication(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			resultBundle, err := deduplicateAndSortBundles(test.bundle)
+			certPool := util.NewCertPool()
+			err := certPool.AddCertsFromPEM([]byte(strings.Join(test.bundle, "\n")))
+			if test.expError != "" {
+				assert.NotNil(t, err)
+				assert.Equal(t, err.Error(), test.expError)
+				return
+			} else {
+				assert.Nil(t, err)
+			}
 
-			assert.Nil(t, err)
+			resultBundle := certPool.PEMSplit()
 
 			// check certificates bundle for duplicated certificates
 			assert.Equal(t, test.testBundle, resultBundle)

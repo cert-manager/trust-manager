@@ -489,5 +489,5 @@ func DefaultJoinedCerts() string {
 }
 
 func JoinCerts(certs ...string) string {
-	return strings.Join(certs, "\n") + "\n"
+	return strings.Join(certs, "\n")
 }
