@@ -38,6 +38,7 @@ import (
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
+	"github.com/cert-manager/trust-manager/pkg/bundle/internal/target"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
 
@@ -68,10 +69,6 @@ type bundle struct {
 	// a cache-backed Kubernetes client
 	client client.Client
 
-	// targetCache is a cache.Cache that holds cached ConfigMap and Secret
-	// resources that are used as targets for Bundles.
-	targetCache client.Reader
-
 	// defaultPackage holds the loaded 'default' certificate package, if one was specified
 	// at startup.
 	defaultPackage *fspkg.Package
@@ -85,9 +82,7 @@ type bundle struct {
 	// Options holds options for the Bundle controller.
 	Options
 
-	// patchResourceOverwrite allows use to override the patchResource function
-	// it is used for testing purposes
-	patchResourceOverwrite func(ctx context.Context, obj interface{}) error
+	targetReconciler *target.Reconciler
 }
 
 // Reconcile is the top level function for reconciling over synced Bundles.
@@ -102,7 +97,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 			return ctrl.Result{}, utilerrors.NewAggregate([]error{resultErr, err})
 		}
 
-		if err := b.client.Status().Patch(ctx, con, patch, client.FieldOwner(fieldManager), client.ForceOwnership); err != nil {
+		if err := b.client.Status().Patch(ctx, con, patch, ssa_client.FieldManager, client.ForceOwnership); err != nil {
 			err = fmt.Errorf("failed to apply bundle status patch: %w", err)
 			return ctrl.Result{}, utilerrors.NewAggregate([]error{resultErr, err})
 		}
@@ -254,7 +249,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 				Kind:       string(kind),
 			},
 		}
-		err := b.targetCache.List(ctx, targetList, &client.ListOptions{
+		err := b.targetReconciler.Cache.List(ctx, targetList, &client.ListOptions{
 			LabelSelector: labels.SelectorFromSet(map[string]string{
 				trustapi.BundleLabelKey: bundle.Name,
 			}),
@@ -304,12 +299,12 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 
 		if target.Kind == configMapTarget {
 			syncFunc = func(targetLog logr.Logger, target targetResource, shouldExist bool) (bool, error) {
-				return b.syncConfigMapTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle, shouldExist)
+				return b.targetReconciler.SyncConfigMap(ctx, targetLog, &bundle, target.NamespacedName, resolvedBundle.Data, shouldExist)
 			}
 		}
 		if target.Kind == secretTarget {
 			syncFunc = func(targetLog logr.Logger, target targetResource, shouldExist bool) (bool, error) {
-				return b.syncSecretTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle, shouldExist)
+				return b.targetReconciler.SyncSecret(ctx, targetLog, &bundle, target.NamespacedName, resolvedBundle.Data, shouldExist)
 			}
 		}
 
@@ -388,7 +383,8 @@ func (b *bundle) bundleTargetNamespaceSelector(bundleObj *trustapi.Bundle) (labe
 // to ensure that the apply operations will also remove fields that were
 // created by the Update operation.
 func (b *bundle) migrateBundleStatusToApply(ctx context.Context, obj client.Object) (bool, error) {
-	patch, err := csaupgrade.UpgradeManagedFieldsPatch(obj, sets.New(fieldManager, crRegressionFieldManager), fieldManager, csaupgrade.Subresource("status"))
+	fieldManager := string(ssa_client.FieldManager)
+	patch, err := csaupgrade.UpgradeManagedFieldsPatch(obj, sets.New(fieldManager, ssa_client.CRRegressionFieldManager), fieldManager, csaupgrade.Subresource("status"))
 	if err != nil {
 		return false, err
 	}
