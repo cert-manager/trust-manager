@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/csaupgrade"
 	"k8s.io/utils/clock"
@@ -102,7 +101,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 			return ctrl.Result{}, utilerrors.NewAggregate([]error{resultErr, err})
 		}
 
-		if err := b.client.Status().Patch(ctx, con, patch, client.FieldOwner(fieldManager), client.ForceOwnership); err != nil {
+		if err := b.client.Status().Patch(ctx, con, patch, ssa_client.FieldManager, client.ForceOwnership); err != nil {
 			err = fmt.Errorf("failed to apply bundle status patch: %w", err)
 			return ctrl.Result{}, utilerrors.NewAggregate([]error{resultErr, err})
 		}
@@ -129,7 +128,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 
 	// MIGRATION: If we are upgrading from a version of trust-manager that did use Update to set
 	// the Bundle status, we need to ensure that we do remove the old status fields in case we apply.
-	if didMigrate, err := b.migrateBundleStatusToApply(ctx, &bundle); err != nil {
+	if didMigrate, err := ssa_client.MigrateToApply(ctx, b.client, &bundle, csaupgrade.Subresource("status")); err != nil {
 		log.Error(err, "failed to migrate bundle status")
 		return ctrl.Result{}, nil, fmt.Errorf("failed to migrate bundle status: %w", err)
 	} else if didMigrate {
@@ -381,20 +380,4 @@ func (b *bundle) bundleTargetNamespaceSelector(bundleObj *trustapi.Bundle) (labe
 	}
 
 	return metav1.LabelSelectorAsSelector(&metav1.LabelSelector{MatchLabels: nsSelector.MatchLabels})
-}
-
-// MIGRATION: This is a migration function that migrates the ownership of
-// fields from the Update operation to the Apply operation. This is required
-// to ensure that the apply operations will also remove fields that were
-// created by the Update operation.
-func (b *bundle) migrateBundleStatusToApply(ctx context.Context, obj client.Object) (bool, error) {
-	patch, err := csaupgrade.UpgradeManagedFieldsPatch(obj, sets.New(fieldManager, crRegressionFieldManager), fieldManager, csaupgrade.Subresource("status"))
-	if err != nil {
-		return false, err
-	}
-	if patch != nil {
-		return true, b.client.Patch(ctx, obj, client.RawPatch(types.JSONPatchType, patch))
-	}
-	// No work to be done - already upgraded
-	return false, nil
 }

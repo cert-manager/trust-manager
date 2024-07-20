@@ -27,26 +27,15 @@ import (
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
 	metav1applyconfig "k8s.io/client-go/applyconfigurations/meta/v1"
-	"k8s.io/client-go/util/csaupgrade"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/structured-merge-diff/fieldpath"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
-)
-
-const (
-	// crRegressionFieldManager is the field manager that was introduced by a regression in controller-runtime
-	// version 0.15.0; fixed in 15.1 and 0.16.0: https://github.com/kubernetes-sigs/controller-runtime/pull/2435
-	// trust-manager 0.6.0 was released with this regression in controller-runtime, which means that we have to
-	// take extra care when migrating from CSA to SSA.
-	crRegressionFieldManager = "Go-http-client"
-	fieldManager             = "trust-manager"
 )
 
 // syncConfigMapTarget syncs the given data to the target ConfigMap in the given namespace.
@@ -298,7 +287,7 @@ func (b *bundle) needsUpdate(ctx context.Context, kind targetKind, log logr.Logg
 			return false, fmt.Errorf("unknown targetType: %s", kind)
 		}
 
-		properties, err := listManagedProperties(obj, fieldManager, targetFieldNames...)
+		properties, err := listManagedProperties(obj, ssa_client.FieldManager, targetFieldNames...)
 		if err != nil {
 			return false, fmt.Errorf("failed to list managed properties: %w", err)
 		}
@@ -316,7 +305,7 @@ func (b *bundle) needsUpdate(ctx context.Context, kind targetKind, log logr.Logg
 		if kind == targetKindConfigMap {
 			if bundle.Spec.Target.ConfigMap != nil {
 				// Check if we need to migrate the ConfigMap managed fields to the Apply field operation
-				if didMigrate, err := b.migrateConfigMapToApply(ctx, obj); err != nil {
+				if didMigrate, err := ssa_client.MigrateToApply(ctx, b.client, obj); err != nil {
 					return false, fmt.Errorf("failed to migrate ConfigMap %s/%s to Apply: %w", obj.Namespace, obj.Name, err)
 				} else if didMigrate {
 					log.V(2).Info("migrated configmap from CSA to SSA")
@@ -328,12 +317,12 @@ func (b *bundle) needsUpdate(ctx context.Context, kind targetKind, log logr.Logg
 	return needsUpdate, nil
 }
 
-func listManagedProperties(configmap *metav1.PartialObjectMetadata, fieldManager string, fieldNames ...string) (sets.Set[string], error) {
+func listManagedProperties(configmap *metav1.PartialObjectMetadata, fieldManager client.FieldOwner, fieldNames ...string) (sets.Set[string], error) {
 	properties := sets.New[string]()
 
 	for _, managedField := range configmap.ManagedFields {
 		// If the managed field isn't owned by the cert-manager controller, ignore.
-		if managedField.Manager != fieldManager || managedField.FieldsV1 == nil {
+		if managedField.Manager != string(fieldManager) || managedField.FieldsV1 == nil {
 			continue
 		}
 
@@ -370,7 +359,7 @@ func (b *bundle) patchConfigMapResource(ctx context.Context, applyConfig *coreap
 		return fmt.Errorf("failed to generate patch: %w", err)
 	}
 
-	err = b.client.Patch(ctx, configMap, patch, client.FieldOwner(fieldManager), client.ForceOwnership)
+	err = b.client.Patch(ctx, configMap, patch, ssa_client.FieldManager, client.ForceOwnership)
 	if err != nil {
 		return err
 	}
@@ -393,7 +382,7 @@ func (b *bundle) patchSecretResource(ctx context.Context, applyConfig *coreapply
 		return fmt.Errorf("failed to generate patch: %w", err)
 	}
 
-	err = b.client.Patch(ctx, secret, patch, client.FieldOwner(fieldManager), client.ForceOwnership)
+	err = b.client.Patch(ctx, secret, patch, ssa_client.FieldManager, client.ForceOwnership)
 	if err != nil {
 		return err
 	}
@@ -404,20 +393,4 @@ func (b *bundle) patchSecretResource(ctx context.Context, applyConfig *coreapply
 	}
 
 	return nil
-}
-
-// MIGRATION: This is a migration function that migrates the ownership of
-// fields from the Update operation to the Apply operation. This is required
-// to ensure that the apply operations will also remove fields that were
-// created by the Update operation.
-func (b *bundle) migrateConfigMapToApply(ctx context.Context, obj client.Object) (bool, error) {
-	patch, err := csaupgrade.UpgradeManagedFieldsPatch(obj, sets.New(fieldManager, crRegressionFieldManager), fieldManager)
-	if err != nil {
-		return false, err
-	}
-	if patch != nil {
-		return true, b.client.Patch(ctx, obj, client.RawPatch(types.JSONPatchType, patch))
-	}
-	// No work to be done - already upgraded
-	return false, nil
 }
