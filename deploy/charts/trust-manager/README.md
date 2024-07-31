@@ -287,8 +287,7 @@ topologySpreadConstraints:
   whenUnsatisfiable: ScheduleAnyway
   labelSelector:
     matchLabels:
-      app.kubernetes.io/instance: cert-manager
-      app.kubernetes.io/component: controller
+      app.kubernetes.io/name: trust-manager
 ```
 #### **filterExpiredCertificates.enabled** ~ `bool`
 > Default value:

@@ -696,7 +696,7 @@
     },
     "helm-values.topologySpreadConstraints": {
       "default": [],
-      "description": "List of Kubernetes TopologySpreadConstraints. For more information, see [TopologySpreadConstraint v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core).\nFor example:\ntopologySpreadConstraints:\n- maxSkew: 2\n  topologyKey: topology.kubernetes.io/zone\n  whenUnsatisfiable: ScheduleAnyway\n  labelSelector:\n    matchLabels:\n      app.kubernetes.io/instance: cert-manager\n      app.kubernetes.io/component: controller",
+      "description": "List of Kubernetes TopologySpreadConstraints. For more information, see [TopologySpreadConstraint v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core).\nFor example:\ntopologySpreadConstraints:\n- maxSkew: 2\n  topologyKey: topology.kubernetes.io/zone\n  whenUnsatisfiable: ScheduleAnyway\n  labelSelector:\n    matchLabels:\n      app.kubernetes.io/name: trust-manager",
       "items": {},
       "type": "array"
     }
