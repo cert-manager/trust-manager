@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle/internal/target"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
 
@@ -52,11 +53,14 @@ func AddBundleController(
 	targetCache cache.Cache,
 ) error {
 	b := &bundle{
-		client:      mgr.GetClient(),
-		targetCache: targetCache,
-		recorder:    mgr.GetEventRecorderFor("bundles"),
-		clock:       clock.RealClock{},
-		Options:     opts,
+		client:   mgr.GetClient(),
+		recorder: mgr.GetEventRecorderFor("bundles"),
+		clock:    clock.RealClock{},
+		Options:  opts,
+		targetReconciler: &target.Reconciler{
+			Client: mgr.GetClient(),
+			Cache:  targetCache,
+		},
 	}
 
 	if b.Options.DefaultPackageLocation != "" {

@@ -17,8 +17,19 @@ limitations under the License.
 package ssa_client
 
 import (
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/structured-merge-diff/fieldpath"
+)
+
+const (
+	FieldManager = client.FieldOwner("trust-manager")
+	// CRRegressionFieldManager is the field manager that was introduced by a regression in controller-runtime
+	// version 0.15.0; fixed in 15.1 and 0.16.0: https://github.com/kubernetes-sigs/controller-runtime/pull/2435
+	// trust-manager 0.6.0 was released with this regression in controller-runtime, which means that we have to
+	// take extra care when migrating from CSA to SSA.
+	CRRegressionFieldManager = "Go-http-client"
 )
 
 type applyPatch struct {
@@ -33,4 +44,33 @@ func (p applyPatch) Data(_ client.Object) ([]byte, error) {
 
 func (p applyPatch) Type() types.PatchType {
 	return types.ApplyPatchType
+}
+
+func ManagedFieldEntries(fields []string, dataFields []string) []v1.ManagedFieldsEntry {
+	fieldset := fieldpath.NewSet()
+	for _, property := range fields {
+		fieldset.Insert(
+			fieldpath.MakePathOrDie("data", property),
+		)
+	}
+	for _, property := range dataFields {
+		fieldset.Insert(
+			fieldpath.MakePathOrDie("binaryData", property),
+		)
+	}
+
+	jsonFieldSet, err := fieldset.ToJSON()
+	if err != nil {
+		panic(err)
+	}
+
+	return []v1.ManagedFieldsEntry{
+		{
+			Manager:   "trust-manager",
+			Operation: v1.ManagedFieldsOperationApply,
+			FieldsV1: &v1.FieldsV1{
+				Raw: jsonFieldSet,
+			},
+		},
+	}
 }
