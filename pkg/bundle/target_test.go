@@ -29,10 +29,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
 	metav1applyconfig "k8s.io/client-go/applyconfigurations/meta/v1"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2/ktesting"
 	"k8s.io/utils/ptr"
-	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/structured-merge-diff/fieldpath"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
@@ -99,7 +98,6 @@ func Test_syncConfigMapTarget(t *testing.T) {
 		expJKS bool
 		// Expect PKCS12 to exist in the configmap at the end of the sync.
 		expPKCS12 bool
-		expEvent  string
 		// Expect the owner reference of the configmap to point to the bundle.
 		expOwnerReference bool
 		expNeedsUpdate    bool
@@ -441,7 +439,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
-		"if object exists with correct data and some extra data (not owned by our fieldmanager) and owner, expect no update": {
+		"if object exists with correct data and some extra data (not owned by our field manager) and owner, expect no update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
@@ -584,14 +582,13 @@ func Test_syncConfigMapTarget(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			clientBuilder := fakeclient.NewClientBuilder().
+			clientBuilder := fake.NewClientBuilder().
 				WithScheme(trustapi.GlobalScheme)
 			if test.object != nil {
 				clientBuilder.WithRuntimeObjects(test.object)
 			}
 
-			fakeclient := clientBuilder.Build()
-			fakerecorder := record.NewFakeRecorder(1)
+			fakeClient := clientBuilder.Build()
 
 			var (
 				logMutex        sync.Mutex
@@ -599,9 +596,8 @@ func Test_syncConfigMapTarget(t *testing.T) {
 			)
 
 			b := &bundle{
-				client:      fakeclient,
-				targetCache: fakeclient,
-				recorder:    fakerecorder,
+				client:      fakeClient,
+				targetCache: fakeClient,
 				patchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
 					logMutex.Lock()
 					defer logMutex.Unlock()
@@ -686,13 +682,6 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					assert.Equal(t, pkcs12Data, binData)
 				}
 			}
-
-			var event string
-			select {
-			case event = <-fakerecorder.Events:
-			default:
-			}
-			assert.Equal(t, test.expEvent, event)
 		})
 	}
 }
@@ -719,7 +708,6 @@ func Test_syncSecretTarget(t *testing.T) {
 		expJKS bool
 		// Expect PKCS12 to exist in the secret at the end of the sync.
 		expPKCS12 bool
-		expEvent  string
 		// Expect the owner reference of the secret to point to the bundle.
 		expOwnerReference bool
 		expNeedsUpdate    bool
@@ -1061,7 +1049,7 @@ func Test_syncSecretTarget(t *testing.T) {
 			expOwnerReference: true,
 			expNeedsUpdate:    true,
 		},
-		"if object exists with correct data and some extra data (not owned by our fieldmanager) and owner, expect no update": {
+		"if object exists with correct data and some extra data (not owned by our field manager) and owner, expect no update": {
 			object: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
@@ -1204,14 +1192,13 @@ func Test_syncSecretTarget(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			clientBuilder := fakeclient.NewClientBuilder().
+			clientBuilder := fake.NewClientBuilder().
 				WithScheme(trustapi.GlobalScheme)
 			if test.object != nil {
 				clientBuilder.WithRuntimeObjects(test.object)
 			}
 
-			fakeclient := clientBuilder.Build()
-			fakerecorder := record.NewFakeRecorder(1)
+			fakeClient := clientBuilder.Build()
 
 			var (
 				logMutex        sync.Mutex
@@ -1219,9 +1206,8 @@ func Test_syncSecretTarget(t *testing.T) {
 			)
 
 			b := &bundle{
-				client:      fakeclient,
-				targetCache: fakeclient,
-				recorder:    fakerecorder,
+				client:      fakeClient,
+				targetCache: fakeClient,
 				patchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
 					logMutex.Lock()
 					defer logMutex.Unlock()
@@ -1304,13 +1290,6 @@ func Test_syncSecretTarget(t *testing.T) {
 					assert.Equal(t, pkcs12Data, binData)
 				}
 			}
-
-			var event string
-			select {
-			case event = <-fakerecorder.Events:
-			default:
-			}
-			assert.Equal(t, test.expEvent, event)
 		})
 	}
 }

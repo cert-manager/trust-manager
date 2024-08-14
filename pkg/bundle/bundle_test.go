@@ -37,7 +37,7 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/truststore"
@@ -1292,7 +1292,7 @@ func Test_Reconcile(t *testing.T) {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			fakeclient := fakeclient.NewClientBuilder().
+			fakeClient := fake.NewClientBuilder().
 				WithScheme(trustapi.GlobalScheme).
 				WithObjects(deepCopyArray(test.existingConfigMaps)...).
 				WithObjects(deepCopyArray(test.existingBundles)...).
@@ -1302,7 +1302,7 @@ func Test_Reconcile(t *testing.T) {
 				WithStatusSubresource(deepCopyArray(test.existingBundles)...).
 				Build()
 
-			fakerecorder := record.NewFakeRecorder(1)
+			fakeRecorder := record.NewFakeRecorder(1)
 
 			var (
 				logMutex        sync.Mutex
@@ -1311,9 +1311,9 @@ func Test_Reconcile(t *testing.T) {
 
 			log, ctx := ktesting.NewTestContext(t)
 			b := &bundle{
-				client:      fakeclient,
-				targetCache: fakeclient,
-				recorder:    fakerecorder,
+				client:      fakeClient,
+				targetCache: fakeClient,
+				recorder:    fakeRecorder,
 				clock:       fixedclock,
 				Options: Options{
 					Log:                  log,
@@ -1346,7 +1346,7 @@ func Test_Reconcile(t *testing.T) {
 
 			var event string
 			select {
-			case event = <-fakerecorder.Events:
+			case event = <-fakeRecorder.Events:
 			default:
 			}
 			assert.Equal(t, test.expEvent, event)
