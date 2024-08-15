@@ -17,8 +17,10 @@ limitations under the License.
 package ssa_client
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/structured-merge-diff/fieldpath"
 )
 
 const (
@@ -37,4 +39,35 @@ func (p applyPatch) Data(_ client.Object) ([]byte, error) {
 
 func (p applyPatch) Type() types.PatchType {
 	return types.ApplyPatchType
+}
+
+// ManagedFieldEntries is a test utility function creating managed field entries
+// for testing target configmaps and secrets.
+func ManagedFieldEntries(fields []string, dataFields []string) []metav1.ManagedFieldsEntry {
+	fieldset := fieldpath.NewSet()
+	for _, property := range fields {
+		fieldset.Insert(
+			fieldpath.MakePathOrDie("data", property),
+		)
+	}
+	for _, property := range dataFields {
+		fieldset.Insert(
+			fieldpath.MakePathOrDie("binaryData", property),
+		)
+	}
+
+	jsonFieldSet, err := fieldset.ToJSON()
+	if err != nil {
+		panic(err)
+	}
+
+	return []metav1.ManagedFieldsEntry{
+		{
+			Manager:   "trust-manager",
+			Operation: metav1.ManagedFieldsOperationApply,
+			FieldsV1: &metav1.FieldsV1{
+				Raw: jsonFieldSet,
+			},
+		},
+	}
 }
