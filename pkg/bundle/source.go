@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust-manager/pkg/bundle/internal/truststore"
 	"github.com/cert-manager/trust-manager/pkg/util"
 )
 
@@ -37,8 +36,7 @@ type notFoundError struct{ error }
 // certificate data from concatenating all the sources together, binary data for any additional formats and
 // any metadata from the sources which needs to be exposed on the Bundle resource's status field.
 type bundleData struct {
-	data       string
-	binaryData map[string][]byte
+	targetData
 
 	defaultCAPackageStringID string
 }
@@ -93,7 +91,7 @@ func (b *bundle) buildSourceBundle(ctx context.Context, sources []trustapi.Bundl
 		return bundleData{}, fmt.Errorf("couldn't find any valid certificates in bundle")
 	}
 
-	if err := resolvedBundle.populateData(certPool, formats); err != nil {
+	if err := resolvedBundle.populate(certPool, formats); err != nil {
 		return bundleData{}, err
 	}
 
@@ -192,29 +190,4 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 		results.WriteByte('\n')
 	}
 	return results.String(), nil
-}
-
-func (b *bundleData) populateData(pool *util.CertPool, formats *trustapi.AdditionalFormats) error {
-	b.data = pool.PEM()
-
-	if formats != nil {
-		b.binaryData = make(map[string][]byte)
-
-		if formats.JKS != nil {
-			encoded, err := truststore.NewJKSEncoder(*formats.JKS.Password).Encode(pool)
-			if err != nil {
-				return fmt.Errorf("failed to encode JKS: %w", err)
-			}
-			b.binaryData[formats.JKS.Key] = encoded
-		}
-
-		if formats.PKCS12 != nil {
-			encoded, err := truststore.NewPKCS12Encoder(*formats.PKCS12.Password).Encode(pool)
-			if err != nil {
-				return fmt.Errorf("failed to encode PKCS12: %w", err)
-			}
-			b.binaryData[formats.PKCS12.Key] = encoded
-		}
-	}
-	return nil
 }

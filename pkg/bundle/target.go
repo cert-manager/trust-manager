@@ -36,6 +36,8 @@ import (
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
+	"github.com/cert-manager/trust-manager/pkg/bundle/internal/truststore"
+	"github.com/cert-manager/trust-manager/pkg/util"
 )
 
 // syncConfigMapTarget syncs the given data to the target ConfigMap in the given namespace.
@@ -48,7 +50,7 @@ func (b *bundle) syncConfigMapTarget(
 	bundle *trustapi.Bundle,
 	name string,
 	namespace string,
-	resolvedBundle bundleData,
+	resolvedBundle targetData,
 	shouldExist bool,
 ) (bool, error) {
 	configMap := &metav1.PartialObjectMetadata{
@@ -154,7 +156,7 @@ func (b *bundle) syncSecretTarget(
 	bundle *trustapi.Bundle,
 	name string,
 	namespace string,
-	resolvedBundle bundleData,
+	resolvedBundle targetData,
 	shouldExist bool,
 ) (bool, error) {
 	secret := &metav1.PartialObjectMetadata{
@@ -392,5 +394,35 @@ func (b *bundle) patchSecretResource(ctx context.Context, applyConfig *coreapply
 		return b.client.Delete(ctx, secret)
 	}
 
+	return nil
+}
+
+type targetData struct {
+	data       string
+	binaryData map[string][]byte
+}
+
+func (b *targetData) populate(pool *util.CertPool, formats *trustapi.AdditionalFormats) error {
+	b.data = pool.PEM()
+
+	if formats != nil {
+		b.binaryData = make(map[string][]byte)
+
+		if formats.JKS != nil {
+			encoded, err := truststore.NewJKSEncoder(*formats.JKS.Password).Encode(pool)
+			if err != nil {
+				return fmt.Errorf("failed to encode JKS: %w", err)
+			}
+			b.binaryData[formats.JKS.Key] = encoded
+		}
+
+		if formats.PKCS12 != nil {
+			encoded, err := truststore.NewPKCS12Encoder(*formats.PKCS12.Password).Encode(pool)
+			if err != nil {
+				return fmt.Errorf("failed to encode PKCS12: %w", err)
+			}
+			b.binaryData[formats.PKCS12.Key] = encoded
+		}
+	}
 	return nil
 }
