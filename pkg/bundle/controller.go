@@ -130,14 +130,8 @@ func AddBundleController(
 		// Reconcile Bundles who reference a modified source ConfigMap.
 		Watches(&corev1.ConfigMap{}, b.enqueueRequestsFromBundleFunc(
 			func(obj client.Object, bundle trustapi.Bundle) bool {
-				for _, source := range bundle.Spec.Sources {
-					if source.ConfigMap == nil {
-						continue
-					}
-
-					if source.ConfigMap.Selector != nil && labelsMatchSelector(obj.GetLabels(), source.ConfigMap.Selector) {
-						return true
-					} else if source.ConfigMap.Name == obj.GetName() {
+				for _, s := range bundle.Spec.Sources {
+					if sourceSelectsObject(s.ConfigMap, obj) {
 						return true
 					}
 				}
@@ -148,18 +142,8 @@ func AddBundleController(
 		// Reconcile Bundles who reference a modified source Secret.
 		Watches(&corev1.Secret{}, b.enqueueRequestsFromBundleFunc(
 			func(obj client.Object, bundle trustapi.Bundle) bool {
-				for _, source := range bundle.Spec.Sources {
-					if source.Secret == nil {
-						continue
-					}
-
-					if source.Secret.Selector != nil {
-						if labelsMatchSelector(obj.GetLabels(), source.Secret.Selector) {
-							return true
-						}
-					}
-
-					if source.Secret.Name == obj.GetName() {
+				for _, s := range bundle.Spec.Sources {
+					if sourceSelectsObject(s.Secret, obj) {
 						return true
 					}
 				}
@@ -215,6 +199,23 @@ func inNamespacePredicate(namespace string) predicate.Predicate {
 	return predicate.NewPredicateFuncs(func(object client.Object) bool {
 		return object.GetNamespace() == namespace
 	})
+}
+
+// sourceSelectsObject returns true if source selector selects obj and false otherwise
+func sourceSelectsObject(selector *trustapi.SourceObjectKeySelector, obj client.Object) bool {
+	if selector == nil {
+		return false
+	}
+
+	if labelsMatchSelector(obj.GetLabels(), selector.Selector) {
+		return true
+	}
+
+	if selector.Name == obj.GetName() {
+		return true
+	}
+
+	return false
 }
 
 // labelsMatchSelector returns true if objLabels matches the label selector
