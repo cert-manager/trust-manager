@@ -55,9 +55,16 @@ $(kind_kubeconfig): $(kind_cluster_config) $(bin_dir)/scratch/cluster-check | im
 	$(KIND) get kubeconfig --name $(kind_cluster_name) > $@
 
 .PHONY: kind-cluster
+kind-cluster: $(kind_kubeconfig)
+
+.PHONY: kind-cluster-load
 ## Create Kind cluster and wait for nodes to be ready
+## Load the kubeconfig into the default location so that
+## it can be easily queried by kubectl. This target is
+## meant to be used directly, NOT as a dependency.
+## Use `kind-cluster` as a dependency instead.
 ## @category [shared] Kind cluster
-kind-cluster: $(kind_kubeconfig) | $(NEEDS_KUBECTL)
+kind-cluster-load: kind-cluster | $(NEEDS_KUBECTL)
 	mkdir -p ~/.kube
 	KUBECONFIG=~/.kube/config:$(kind_kubeconfig) $(KUBECTL) config view --flatten > ~/.kube/config
 	$(KUBECTL) config use-context kind-$(kind_cluster_name)
