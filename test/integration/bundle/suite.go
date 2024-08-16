@@ -32,6 +32,7 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -109,6 +110,11 @@ var _ = Describe("Integration", func() {
 			// there should only be one test running at a time
 			LeaderElection: false,
 			Logger:         log,
+			Controller: config.Controller{
+				// need to skip unique controller name validation
+				// since all tests need a dedicated controller
+				SkipNameValidation: ptr.To(true),
+			},
 		})
 		Expect(err).NotTo(HaveOccurred())
 
