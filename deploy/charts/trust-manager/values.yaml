@@ -221,6 +221,8 @@ app:
     port: 6443
     # Timeout of webhook HTTP request.
     timeoutSeconds: 5
+    # Annotations for the ValidatingWebhookConfiguration
+    annotations: {}
 
     service:
       # The type of Kubernetes Service used by the Webhook.
@@ -230,6 +232,8 @@ app:
       ipFamilyPolicy: ""
       # Sets the families that should be supported and the order in which they should be applied to ClusterIP as well. Can be IPv4 and/or IPv6.
       ipFamilies: []
+      # Annotations for the webhook service
+      annotations: {}
 
       # The nodePort set on the Service used by the webhook.
       # +docs:property
@@ -241,6 +245,11 @@ app:
         # Helm-issued certificates can be challenging to rotate and maintain, and the issued cert will have a duration of 10 years and be modified when trust-manager is updated.
         # It's safer and easier to rely on cert-manager for issuing the webhook cert - avoid using Helm-generated certs in production.
         enabled: false
+
+      certManager:
+        # Wether to create certificates using cert-manager CRDs.
+        # Default way of generating certificates for the webhook
+        enabled: true
 
       approverPolicy:
         # Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this.

@@ -1,5 +1,5 @@
-{{- if and .Values.app.webhook.tls.helmCert.enabled .Values.app.webhook.tls.approverPolicy.enabled -}}
-{{- fail "cannot set .app.webhook.tls.helmCert.enabled and .Values.app.webhook.tls.approverPolicy.enabled" }}
+{{- if and .Values.app.webhook.tls.helmCert.enabled .Values.app.webhook.tls.certManager.enabled -}}
+{{- fail "cannot set .app.webhook.tls.helmCert.enabled and .Values.app.webhook.tls.certManager.enabled" }}
 {{- end -}}
 
 {{- /*
@@ -55,6 +55,10 @@ metadata:
   labels:
     app: {{ include "trust-manager.name" . }}
     {{- include "trust-manager.labels" . | nindent 4 }}
+  {{- if .Values.app.webhook.service.annotations }}
+  annotations:
+  {{- tpl (toYaml .Values.app.webhook.service.annotations) . | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.app.webhook.service.type }}
   {{- if .Values.app.webhook.service.ipFamilyPolicy }}
@@ -83,10 +87,15 @@ metadata:
   labels:
     app: {{ include "trust-manager.name" . }}
     {{- include "trust-manager.labels" . | nindent 4 }}
-{{ if not .Values.app.webhook.tls.helmCert.enabled }}
+{{ if or .Values.app.webhook.tls.certManager.enabled .Values.app.webhook.annotations }}
   annotations:
+    {{- if .Values.app.webhook.tls.certManager.enabled }}
     cert-manager.io/inject-ca-from: "{{ include "trust-manager.namespace" . }}/{{ include "trust-manager.name" . }}"
 {{ end }}
+    {{- if .Values.app.webhook.annotations }}
+    {{- tpl (toYaml .Values.app.webhook.annotations) . | nindent 4 }}
+    {{- end }}
+    {{- end }}
 
 webhooks:
   - name: trust.cert-manager.io
