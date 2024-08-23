@@ -32,6 +32,11 @@ ifndef helm_chart_version
 $(error helm_chart_version is not set)
 endif
 
+ifndef helm_chart_app_version
+# Default to the same as the chart version
+helm_chart_app_version = $(helm_chart_version)
+endif
+
 ifndef helm_values_mutation_function
 $(error helm_values_mutation_function is not set)
 endif
@@ -59,7 +64,7 @@ $(helm_chart_archive): $(helm_chart_sources) | $(NEEDS_HELM) $(NEEDS_YQ) $(bin_d
 
 	mkdir -p $(dir $@)
 	$(HELM) package $(helm_chart_source_dir_versioned) \
-		--app-version $(helm_chart_version) \
+		--app-version $(helm_chart_app_version) \
 		--version $(helm_chart_version) \
 		--destination $(dir $@)
 
