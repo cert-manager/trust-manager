@@ -5,6 +5,10 @@ metadata:
   namespace: {{ include "trust-manager.namespace" . }}
   labels:
     {{- include "trust-manager.labels" . | nindent 4 }}
+  {{- if .Values.app.deploymentAnnotations }}
+  annotations:
+    {{- toYaml .Values.app.deploymentAnnotations | nindent 4 }}
+  {{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
