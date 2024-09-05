@@ -42,7 +42,7 @@ endif
 ## @category [shared] Generate/ Verify
 generate-crds: | $(NEEDS_CONTROLLER-GEN) $(NEEDS_YQ)
 	$(eval crds_gen_temp := $(bin_dir)/scratch/crds)
-	$(eval directories := $(shell ls -d */ | grep -v '_bin' | grep -v 'make'))
+	$(eval directories := $(shell ls -d */ | grep -v -e 'make' $(shell git check-ignore -- * | sed 's/^/-e /')))
 
 	rm -rf $(crds_gen_temp)
 	mkdir -p $(crds_gen_temp)

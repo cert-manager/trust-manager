@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+ifndef helm_dont_include_crds
 include $(dir $(lastword $(MAKEFILE_LIST)))/crds.mk
+endif
+
 include $(dir $(lastword $(MAKEFILE_LIST)))/helm.mk
 include $(dir $(lastword $(MAKEFILE_LIST)))/deploy.mk
