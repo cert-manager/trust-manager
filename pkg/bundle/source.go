@@ -18,6 +18,7 @@ package bundle
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -31,6 +32,8 @@ import (
 )
 
 type notFoundError struct{ error }
+
+type selectsNothingError struct{ error }
 
 // bundleData holds the result of a call to buildSourceBundle. It contains the resulting PEM-encoded
 // certificate data from concatenating all the sources together, binary data for any additional formats and
@@ -75,6 +78,12 @@ func (b *bundle) buildSourceBundle(ctx context.Context, sources []trustapi.Bundl
 				sourceData = b.defaultPackage.Bundle
 				resolvedBundle.defaultCAPackageStringID = b.defaultPackage.StringID()
 			}
+		}
+
+		// A source selector may select no configmaps/secrets, and this is not an error.
+		if errors.As(err, &selectsNothingError{}) {
+			b.Log.Info(err.Error())
+			continue
 		}
 
 		if err != nil {
@@ -124,10 +133,10 @@ func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObject
 		if selectorErr != nil {
 			return "", fmt.Errorf("failed to parse label selector as Selector for ConfigMap in namespace %s: %w", b.Namespace, selectorErr)
 		}
-		if err := b.client.List(ctx, &cml, client.MatchingLabelsSelector{Selector: selector}); apierrors.IsNotFound(err) {
-			return "", notFoundError{err}
-		} else if err != nil {
+		if err := b.client.List(ctx, &cml, client.MatchingLabelsSelector{Selector: selector}); err != nil {
 			return "", fmt.Errorf("failed to get ConfigMapList: %w", err)
+		} else if len(cml.Items) == 0 {
+			return "", selectsNothingError{fmt.Errorf("label selector %s for ConfigMap didn't match any resources", selector.String())}
 		}
 
 		configMaps = cml.Items
@@ -171,10 +180,10 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 		if selectorErr != nil {
 			return "", fmt.Errorf("failed to parse label selector as Selector for Secret in namespace %s: %w", b.Namespace, selectorErr)
 		}
-		if err := b.client.List(ctx, &sl, client.MatchingLabelsSelector{Selector: selector}); apierrors.IsNotFound(err) {
-			return "", notFoundError{err}
-		} else if err != nil {
+		if err := b.client.List(ctx, &sl, client.MatchingLabelsSelector{Selector: selector}); err != nil {
 			return "", fmt.Errorf("failed to get SecretList: %w", err)
+		} else if len(sl.Items) == 0 {
+			return "", selectsNothingError{fmt.Errorf("label selector %s for Secret didn't match any resources", selector.String())}
 		}
 
 		secrets = sl.Items
