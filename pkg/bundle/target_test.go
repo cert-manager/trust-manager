@@ -27,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
 	metav1applyconfig "k8s.io/client-go/applyconfigurations/meta/v1"
 	"k8s.io/client-go/tools/record"
@@ -610,7 +611,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 			needsUpdate, err := b.syncConfigMapTarget(ctx, log, &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       spec,
-			}, bundleName, test.namespace.Name, resolvedBundle, test.shouldExist)
+			}, types.NamespacedName{Name: bundleName, Namespace: test.namespace.Name}, resolvedBundle, test.shouldExist)
 			assert.NoError(t, err)
 
 			assert.Equalf(t, test.expNeedsUpdate, needsUpdate, "unexpected needsUpdate, exp=%t got=%t", test.expNeedsUpdate, needsUpdate)
@@ -1230,7 +1231,7 @@ func Test_syncSecretTarget(t *testing.T) {
 			needsUpdate, err := b.syncSecretTarget(ctx, log, &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       spec,
-			}, bundleName, test.namespace.Name, resolvedBundle, test.shouldExist)
+			}, types.NamespacedName{Name: bundleName, Namespace: test.namespace.Name}, resolvedBundle, test.shouldExist)
 			assert.NoError(t, err)
 
 			assert.Equalf(t, test.expNeedsUpdate, needsUpdate, "unexpected needsUpdate, exp=%t got=%t", test.expNeedsUpdate, needsUpdate)

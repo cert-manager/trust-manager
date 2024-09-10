@@ -33,12 +33,12 @@ type bundleStatusApplyConfiguration struct {
 }
 
 func GenerateBundleStatusPatch(
-	name, namespace string,
+	name string,
 	status *trustapi.BundleStatus,
 ) (*trustapi.Bundle, client.Patch, error) {
 	// This object is used to deduce the name & namespace + unmarshall the return value in
 	bundle := &trustapi.Bundle{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+		ObjectMeta: metav1.ObjectMeta{Name: name},
 	}
 
 	// This object is used to render the patch
@@ -46,7 +46,6 @@ func GenerateBundleStatusPatch(
 		ObjectMetaApplyConfiguration: &v1.ObjectMetaApplyConfiguration{},
 	}
 	b.WithName(name)
-	b.WithNamespace(namespace)
 	b.WithKind(trustapi.BundleKind)
 	b.WithAPIVersion(trustapi.SchemeGroupVersion.Identifier())
 	b.Status = status
