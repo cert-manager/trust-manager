@@ -617,7 +617,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
-			resolvedBundle := bundleData{data: data, binaryData: make(map[string][]byte)}
+			resolvedBundle := targetData{data: data, binaryData: make(map[string][]byte)}
 			if test.withJKS {
 				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
 					KeySelector: trustapi.KeySelector{
@@ -1237,7 +1237,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
-			resolvedBundle := bundleData{data: data, binaryData: make(map[string][]byte)}
+			resolvedBundle := targetData{data: data, binaryData: make(map[string][]byte)}
 			if test.withJKS {
 				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
 					KeySelector: trustapi.KeySelector{

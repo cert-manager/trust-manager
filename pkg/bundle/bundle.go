@@ -303,12 +303,12 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 
 		if target.Kind == configMapTarget {
 			syncFunc = func(targetLog logr.Logger, target targetResource, shouldExist bool) (bool, error) {
-				return b.syncConfigMapTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle, shouldExist)
+				return b.syncConfigMapTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle.targetData, shouldExist)
 			}
 		}
 		if target.Kind == secretTarget {
 			syncFunc = func(targetLog logr.Logger, target targetResource, shouldExist bool) (bool, error) {
-				return b.syncSecretTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle, shouldExist)
+				return b.syncSecretTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle.targetData, shouldExist)
 			}
 		}
 
