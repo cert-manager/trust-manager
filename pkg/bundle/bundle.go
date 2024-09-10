@@ -95,7 +95,7 @@ type bundle struct {
 func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	result, statusPatch, resultErr := b.reconcileBundle(ctx, req)
 	if statusPatch != nil {
-		con, patch, err := ssa_client.GenerateBundleStatusPatch(req.Name, req.Namespace, statusPatch)
+		con, patch, err := ssa_client.GenerateBundleStatusPatch(req.Name, statusPatch)
 		if err != nil {
 			err = fmt.Errorf("failed to generate bundle status patch: %w", err)
 			return ctrl.Result{}, utilerrors.NewAggregate([]error{resultErr, err})
@@ -303,12 +303,12 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 
 		if target.Kind == configMapTarget {
 			syncFunc = func(targetLog logr.Logger, target targetResource, shouldExist bool) (bool, error) {
-				return b.syncConfigMapTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle.targetData, shouldExist)
+				return b.syncConfigMapTarget(ctx, targetLog, &bundle, target.NamespacedName, resolvedBundle.targetData, shouldExist)
 			}
 		}
 		if target.Kind == secretTarget {
 			syncFunc = func(targetLog logr.Logger, target targetResource, shouldExist bool) (bool, error) {
-				return b.syncSecretTarget(ctx, targetLog, &bundle, target.Name, target.Namespace, resolvedBundle.targetData, shouldExist)
+				return b.syncSecretTarget(ctx, targetLog, &bundle, target.NamespacedName, resolvedBundle.targetData, shouldExist)
 			}
 		}
 

@@ -27,6 +27,7 @@ import (
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
 	metav1applyconfig "k8s.io/client-go/applyconfigurations/meta/v1"
@@ -48,8 +49,7 @@ func (b *bundle) syncConfigMapTarget(
 	ctx context.Context,
 	log logr.Logger,
 	bundle *trustapi.Bundle,
-	name string,
-	namespace string,
+	name types.NamespacedName,
 	resolvedBundle targetData,
 	shouldExist bool,
 ) (bool, error) {
@@ -59,9 +59,9 @@ func (b *bundle) syncConfigMapTarget(
 			APIVersion: "v1",
 		},
 	}
-	err := b.targetCache.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, configMap)
+	err := b.targetCache.Get(ctx, name, configMap)
 	if err != nil && !apierrors.IsNotFound(err) {
-		return false, fmt.Errorf("failed to get ConfigMap %s/%s: %w", namespace, name, err)
+		return false, fmt.Errorf("failed to get ConfigMap %s: %w", name, err)
 	}
 
 	// If the ConfigMap exists, but the Bundle is being deleted, delete the ConfigMap.
@@ -73,7 +73,7 @@ func (b *bundle) syncConfigMapTarget(
 	if !apierrors.IsNotFound(err) && !shouldExist {
 		// apply empty patch to remove the key
 		configMapPatch := coreapplyconfig.
-			ConfigMap(name, namespace).
+			ConfigMap(name.Name, name.Namespace).
 			WithLabels(map[string]string{
 				trustapi.BundleLabelKey: bundle.Name,
 			}).
@@ -88,7 +88,7 @@ func (b *bundle) syncConfigMapTarget(
 			)
 
 		if err = b.patchConfigMapResource(ctx, configMapPatch); err != nil {
-			return false, fmt.Errorf("failed to patch ConfigMap %s/%s: %w", namespace, bundle.Name, err)
+			return false, fmt.Errorf("failed to patch ConfigMap %s: %w", name, err)
 		}
 
 		return true, nil
@@ -118,7 +118,7 @@ func (b *bundle) syncConfigMapTarget(
 	}
 
 	configMapPatch := coreapplyconfig.
-		ConfigMap(name, namespace).
+		ConfigMap(name.Name, name.Namespace).
 		WithLabels(map[string]string{
 			trustapi.BundleLabelKey: bundle.Name,
 		}).
@@ -138,7 +138,7 @@ func (b *bundle) syncConfigMapTarget(
 		WithBinaryData(configmapBinData)
 
 	if err = b.patchConfigMapResource(ctx, configMapPatch); err != nil {
-		return false, fmt.Errorf("failed to patch ConfigMap %s/%s: %w", namespace, bundle.Name, err)
+		return false, fmt.Errorf("failed to patch ConfigMap %s: %w", name, err)
 	}
 
 	log.V(2).Info("synced bundle to namespace for target ConfigMap")
@@ -154,8 +154,7 @@ func (b *bundle) syncSecretTarget(
 	ctx context.Context,
 	log logr.Logger,
 	bundle *trustapi.Bundle,
-	name string,
-	namespace string,
+	name types.NamespacedName,
 	resolvedBundle targetData,
 	shouldExist bool,
 ) (bool, error) {
@@ -165,9 +164,9 @@ func (b *bundle) syncSecretTarget(
 			APIVersion: "v1",
 		},
 	}
-	err := b.targetCache.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, secret)
+	err := b.targetCache.Get(ctx, name, secret)
 	if err != nil && !apierrors.IsNotFound(err) {
-		return false, fmt.Errorf("failed to get Secret %s/%s: %w", namespace, name, err)
+		return false, fmt.Errorf("failed to get Secret %s: %w", name, err)
 	}
 
 	// If the target obj exists, but the Bundle is being deleted, delete the Secret.
@@ -179,7 +178,7 @@ func (b *bundle) syncSecretTarget(
 	if !apierrors.IsNotFound(err) && !shouldExist {
 		// apply empty patch to remove the key
 		secretPatch := coreapplyconfig.
-			Secret(name, namespace).
+			Secret(name.Name, name.Namespace).
 			WithLabels(map[string]string{
 				trustapi.BundleLabelKey: bundle.Name,
 			}).
@@ -194,7 +193,7 @@ func (b *bundle) syncSecretTarget(
 			)
 
 		if err = b.patchSecretResource(ctx, secretPatch); err != nil {
-			return false, fmt.Errorf("failed to patch secret %s/%s: %w", namespace, bundle.Name, err)
+			return false, fmt.Errorf("failed to patch secret %s: %w", name, err)
 		}
 
 		return true, nil
@@ -227,7 +226,7 @@ func (b *bundle) syncSecretTarget(
 	}
 
 	secretPatch := coreapplyconfig.
-		Secret(name, namespace).
+		Secret(name.Name, name.Namespace).
 		WithLabels(map[string]string{
 			trustapi.BundleLabelKey: bundle.Name,
 		}).
@@ -246,7 +245,7 @@ func (b *bundle) syncSecretTarget(
 		WithData(targetData)
 
 	if err = b.patchSecretResource(ctx, secretPatch); err != nil {
-		return false, fmt.Errorf("failed to patch Secret %s/%s: %w", namespace, bundle.Name, err)
+		return false, fmt.Errorf("failed to patch Secret %s: %w", name, err)
 	}
 
 	log.V(2).Info("synced bundle to namespace for target Secret")
