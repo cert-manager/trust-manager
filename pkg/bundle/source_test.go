@@ -307,13 +307,13 @@ func Test_buildSourceBundle(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			fakeclient := fake.NewClientBuilder().
+			fakeClient := fake.NewClientBuilder().
 				WithRuntimeObjects(test.objects...).
 				WithScheme(trustapi.GlobalScheme).
 				Build()
 
 			b := &bundle{
-				client: fakeclient,
+				client: fakeClient,
 				defaultPackage: &fspkg.Package{
 					Name:    "testpkg",
 					Version: "123",

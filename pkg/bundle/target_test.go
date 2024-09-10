@@ -32,7 +32,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2/ktesting"
 	"k8s.io/utils/ptr"
-	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/structured-merge-diff/fieldpath"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
@@ -584,14 +584,14 @@ func Test_syncConfigMapTarget(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			clientBuilder := fakeclient.NewClientBuilder().
+			clientBuilder := fake.NewClientBuilder().
 				WithScheme(trustapi.GlobalScheme)
 			if test.object != nil {
 				clientBuilder.WithRuntimeObjects(test.object)
 			}
 
-			fakeclient := clientBuilder.Build()
-			fakerecorder := record.NewFakeRecorder(1)
+			fakeClient := clientBuilder.Build()
+			fakeRecorder := record.NewFakeRecorder(1)
 
 			var (
 				logMutex        sync.Mutex
@@ -599,9 +599,9 @@ func Test_syncConfigMapTarget(t *testing.T) {
 			)
 
 			b := &bundle{
-				client:      fakeclient,
-				targetCache: fakeclient,
-				recorder:    fakerecorder,
+				client:      fakeClient,
+				targetCache: fakeClient,
+				recorder:    fakeRecorder,
 				patchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
 					logMutex.Lock()
 					defer logMutex.Unlock()
@@ -689,7 +689,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 
 			var event string
 			select {
-			case event = <-fakerecorder.Events:
+			case event = <-fakeRecorder.Events:
 			default:
 			}
 			assert.Equal(t, test.expEvent, event)
@@ -1204,7 +1204,7 @@ func Test_syncSecretTarget(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			clientBuilder := fakeclient.NewClientBuilder().
+			clientBuilder := fake.NewClientBuilder().
 				WithScheme(trustapi.GlobalScheme)
 			if test.object != nil {
 				clientBuilder.WithRuntimeObjects(test.object)
