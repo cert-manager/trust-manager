@@ -33,9 +33,9 @@ import (
 	"k8s.io/klog/v2/ktesting"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/structured-merge-diff/fieldpath"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
 	"github.com/cert-manager/trust-manager/test/dummy"
 )
 
@@ -52,35 +52,6 @@ var (
 	jksData    = []byte("JKS")
 	pkcs12Data = []byte("PKCS12")
 )
-
-func managedFieldEntries(fields []string, dataFields []string) []metav1.ManagedFieldsEntry {
-	fieldset := fieldpath.NewSet()
-	for _, property := range fields {
-		fieldset.Insert(
-			fieldpath.MakePathOrDie("data", property),
-		)
-	}
-	for _, property := range dataFields {
-		fieldset.Insert(
-			fieldpath.MakePathOrDie("binaryData", property),
-		)
-	}
-
-	jsonFieldSet, err := fieldset.ToJSON()
-	if err != nil {
-		panic(err)
-	}
-
-	return []metav1.ManagedFieldsEntry{
-		{
-			Manager:   "trust-manager",
-			Operation: metav1.ManagedFieldsOperationApply,
-			FieldsV1: &metav1.FieldsV1{
-				Raw: jsonFieldSet,
-			},
-		},
-	}
-}
 
 func Test_syncConfigMapTarget(t *testing.T) {
 	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
@@ -139,7 +110,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Namespace:     "test-namespace",
 					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
 					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
-					ManagedFields: managedFieldEntries(nil, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries(nil, nil),
 				},
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
@@ -155,7 +126,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Namespace:     "test-namespace",
 					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
 					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
@@ -205,7 +176,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: "wrong data"},
 			},
@@ -231,7 +202,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
@@ -259,7 +230,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
@@ -287,7 +258,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{"wrong key"}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{"wrong key"}, nil),
 				},
 				BinaryData: map[string][]byte{"wrong key": []byte(data)},
 			},
@@ -313,7 +284,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, []string{"wrong key"}),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, []string{"wrong key"}),
 				},
 				BinaryData: map[string][]byte{
 					key:         []byte(data),
@@ -344,7 +315,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key, "wrong key"}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key, "wrong key"}, nil),
 				},
 				Data: map[string]string{
 					key:         data,
@@ -375,7 +346,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
@@ -401,7 +372,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
@@ -429,7 +400,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
@@ -464,7 +435,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{
 					key:           data,
@@ -515,7 +486,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
@@ -544,7 +515,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
@@ -564,7 +535,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Namespace:     "test-namespace",
 					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
 					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
 			},
@@ -759,7 +730,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Namespace:     "test-namespace",
 					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
 					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
-					ManagedFields: managedFieldEntries(nil, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries(nil, nil),
 				},
 			},
 			namespace:         corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}},
@@ -775,7 +746,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Namespace:     "test-namespace",
 					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
 					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string][]byte{key: []byte(data)},
 			},
@@ -825,7 +796,7 @@ func Test_syncSecretTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string][]byte{key: []byte("wrong data")},
 			},
@@ -851,7 +822,7 @@ func Test_syncSecretTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string][]byte{key: []byte(data)},
 			},
@@ -879,7 +850,7 @@ func Test_syncSecretTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string][]byte{key: []byte(data)},
 			},
@@ -907,7 +878,7 @@ func Test_syncSecretTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{"wrong key"}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{"wrong key"}, nil),
 				},
 				Data: map[string][]byte{"wrong key": []byte(data)},
 			},
@@ -933,7 +904,7 @@ func Test_syncSecretTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, []string{"wrong key"}),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, []string{"wrong key"}),
 				},
 				Data: map[string][]byte{
 					key:         []byte(data),
@@ -964,7 +935,7 @@ func Test_syncSecretTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key, "wrong key"}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key, "wrong key"}, nil),
 				},
 				Data: map[string][]byte{
 					key:         []byte(data),
@@ -995,7 +966,7 @@ func Test_syncSecretTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string][]byte{key: []byte(data)},
 			},
@@ -1021,7 +992,7 @@ func Test_syncSecretTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string][]byte{key: []byte(data)},
 			},
@@ -1049,7 +1020,7 @@ func Test_syncSecretTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string][]byte{key: []byte(data)},
 			},
@@ -1084,7 +1055,7 @@ func Test_syncSecretTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string][]byte{
 					key:           []byte(data),
@@ -1135,7 +1106,7 @@ func Test_syncSecretTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string][]byte{key: []byte(data)},
 			},
@@ -1164,7 +1135,7 @@ func Test_syncSecretTarget(t *testing.T) {
 							BlockOwnerDeletion: ptr.To(true),
 						},
 					},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string][]byte{key: []byte(data)},
 			},
@@ -1184,7 +1155,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Namespace:     "test-namespace",
 					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
 					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
-					ManagedFields: managedFieldEntries([]string{key}, nil),
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string][]byte{key: []byte(data)},
 			},

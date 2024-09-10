@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/truststore"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/pkg/util"
@@ -217,7 +218,7 @@ func Test_Reconcile(t *testing.T) {
 					Labels:          baseBundleLabels,
 					Annotations:     annotations,
 					OwnerReferences: baseBundleOwnerRef,
-					ManagedFields:   managedFieldEntries(dataEntries, binDataEntries),
+					ManagedFields:   ssa_client.ManagedFieldEntries(dataEntries, binDataEntries),
 				},
 				Data:       data,
 				BinaryData: binData,
@@ -254,7 +255,7 @@ func Test_Reconcile(t *testing.T) {
 					Labels:          baseBundleLabels,
 					Annotations:     annotations,
 					OwnerReferences: baseBundleOwnerRef,
-					ManagedFields:   managedFieldEntries(dataEntries, nil),
+					ManagedFields:   ssa_client.ManagedFieldEntries(dataEntries, nil),
 				},
 				Data: binaryData,
 			}
