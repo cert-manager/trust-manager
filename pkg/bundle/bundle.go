@@ -37,6 +37,7 @@ import (
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
+	"github.com/cert-manager/trust-manager/pkg/bundle/internal/target"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
 
@@ -67,10 +68,6 @@ type bundle struct {
 	// a cache-backed Kubernetes client
 	client client.Client
 
-	// targetCache is a cache.Cache that holds cached ConfigMap and Secret
-	// resources that are used as targets for Bundles.
-	targetCache client.Reader
-
 	// defaultPackage holds the loaded 'default' certificate package, if one was specified
 	// at startup.
 	defaultPackage *fspkg.Package
@@ -84,9 +81,7 @@ type bundle struct {
 	// Options holds options for the Bundle controller.
 	Options
 
-	// patchResourceOverwrite allows use to override the patchResource function
-	// it is used for testing purposes
-	patchResourceOverwrite func(ctx context.Context, obj interface{}) error
+	targetReconciler *target.Reconciler
 }
 
 // Reconcile is the top level function for reconciling over synced Bundles.
@@ -253,7 +248,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 				Kind:       string(kind),
 			},
 		}
-		err := b.targetCache.List(ctx, targetList, &client.ListOptions{
+		err := b.targetReconciler.Cache.List(ctx, targetList, &client.ListOptions{
 			LabelSelector: labels.SelectorFromSet(map[string]string{
 				trustapi.BundleLabelKey: bundle.Name,
 			}),
@@ -303,12 +298,12 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 
 		if target.Kind == configMapTarget {
 			syncFunc = func(targetLog logr.Logger, target targetResource, shouldExist bool) (bool, error) {
-				return b.syncConfigMapTarget(ctx, targetLog, &bundle, target.NamespacedName, resolvedBundle.targetData, shouldExist)
+				return b.targetReconciler.SyncConfigMap(ctx, targetLog, &bundle, target.NamespacedName, resolvedBundle.Data, shouldExist)
 			}
 		}
 		if target.Kind == secretTarget {
 			syncFunc = func(targetLog logr.Logger, target targetResource, shouldExist bool) (bool, error) {
-				return b.syncSecretTarget(ctx, targetLog, &bundle, target.NamespacedName, resolvedBundle.targetData, shouldExist)
+				return b.targetReconciler.SyncSecret(ctx, targetLog, &bundle, target.NamespacedName, resolvedBundle.Data, shouldExist)
 			}
 		}
 

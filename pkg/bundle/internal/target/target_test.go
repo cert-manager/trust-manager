@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package bundle
+package target
 
 import (
 	"context"
@@ -570,11 +570,10 @@ func Test_syncConfigMapTarget(t *testing.T) {
 				resourcePatches []interface{}
 			)
 
-			b := &bundle{
-				client:      fakeClient,
-				targetCache: fakeClient,
-				recorder:    fakeRecorder,
-				patchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
+			r := &Reconciler{
+				Client: fakeClient,
+				Cache:  fakeClient,
+				PatchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
 					logMutex.Lock()
 					defer logMutex.Unlock()
 
@@ -589,14 +588,14 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
-			resolvedBundle := targetData{data: data, binaryData: make(map[string][]byte)}
+			resolvedBundle := Data{Data: data, BinaryData: make(map[string][]byte)}
 			if test.withJKS {
 				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
 					KeySelector: trustapi.KeySelector{
 						Key: jksKey,
 					},
 				}
-				resolvedBundle.binaryData[jksKey] = jksData
+				resolvedBundle.BinaryData[jksKey] = jksData
 			}
 			if test.withPKCS12 {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{
@@ -604,11 +603,11 @@ func Test_syncConfigMapTarget(t *testing.T) {
 						Key: pkcs12Key,
 					},
 				}
-				resolvedBundle.binaryData[pkcs12Key] = pkcs12Data
+				resolvedBundle.BinaryData[pkcs12Key] = pkcs12Data
 			}
 
 			log, ctx := ktesting.NewTestContext(t)
-			needsUpdate, err := b.syncConfigMapTarget(ctx, log, &trustapi.Bundle{
+			needsUpdate, err := r.SyncConfigMap(ctx, log, &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       spec,
 			}, types.NamespacedName{Name: bundleName, Namespace: test.namespace.Name}, resolvedBundle, test.shouldExist)
@@ -691,7 +690,6 @@ func Test_syncSecretTarget(t *testing.T) {
 		expJKS bool
 		// Expect PKCS12 to exist in the secret at the end of the sync.
 		expPKCS12 bool
-		expEvent  string
 		// Expect the owner reference of the secret to point to the bundle.
 		expOwnerReference bool
 		expNeedsUpdate    bool
@@ -1182,19 +1180,17 @@ func Test_syncSecretTarget(t *testing.T) {
 				clientBuilder.WithRuntimeObjects(test.object)
 			}
 
-			fakeclient := clientBuilder.Build()
-			fakerecorder := record.NewFakeRecorder(1)
+			fakeClient := clientBuilder.Build()
 
 			var (
 				logMutex        sync.Mutex
 				resourcePatches []interface{}
 			)
 
-			b := &bundle{
-				client:      fakeclient,
-				targetCache: fakeclient,
-				recorder:    fakerecorder,
-				patchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
+			r := &Reconciler{
+				Client: fakeClient,
+				Cache:  fakeClient,
+				PatchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
 					logMutex.Lock()
 					defer logMutex.Unlock()
 
@@ -1209,14 +1205,14 @@ func Test_syncSecretTarget(t *testing.T) {
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
-			resolvedBundle := targetData{data: data, binaryData: make(map[string][]byte)}
+			resolvedBundle := Data{Data: data, BinaryData: make(map[string][]byte)}
 			if test.withJKS {
 				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
 					KeySelector: trustapi.KeySelector{
 						Key: jksKey,
 					},
 				}
-				resolvedBundle.binaryData[jksKey] = jksData
+				resolvedBundle.BinaryData[jksKey] = jksData
 			}
 			if test.withPKCS12 {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{
@@ -1224,11 +1220,11 @@ func Test_syncSecretTarget(t *testing.T) {
 						Key: pkcs12Key,
 					},
 				}
-				resolvedBundle.binaryData[pkcs12Key] = pkcs12Data
+				resolvedBundle.BinaryData[pkcs12Key] = pkcs12Data
 			}
 
 			log, ctx := ktesting.NewTestContext(t)
-			needsUpdate, err := b.syncSecretTarget(ctx, log, &trustapi.Bundle{
+			needsUpdate, err := r.SyncSecret(ctx, log, &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       spec,
 			}, types.NamespacedName{Name: bundleName, Namespace: test.namespace.Name}, resolvedBundle, test.shouldExist)
@@ -1276,13 +1272,6 @@ func Test_syncSecretTarget(t *testing.T) {
 					assert.Equal(t, pkcs12Data, binData)
 				}
 			}
-
-			var event string
-			select {
-			case event = <-fakerecorder.Events:
-			default:
-			}
-			assert.Equal(t, test.expEvent, event)
 		})
 	}
 }
