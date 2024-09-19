@@ -41,6 +41,7 @@ import (
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
+	"github.com/cert-manager/trust-manager/pkg/bundle/internal/target"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/truststore"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/pkg/util"
@@ -1312,22 +1313,25 @@ func Test_Reconcile(t *testing.T) {
 
 			log, ctx := ktesting.NewTestContext(t)
 			b := &bundle{
-				client:      fakeClient,
-				targetCache: fakeClient,
-				recorder:    fakeRecorder,
-				clock:       fixedclock,
+				client:   fakeClient,
+				recorder: fakeRecorder,
+				clock:    fixedclock,
 				Options: Options{
 					Log:                  log,
 					Namespace:            trustNamespace,
 					SecretTargetsEnabled: !test.disableSecretTargets,
 					FilterExpiredCerts:   true,
 				},
-				patchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
-					logMutex.Lock()
-					defer logMutex.Unlock()
+				targetReconciler: &target.Reconciler{
+					Client: fakeClient,
+					Cache:  fakeClient,
+					PatchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
+						logMutex.Lock()
+						defer logMutex.Unlock()
 
-					resourcePatches = append(resourcePatches, obj)
-					return nil
+						resourcePatches = append(resourcePatches, obj)
+						return nil
+					},
 				},
 			}
 

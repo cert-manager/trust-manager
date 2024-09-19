@@ -39,6 +39,12 @@ import (
 	"github.com/cert-manager/trust-manager/test/dummy"
 )
 
+const (
+	jksKey    = "trust.jks"
+	pkcs12Key = "trust.p12"
+	data      = dummy.TestCertificate1
+)
+
 func Test_buildSourceBundle(t *testing.T) {
 	tests := map[string]struct {
 		sources          []trustapi.BundleSource
@@ -369,11 +375,11 @@ func Test_buildSourceBundle(t *testing.T) {
 				t.Errorf("unexpected notFoundError, exp=%t got=%v", test.expNotFoundError, err)
 			}
 
-			if resolvedBundle.data != test.expData {
-				t.Errorf("unexpected data, exp=%q got=%q", test.expData, resolvedBundle.data)
+			if resolvedBundle.Data.Data != test.expData {
+				t.Errorf("unexpected data, exp=%q got=%q", test.expData, resolvedBundle.Data.Data)
 			}
 
-			binData, jksExists := resolvedBundle.binaryData[jksKey]
+			binData, jksExists := resolvedBundle.Data.BinaryData[jksKey]
 			assert.Equal(t, test.expJKS, jksExists)
 
 			if test.expJKS {
@@ -397,7 +403,7 @@ func Test_buildSourceBundle(t *testing.T) {
 				assert.Equal(t, p.Bytes, cert.Certificate.Content)
 			}
 
-			binData, pkcs12Exists := resolvedBundle.binaryData[pkcs12Key]
+			binData, pkcs12Exists := resolvedBundle.Data.BinaryData[pkcs12Key]
 			assert.Equal(t, test.expPKCS12, pkcs12Exists)
 
 			if test.expPKCS12 {

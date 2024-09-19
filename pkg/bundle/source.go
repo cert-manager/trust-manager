@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle/internal/target"
 	"github.com/cert-manager/trust-manager/pkg/util"
 )
 
@@ -39,7 +40,7 @@ type selectsNothingError struct{ error }
 // certificate data from concatenating all the sources together, binary data for any additional formats and
 // any metadata from the sources which needs to be exposed on the Bundle resource's status field.
 type bundleData struct {
-	targetData
+	target.Data
 
 	defaultCAPackageStringID string
 }
@@ -100,7 +101,7 @@ func (b *bundle) buildSourceBundle(ctx context.Context, sources []trustapi.Bundl
 		return bundleData{}, fmt.Errorf("couldn't find any valid certificates in bundle")
 	}
 
-	if err := resolvedBundle.populate(certPool, formats); err != nil {
+	if err := resolvedBundle.Data.Populate(certPool, formats); err != nil {
 		return bundleData{}, err
 	}
 
