@@ -36,9 +36,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	"github.com/cert-manager/trust-manager/cmd/trust-manager/app/options"
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/target"
-	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
 
 // AddBundleController will register the Bundle controller with the
@@ -49,29 +49,27 @@ import (
 func AddBundleController(
 	ctx context.Context,
 	mgr manager.Manager,
-	opts Options,
+	opts options.Bundle,
 	targetCache cache.Cache,
 ) error {
+	sourceBuilder := &target.BundleBuilder{
+		Client:  mgr.GetClient(),
+		Options: opts,
+	}
+	if err := sourceBuilder.Init(); err != nil {
+		return err
+	}
+
 	b := &bundle{
 		client:   mgr.GetClient(),
 		recorder: mgr.GetEventRecorderFor("bundles"),
 		clock:    clock.RealClock{},
 		Options:  opts,
+		sources:  sourceBuilder,
 		targetReconciler: &target.Reconciler{
 			Client: mgr.GetClient(),
 			Cache:  targetCache,
 		},
-	}
-
-	if b.Options.DefaultPackageLocation != "" {
-		pkg, err := fspkg.LoadPackageFromFile(b.Options.DefaultPackageLocation)
-		if err != nil {
-			return fmt.Errorf("must load default package successfully when default package location is set: %w", err)
-		}
-
-		b.defaultPackage = &pkg
-
-		b.Options.Log.Info("successfully loaded default package from filesystem", "path", b.Options.DefaultPackageLocation)
 	}
 
 	// Only reconcile config maps that match the well known name
@@ -191,7 +189,7 @@ func (b *bundle) enqueueRequestsFromBundleFunc(fn func(obj client.Object, bundle
 func (b *bundle) mustBundleList(ctx context.Context) *trustapi.BundleList {
 	var bundleList trustapi.BundleList
 	if err := b.client.List(ctx, &bundleList); err != nil {
-		b.Log.Error(err, "failed to list all Bundles, exiting error")
+		b.Options.Log.Error(err, "failed to list all Bundles, exiting error")
 		os.Exit(-1)
 	}
 
