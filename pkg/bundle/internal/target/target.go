@@ -103,8 +103,8 @@ func (r *Reconciler) SyncConfigMap(
 		return false, errors.New("target not defined")
 	}
 
-	// Generated JKS is not deterministic - best we can do here is update if the pem cert has
-	// changed (hence not checking if JKS matches)
+	// Generated PKCS #12 is not deterministic - best we can do here is update if the pem cert has
+	// changed (hence not checking if PKCS #12 matches)
 	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(resolvedBundle.Data)))
 	configMapData := map[string]string{
 		bundleTarget.ConfigMap.Key: resolvedBundle.Data,
@@ -185,8 +185,8 @@ func (r *Reconciler) SyncSecret(
 		return false, errors.New("target not defined")
 	}
 
-	// Generated JKS is not deterministic - best we can do here is update if the pem cert has
-	// changed (hence not checking if JKS matches)
+	// Generated PKCS #12 is not deterministic - best we can do here is update if the pem cert has
+	// changed (hence not checking if PKCS #12 matches)
 	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(resolvedBundle.Data)))
 	secretData := map[string][]byte{
 		bundleTarget.Secret.Key: []byte(resolvedBundle.Data),
