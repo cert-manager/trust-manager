@@ -30,6 +30,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/sets"
 	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
 	metav1applyconfig "k8s.io/client-go/applyconfigurations/meta/v1"
@@ -337,12 +338,24 @@ func (r *Reconciler) patchConfigMap(ctx context.Context, applyConfig *coreapplyc
 		return nil, r.PatchResourceOverwrite(ctx, applyConfig)
 	}
 
-	target, patch, err := ssa_client.GenerateConfigMapPatch(applyConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate patch: %w", err)
+	if applyConfig == nil || applyConfig.Name == nil || applyConfig.Namespace == nil {
+		panic("target patch must be non-nil and have a name and namespace")
 	}
 
-	return target, r.Client.Patch(ctx, target, patch, ssa_client.FieldManager, client.ForceOwnership)
+	// This object is used to deduce the name & namespace + unmarshall the return value in
+	obj := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      *applyConfig.Name,
+			Namespace: *applyConfig.Namespace,
+		},
+	}
+
+	encodedPatch, err := json.Marshal(applyConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return obj, r.Client.Patch(ctx, obj, ssa_client.ApplyPatch{Patch: encodedPatch}, ssa_client.FieldManager, client.ForceOwnership)
 }
 
 func (r *Reconciler) patchSecret(ctx context.Context, applyConfig *coreapplyconfig.SecretApplyConfiguration) (*corev1.Secret, error) {
@@ -350,12 +363,24 @@ func (r *Reconciler) patchSecret(ctx context.Context, applyConfig *coreapplyconf
 		return nil, r.PatchResourceOverwrite(ctx, applyConfig)
 	}
 
-	target, patch, err := ssa_client.GenerateSecretPatch(applyConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate patch: %w", err)
+	if applyConfig == nil || applyConfig.Name == nil || applyConfig.Namespace == nil {
+		panic("target patch must be non-nil and have a name and namespace")
 	}
 
-	return target, r.Client.Patch(ctx, target, patch, ssa_client.FieldManager, client.ForceOwnership)
+	// This object is used to deduce the name & namespace + unmarshall the return value in
+	obj := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      *applyConfig.Name,
+			Namespace: *applyConfig.Namespace,
+		},
+	}
+
+	encodedPatch, err := json.Marshal(applyConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return obj, r.Client.Patch(ctx, obj, ssa_client.ApplyPatch{Patch: encodedPatch}, ssa_client.FieldManager, client.ForceOwnership)
 }
 
 type targetApplyConfiguration[T any] interface {

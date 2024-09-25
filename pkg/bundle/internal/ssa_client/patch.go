@@ -27,17 +27,17 @@ const (
 	FieldManager = client.FieldOwner("trust-manager")
 )
 
-type applyPatch struct {
-	patch []byte
+type ApplyPatch struct {
+	Patch []byte
 }
 
-var _ client.Patch = applyPatch{}
+var _ client.Patch = ApplyPatch{}
 
-func (p applyPatch) Data(_ client.Object) ([]byte, error) {
-	return p.patch, nil
+func (p ApplyPatch) Data(_ client.Object) ([]byte, error) {
+	return p.Patch, nil
 }
 
-func (p applyPatch) Type() types.PatchType {
+func (p ApplyPatch) Type() types.PatchType {
 	return types.ApplyPatchType
 }
 
