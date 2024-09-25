@@ -23,11 +23,63 @@ import (
 	"testing"
 
 	"github.com/pavlo-v-chernykh/keystore-go/v4"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/util"
 	"github.com/cert-manager/trust-manager/test/dummy"
 )
+
+func Test_Encoder_Deterministic(t *testing.T) {
+	tests := map[string]struct {
+		encoder             Encoder
+		expNonDeterministic bool
+	}{
+		"JKS default password": {
+			encoder: NewJKSEncoder(v1alpha1.DefaultJKSPassword),
+		},
+		"JKS custom password": {
+			encoder: NewJKSEncoder("my-password"),
+		},
+		"PKCS#12 default password": {
+			encoder: NewPKCS12Encoder(v1alpha1.DefaultPKCS12Password),
+		},
+		"PKCS#12 custom password": {
+			encoder: NewPKCS12Encoder("my-password"),
+			// FIXME: We should try to make all encoders deterministic
+			expNonDeterministic: true,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			bundle := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3)
+
+			certPool := util.NewCertPool()
+			if err := certPool.AddCertsFromPEM([]byte(bundle)); err != nil {
+				t.Fatalf("didn't expect an error but got: %s", err)
+			}
+
+			store, err := test.encoder.Encode(certPool)
+			if err != nil {
+				t.Fatalf("didn't expect an error but got: %s", err)
+			}
+
+			store2, err := test.encoder.Encode(certPool)
+			if err != nil {
+				t.Fatalf("didn't expect an error but got: %s", err)
+			}
+
+			if test.expNonDeterministic {
+				assert.NotEqual(t, store, store2, "expected encoder to be non-deterministic")
+			} else {
+				assert.Equal(t, store, store2, "expected encoder to be deterministic")
+			}
+		})
+	}
+}
 
 func Test_encodeJKSAliases(t *testing.T) {
 	// IMPORTANT: We use TestCertificate1 and TestCertificate2 here because they're defined
