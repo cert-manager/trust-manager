@@ -102,8 +102,6 @@ func TestAddCertsFromPEM(t *testing.T) {
 	}
 
 	for name, test := range cases {
-		name := name
-		test := test
 		t.Run(name, func(t *testing.T) {
 			certPool := NewCertPool(WithFilteredExpiredCerts(test.filterExpiredCerts))
 
