@@ -1291,7 +1291,6 @@ func Test_Reconcile(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			fakeClient := fake.NewClientBuilder().
