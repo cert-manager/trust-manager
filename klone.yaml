@@ -18,9 +18,9 @@ targets:
       repo_hash: 279334d152866c753421232cf237dab891fbaf5f
       repo_path: modules/boilerplate
     - folder_name: cert-manager
-      repo_url: https://github.com/cert-manager/makefile-modules.git
-      repo_ref: main
-      repo_hash: 279334d152866c753421232cf237dab891fbaf5f
+      repo_url: https://github.com/wallrj/makefile-modules.git
+      repo_ref: cert-manager-1.16.0
+      repo_hash: 5e70e9c9ca477d48a59674bc30929bd54b4258df
       repo_path: modules/cert-manager
     - folder_name: controller-gen
       repo_url: https://github.com/cert-manager/makefile-modules.git
