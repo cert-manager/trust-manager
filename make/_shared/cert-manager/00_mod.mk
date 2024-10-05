@@ -15,14 +15,14 @@
 images_amd64 ?=
 images_arm64 ?=
 
-cert_manager_version := v1.15.3
+cert_manager_version := v1.16.0
 
-images_amd64 += quay.io/jetstack/cert-manager-controller:$(cert_manager_version)@sha256:631ba2b3bf7be0bd0d446b8bfcbeb56f8fe735cd02a267567a8d94682d03165b
-images_amd64 += quay.io/jetstack/cert-manager-cainjector:$(cert_manager_version)@sha256:6802c6afea2da91f5782880b79008179bb98147a23ce00f3cab5ba799807b5d6
-images_amd64 += quay.io/jetstack/cert-manager-webhook:$(cert_manager_version)@sha256:373e3acd7b96c87a574f9234bb4fbfd576e3205c502d6da5dade41165c9dc828
-images_amd64 += quay.io/jetstack/cert-manager-startupapicheck:$(cert_manager_version)@sha256:a896ff5d8029e5a040643935089ef0466fe0c1f6b2fe591f342994c53aada6e2
+images_amd64 += quay.io/jetstack/cert-manager-controller:$(cert_manager_version)@sha256:b45df0d537a7a8ef2d968bd2621547dd43d93230a5b12a89cf496a081db2edd3
+images_amd64 += quay.io/jetstack/cert-manager-cainjector:$(cert_manager_version)@sha256:13d60b82759fec353c5c35280b902bf3f3c8680b471501792b62a7db2ef706e1
+images_amd64 += quay.io/jetstack/cert-manager-webhook:$(cert_manager_version)@sha256:a98cc73669ed5e3220a064732649c541b4d2c272327271f63f9129a6f234ca63
+images_amd64 += quay.io/jetstack/cert-manager-startupapicheck:$(cert_manager_version)@sha256:42b5c24cdf9fb68ccc4de4854e0336ac9e05bfacbd4c6ad9b85787db2e73c646
 
-images_arm64 += quay.io/jetstack/cert-manager-controller:$(cert_manager_version)@sha256:06fed982efd0c2b59736718ace9f7d482fda550d9398cc90b01a9ceb98c3fbb5
-images_arm64 += quay.io/jetstack/cert-manager-cainjector:$(cert_manager_version)@sha256:549347a89682abc0ede551b253a617defc398c7b2b1ede4c66cb71f33326c2d1
-images_arm64 += quay.io/jetstack/cert-manager-webhook:$(cert_manager_version)@sha256:51fe148d9e5269511f5fdac2db8cb64611acd6b118e5fcade00302442da33a8a
-images_arm64 += quay.io/jetstack/cert-manager-startupapicheck:$(cert_manager_version)@sha256:a15bfed2b625f7c97029ac4ba2777a13897a4492cc995cafda4594d30ab3d721
+images_arm64 += quay.io/jetstack/cert-manager-controller:$(cert_manager_version)@sha256:af089c67364f0ed282cb11b3994bea7bfa485d75a7b019c2c532ea118455f49b
+images_arm64 += quay.io/jetstack/cert-manager-cainjector:$(cert_manager_version)@sha256:53a5206399898f2f754d45943211a38bdd82a23beb7f3ce33c30950117c95ebc
+images_arm64 += quay.io/jetstack/cert-manager-webhook:$(cert_manager_version)@sha256:f8f633a1fe9089375e1c0debd5e7b1672ac740f2294453a37863a3d0b6d0a1cc
+images_arm64 += quay.io/jetstack/cert-manager-startupapicheck:$(cert_manager_version)@sha256:9ab84f036989c71d531882acb3549799265e7f04b5fb719f4fd1bce6f9e2c9b0
