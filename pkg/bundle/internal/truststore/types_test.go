@@ -32,8 +32,7 @@ import (
 
 func Test_Encoder_Deterministic(t *testing.T) {
 	tests := map[string]struct {
-		encoder             Encoder
-		expNonDeterministic bool
+		encoder Encoder
 	}{
 		"JKS default password": {
 			encoder: NewJKSEncoder(v1alpha1.DefaultJKSPassword),
@@ -46,8 +45,6 @@ func Test_Encoder_Deterministic(t *testing.T) {
 		},
 		"PKCS#12 custom password": {
 			encoder: NewPKCS12Encoder("my-password"),
-			// FIXME: We should try to make all encoders deterministic
-			expNonDeterministic: true,
 		},
 	}
 
@@ -72,11 +69,7 @@ func Test_Encoder_Deterministic(t *testing.T) {
 				t.Fatalf("didn't expect an error but got: %s", err)
 			}
 
-			if test.expNonDeterministic {
-				assert.NotEqual(t, store, store2, "expected encoder to be non-deterministic")
-			} else {
-				assert.Equal(t, store, store2, "expected encoder to be deterministic")
-			}
+			assert.Equal(t, store, store2, "expected encoder to be deterministic")
 		})
 	}
 }

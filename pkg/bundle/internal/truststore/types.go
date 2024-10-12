@@ -25,6 +25,7 @@ import (
 	"github.com/pavlo-v-chernykh/keystore-go/v4"
 	"software.sslmate.com/src/go-pkcs12"
 
+	"github.com/cert-manager/trust-manager/pkg/bundle/internal/insecurerand"
 	"github.com/cert-manager/trust-manager/pkg/util"
 )
 
@@ -98,7 +99,11 @@ func (e pkcs12Encoder) Encode(trustBundle *util.CertPool) ([]byte, error) {
 		})
 	}
 
-	encoder := pkcs12.LegacyRC2
+	encoder := pkcs12.LegacyRC2.
+		// Short-circuiting the rand generator to make our PKCS#12 truststores deterministic.
+		// This should allow use of unconditional SSA requests from controller.
+		// See: https://cert-manager.io/docs/faq/#why-are-passwords-on-jks-or-pkcs12-files-not-helpful
+		WithRand(insecurerand.Rand)
 
 	if e.password == "" {
 		encoder = pkcs12.Passwordless
