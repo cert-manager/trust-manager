@@ -153,9 +153,9 @@ func Test_validate(t *testing.T) {
 			},
 			expErr: ptr.To(field.ErrorList{
 				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap"), "name: ' ', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
-				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap", "key"), "", "source configMap key must be defined"),
+				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap"), "key: , matchKey: ", "must validate one and only one configMap key selector (oneOf): [key, matchKey]. Found none valid"),
 				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "name: ' ', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
-				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret", "key"), "", "source secret key must be defined"),
+				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "key: , matchKey: ", "must validate one and only one secret key selector (oneOf): [key, matchKey]. Found none valid"),
 			}.ToAggregate().Error()),
 		},
 		"sources names and selectors are both set": {
@@ -172,6 +172,22 @@ func Test_validate(t *testing.T) {
 			expErr: ptr.To(field.ErrorList{
 				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap"), "name: some-config-map, selector: {}", "must validate one and only one schema (oneOf): [name, selector]. Found both set"),
 				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "name: some-secret, selector: {}", "must validate one and only one schema (oneOf): [name, selector]. Found both set"),
+			}.ToAggregate().Error()),
+		},
+		"sources key and keyMatch are both set": {
+			bundle: &trustapi.Bundle{
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "some-config-map", SourceKeySelector: trustapi.SourceKeySelector{Key: "test", MatchKey: "match-test"}}},
+						{InLine: ptr.To("test")},
+						{Secret: &trustapi.SourceObjectKeySelector{Name: "some-secret", SourceKeySelector: trustapi.SourceKeySelector{Key: "test", MatchKey: "match-test"}}},
+					},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test"}},
+				},
+			},
+			expErr: ptr.To(field.ErrorList{
+				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap"), "key: test, matchKey: match-test", "must validate one and only one configMap key selector (oneOf): [key, matchKey]. Found both set"),
+				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "key: test, matchKey: match-test", "must validate one and only one secret key selector (oneOf): [key, matchKey]. Found both set"),
 			}.ToAggregate().Error()),
 		},
 		"sources defines the same configMap target": {

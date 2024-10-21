@@ -105,8 +105,11 @@ func (v *validator) validate(obj runtime.Object) (admission.Warnings, error) {
 			if len(configMap.Name) > 0 && configMap.Selector != nil {
 				el = append(el, field.Invalid(path, fmt.Sprintf("name: %s, selector: {}", configMap.Name), "must validate one and only one schema (oneOf): [name, selector]. Found both set"))
 			}
-			if len(configMap.Key) == 0 {
-				el = append(el, field.Invalid(path.Child("key"), configMap.Key, "source configMap key must be defined"))
+			if len(configMap.Key) == 0 && len(configMap.MatchKey) == 0 {
+				el = append(el, field.Invalid(path, fmt.Sprintf("key: %s, matchKey: %s", configMap.SourceKeySelector.Key, configMap.SourceKeySelector.MatchKey), "must validate one and only one configMap key selector (oneOf): [key, matchKey]. Found none valid"))
+			}
+			if len(configMap.Key) > 0 && len(configMap.MatchKey) > 0 {
+				el = append(el, field.Invalid(path, fmt.Sprintf("key: %s, matchKey: %s", configMap.SourceKeySelector.Key, configMap.SourceKeySelector.MatchKey), "must validate one and only one configMap key selector (oneOf): [key, matchKey]. Found both set"))
 			}
 		}
 
@@ -121,8 +124,11 @@ func (v *validator) validate(obj runtime.Object) (admission.Warnings, error) {
 			if len(secret.Name) > 0 && secret.Selector != nil {
 				el = append(el, field.Invalid(path, fmt.Sprintf("name: %s, selector: {}", secret.Name), "must validate one and only one schema (oneOf): [name, selector]. Found both set"))
 			}
-			if len(secret.Key) == 0 {
-				el = append(el, field.Invalid(path.Child("key"), secret.Key, "source secret key must be defined"))
+			if len(secret.Key) == 0 && len(secret.MatchKey) == 0 {
+				el = append(el, field.Invalid(path, fmt.Sprintf("key: %s, matchKey: %s", secret.SourceKeySelector.Key, secret.SourceKeySelector.MatchKey), "must validate one and only one secret key selector (oneOf): [key, matchKey]. Found none valid"))
+			}
+			if len(secret.Key) > 0 && len(secret.MatchKey) > 0 {
+				el = append(el, field.Invalid(path, fmt.Sprintf("key: %s, matchKey: %s", secret.SourceKeySelector.Key, secret.SourceKeySelector.MatchKey), "must validate one and only one secret key selector (oneOf): [key, matchKey]. Found both set"))
 			}
 		}
 
