@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -145,12 +146,31 @@ func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObject
 
 	var results strings.Builder
 	for _, cm := range configMaps {
-		data, ok := cm.Data[ref.Key]
-		if !ok {
-			return "", notFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, ref.Key)}
+		if len(ref.Key) > 0 {
+			data, ok := cm.Data[ref.Key]
+			if !ok {
+				return "", notFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, ref.Key)}
+			}
+			results.WriteString(data)
+			results.WriteByte('\n')
 		}
-		results.WriteString(data)
-		results.WriteByte('\n')
+
+		if len(ref.MatchKey) > 0 {
+			regExp, _ := regexp.Compile(ref.MatchKey)
+			found := false
+
+			for key, value := range cm.Data {
+				if regExp.MatchString(key) {
+					found = true
+					results.WriteString(value)
+					results.WriteByte('\n')
+				}
+			}
+
+			if !found {
+				return "", selectsNothingError{fmt.Errorf("regular expression %s for ConfigMap %s/%s keys didn't match any data", ref.MatchKey, cm.Namespace, cm.Name)}
+			}
+		}
 	}
 	return results.String(), nil
 }
@@ -192,12 +212,31 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 
 	var results strings.Builder
 	for _, secret := range secrets {
-		data, ok := secret.Data[ref.Key]
-		if !ok {
-			return "", notFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, ref.Key)}
+		if len(ref.Key) > 0 {
+			data, ok := secret.Data[ref.Key]
+			if !ok {
+				return "", notFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, ref.Key)}
+			}
+			results.Write(data)
+			results.WriteByte('\n')
 		}
-		results.Write(data)
-		results.WriteByte('\n')
+
+		if len(ref.MatchKey) > 0 {
+			regExp, _ := regexp.Compile(ref.MatchKey)
+			found := false
+
+			for key, value := range secret.Data {
+				if regExp.MatchString(key) {
+					found = true
+					results.Write(value)
+					results.WriteByte('\n')
+				}
+			}
+
+			if !found {
+				return "", selectsNothingError{fmt.Errorf("regular expression %s for Secret %s/%s keys didn't match any data", ref.MatchKey, secret.Namespace, secret.Name)}
+			}
+		}
 	}
 	return results.String(), nil
 }

@@ -97,7 +97,40 @@ func Test_buildSourceBundle(t *testing.T) {
 			expError:         true,
 			expNotFoundError: true,
 		},
-		"if single ConfigMap source, return data": {
+		"if single ConfigMap source whose MatchKey doesn't match any key, should return an error": {
+			sources: []trustapi.BundleSource{
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", SourceKeySelector: trustapi.SourceKeySelector{MatchKey: ".*"}}},
+			},
+			objects:          []runtime.Object{&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "configmap"}}},
+			expData:          "",
+			expError:         true,
+			expNotFoundError: false,
+		},
+		"if single ConfigMap source whose MatchKey matches all keys, return data": {
+			sources: []trustapi.BundleSource{
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", SourceKeySelector: trustapi.SourceKeySelector{MatchKey: ".*"}}},
+			},
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				Data:       map[string]string{"cert-1": dummy.TestCertificate1 + "\n" + dummy.TestCertificate2, "cert-2": dummy.TestCertificate3},
+			}},
+			expData:          dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3),
+			expError:         false,
+			expNotFoundError: false,
+		},
+		"if single ConfigMap source whose MatchKey matches some keys, return data": {
+			sources: []trustapi.BundleSource{
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", SourceKeySelector: trustapi.SourceKeySelector{MatchKey: "cert-\\d"}}},
+			},
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				Data:       map[string]string{"cert-1": dummy.TestCertificate1 + "\n" + dummy.TestCertificate2, "cert-no": dummy.TestCertificate3, "cert-9": dummy.TestCertificate4},
+			}},
+			expData:          dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4),
+			expError:         false,
+			expNotFoundError: false,
+		},
+		"if single ConfigMap source, return data referenced by key": {
 			sources: []trustapi.BundleSource{
 				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", SourceKeySelector: trustapi.SourceKeySelector{Key: "key"}}},
 			},
@@ -174,6 +207,39 @@ func Test_buildSourceBundle(t *testing.T) {
 			expData:          "",
 			expError:         true,
 			expNotFoundError: true,
+		},
+		"if single Secret source whose MatchKey doesn't match any key, should return an error": {
+			sources: []trustapi.BundleSource{
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", SourceKeySelector: trustapi.SourceKeySelector{MatchKey: ".*"}}},
+			},
+			objects:          []runtime.Object{&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "secret"}}},
+			expData:          "",
+			expError:         true,
+			expNotFoundError: false,
+		},
+		"if single Secret source whose MatchKey matches all keys, return data": {
+			sources: []trustapi.BundleSource{
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", SourceKeySelector: trustapi.SourceKeySelector{MatchKey: ".*"}}},
+			},
+			objects: []runtime.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
+				Data:       map[string][]byte{"cert-1": []byte(dummy.TestCertificate1 + "\n" + dummy.TestCertificate2), "cert-2": []byte(dummy.TestCertificate3)},
+			}},
+			expData:          dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3),
+			expError:         false,
+			expNotFoundError: false,
+		},
+		"if single Secret source whose MatchKey matches some keys, return data": {
+			sources: []trustapi.BundleSource{
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", SourceKeySelector: trustapi.SourceKeySelector{MatchKey: "cert-\\d"}}},
+			},
+			objects: []runtime.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
+				Data:       map[string][]byte{"cert-1": []byte(dummy.TestCertificate1 + "\n" + dummy.TestCertificate2), "cert-no": []byte(dummy.TestCertificate3), "cert-9": []byte(dummy.TestCertificate4)},
+			}},
+			expData:          dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4),
+			expError:         false,
+			expNotFoundError: false,
 		},
 		"if single Secret source, return data": {
 			sources: []trustapi.BundleSource{
