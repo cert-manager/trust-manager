@@ -169,14 +169,24 @@ type SourceObjectKeySelector struct {
 	//+optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 
-	// KeySelector is the key of the entry in the objects' `data` field to be referenced.
-	KeySelector `json:",inline"`
+	// SourceKeySelector is the key of the entry in the objects' `data` field to be referenced.
+	SourceKeySelector `json:",inline"`
 }
 
 // KeySelector is a reference to a key for some map data object.
 type KeySelector struct {
 	// Key is the key of the entry in the object's `data` field to be used.
 	Key string `json:"key"`
+}
+
+// SourceKeySelector is a selector which references one or more keys from some map data object.
+type SourceKeySelector struct {
+	// Key is the key of one entry in the object's `data` field to be used.
+	Key string `json:"key,omitempty"`
+
+	// MatchKey is a regular expression to match one or more entries in the object's `data` field to be used.
+	// e.g. In order to use all the entries, the regular expression would be ".*"
+	MatchKey string `json:"matchKey,omitempty"`
 }
 
 // BundleStatus defines the observed state of the Bundle.
