@@ -55,13 +55,13 @@ func Test_validate(t *testing.T) {
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
 						{
-							ConfigMap: &trustapi.SourceObjectKeySelector{Name: "test", KeySelector: trustapi.KeySelector{Key: "test"}},
+							ConfigMap: &trustapi.SourceObjectKeySelector{Name: "test", SourceKeySelector: trustapi.SourceKeySelector{Key: "test"}},
 							InLine:    ptr.To("test"),
 						},
 						{InLine: ptr.To("test")},
 						{
-							ConfigMap: &trustapi.SourceObjectKeySelector{Name: "test", KeySelector: trustapi.KeySelector{Key: "test"}},
-							Secret:    &trustapi.SourceObjectKeySelector{Name: "test", KeySelector: trustapi.KeySelector{Key: "test"}},
+							ConfigMap: &trustapi.SourceObjectKeySelector{Name: "test", SourceKeySelector: trustapi.SourceKeySelector{Key: "test"}},
+							Secret:    &trustapi.SourceObjectKeySelector{Name: "test", SourceKeySelector: trustapi.SourceKeySelector{Key: "test"}},
 						},
 					},
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test"}},
@@ -144,9 +144,9 @@ func Test_validate(t *testing.T) {
 			bundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "", KeySelector: trustapi.KeySelector{Key: ""}}},
+						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "", SourceKeySelector: trustapi.SourceKeySelector{Key: ""}}},
 						{InLine: ptr.To("test")},
-						{Secret: &trustapi.SourceObjectKeySelector{Name: "", KeySelector: trustapi.KeySelector{Key: ""}}},
+						{Secret: &trustapi.SourceObjectKeySelector{Name: "", SourceKeySelector: trustapi.SourceKeySelector{Key: ""}}},
 					},
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test"}},
 				},
@@ -162,9 +162,9 @@ func Test_validate(t *testing.T) {
 			bundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "some-config-map", Selector: &metav1.LabelSelector{}, KeySelector: trustapi.KeySelector{Key: "test"}}},
+						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "some-config-map", Selector: &metav1.LabelSelector{}, SourceKeySelector: trustapi.SourceKeySelector{Key: "test"}}},
 						{InLine: ptr.To("test")},
-						{Secret: &trustapi.SourceObjectKeySelector{Name: "some-secret", Selector: &metav1.LabelSelector{}, KeySelector: trustapi.KeySelector{Key: "test"}}},
+						{Secret: &trustapi.SourceObjectKeySelector{Name: "some-secret", Selector: &metav1.LabelSelector{}, SourceKeySelector: trustapi.SourceKeySelector{Key: "test"}}},
 					},
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test"}},
 				},
@@ -180,7 +180,7 @@ func Test_validate(t *testing.T) {
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
 						{InLine: ptr.To("test")},
-						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "test-bundle", KeySelector: trustapi.KeySelector{Key: "test"}}},
+						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "test-bundle", SourceKeySelector: trustapi.SourceKeySelector{Key: "test"}}},
 					},
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test"}},
 				},
@@ -195,7 +195,7 @@ func Test_validate(t *testing.T) {
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
 						{InLine: ptr.To("test")},
-						{Secret: &trustapi.SourceObjectKeySelector{Name: "test-bundle", KeySelector: trustapi.KeySelector{Key: "test"}}},
+						{Secret: &trustapi.SourceObjectKeySelector{Name: "test-bundle", SourceKeySelector: trustapi.SourceKeySelector{Key: "test"}}},
 					},
 					Target: trustapi.BundleTarget{Secret: &trustapi.KeySelector{Key: "test"}},
 				},

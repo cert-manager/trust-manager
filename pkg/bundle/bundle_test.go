@@ -113,8 +113,8 @@ func Test_Reconcile(t *testing.T) {
 			},
 			Spec: trustapi.BundleSpec{
 				Sources: []trustapi.BundleSource{
-					{ConfigMap: &trustapi.SourceObjectKeySelector{Name: sourceConfigMapName, KeySelector: trustapi.KeySelector{Key: sourceConfigMapKey}}},
-					{Secret: &trustapi.SourceObjectKeySelector{Name: sourceSecretName, KeySelector: trustapi.KeySelector{Key: sourceSecretKey}}},
+					{ConfigMap: &trustapi.SourceObjectKeySelector{Name: sourceConfigMapName, SourceKeySelector: trustapi.SourceKeySelector{Key: sourceConfigMapKey}}},
+					{Secret: &trustapi.SourceObjectKeySelector{Name: sourceSecretName, SourceKeySelector: trustapi.SourceKeySelector{Key: sourceSecretKey}}},
 					{InLine: ptr.To(dummy.TestCertificate3)},
 				},
 				Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: targetKey}},
