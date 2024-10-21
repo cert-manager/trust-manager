@@ -76,7 +76,12 @@ spec:
                           list of ConfigMap's `data` key using label selector, in the trust Namespace.
                         properties:
                           key:
-                            description: Key is the key of the entry in the object's `data` field to be used.
+                            description: Key is the key of one entry in the object's `data` field to be used.
+                            type: string
+                          matchKey:
+                            description: |-
+                              MatchKey is a regular expression to match one or more entries in the object's `data` field to be used.
+                              e.g. In order to use all the entries, the regular expression would be ".*"
                             type: string
                           name:
                             description: |-
@@ -129,8 +134,6 @@ spec:
                                 type: object
                             type: object
                             x-kubernetes-map-type: atomic
-                        required:
-                          - key
                         type: object
                       inLine:
                         description: InLine is a simple string to append as the source data.
@@ -141,7 +144,12 @@ spec:
                           list of Secret's `data` key using label selector, in the trust Namespace.
                         properties:
                           key:
-                            description: Key is the key of the entry in the object's `data` field to be used.
+                            description: Key is the key of one entry in the object's `data` field to be used.
+                            type: string
+                          matchKey:
+                            description: |-
+                              MatchKey is a regular expression to match one or more entries in the object's `data` field to be used.
+                              e.g. In order to use all the entries, the regular expression would be ".*"
                             type: string
                           name:
                             description: |-
@@ -194,8 +202,6 @@ spec:
                                 type: object
                             type: object
                             x-kubernetes-map-type: atomic
-                        required:
-                          - key
                         type: object
                       useDefaultCAs:
                         description: |-
