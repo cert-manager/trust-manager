@@ -47,15 +47,17 @@ const (
 
 func Test_buildSourceBundle(t *testing.T) {
 	tests := map[string]struct {
-		sources          []trustapi.BundleSource
-		formats          *trustapi.AdditionalFormats
-		objects          []runtime.Object
-		expData          string
-		expError         bool
-		expNotFoundError bool
-		expJKS           bool
-		expPKCS12        bool
-		expPassword      *string
+		sources                     []trustapi.BundleSource
+		formats                     *trustapi.AdditionalFormats
+		objects                     []runtime.Object
+		expData                     string
+		expError                    bool
+		expNotFoundError            bool
+		expInvalidSecretSourceError bool
+		bool
+		expJKS      bool
+		expPKCS12   bool
+		expPassword *string
 	}{
 		"if no sources defined, should return an error": {
 			objects:          []runtime.Object{},
@@ -209,6 +211,19 @@ func Test_buildSourceBundle(t *testing.T) {
 			expError:         true,
 			expNotFoundError: true,
 		},
+		"if single Secret source of type TLS including all keys, return invalidSecretSourceError": {
+			sources: []trustapi.BundleSource{
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", IncludeAllKeys: true}},
+			},
+			objects: []runtime.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
+				Type:       corev1.SecretTypeTLS,
+				Data:       map[string][]byte{"cert-1": []byte(dummy.TestCertificate1), "cert-2": []byte(dummy.TestCertificate2)},
+			}},
+			expData:                     "",
+			expError:                    true,
+			expInvalidSecretSourceError: true,
+		},
 		"if single Secret source referencing single key, return data": {
 			sources: []trustapi.BundleSource{
 				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", KeySelector: trustapi.KeySelector{Key: "key"}}},
@@ -317,6 +332,29 @@ func Test_buildSourceBundle(t *testing.T) {
 			expData:          dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3),
 			expError:         false,
 			expNotFoundError: false,
+		},
+		"if selects at least one Secret source of type TLS including all keys, return invalidSecretSourceError": {
+			sources: []trustapi.BundleSource{
+				{Secret: &trustapi.SourceObjectKeySelector{IncludeAllKeys: true, Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"trust-bundle.certs": "includes"}}}},
+			},
+			objects: []runtime.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{Name: "secret1", Labels: map[string]string{"trust-bundle.certs": "includes"}},
+					Data: map[string][]byte{
+						"cert-1": []byte(dummy.TestCertificate1 + "\n" + dummy.TestCertificate2),
+						"cert-3": []byte(dummy.TestCertificate3),
+					},
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{Name: "secret2", Labels: map[string]string{"trust-bundle.certs": "includes"}},
+					Type:       corev1.SecretTypeTLS,
+					Data: map[string][]byte{
+						"cert-4": []byte(dummy.TestCertificate4),
+					},
+				}},
+			expData:                     "",
+			expError:                    true,
+			expInvalidSecretSourceError: true,
 		},
 		"if has JKS target, return binaryData with encoded JKS": {
 			sources: []trustapi.BundleSource{
@@ -440,6 +478,9 @@ func Test_buildSourceBundle(t *testing.T) {
 			}
 			if errors.As(err, &notFoundError{}) != test.expNotFoundError {
 				t.Errorf("unexpected notFoundError, exp=%t got=%v", test.expNotFoundError, err)
+			}
+			if errors.As(err, &invalidSecretSourceError{}) != test.expInvalidSecretSourceError {
+				t.Errorf("unexpected invalidSecretSourceError, exp=%t got=%v", test.expInvalidSecretSourceError, err)
 			}
 
 			if resolvedBundle.Data.Data != test.expData {

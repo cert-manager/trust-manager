@@ -36,6 +36,8 @@ type notFoundError struct{ error }
 
 type selectsNothingError struct{ error }
 
+type invalidSecretSourceError struct{ error }
+
 // bundleData holds the result of a call to buildSourceBundle. It contains the resulting PEM-encoded
 // certificate data from concatenating all the sources together, binary data for any additional formats and
 // any metadata from the sources which needs to be exposed on the Bundle resource's status field.
@@ -207,6 +209,11 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 			results.Write(data)
 			results.WriteByte('\n')
 		} else if ref.IncludeAllKeys {
+			// This is done to prevent mistakes. All keys should never be included for a TLS secret, since that would include the private key.
+			if secret.Type == corev1.SecretTypeTLS {
+				return "", invalidSecretSourceError{fmt.Errorf("includeAllKeys is not supported for TLS Secrets such as %s/%s", secret.Namespace, secret.Name)}
+			}
+
 			for _, data := range secret.Data {
 				results.Write(data)
 				results.WriteByte('\n')
