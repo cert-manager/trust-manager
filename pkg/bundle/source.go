@@ -145,12 +145,19 @@ func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObject
 
 	var results strings.Builder
 	for _, cm := range configMaps {
-		data, ok := cm.Data[ref.Key]
-		if !ok {
-			return "", notFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, ref.Key)}
+		if len(ref.Key) > 0 {
+			data, ok := cm.Data[ref.Key]
+			if !ok {
+				return "", notFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, ref.Key)}
+			}
+			results.WriteString(data)
+			results.WriteByte('\n')
+		} else if ref.IncludeAllKeys {
+			for _, data := range cm.Data {
+				results.WriteString(data)
+				results.WriteByte('\n')
+			}
 		}
-		results.WriteString(data)
-		results.WriteByte('\n')
 	}
 	return results.String(), nil
 }
@@ -192,12 +199,19 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 
 	var results strings.Builder
 	for _, secret := range secrets {
-		data, ok := secret.Data[ref.Key]
-		if !ok {
-			return "", notFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, ref.Key)}
+		if len(ref.Key) > 0 {
+			data, ok := secret.Data[ref.Key]
+			if !ok {
+				return "", notFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, ref.Key)}
+			}
+			results.Write(data)
+			results.WriteByte('\n')
+		} else if ref.IncludeAllKeys {
+			for _, data := range secret.Data {
+				results.Write(data)
+				results.WriteByte('\n')
+			}
 		}
-		results.Write(data)
-		results.WriteByte('\n')
 	}
 	return results.String(), nil
 }
