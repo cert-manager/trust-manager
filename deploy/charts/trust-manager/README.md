@@ -366,6 +366,13 @@ Pod labels to add to trust-manager pods.
 > ```
 
 Pod annotations to add to trust-manager pods.
+#### **app.deploymentAnnotations** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+
+Deployment annotations to add to the trust-manager deployment.
 ### Webhook
 
 #### **app.webhook.host** ~ `string`

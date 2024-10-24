@@ -212,6 +212,9 @@ app:
   # Pod annotations to add to trust-manager pods.
   podAnnotations: {}
 
+  # Deployment annotations to add to the trust-manager deployment.
+  deploymentAnnotations: {}
+
   # +docs:section=Webhook
 
   webhook:
