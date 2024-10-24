@@ -35,32 +35,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/cert-manager/trust-manager/cmd/trust-manager/app/options"
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/target"
-	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
-
-// Options hold options for the Bundle controller.
-type Options struct {
-	// Log is the Bundle controller logger.
-	Log logr.Logger
-
-	// Namespace is the trust Namespace that source data can be referenced.
-	Namespace string
-
-	// DefaultPackageLocation is the location on the filesystem from which the 'default'
-	// certificate package should be loaded. If set, a valid package must be successfully
-	// loaded in order for the controller to start. If unset, referring to the default
-	// certificate package in a `Bundle` resource will cause that Bundle to error.
-	DefaultPackageLocation string
-
-	// SecretTargetsEnabled controls if secret targets are enabled in the Bundle API.
-	SecretTargetsEnabled bool
-
-	// FilterExpiredCerts controls if expired certificates are filtered from the bundle.
-	FilterExpiredCerts bool
-}
 
 // bundle is a controller-runtime controller. Implements the actual controller
 // logic by reconciling over Bundles.
@@ -68,18 +47,16 @@ type bundle struct {
 	// a cache-backed Kubernetes client
 	client client.Client
 
-	// defaultPackage holds the loaded 'default' certificate package, if one was specified
-	// at startup.
-	defaultPackage *fspkg.Package
-
 	// recorder is used for create Kubernetes Events for reconciled Bundles.
 	recorder record.EventRecorder
 
 	// clock returns time which can be overwritten for testing.
 	clock clock.Clock
 
-	// Options holds options for the Bundle controller.
-	Options
+	// BundleOptions holds options for the Bundle controller.
+	options.BundleOptions
+
+	sourceDataBuilder *target.BundleDataBuilder
 
 	targetReconciler *target.Reconciler
 }
@@ -135,10 +112,10 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 	statusPatch = &trustapi.BundleStatus{
 		DefaultCAPackageVersion: bundle.Status.DefaultCAPackageVersion,
 	}
-	resolvedBundle, err := b.buildSourceBundle(ctx, bundle.Spec.Sources, bundle.Spec.Target.AdditionalFormats)
+	resolvedBundle, err := b.sourceDataBuilder.BuildSourceBundle(ctx, bundle.Spec.Sources, bundle.Spec.Target.AdditionalFormats)
 
 	// If any source is not found, update the Bundle status to an unready state.
-	if errors.As(err, &notFoundError{}) {
+	if errors.As(err, &target.SourceNotFoundError{}) {
 		log.Error(err, "bundle source was not found")
 		b.setBundleCondition(
 			bundle.Status.Conditions,
@@ -164,7 +141,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 	}
 
 	// Detect if we have a bundle with Secret targets but the feature is disabled.
-	if !b.Options.SecretTargetsEnabled && bundle.Spec.Target.Secret != nil {
+	if !b.SecretTargetsEnabled && bundle.Spec.Target.Secret != nil {
 
 		log.Error(err, "bundle has Secret targets but the feature is disabled")
 		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SecretTargetsDisabled", "Bundle has Secret targets but the feature is disabled")
@@ -238,7 +215,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 
 	// Find all old existing target resources.
 	targetKinds := []targetKind{configMapTarget}
-	if b.Options.SecretTargetsEnabled {
+	if b.SecretTargetsEnabled {
 		targetKinds = append(targetKinds, secretTarget)
 	}
 	for _, kind := range targetKinds {
@@ -333,7 +310,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		}
 	}
 
-	if b.setBundleStatusDefaultCAVersion(statusPatch, resolvedBundle.defaultCAPackageStringID) {
+	if b.setBundleStatusDefaultCAVersion(statusPatch, resolvedBundle.DefaultCAPackageStringID) {
 		needsUpdate = true
 	}
 

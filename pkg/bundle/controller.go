@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	"github.com/cert-manager/trust-manager/cmd/trust-manager/app/options"
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/target"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
@@ -49,29 +50,33 @@ import (
 func AddBundleController(
 	ctx context.Context,
 	mgr manager.Manager,
-	opts Options,
+	opts options.BundleOptions,
 	targetCache cache.Cache,
 ) error {
 	b := &bundle{
-		client:   mgr.GetClient(),
-		recorder: mgr.GetEventRecorderFor("bundles"),
-		clock:    clock.RealClock{},
-		Options:  opts,
+		client:        mgr.GetClient(),
+		recorder:      mgr.GetEventRecorderFor("bundles"),
+		clock:         clock.RealClock{},
+		BundleOptions: opts,
+		sourceDataBuilder: &target.BundleDataBuilder{
+			Client:        mgr.GetClient(),
+			BundleOptions: opts,
+		},
 		targetReconciler: &target.Reconciler{
 			Client: mgr.GetClient(),
 			Cache:  targetCache,
 		},
 	}
 
-	if b.Options.DefaultPackageLocation != "" {
-		pkg, err := fspkg.LoadPackageFromFile(b.Options.DefaultPackageLocation)
+	if b.DefaultPackageLocation != "" {
+		pkg, err := fspkg.LoadPackageFromFile(b.DefaultPackageLocation)
 		if err != nil {
 			return fmt.Errorf("must load default package successfully when default package location is set: %w", err)
 		}
 
-		b.defaultPackage = &pkg
+		b.sourceDataBuilder.DefaultPackage = &pkg
 
-		b.Options.Log.Info("successfully loaded default package from filesystem", "path", b.Options.DefaultPackageLocation)
+		b.Log.Info("successfully loaded default package from filesystem", "path", b.BundleOptions.DefaultPackageLocation)
 	}
 
 	// Only reconcile config maps that match the well known name
@@ -140,7 +145,7 @@ func AddBundleController(
 					}
 				}
 				return false
-			}), builder.WithPredicates(inNamespacePredicate(b.Options.Namespace))).
+			}), builder.WithPredicates(inNamespacePredicate(b.Namespace))).
 
 		// Watch Secrets in trust Namespace.
 		// Reconcile Bundles who reference a modified source Secret.
@@ -152,7 +157,7 @@ func AddBundleController(
 					}
 				}
 				return false
-			}), builder.WithPredicates(inNamespacePredicate(b.Options.Namespace)))
+			}), builder.WithPredicates(inNamespacePredicate(b.Namespace)))
 
 	// Complete controller.
 	if err := controller.Complete(b); err != nil {

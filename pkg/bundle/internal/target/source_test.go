@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package bundle
+package target
 
 import (
 	"bytes"
@@ -37,12 +37,6 @@ import (
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/pkg/util"
 	"github.com/cert-manager/trust-manager/test/dummy"
-)
-
-const (
-	jksKey    = "trust.jks"
-	pkcs12Key = "trust.p12"
-	data      = dummy.TestCertificate1
 )
 
 func Test_buildSourceBundle(t *testing.T) {
@@ -339,9 +333,9 @@ func Test_buildSourceBundle(t *testing.T) {
 				WithScheme(trustapi.GlobalScheme).
 				Build()
 
-			b := &bundle{
-				client: fakeClient,
-				defaultPackage: &fspkg.Package{
+			b := &BundleDataBuilder{
+				Client: fakeClient,
+				DefaultPackage: &fspkg.Package{
 					Name:    "testpkg",
 					Version: "123",
 					Bundle:  dummy.TestCertificate5,
@@ -365,12 +359,12 @@ func Test_buildSourceBundle(t *testing.T) {
 				}
 			}
 
-			resolvedBundle, err := b.buildSourceBundle(context.TODO(), test.sources, test.formats)
+			resolvedBundle, err := b.BuildSourceBundle(context.TODO(), test.sources, test.formats)
 
 			if (err != nil) != test.expError {
 				t.Errorf("unexpected error, exp=%t got=%v", test.expError, err)
 			}
-			if errors.As(err, &notFoundError{}) != test.expNotFoundError {
+			if errors.As(err, &SourceNotFoundError{}) != test.expNotFoundError {
 				t.Errorf("unexpected notFoundError, exp=%t got=%v", test.expNotFoundError, err)
 			}
 

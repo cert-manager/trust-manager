@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"github.com/cert-manager/trust-manager/cmd/trust-manager/app/options"
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/target"
@@ -1311,15 +1312,20 @@ func Test_Reconcile(t *testing.T) {
 			)
 
 			log, ctx := ktesting.NewTestContext(t)
+			opts := options.BundleOptions{
+				Log:                  log,
+				Namespace:            trustNamespace,
+				SecretTargetsEnabled: !test.disableSecretTargets,
+				FilterExpiredCerts:   true,
+			}
 			b := &bundle{
-				client:   fakeClient,
-				recorder: fakeRecorder,
-				clock:    fixedclock,
-				Options: Options{
-					Log:                  log,
-					Namespace:            trustNamespace,
-					SecretTargetsEnabled: !test.disableSecretTargets,
-					FilterExpiredCerts:   true,
+				client:        fakeClient,
+				recorder:      fakeRecorder,
+				clock:         fixedclock,
+				BundleOptions: opts,
+				sourceDataBuilder: &target.BundleDataBuilder{
+					Client:        fakeClient,
+					BundleOptions: opts,
 				},
 				targetReconciler: &target.Reconciler{
 					Client: fakeClient,
@@ -1335,7 +1341,7 @@ func Test_Reconcile(t *testing.T) {
 			}
 
 			if test.configureDefaultPackage {
-				b.defaultPackage = testDefaultPackage.Clone()
+				b.sourceDataBuilder.DefaultPackage = testDefaultPackage.Clone()
 			}
 			resp, result, err := b.reconcileBundle(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: bundleName}})
 			if (err != nil) != test.expError {

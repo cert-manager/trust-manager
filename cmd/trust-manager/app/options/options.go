@@ -31,8 +31,6 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 
-	"github.com/cert-manager/trust-manager/pkg/bundle"
-
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
@@ -60,7 +58,7 @@ type Options struct {
 	Webhook
 
 	// Bundle are options specific to the Bundle controller.
-	Bundle bundle.Options
+	Bundle BundleOptions
 
 	// log are options controlling logging
 	log logOptions
@@ -247,4 +245,25 @@ func (o *Options) addWebhookFlags(fs *pflag.FlagSet) {
 		"Directory where the Webhook certificate and private key are located. "+
 			"Certificate and private key must be named 'tls.crt' and 'tls.key' "+
 			"respectively.")
+}
+
+// BundleOptions hold options for the Bundle controller.
+type BundleOptions struct {
+	// Log is the Bundle controller logger.
+	Log logr.Logger
+
+	// Namespace is the trust Namespace that source data can be referenced.
+	Namespace string
+
+	// DefaultPackageLocation is the location on the filesystem from which the 'default'
+	// certificate package should be loaded. If set, a valid package must be successfully
+	// loaded in order for the controller to start. If unset, referring to the default
+	// certificate package in a `Bundle` resource will cause that Bundle to error.
+	DefaultPackageLocation string
+
+	// SecretTargetsEnabled controls if secret targets are enabled in the Bundle API.
+	SecretTargetsEnabled bool
+
+	// FilterExpiredCerts controls if expired certificates are filtered from the bundle.
+	FilterExpiredCerts bool
 }

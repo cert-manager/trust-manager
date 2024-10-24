@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package bundle
+package target
 
 import (
 	"context"
@@ -27,29 +27,42 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/cert-manager/trust-manager/cmd/trust-manager/app/options"
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust-manager/pkg/bundle/internal/target"
+	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/pkg/util"
 )
 
-type notFoundError struct{ error }
+type SourceNotFoundError struct{ error }
 
 type selectsNothingError struct{ error }
 
-// bundleData holds the result of a call to buildSourceBundle. It contains the resulting PEM-encoded
+// BundleData holds the result of a call to BuildSourceBundle. It contains the resulting PEM-encoded
 // certificate data from concatenating all the sources together, binary data for any additional formats and
 // any metadata from the sources which needs to be exposed on the Bundle resource's status field.
-type bundleData struct {
-	target.Data
+type BundleData struct {
+	Data
 
-	defaultCAPackageStringID string
+	DefaultCAPackageStringID string
 }
 
-// buildSourceBundle retrieves and concatenates all source bundle data for this Bundle object.
+type BundleDataBuilder struct {
+	// a cache-backed Kubernetes Client
+	Client client.Client
+
+	// DefaultPackage holds the loaded 'default' certificate package, if one was specified
+	// at startup.
+	DefaultPackage *fspkg.Package
+
+	// BundleOptions holds options for the Bundle controller.
+	options.BundleOptions
+}
+
+// BuildSourceBundle retrieves and concatenates all source bundle data for this Bundle object.
 // Each source data is validated and pruned to ensure that all certificates within are valid, and
 // is each bundle is concatenated together with a new line character.
-func (b *bundle) buildSourceBundle(ctx context.Context, sources []trustapi.BundleSource, formats *trustapi.AdditionalFormats) (bundleData, error) {
-	var resolvedBundle bundleData
+func (b *BundleDataBuilder) BuildSourceBundle(ctx context.Context, sources []trustapi.BundleSource, formats *trustapi.AdditionalFormats) (BundleData, error) {
+	var resolvedBundle BundleData
 	certPool := util.NewCertPool(util.WithFilteredExpiredCerts(b.FilterExpiredCerts))
 
 	for _, source := range sources {
@@ -73,11 +86,11 @@ func (b *bundle) buildSourceBundle(ctx context.Context, sources []trustapi.Bundl
 				continue
 			}
 
-			if b.defaultPackage == nil {
-				err = notFoundError{fmt.Errorf("no default package was specified when trust-manager was started; default CAs not available")}
+			if b.DefaultPackage == nil {
+				err = SourceNotFoundError{fmt.Errorf("no default package was specified when trust-manager was started; default CAs not available")}
 			} else {
-				sourceData = b.defaultPackage.Bundle
-				resolvedBundle.defaultCAPackageStringID = b.defaultPackage.StringID()
+				sourceData = b.DefaultPackage.Bundle
+				resolvedBundle.DefaultCAPackageStringID = b.DefaultPackage.StringID()
 			}
 		}
 
@@ -88,28 +101,28 @@ func (b *bundle) buildSourceBundle(ctx context.Context, sources []trustapi.Bundl
 		}
 
 		if err != nil {
-			return bundleData{}, fmt.Errorf("failed to retrieve bundle from source: %w", err)
+			return BundleData{}, fmt.Errorf("failed to retrieve bundle from source: %w", err)
 		}
 
 		if err := certPool.AddCertsFromPEM([]byte(sourceData)); err != nil {
-			return bundleData{}, fmt.Errorf("invalid PEM data in source: %w", err)
+			return BundleData{}, fmt.Errorf("invalid PEM data in source: %w", err)
 		}
 	}
 
 	// NB: empty bundles are not valid so check and return an error if one somehow snuck through.
 	if certPool.Size() == 0 {
-		return bundleData{}, fmt.Errorf("couldn't find any valid certificates in bundle")
+		return BundleData{}, fmt.Errorf("couldn't find any valid certificates in bundle")
 	}
 
 	if err := resolvedBundle.Data.Populate(certPool, formats); err != nil {
-		return bundleData{}, err
+		return BundleData{}, err
 	}
 
 	return resolvedBundle, nil
 }
 
 // configMapBundle returns the data in the source ConfigMap within the trust Namespace.
-func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObjectKeySelector) (string, error) {
+func (b *BundleDataBuilder) configMapBundle(ctx context.Context, ref *trustapi.SourceObjectKeySelector) (string, error) {
 	// this slice will contain a single ConfigMap if we fetch by name
 	// or potentially multiple ConfigMaps if we fetch by label selector
 	var configMaps []corev1.ConfigMap
@@ -117,11 +130,11 @@ func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObject
 	// if Name is set, we `Get` by name
 	if ref.Name != "" {
 		cm := corev1.ConfigMap{}
-		if err := b.client.Get(ctx, client.ObjectKey{
+		if err := b.Client.Get(ctx, client.ObjectKey{
 			Namespace: b.Namespace,
 			Name:      ref.Name,
 		}, &cm); apierrors.IsNotFound(err) {
-			return "", notFoundError{err}
+			return "", SourceNotFoundError{err}
 		} else if err != nil {
 			return "", fmt.Errorf("failed to get ConfigMap %s/%s: %w", b.Namespace, ref.Name, err)
 		}
@@ -134,7 +147,7 @@ func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObject
 		if selectorErr != nil {
 			return "", fmt.Errorf("failed to parse label selector as Selector for ConfigMap in namespace %s: %w", b.Namespace, selectorErr)
 		}
-		if err := b.client.List(ctx, &cml, client.MatchingLabelsSelector{Selector: selector}); err != nil {
+		if err := b.Client.List(ctx, &cml, client.MatchingLabelsSelector{Selector: selector}); err != nil {
 			return "", fmt.Errorf("failed to get ConfigMapList: %w", err)
 		} else if len(cml.Items) == 0 {
 			return "", selectsNothingError{fmt.Errorf("label selector %s for ConfigMap didn't match any resources", selector.String())}
@@ -147,7 +160,7 @@ func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObject
 	for _, cm := range configMaps {
 		data, ok := cm.Data[ref.Key]
 		if !ok {
-			return "", notFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, ref.Key)}
+			return "", SourceNotFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, ref.Key)}
 		}
 		results.WriteString(data)
 		results.WriteByte('\n')
@@ -156,7 +169,7 @@ func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObject
 }
 
 // secretBundle returns the data in the source Secret within the trust Namespace.
-func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKeySelector) (string, error) {
+func (b *BundleDataBuilder) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKeySelector) (string, error) {
 	// this slice will contain a single Secret if we fetch by name
 	// or potentially multiple Secrets if we fetch by label selector
 	var secrets []corev1.Secret
@@ -164,11 +177,11 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 	// if Name is set, we `Get` by name
 	if ref.Name != "" {
 		s := corev1.Secret{}
-		if err := b.client.Get(ctx, client.ObjectKey{
+		if err := b.Client.Get(ctx, client.ObjectKey{
 			Namespace: b.Namespace,
 			Name:      ref.Name,
 		}, &s); apierrors.IsNotFound(err) {
-			return "", notFoundError{err}
+			return "", SourceNotFoundError{err}
 		} else if err != nil {
 			return "", fmt.Errorf("failed to get Secret %s/%s: %w", b.Namespace, ref.Name, err)
 		}
@@ -181,7 +194,7 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 		if selectorErr != nil {
 			return "", fmt.Errorf("failed to parse label selector as Selector for Secret in namespace %s: %w", b.Namespace, selectorErr)
 		}
-		if err := b.client.List(ctx, &sl, client.MatchingLabelsSelector{Selector: selector}); err != nil {
+		if err := b.Client.List(ctx, &sl, client.MatchingLabelsSelector{Selector: selector}); err != nil {
 			return "", fmt.Errorf("failed to get SecretList: %w", err)
 		} else if len(sl.Items) == 0 {
 			return "", selectsNothingError{fmt.Errorf("label selector %s for Secret didn't match any resources", selector.String())}
@@ -194,7 +207,7 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 	for _, secret := range secrets {
 		data, ok := secret.Data[ref.Key]
 		if !ok {
-			return "", notFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, ref.Key)}
+			return "", SourceNotFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, ref.Key)}
 		}
 		results.Write(data)
 		results.WriteByte('\n')

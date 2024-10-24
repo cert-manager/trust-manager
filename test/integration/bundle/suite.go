@@ -37,6 +37,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"github.com/cert-manager/trust-manager/cmd/trust-manager/app/options"
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
@@ -63,7 +64,7 @@ var _ = Describe("Integration", func() {
 		cl         client.Client
 		mgr        manager.Manager
 		mgrStopped chan struct{}
-		opts       bundle.Options
+		opts       options.BundleOptions
 
 		testBundle *trustapi.Bundle
 		testData   testenv.TestData
@@ -95,7 +96,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, namespace)).NotTo(HaveOccurred())
 
 		By("Created trust Namespace: " + namespace.Name)
-		opts = bundle.Options{
+		opts = options.BundleOptions{
 			Log:                    logf.Log,
 			Namespace:              namespace.Name,
 			DefaultPackageLocation: tmpFileName,
