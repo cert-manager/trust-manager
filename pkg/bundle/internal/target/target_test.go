@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
 	metav1applyconfig "k8s.io/client-go/applyconfigurations/meta/v1"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2/ktesting"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -71,7 +70,6 @@ func Test_syncConfigMapTarget(t *testing.T) {
 		expJKS bool
 		// Expect PKCS12 to exist in the configmap at the end of the sync.
 		expPKCS12 bool
-		expEvent  string
 		// Expect the owner reference of the configmap to point to the bundle.
 		expOwnerReference bool
 		expNeedsUpdate    bool
@@ -562,7 +560,6 @@ func Test_syncConfigMapTarget(t *testing.T) {
 			}
 
 			fakeClient := clientBuilder.Build()
-			fakeRecorder := record.NewFakeRecorder(1)
 
 			var (
 				logMutex        sync.Mutex
@@ -606,10 +603,13 @@ func Test_syncConfigMapTarget(t *testing.T) {
 			}
 
 			log, ctx := ktesting.NewTestContext(t)
-			needsUpdate, err := r.SyncConfigMap(ctx, log, &trustapi.Bundle{
+			needsUpdate, err := r.Sync(ctx, Resource{
+				Kind:           KindConfigMap,
+				NamespacedName: types.NamespacedName{Name: bundleName, Namespace: test.namespace.Name},
+			}, &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       spec,
-			}, types.NamespacedName{Name: bundleName, Namespace: test.namespace.Name}, resolvedBundle, test.shouldExist)
+			}, resolvedBundle, log, test.shouldExist)
 			assert.NoError(t, err)
 
 			assert.Equalf(t, test.expNeedsUpdate, needsUpdate, "unexpected needsUpdate, exp=%t got=%t", test.expNeedsUpdate, needsUpdate)
@@ -656,13 +656,6 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					assert.Equal(t, pkcs12Data, binData)
 				}
 			}
-
-			var event string
-			select {
-			case event = <-fakeRecorder.Events:
-			default:
-			}
-			assert.Equal(t, test.expEvent, event)
 		})
 	}
 }
@@ -1222,10 +1215,13 @@ func Test_syncSecretTarget(t *testing.T) {
 			}
 
 			log, ctx := ktesting.NewTestContext(t)
-			needsUpdate, err := r.SyncSecret(ctx, log, &trustapi.Bundle{
+			needsUpdate, err := r.Sync(ctx, Resource{
+				Kind:           KindSecret,
+				NamespacedName: types.NamespacedName{Name: bundleName, Namespace: test.namespace.Name},
+			}, &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       spec,
-			}, types.NamespacedName{Name: bundleName, Namespace: test.namespace.Name}, resolvedBundle, test.shouldExist)
+			}, resolvedBundle, log, test.shouldExist)
 			assert.NoError(t, err)
 
 			assert.Equalf(t, test.expNeedsUpdate, needsUpdate, "unexpected needsUpdate, exp=%t got=%t", test.expNeedsUpdate, needsUpdate)
