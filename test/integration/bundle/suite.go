@@ -183,6 +183,29 @@ var _ = Describe("Integration", func() {
 		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
 
+	It("should update all targets when a ConfigMap source including all keys is added", func() {
+		Expect(cl.Create(ctx, &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "new-bundle-source",
+				Namespace: opts.Namespace,
+			},
+			Data: map[string]string{
+				"new-source-key-1": dummy.TestCertificate4,
+				"new-source-key-2": dummy.TestCertificate5,
+			},
+		})).NotTo(HaveOccurred())
+
+		Expect(komega.Update(testBundle, func() {
+			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", IncludeAllKeys: true},
+			})
+		})()).To(Succeed())
+
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3, dummy.TestCertificate5)
+
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+	})
+
 	It("should update all targets when a Secret source is added", func() {
 		Expect(cl.Create(ctx, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -201,6 +224,29 @@ var _ = Describe("Integration", func() {
 		})()).To(Succeed())
 
 		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3)
+
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+	})
+
+	It("should update all targets when a Secret source including all keys is added", func() {
+		Expect(cl.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "new-bundle-source",
+				Namespace: opts.Namespace,
+			},
+			Data: map[string][]byte{
+				"new-source-key-1": []byte(dummy.TestCertificate4),
+				"new-source-key-2": []byte(dummy.TestCertificate5),
+			},
+		})).NotTo(HaveOccurred())
+
+		Expect(komega.Update(testBundle, func() {
+			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
+				Secret: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", IncludeAllKeys: true},
+			})
+		})()).To(Succeed())
+
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3, dummy.TestCertificate5)
 
 		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
@@ -276,6 +322,91 @@ var _ = Describe("Integration", func() {
 		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
 
+	It("should update all targets when a ConfigMap source including all keys has a new key", func() {
+		secret := corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "new-bundle-source",
+				Namespace: opts.Namespace,
+			},
+			Data: map[string][]byte{
+				"new-source-key-1": []byte(dummy.TestCertificate4),
+			},
+		}
+
+		Expect(cl.Create(ctx, &secret)).NotTo(HaveOccurred())
+		Expect(komega.Update(testBundle, func() {
+			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
+				Secret: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", IncludeAllKeys: true},
+			})
+		})()).To(Succeed())
+
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3)
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+
+		secret.Data["new-source-key-2"] = []byte(dummy.TestCertificate5)
+		Expect(cl.Update(ctx, &secret)).NotTo(HaveOccurred())
+
+		expectedData = dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3, dummy.TestCertificate5)
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+	})
+
+	It("should update all targets when a ConfigMap source including all keys has a key removed", func() {
+		secret := corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "new-bundle-source",
+				Namespace: opts.Namespace,
+			},
+			Data: map[string][]byte{
+				"new-source-key-1": []byte(dummy.TestCertificate4),
+				"new-source-key-2": []byte(dummy.TestCertificate5),
+			},
+		}
+
+		Expect(cl.Create(ctx, &secret)).NotTo(HaveOccurred())
+		Expect(komega.Update(testBundle, func() {
+			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
+				Secret: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", IncludeAllKeys: true},
+			})
+		})()).To(Succeed())
+
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3, dummy.TestCertificate5)
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+
+		delete(secret.Data, "new-source-key-2")
+		Expect(cl.Update(ctx, &secret)).NotTo(HaveOccurred())
+
+		expectedData = dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3)
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+	})
+
+	It("should update all targets when a ConfigMap source including all keys has a key updated", func() {
+		secret := corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "new-bundle-source",
+				Namespace: opts.Namespace,
+			},
+			Data: map[string][]byte{
+				"new-source-key-1": []byte(dummy.TestCertificate4),
+			},
+		}
+
+		Expect(cl.Create(ctx, &secret)).NotTo(HaveOccurred())
+		Expect(komega.Update(testBundle, func() {
+			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
+				Secret: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", IncludeAllKeys: true},
+			})
+		})()).To(Succeed())
+
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3)
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+
+		secret.Data["new-source-key-1"] = []byte(dummy.TestCertificate5)
+		Expect(cl.Update(ctx, &secret)).NotTo(HaveOccurred())
+
+		expectedData = dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3, dummy.TestCertificate5)
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+	})
+
 	It("should update all targets when a Secret source has been modified", func() {
 		var secret corev1.Secret
 
@@ -287,6 +418,91 @@ var _ = Describe("Integration", func() {
 
 		expectedData := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3)
 
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+	})
+
+	It("should update all targets when a Secret source including all keys has a new key", func() {
+		configMap := corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "new-bundle-source",
+				Namespace: opts.Namespace,
+			},
+			Data: map[string]string{
+				"new-source-key-1": dummy.TestCertificate4,
+			},
+		}
+
+		Expect(cl.Create(ctx, &configMap)).NotTo(HaveOccurred())
+		Expect(komega.Update(testBundle, func() {
+			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", IncludeAllKeys: true},
+			})
+		})()).To(Succeed())
+
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3)
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+
+		configMap.Data["new-source-key-2"] = dummy.TestCertificate5
+		Expect(cl.Update(ctx, &configMap)).NotTo(HaveOccurred())
+
+		expectedData = dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3, dummy.TestCertificate5)
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+	})
+
+	It("should update all targets when a Secret source including all keys has a key removed", func() {
+		configMap := corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "new-bundle-source",
+				Namespace: opts.Namespace,
+			},
+			Data: map[string]string{
+				"new-source-key-1": dummy.TestCertificate4,
+				"new-source-key-2": dummy.TestCertificate5,
+			},
+		}
+
+		Expect(cl.Create(ctx, &configMap)).NotTo(HaveOccurred())
+		Expect(komega.Update(testBundle, func() {
+			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", IncludeAllKeys: true},
+			})
+		})()).To(Succeed())
+
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3, dummy.TestCertificate5)
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+
+		delete(configMap.Data, "new-source-key-2")
+		Expect(cl.Update(ctx, &configMap)).NotTo(HaveOccurred())
+
+		expectedData = dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3)
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+	})
+
+	It("should update all targets when a Secret source including all keys has a key updated", func() {
+		configMap := corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "new-bundle-source",
+				Namespace: opts.Namespace,
+			},
+			Data: map[string]string{
+				"new-source-key-1": dummy.TestCertificate4,
+			},
+		}
+
+		Expect(cl.Create(ctx, &configMap)).NotTo(HaveOccurred())
+		Expect(komega.Update(testBundle, func() {
+			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", IncludeAllKeys: true},
+			})
+		})()).To(Succeed())
+
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3)
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+
+		configMap.Data["new-source-key-1"] = dummy.TestCertificate5
+		Expect(cl.Update(ctx, &configMap)).NotTo(HaveOccurred())
+
+		expectedData = dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3, dummy.TestCertificate5)
 		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
 	})
 

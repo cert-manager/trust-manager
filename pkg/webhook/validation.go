@@ -105,8 +105,11 @@ func (v *validator) validate(obj runtime.Object) (admission.Warnings, error) {
 			if len(configMap.Name) > 0 && configMap.Selector != nil {
 				el = append(el, field.Invalid(path, fmt.Sprintf("name: %s, selector: {}", configMap.Name), "must validate one and only one schema (oneOf): [name, selector]. Found both set"))
 			}
-			if len(configMap.Key) == 0 {
-				el = append(el, field.Invalid(path.Child("key"), configMap.Key, "source configMap key must be defined"))
+			if len(configMap.Key) == 0 && !configMap.IncludeAllKeys {
+				el = append(el, field.Invalid(path, fmt.Sprintf("key: ' ', includeAllKeys: %t", configMap.IncludeAllKeys), "source configMap key must be defined when includeAllKeys is false"))
+			}
+			if len(configMap.Key) > 0 && configMap.IncludeAllKeys {
+				el = append(el, field.Invalid(path, fmt.Sprintf("key: %s, includeAllKeys: %t", configMap.Key, configMap.IncludeAllKeys), "source configMap key cannot be defined when includeAllKeys is true"))
 			}
 		}
 
@@ -121,8 +124,11 @@ func (v *validator) validate(obj runtime.Object) (admission.Warnings, error) {
 			if len(secret.Name) > 0 && secret.Selector != nil {
 				el = append(el, field.Invalid(path, fmt.Sprintf("name: %s, selector: {}", secret.Name), "must validate one and only one schema (oneOf): [name, selector]. Found both set"))
 			}
-			if len(secret.Key) == 0 {
-				el = append(el, field.Invalid(path.Child("key"), secret.Key, "source secret key must be defined"))
+			if len(secret.Key) == 0 && !secret.IncludeAllKeys {
+				el = append(el, field.Invalid(path, fmt.Sprintf("key: ' ', includeAllKeys: %t", secret.IncludeAllKeys), "source secret key must be defined when includeAllKeys is false"))
+			}
+			if len(secret.Key) > 0 && secret.IncludeAllKeys {
+				el = append(el, field.Invalid(path, fmt.Sprintf("key: %s, includeAllKeys: %t", secret.Key, secret.IncludeAllKeys), "source secret key cannot be defined when includeAllKeys is true"))
 			}
 		}
 

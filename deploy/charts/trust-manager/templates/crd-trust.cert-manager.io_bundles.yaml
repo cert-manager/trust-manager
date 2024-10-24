@@ -72,9 +72,14 @@ spec:
                     properties:
                       configMap:
                         description: |-
-                          ConfigMap is a reference (by name) to a ConfigMap's `data` key, or to a
-                          list of ConfigMap's `data` key using label selector, in the trust Namespace.
+                          ConfigMap is a reference (by name) to a ConfigMap's `data` key(s), or to a
+                          list of ConfigMap's `data` key(s) using label selector, in the trust Namespace.
                         properties:
+                          includeAllKeys:
+                            description: |-
+                              IncludeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
+                              This field must not be true when `Key` is set.
+                            type: boolean
                           key:
                             description: Key is the key of the entry in the object's `data` field to be used.
                             type: string
@@ -137,9 +142,14 @@ spec:
                         type: string
                       secret:
                         description: |-
-                          Secret is a reference (by name) to a Secret's `data` key, or to a
-                          list of Secret's `data` key using label selector, in the trust Namespace.
+                          Secret is a reference (by name) to a Secret's `data` key(s), or to a
+                          list of Secret's `data` key(s) using label selector, in the trust Namespace.
                         properties:
+                          includeAllKeys:
+                            description: |-
+                              IncludeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
+                              This field must not be true when `Key` is set.
+                            type: boolean
                           key:
                             description: Key is the key of the entry in the object's `data` field to be used.
                             type: string
