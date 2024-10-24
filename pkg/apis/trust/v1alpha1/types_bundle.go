@@ -20,10 +20,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var BundleKind = "Bundle"
+const (
+	BundleKind = "Bundle"
 
-var BundleLabelKey = "trust.cert-manager.io/bundle"
-var BundleHashAnnotationKey = "trust.cert-manager.io/hash"
+	BundleLabelKey                      = "trust.cert-manager.io/bundle"
+	BundleHashAnnotationKey             = "trust.cert-manager.io/hash"
+	BundleJksPasswdHashAnnotationKey    = "trust.cert-manager.io/jks-pwd-hash"    // #nosec G101
+	BundlePkcs12PasswdHashAnnotationKey = "trust.cert-manager.io/pksc12-pwd-hash" // #nosec G101
+)
 
 // +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="ConfigMap Target",type="string",JSONPath=".spec.target.configMap.key",description="Bundle ConfigMap Target Key"
