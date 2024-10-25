@@ -36,6 +36,8 @@ type notFoundError struct{ error }
 
 type selectsNothingError struct{ error }
 
+type invalidSecretSourceError struct{ error }
+
 // bundleData holds the result of a call to buildSourceBundle. It contains the resulting PEM-encoded
 // certificate data from concatenating all the sources together, binary data for any additional formats and
 // any metadata from the sources which needs to be exposed on the Bundle resource's status field.
@@ -145,12 +147,19 @@ func (b *bundle) configMapBundle(ctx context.Context, ref *trustapi.SourceObject
 
 	var results strings.Builder
 	for _, cm := range configMaps {
-		data, ok := cm.Data[ref.Key]
-		if !ok {
-			return "", notFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, ref.Key)}
+		if len(ref.Key) > 0 {
+			data, ok := cm.Data[ref.Key]
+			if !ok {
+				return "", notFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, ref.Key)}
+			}
+			results.WriteString(data)
+			results.WriteByte('\n')
+		} else if ref.IncludeAllKeys {
+			for _, data := range cm.Data {
+				results.WriteString(data)
+				results.WriteByte('\n')
+			}
 		}
-		results.WriteString(data)
-		results.WriteByte('\n')
 	}
 	return results.String(), nil
 }
@@ -192,12 +201,24 @@ func (b *bundle) secretBundle(ctx context.Context, ref *trustapi.SourceObjectKey
 
 	var results strings.Builder
 	for _, secret := range secrets {
-		data, ok := secret.Data[ref.Key]
-		if !ok {
-			return "", notFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, ref.Key)}
+		if len(ref.Key) > 0 {
+			data, ok := secret.Data[ref.Key]
+			if !ok {
+				return "", notFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, ref.Key)}
+			}
+			results.Write(data)
+			results.WriteByte('\n')
+		} else if ref.IncludeAllKeys {
+			// This is done to prevent mistakes. All keys should never be included for a TLS secret, since that would include the private key.
+			if secret.Type == corev1.SecretTypeTLS {
+				return "", invalidSecretSourceError{fmt.Errorf("includeAllKeys is not supported for TLS Secrets such as %s/%s", secret.Namespace, secret.Name)}
+			}
+
+			for _, data := range secret.Data {
+				results.Write(data)
+				results.WriteByte('\n')
+			}
 		}
-		results.Write(data)
-		results.WriteByte('\n')
 	}
 	return results.String(), nil
 }

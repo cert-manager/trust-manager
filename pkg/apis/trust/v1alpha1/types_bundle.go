@@ -68,13 +68,13 @@ type BundleSpec struct {
 // BundleSource is the set of sources whose data will be appended and synced to
 // the BundleTarget in all Namespaces.
 type BundleSource struct {
-	// ConfigMap is a reference (by name) to a ConfigMap's `data` key, or to a
-	// list of ConfigMap's `data` key using label selector, in the trust Namespace.
+	// ConfigMap is a reference (by name) to a ConfigMap's `data` key(s), or to a
+	// list of ConfigMap's `data` key(s) using label selector, in the trust Namespace.
 	// +optional
 	ConfigMap *SourceObjectKeySelector `json:"configMap,omitempty"`
 
-	// Secret is a reference (by name) to a Secret's `data` key, or to a
-	// list of Secret's `data` key using label selector, in the trust Namespace.
+	// Secret is a reference (by name) to a Secret's `data` key(s), or to a
+	// list of Secret's `data` key(s) using label selector, in the trust Namespace.
 	// +optional
 	Secret *SourceObjectKeySelector `json:"secret,omitempty"`
 
@@ -156,7 +156,7 @@ type NamespaceSelector struct {
 	MatchLabels map[string]string `json:"matchLabels,omitempty"`
 }
 
-// SourceObjectKeySelector is a reference to a source object and its `data` key
+// SourceObjectKeySelector is a reference to a source object and its `data` key(s)
 // in the trust Namespace.
 type SourceObjectKeySelector struct {
 	// Name is the name of the source object in the trust Namespace.
@@ -170,7 +170,13 @@ type SourceObjectKeySelector struct {
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 
 	// KeySelector is the key of the entry in the objects' `data` field to be referenced.
-	KeySelector `json:",inline"`
+	//+optional
+	KeySelector `json:",inline,omitempty"`
+
+	// IncludeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
+	// This field must not be true when `Key` is set.
+	//+optional
+	IncludeAllKeys bool `json:"includeAllKeys,omitempty"`
 }
 
 // KeySelector is a reference to a key for some map data object.
