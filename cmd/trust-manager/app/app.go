@@ -17,10 +17,12 @@ limitations under the License.
 package app
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
 
+	"github.com/erikgb/dynamic-authority/pkg/authority"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -70,6 +72,8 @@ func NewCommand() *cobra.Command {
 
 			ctrl.SetLogger(mlog)
 
+			certOperator := authority.ServingCertificateOperator{Options: opts.DynamicServing}
+
 			eventBroadcaster := record.NewBroadcaster()
 			eventBroadcaster.StartLogging(func(format string, args ...any) { mlog.V(3).Info(fmt.Sprintf(format, args...)) })
 			eventBroadcaster.StartRecordingToSink(&clientv1.EventSinkImpl{Interface: cl.CoreV1().Events("")})
@@ -87,7 +91,7 @@ func NewCommand() *cobra.Command {
 				WebhookServer: ctrlwebhook.NewServer(ctrlwebhook.Options{
 					Port:    opts.Webhook.Port,
 					Host:    opts.Webhook.Host,
-					CertDir: opts.Webhook.CertDir,
+					TLSOpts: []func(*tls.Config){certOperator.ServingCertificate()},
 				}),
 				Metrics: server.Options{
 					BindAddress: fmt.Sprintf("0.0.0.0:%d", opts.MetricsPort),
@@ -117,6 +121,10 @@ func NewCommand() *cobra.Command {
 			})
 			if err != nil {
 				return fmt.Errorf("failed to create manager: %w", err)
+			}
+
+			if err := certOperator.SetupWithManager(mgr); err != nil {
+				return fmt.Errorf("failed to setup cert operator: %w", err)
 			}
 
 			targetCache, err := cache.New(mgr.GetConfig(), cache.Options{

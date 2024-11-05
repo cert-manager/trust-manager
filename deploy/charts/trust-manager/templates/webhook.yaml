@@ -1,7 +1,3 @@
-{{- if and .Values.app.webhook.tls.helmCert.enabled .Values.app.webhook.tls.approverPolicy.enabled -}}
-{{- fail "cannot set .app.webhook.tls.helmCert.enabled and .Values.app.webhook.tls.approverPolicy.enabled" }}
-{{- end -}}
-
 {{- /*
 $ca is always generated here even if .Values.app.webhook.tls.helmCert.enabled is false because we need it to be
 visible in the scope for the ValidatingWebhookConfiguration below.
@@ -83,10 +79,8 @@ metadata:
   labels:
     app: {{ include "trust-manager.name" . }}
     {{- include "trust-manager.labels" . | nindent 4 }}
-{{ if not .Values.app.webhook.tls.helmCert.enabled }}
-  annotations:
-    cert-manager.io/inject-ca-from: "{{ include "trust-manager.namespace" . }}/{{ include "trust-manager.name" . }}"
-{{ end }}
+    cert-manager.io/inject-dynamic-ca-from-secret-namespace: "{{ include "trust-manager.namespace" . }}"
+    cert-manager.io/inject-dynamic-ca-from-secret-name: "{{ include "trust-manager.name" . }}-dynamic-ca"
 
 webhooks:
   - name: trust.cert-manager.io

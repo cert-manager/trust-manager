@@ -90,7 +90,11 @@ spec:
             # webhook
           - "--webhook-host={{.Values.app.webhook.host}}"
           - "--webhook-port={{.Values.app.webhook.port}}"
-          - "--webhook-certificate-dir=/tls"
+          - "--dynamic-serving-ca-secret-namespace={{ include "trust-manager.namespace" . }}"
+          - "--dynamic-serving-ca-secret-name={{ include "trust-manager.name" . }}-dynamic-ca"
+          - "--dynamic-serving-dns-names={{ include "trust-manager.name" . }}"
+          - "--dynamic-serving-dns-names={{ include "trust-manager.name" . }}.$(POD_NAMESPACE)"
+          - "--dynamic-serving-dns-names={{ include "trust-manager.name" . }}.$(POD_NAMESPACE).svc"
           {{- if .Values.defaultPackage.enabled }}
           - "--default-package-location=/packages/cert-manager-package-debian.json"
           {{- end }}
@@ -100,10 +104,12 @@ spec:
           {{- if .Values.filterExpiredCertificates.enabled }}
           - "--filter-expired-certificates=true"
           {{- end }}
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         volumeMounts:
-        - mountPath: /tls
-          name: tls
-          readOnly: true
         - mountPath: /packages
           name: packages
           readOnly: true
@@ -146,10 +152,6 @@ spec:
       - name: packages
         emptyDir:
           sizeLimit: 50M
-      - name: tls
-        secret:
-          defaultMode: 420
-          secretName: {{ include "trust-manager.name" . }}-tls
       {{- with .Values.volumes }}
       {{- toYaml . | nindent 6 }}
       {{- end }}

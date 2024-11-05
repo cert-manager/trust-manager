@@ -266,26 +266,6 @@ app:
         # It's safer and easier to rely on cert-manager for issuing the webhook cert - avoid using Helm-generated certs in production.
         enabled: false
 
-      approverPolicy:
-        # Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this.
-        enabled: false
-
-        # The namespace in which cert-manager was installed. Only used if `app.webhook.tls.approverPolicy.enabled` is true.
-        certManagerNamespace: "cert-manager"
-
-        # The name of cert-manager's Service Account. Only used if `app.webhook.tls.approverPolicy.enabled` is true.
-        certManagerServiceAccount: "cert-manager"
-
-      # Add labels/annotations to secrets created by Certificate resources when using cert-manager provisioned TLS certificate.
-      certificate:
-        secretTemplate: {}
-          # For example:
-          #   annotations:
-          #     my-secret-annotation-1: "foo"
-          #     my-secret-annotation-2: "bar"
-          #   labels:
-          #     my-secret-label: foo
-
     # This value specifies if the app should be started in hostNetwork mode. It is required for use in some managed Kubernetes clusters (such as AWS EKS) with custom CNI.
     hostNetwork: false
 
