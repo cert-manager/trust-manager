@@ -24,6 +24,10 @@ spec:
   dnsNames:
   - "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc"
   secretName: {{ include "trust-manager.name" . }}-tls
+  {{- with .Values.app.webhook.tls.certificate.secretTemplate }}
+  secretTemplate:
+    {{- toYaml .| nindent 4 }}
+  {{- end }}
   revisionHistoryLimit: 1
   issuerRef:
     name: {{ include "trust-manager.name" . }}

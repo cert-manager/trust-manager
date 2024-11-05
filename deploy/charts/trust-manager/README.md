@@ -442,6 +442,11 @@ The namespace in which cert-manager was installed. Only used if `app.webhook.tls
 > ```
 
 The name of cert-manager's Service Account. Only used if `app.webhook.tls.approverPolicy.enabled` is true.
+#### **app.webhook.tls.certificate.secretTemplate** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
 #### **app.webhook.hostNetwork** ~ `bool`
 > Default value:
 > ```yaml

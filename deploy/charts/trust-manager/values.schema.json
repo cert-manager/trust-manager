@@ -392,6 +392,9 @@
         "approverPolicy": {
           "$ref": "#/$defs/helm-values.app.webhook.tls.approverPolicy"
         },
+        "certificate": {
+          "$ref": "#/$defs/helm-values.app.webhook.tls.certificate"
+        },
         "helmCert": {
           "$ref": "#/$defs/helm-values.app.webhook.tls.helmCert"
         }
@@ -427,6 +430,19 @@
       "default": false,
       "description": "Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this.",
       "type": "boolean"
+    },
+    "helm-values.app.webhook.tls.certificate": {
+      "additionalProperties": false,
+      "properties": {
+        "secretTemplate": {
+          "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.secretTemplate"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.app.webhook.tls.certificate.secretTemplate": {
+      "default": {},
+      "type": "object"
     },
     "helm-values.app.webhook.tls.helmCert": {
       "additionalProperties": false,
