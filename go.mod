@@ -5,7 +5,7 @@ go 1.22.0
 require (
 	github.com/go-logr/logr v1.4.2
 	github.com/onsi/ginkgo/v2 v2.21.0
-	github.com/onsi/gomega v1.35.0
+	github.com/onsi/gomega v1.35.1
 	github.com/pavlo-v-chernykh/keystore-go/v4 v4.5.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
@@ -19,7 +19,7 @@ require (
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 	sigs.k8s.io/controller-runtime v0.19.1
 	sigs.k8s.io/structured-merge-diff v1.0.2
-	sigs.k8s.io/structured-merge-diff/v4 v4.4.1
+	sigs.k8s.io/structured-merge-diff/v4 v4.4.2
 	software.sslmate.com/src/go-pkcs12 v0.5.0
 )
 
