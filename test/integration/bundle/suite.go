@@ -174,7 +174,7 @@ var _ = Describe("Integration", func() {
 
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				ConfigMap: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", KeySelector: trustapi.KeySelector{Key: "new-source-key"}},
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", Key: "new-source-key"},
 			})
 		})()).To(Succeed())
 
@@ -219,7 +219,7 @@ var _ = Describe("Integration", func() {
 
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				Secret: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", KeySelector: trustapi.KeySelector{Key: "new-source-key"}},
+				Secret: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", Key: "new-source-key"},
 			})
 		})()).To(Succeed())
 

@@ -111,15 +111,15 @@ func newTestBundle(ctx context.Context, cl client.Client, opts bundlectrl.Option
 			Sources: []trustapi.BundleSource{
 				{
 					ConfigMap: &trustapi.SourceObjectKeySelector{
-						Name:        configMap.Name,
-						KeySelector: trustapi.KeySelector{Key: td.Sources.ConfigMap.Key},
+						Name: configMap.Name,
+						Key:  td.Sources.ConfigMap.Key,
 					},
 				},
 
 				{
 					Secret: &trustapi.SourceObjectKeySelector{
-						Name:        secret.Name,
-						KeySelector: trustapi.KeySelector{Key: td.Sources.Secret.Key},
+						Name: secret.Name,
+						Key:  td.Sources.Secret.Key,
 					},
 				},
 
