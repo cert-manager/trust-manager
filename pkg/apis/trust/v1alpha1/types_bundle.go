@@ -169,9 +169,9 @@ type SourceObjectKeySelector struct {
 	//+optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 
-	// KeySelector is the key of the entry in the objects' `data` field to be referenced.
+	// Key of the entry in the object's `data` field to be used.
 	//+optional
-	KeySelector `json:",inline,omitempty"`
+	Key string `json:"key,omitempty"`
 
 	// IncludeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
 	// This field must not be true when `Key` is set.
