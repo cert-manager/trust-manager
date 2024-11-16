@@ -645,7 +645,7 @@ var _ = Describe("Integration", func() {
 
 		// add a label selector to the Bundle which should exclude all namespaces
 		Expect(komega.Update(testBundle, func() {
-			testBundle.Spec.Target.NamespaceSelector = &trustapi.NamespaceSelector{
+			testBundle.Spec.Target.NamespaceSelector = &metav1.LabelSelector{
 				MatchLabels: map[string]string{"foo": "bar"},
 			}
 		})()).To(Succeed())

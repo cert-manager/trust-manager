@@ -22,7 +22,7 @@ import (
 	"strconv"
 
 	"github.com/go-logr/logr"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -111,6 +111,9 @@ func (v *validator) validate(obj runtime.Object) (admission.Warnings, error) {
 			if len(configMap.Key) > 0 && configMap.IncludeAllKeys {
 				el = append(el, field.Invalid(path, fmt.Sprintf("key: %s, includeAllKeys: %t", configMap.Key, configMap.IncludeAllKeys), "source configMap key cannot be defined when includeAllKeys is true"))
 			}
+
+			errs := validation.ValidateLabelSelector(configMap.Selector, validation.LabelSelectorValidationOptions{}, path.Child("selector"))
+			el = append(el, errs...)
 		}
 
 		if secret := source.Secret; secret != nil {
@@ -130,6 +133,9 @@ func (v *validator) validate(obj runtime.Object) (admission.Warnings, error) {
 			if len(secret.Key) > 0 && secret.IncludeAllKeys {
 				el = append(el, field.Invalid(path, fmt.Sprintf("key: %s, includeAllKeys: %t", secret.Key, secret.IncludeAllKeys), "source secret key cannot be defined when includeAllKeys is true"))
 			}
+
+			errs := validation.ValidateLabelSelector(secret.Selector, validation.LabelSelectorValidationOptions{}, path.Child("selector"))
+			el = append(el, errs...)
 		}
 
 		if source.InLine != nil {
@@ -227,11 +233,8 @@ func (v *validator) validate(obj runtime.Object) (admission.Warnings, error) {
 		}
 	}
 
-	if nsSel := bundle.Spec.Target.NamespaceSelector; nsSel != nil && len(nsSel.MatchLabels) > 0 {
-		if _, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{MatchLabels: nsSel.MatchLabels}); err != nil {
-			el = append(el, field.Invalid(path.Child("target", "namespaceSelector", "matchLabels"), nsSel.MatchLabels, err.Error()))
-		}
-	}
+	errs := validation.ValidateLabelSelector(bundle.Spec.Target.NamespaceSelector, validation.LabelSelectorValidationOptions{}, path.Child("target", "namespaceSelector"))
+	el = append(el, errs...)
 
 	return warnings, el.ToAggregate()
 
