@@ -59,6 +59,9 @@ type BundleList struct {
 // BundleSpec defines the desired state of a Bundle.
 type BundleSpec struct {
 	// Sources is a set of references to data whose data will sync to the target.
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
 	Sources []BundleSource `json:"sources"`
 
 	// Target is the target location in all namespaces to sync source data to.
@@ -67,6 +70,7 @@ type BundleSpec struct {
 
 // BundleSource is the set of sources whose data will be appended and synced to
 // the BundleTarget in all Namespaces.
+// +structType=atomic
 type BundleSource struct {
 	// ConfigMap is a reference (by name) to a ConfigMap's `data` key(s), or to a
 	// list of ConfigMap's `data` key(s) using label selector, in the trust Namespace.
@@ -99,11 +103,13 @@ type BundleSource struct {
 type BundleTarget struct {
 	// ConfigMap is the target ConfigMap in Namespaces that all Bundle source
 	// data will be synced to.
+	// +optional
 	ConfigMap *KeySelector `json:"configMap,omitempty"`
 
 	// Secret is the target Secret that all Bundle source data will be synced to.
 	// Using Secrets as targets is only supported if enabled at trust-manager startup.
 	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
+	// +optional
 	Secret *KeySelector `json:"secret,omitempty"`
 
 	// AdditionalFormats specifies any additional formats to write to the target
@@ -121,12 +127,16 @@ type AdditionalFormats struct {
 	// JKS requests a JKS-formatted binary trust bundle to be written to the target.
 	// The bundle has "changeit" as the default password.
 	// For more information refer to this link https://cert-manager.io/docs/faq/#keystore-passwords
+	// +optional
 	JKS *JKS `json:"jks,omitempty"`
 	// PKCS12 requests a PKCS12-formatted binary trust bundle to be written to the target.
 	// The bundle is by default created without a password.
+	// +optional
 	PKCS12 *PKCS12 `json:"pkcs12,omitempty"`
 }
 
+// JKS specifies additional target JKS files
+// +structType=atomic
 type JKS struct {
 	KeySelector `json:",inline"`
 
@@ -138,6 +148,8 @@ type JKS struct {
 	Password *string `json:"password"`
 }
 
+// PKCS12 specifies additional target PKCS#12 files
+// +structType=atomic
 type PKCS12 struct {
 	KeySelector `json:",inline"`
 
@@ -158,10 +170,12 @@ type NamespaceSelector struct {
 
 // SourceObjectKeySelector is a reference to a source object and its `data` key(s)
 // in the trust Namespace.
+// +structType=atomic
 type SourceObjectKeySelector struct {
 	// Name is the name of the source object in the trust Namespace.
 	// This field must be left empty when `selector` is set
 	//+optional
+	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name,omitempty"`
 
 	// Selector is the label selector to use to fetch a list of objects. Must not be set
@@ -171,6 +185,7 @@ type SourceObjectKeySelector struct {
 
 	// Key of the entry in the object's `data` field to be used.
 	//+optional
+	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key,omitempty"`
 
 	// IncludeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
@@ -182,6 +197,7 @@ type SourceObjectKeySelector struct {
 // KeySelector is a reference to a key for some map data object.
 type KeySelector struct {
 	// Key is the key of the entry in the object's `data` field to be used.
+	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key"`
 }
 
