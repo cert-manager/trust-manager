@@ -164,24 +164,6 @@ func (v *validator) validate(obj runtime.Object) (admission.Warnings, error) {
 		))
 	}
 
-	if target := bundle.Spec.Target.ConfigMap; target != nil {
-		path := path.Child("sources")
-		for i, source := range bundle.Spec.Sources {
-			if source.ConfigMap != nil && source.ConfigMap.Name == bundle.Name && source.ConfigMap.Key == target.Key {
-				el = append(el, field.Forbidden(path.Child(fmt.Sprintf("[%d]", i), "configMap", source.ConfigMap.Name, source.ConfigMap.Key), "cannot define the same source as target"))
-			}
-		}
-	}
-
-	if target := bundle.Spec.Target.Secret; target != nil {
-		path := path.Child("sources")
-		for i, source := range bundle.Spec.Sources {
-			if source.Secret != nil && source.Secret.Name == bundle.Name && source.Secret.Key == target.Key {
-				el = append(el, field.Forbidden(path.Child(fmt.Sprintf("[%d]", i), "secret", source.Secret.Name, source.Secret.Key), "cannot define the same source as target"))
-			}
-		}
-	}
-
 	configMap := bundle.Spec.Target.ConfigMap
 	secret := bundle.Spec.Target.Secret
 

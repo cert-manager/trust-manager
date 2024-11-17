@@ -190,36 +190,6 @@ func Test_validate(t *testing.T) {
 				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "key: test, includeAllKeys: true", "source secret key cannot be defined when includeAllKeys is true"),
 			}.ToAggregate().Error()),
 		},
-		"sources defines the same configMap target": {
-			bundle: &trustapi.Bundle{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle"},
-				Spec: trustapi.BundleSpec{
-					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("test")},
-						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "test-bundle", Key: "test"}},
-					},
-					Target: trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "test"}},
-				},
-			},
-			expErr: ptr.To(field.ErrorList{
-				field.Forbidden(field.NewPath("spec", "sources", "[1]", "configMap", "test-bundle", "test"), "cannot define the same source as target"),
-			}.ToAggregate().Error()),
-		},
-		"sources defines the same secret target": {
-			bundle: &trustapi.Bundle{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle"},
-				Spec: trustapi.BundleSpec{
-					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("test")},
-						{Secret: &trustapi.SourceObjectKeySelector{Name: "test-bundle", Key: "test"}},
-					},
-					Target: trustapi.BundleTarget{Secret: &trustapi.KeySelector{Key: "test"}},
-				},
-			},
-			expErr: ptr.To(field.ErrorList{
-				field.Forbidden(field.NewPath("spec", "sources", "[1]", "secret", "test-bundle", "test"), "cannot define the same source as target"),
-			}.ToAggregate().Error()),
-		},
 		"target configMap key not defined": {
 			bundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{
