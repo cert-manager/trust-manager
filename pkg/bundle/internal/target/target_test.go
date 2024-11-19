@@ -18,8 +18,6 @@ package target
 
 import (
 	"context"
-	"crypto/sha256"
-	"fmt"
 	"sync"
 	"testing"
 
@@ -55,7 +53,7 @@ var (
 )
 
 func Test_syncConfigMapTarget(t *testing.T) {
-	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
+	truststoreHash := TruststoreHash([]byte(data), nil)
 
 	tests := map[string]struct {
 		object      runtime.Object
@@ -110,7 +108,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Name:          bundleName,
 					Namespace:     "test-namespace",
 					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					ManagedFields: ssa_client.ManagedFieldEntries(nil, nil),
 				},
 			},
@@ -126,7 +124,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Name:          bundleName,
 					Namespace:     "test-namespace",
 					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
@@ -143,7 +141,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -193,7 +191,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -221,7 +219,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -249,7 +247,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -275,7 +273,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -306,7 +304,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -337,7 +335,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -363,7 +361,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -391,7 +389,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -419,7 +417,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -477,7 +475,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -506,7 +504,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -535,7 +533,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					Name:          bundleName,
 					Namespace:     "test-namespace",
 					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
@@ -668,7 +666,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 }
 
 func Test_syncSecretTarget(t *testing.T) {
-	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
+	truststoreHash := TruststoreHash([]byte(data), nil)
 	const (
 		bundleName = "test-bundle"
 		key        = "key"
@@ -727,7 +725,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Name:          bundleName,
 					Namespace:     "test-namespace",
 					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					ManagedFields: ssa_client.ManagedFieldEntries(nil, nil),
 				},
 			},
@@ -743,7 +741,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Name:          bundleName,
 					Namespace:     "test-namespace",
 					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string][]byte{key: []byte(data)},
@@ -760,7 +758,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -810,7 +808,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -838,7 +836,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -866,7 +864,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -892,7 +890,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -923,7 +921,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -954,7 +952,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -980,7 +978,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -1008,7 +1006,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -1036,7 +1034,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -1094,7 +1092,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -1123,7 +1121,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Name:        bundleName,
 					Namespace:   "test-namespace",
 					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -1152,7 +1150,7 @@ func Test_syncSecretTarget(t *testing.T) {
 					Name:          bundleName,
 					Namespace:     "test-namespace",
 					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: dataHash},
+					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: truststoreHash},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string][]byte{key: []byte(data)},

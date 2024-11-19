@@ -18,8 +18,6 @@ package bundle
 
 import (
 	"context"
-	"crypto/sha256"
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -141,19 +139,27 @@ func Test_Reconcile(t *testing.T) {
 			Bundle:  dummy.TestCertificate5,
 		}
 
-		configMapPatch = func(name, namespace string, data map[string]string, binData map[string][]byte, key *string, additionaFormats *trustapi.AdditionalFormats) *coreapplyconfig.ConfigMapApplyConfiguration {
+		jksDefaultAdditionalFormats = trustapi.AdditionalFormats{
+			JKS: &trustapi.JKS{
+				KeySelector: trustapi.KeySelector{
+					Key: "target.jks",
+				},
+				Password: ptr.To(trustapi.DefaultJKSPassword),
+			},
+		}
+		jksDefaultAdditionalFormatsOldPassword = trustapi.AdditionalFormats{
+			JKS: &trustapi.JKS{
+				KeySelector: trustapi.KeySelector{
+					Key: "target.jks",
+				},
+				Password: ptr.To("OLD PASSWORD"),
+			},
+		}
+
+		configMapPatch = func(name, namespace string, data map[string]string, binData map[string][]byte, key *string, additionalFormats *trustapi.AdditionalFormats) *coreapplyconfig.ConfigMapApplyConfiguration {
 			annotations := map[string]string{}
 			if key != nil {
-				annotations[trustapi.BundleHashAnnotationKey] = fmt.Sprintf("%x", sha256.Sum256([]byte(data[*key])))
-			}
-
-			if additionaFormats != nil {
-				if additionaFormats.JKS != nil {
-					annotations[trustapi.BundleJksPasswdHashAnnotationKey] = fmt.Sprintf("%x", sha256.Sum256([]byte(*additionaFormats.JKS.Password)))
-				}
-				if additionaFormats.PKCS12 != nil {
-					annotations[trustapi.BundlePkcs12PasswdHashAnnotationKey] = fmt.Sprintf("%x", sha256.Sum256([]byte(*additionaFormats.PKCS12.Password)))
-				}
+				annotations[trustapi.BundleHashAnnotationKey] = target.TruststoreHash([]byte(data[*key]), additionalFormats)
 			}
 
 			return coreapplyconfig.
@@ -175,10 +181,10 @@ func Test_Reconcile(t *testing.T) {
 				WithBinaryData(binData)
 		}
 
-		secretPatch = func(name, namespace string, data map[string]string, key *string) *coreapplyconfig.SecretApplyConfiguration {
+		secretPatch = func(name, namespace string, data map[string]string, key *string, additionaFormats *trustapi.AdditionalFormats) *coreapplyconfig.SecretApplyConfiguration {
 			annotations := map[string]string{}
 			if key != nil {
-				annotations[trustapi.BundleHashAnnotationKey] = fmt.Sprintf("%x", sha256.Sum256([]byte(data[*key])))
+				annotations[trustapi.BundleHashAnnotationKey] = target.TruststoreHash([]byte(data[*key]), additionaFormats)
 			}
 
 			binaryData := map[string][]byte{}
@@ -204,15 +210,11 @@ func Test_Reconcile(t *testing.T) {
 				WithData(binaryData)
 		}
 
-		targetConfigMap = func(namespace string, data map[string]string, binData map[string][]byte, key *string, withOwnerRef bool) *corev1.ConfigMap {
+		targetConfigMap = func(namespace string, data map[string]string, binData map[string][]byte, key *string, withOwnerRef bool, additionaFormats *trustapi.AdditionalFormats) *corev1.ConfigMap {
 			annotations := map[string]string{}
 			if key != nil {
-				annotations[trustapi.BundleHashAnnotationKey] = fmt.Sprintf("%x", sha256.Sum256([]byte(data[*key])))
+				annotations[trustapi.BundleHashAnnotationKey] = target.TruststoreHash([]byte(data[*key]), additionaFormats)
 			}
-
-			// These annotation are used for password hash sum testing
-			annotations[trustapi.BundleJksPasswdHashAnnotationKey] = ""
-			annotations[trustapi.BundlePkcs12PasswdHashAnnotationKey] = ""
 
 			dataEntries := make([]string, 0, len(data))
 			for k := range data {
@@ -245,10 +247,10 @@ func Test_Reconcile(t *testing.T) {
 			return configmap
 		}
 
-		targetSecret = func(namespace string, data map[string]string, key *string, withOwnerRef bool) *corev1.Secret {
+		targetSecret = func(namespace string, data map[string]string, key *string, withOwnerRef bool, additionaFormats *trustapi.AdditionalFormats) *corev1.Secret {
 			annotations := map[string]string{}
 			if key != nil {
-				annotations[trustapi.BundleHashAnnotationKey] = fmt.Sprintf("%x", sha256.Sum256([]byte(data[*key])))
+				annotations[trustapi.BundleHashAnnotationKey] = target.TruststoreHash([]byte(data[*key]), additionaFormats)
 			}
 
 			dataEntries := make([]string, 0, len(data))
@@ -387,7 +389,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To("old-target"),
-					true,
+					true, nil,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -397,7 +399,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To("old-target"),
-					true,
+					true, nil,
 				),
 			},
 			existingBundles: []client.Object{
@@ -436,7 +438,7 @@ func Test_Reconcile(t *testing.T) {
 						"old-target": "foo",
 					},
 					ptr.To("old-target"),
-					true,
+					true, nil,
 				),
 				targetSecret(
 					"ns-2",
@@ -445,7 +447,7 @@ func Test_Reconcile(t *testing.T) {
 						"old-target": "foo",
 					},
 					ptr.To("old-target"),
-					true,
+					true, nil,
 				),
 			},
 			existingBundles: []client.Object{
@@ -461,9 +463,9 @@ func Test_Reconcile(t *testing.T) {
 			expResult: ctrl.Result{},
 			expError:  false,
 			expPatches: []interface{}{
-				secretPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
-				secretPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
-				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
+				secretPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
+				secretPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
+				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
 				Conditions: []trustapi.BundleCondition{
@@ -492,7 +494,7 @@ func Test_Reconcile(t *testing.T) {
 						"target.jks": []byte("foo"),
 					},
 					ptr.To("old-target"),
-					true,
+					true, &jksDefaultAdditionalFormats,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -504,20 +506,13 @@ func Test_Reconcile(t *testing.T) {
 						"target.jks": []byte("foo"),
 					},
 					ptr.To("old-target"),
-					true,
+					true, &jksDefaultAdditionalFormats,
 				),
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{
-						JKS: &trustapi.JKS{
-							KeySelector: trustapi.KeySelector{
-								Key: "target.jks",
-							},
-							Password: ptr.To(trustapi.DefaultJKSPassword),
-						},
-					}),
+					gen.SetBundleTargetAdditionalFormats(jksDefaultAdditionalFormats),
 				)},
 			expResult: ctrl.Result{},
 			expError:  false,
@@ -526,17 +521,17 @@ func Test_Reconcile(t *testing.T) {
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "target.jks"}, Password: ptr.To(trustapi.DefaultJKSPassword)}}),
+				}, ptr.To(targetKey), &jksDefaultAdditionalFormats),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "target.jks"}, Password: ptr.To(trustapi.DefaultJKSPassword)}}),
+				}, ptr.To(targetKey), &jksDefaultAdditionalFormats),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "target.jks"}, Password: ptr.To(trustapi.DefaultJKSPassword)}}),
+				}, ptr.To(targetKey), &jksDefaultAdditionalFormats),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
 				Conditions: []trustapi.BundleCondition{
@@ -565,7 +560,7 @@ func Test_Reconcile(t *testing.T) {
 						"old-target.jks": []byte("foo"),
 					},
 					ptr.To(targetKey),
-					true,
+					true, &jksDefaultAdditionalFormats,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -577,20 +572,13 @@ func Test_Reconcile(t *testing.T) {
 						"old-target.jks": []byte("foo"),
 					},
 					ptr.To(targetKey),
-					true,
+					true, &jksDefaultAdditionalFormats,
 				),
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(trustapi.AdditionalFormats{
-						JKS: &trustapi.JKS{
-							KeySelector: trustapi.KeySelector{
-								Key: "target.jks",
-							},
-							Password: ptr.To(trustapi.DefaultJKSPassword),
-						},
-					}),
+					gen.SetBundleTargetAdditionalFormats(jksDefaultAdditionalFormats),
 				),
 			},
 			expResult: ctrl.Result{},
@@ -600,17 +588,17 @@ func Test_Reconcile(t *testing.T) {
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "target.jks"}, Password: ptr.To(trustapi.DefaultJKSPassword)}}),
+				}, ptr.To(targetKey), &jksDefaultAdditionalFormats),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "target.jks"}, Password: ptr.To(trustapi.DefaultJKSPassword)}}),
+				}, ptr.To(targetKey), &jksDefaultAdditionalFormats),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "target.jks"}, Password: ptr.To(trustapi.DefaultJKSPassword)}}),
+				}, ptr.To(targetKey), &jksDefaultAdditionalFormats),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
 				Conditions: []trustapi.BundleCondition{
@@ -642,9 +630,9 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
-				secretPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
-				secretPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
-				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
+				secretPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
+				secretPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
+				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
 				Conditions: []trustapi.BundleCondition{
@@ -739,7 +727,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 				targetConfigMap(
 					"ns-1",
@@ -748,7 +736,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -757,7 +745,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 			},
 			existingSecrets: []client.Object{sourceSecret},
@@ -793,7 +781,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					false,
+					false, nil,
 				),
 				targetConfigMap(
 					"ns-1",
@@ -802,7 +790,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					false,
+					false, nil,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -811,7 +799,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					false,
+					false, nil,
 				),
 			},
 			existingSecrets: []client.Object{sourceSecret},
@@ -862,7 +850,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 				targetConfigMap(
 					"ns-1",
@@ -871,7 +859,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -880,7 +868,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 			},
 			existingBundles: []client.Object{gen.BundleFrom(baseBundle)},
@@ -911,7 +899,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 				targetConfigMap(
 					"ns-1",
@@ -920,7 +908,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -929,7 +917,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 			},
 			existingSecrets: []client.Object{sourceSecret},
@@ -986,7 +974,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 				targetConfigMap(
 					"ns-1",
@@ -995,7 +983,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -1004,7 +992,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 			},
 			existingSecrets: []client.Object{sourceSecret},
@@ -1058,7 +1046,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 				targetConfigMap(
 					"ns-1",
@@ -1067,7 +1055,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -1076,7 +1064,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 			},
 			existingSecrets: []client.Object{sourceSecret},
@@ -1128,7 +1116,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 				targetConfigMap(
 					"ns-1",
@@ -1137,7 +1125,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -1146,7 +1134,7 @@ func Test_Reconcile(t *testing.T) {
 					},
 					nil,
 					ptr.To(targetKey),
-					true,
+					true, nil,
 				),
 			},
 			existingSecrets: []client.Object{sourceSecret},
@@ -1175,9 +1163,9 @@ func Test_Reconcile(t *testing.T) {
 			expResult:               ctrl.Result{},
 			expError:                false,
 			expPatches: []interface{}{
-				secretPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
-				secretPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
-				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey)),
+				secretPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
+				secretPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
+				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, trustNamespace, nil, nil, nil, nil),
 				configMapPatch(baseBundle.Name, "ns-1", nil, nil, nil, nil),
 				configMapPatch(baseBundle.Name, "ns-2", nil, nil, nil, nil),
