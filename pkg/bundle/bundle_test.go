@@ -614,6 +614,137 @@ func Test_Reconcile(t *testing.T) {
 			},
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
+		"if the JKS password matches, don't patch": {
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap,
+				targetConfigMap(
+					trustNamespace,
+					map[string]string{
+						targetKey: dummy.DefaultJoinedCerts(),
+					},
+					map[string][]byte{
+						"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
+					},
+					ptr.To(targetKey),
+					true, &jksDefaultAdditionalFormats,
+				),
+				targetConfigMap(
+					"ns-1",
+					map[string]string{
+						targetKey: dummy.DefaultJoinedCerts(),
+					},
+					map[string][]byte{
+						"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
+					},
+					ptr.To(targetKey),
+					true, &jksDefaultAdditionalFormats,
+				),
+				targetConfigMap(
+					"ns-2",
+					map[string]string{
+						targetKey: dummy.DefaultJoinedCerts(),
+					},
+					map[string][]byte{
+						"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
+					},
+					ptr.To(targetKey),
+					true, &jksDefaultAdditionalFormats,
+				),
+			},
+			existingSecrets: []client.Object{sourceSecret},
+			existingBundles: []client.Object{
+				gen.BundleFrom(baseBundle,
+					gen.SetBundleTargetAdditionalFormats(jksDefaultAdditionalFormats),
+				),
+			},
+			expResult:  ctrl.Result{},
+			expError:   false,
+			expPatches: []interface{}{},
+			expBundlePatch: &trustapi.BundleStatus{
+				Conditions: []trustapi.BundleCondition{
+					{
+						Type:               trustapi.BundleConditionSynced,
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: fixedmetatime,
+						Reason:             "Synced",
+						Message:            "Successfully synced Bundle to all namespaces",
+						ObservedGeneration: bundleGeneration,
+					},
+				},
+			},
+			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
+		},
+		"if the JKS password changed, apply patch": {
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap,
+				targetConfigMap(
+					trustNamespace,
+					map[string]string{
+						targetKey: dummy.DefaultJoinedCerts(),
+					},
+					map[string][]byte{
+						"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
+					},
+					ptr.To(targetKey),
+					true, &jksDefaultAdditionalFormatsOldPassword,
+				),
+				targetConfigMap(
+					"ns-1",
+					map[string]string{
+						targetKey: dummy.DefaultJoinedCerts(),
+					},
+					map[string][]byte{
+						"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
+					},
+					ptr.To(targetKey),
+					true, &jksDefaultAdditionalFormatsOldPassword,
+				),
+				targetConfigMap(
+					"ns-2",
+					map[string]string{
+						targetKey: dummy.DefaultJoinedCerts(),
+					},
+					map[string][]byte{
+						"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
+					},
+					ptr.To(targetKey),
+					true, &jksDefaultAdditionalFormats,
+				),
+			},
+			existingSecrets: []client.Object{sourceSecret},
+			existingBundles: []client.Object{
+				gen.BundleFrom(baseBundle,
+					gen.SetBundleTargetAdditionalFormats(jksDefaultAdditionalFormats),
+				),
+			},
+			expResult: ctrl.Result{},
+			expError:  false,
+			expPatches: []interface{}{
+				configMapPatch(baseBundle.Name, "trust-namespace", map[string]string{
+					targetKey: dummy.DefaultJoinedCerts(),
+				}, map[string][]byte{
+					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
+				}, ptr.To(targetKey), &jksDefaultAdditionalFormats),
+				configMapPatch(baseBundle.Name, "ns-1", map[string]string{
+					targetKey: dummy.DefaultJoinedCerts(),
+				}, map[string][]byte{
+					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
+				}, ptr.To(targetKey), &jksDefaultAdditionalFormats),
+			},
+			expBundlePatch: &trustapi.BundleStatus{
+				Conditions: []trustapi.BundleCondition{
+					{
+						Type:               trustapi.BundleConditionSynced,
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: fixedmetatime,
+						Reason:             "Synced",
+						Message:            "Successfully synced Bundle to all namespaces",
+						ObservedGeneration: bundleGeneration,
+					},
+				},
+			},
+			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
+		},
 		"if Bundle with secret and configmap target not synced everywhere, sync and update Synced": {
 			existingNamespaces: namespaces,
 			existingConfigMaps: []client.Object{sourceConfigMap},
