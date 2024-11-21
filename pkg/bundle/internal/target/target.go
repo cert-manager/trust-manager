@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -105,7 +106,7 @@ func (r *Reconciler) SyncConfigMap(
 
 	// Generated PKCS #12 is not deterministic - best we can do here is update if the pem cert has
 	// changed (hence not checking if PKCS #12 matches)
-	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(resolvedBundle.Data)))
+	bundleHash := TrustBundleHash([]byte(resolvedBundle.Data), bundle.Spec.Target.AdditionalFormats)
 	configMapData := map[string]string{
 		bundleTarget.ConfigMap.Key: resolvedBundle.Data,
 	}
@@ -114,7 +115,7 @@ func (r *Reconciler) SyncConfigMap(
 	// If the ConfigMap doesn't exist, create it.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
-		if exit, err := r.needsUpdate(ctx, KindConfigMap, log, targetObj, bundle, dataHash); err != nil {
+		if exit, err := r.needsUpdate(ctx, KindConfigMap, log, targetObj, bundle, bundleHash); err != nil {
 			return false, err
 		} else if !exit {
 			return false, nil
@@ -123,7 +124,7 @@ func (r *Reconciler) SyncConfigMap(
 
 	configMapPatch := prepareTargetPatch(coreapplyconfig.ConfigMap(name.Name, name.Namespace), *bundle).
 		WithAnnotations(map[string]string{
-			trustapi.BundleHashAnnotationKey: dataHash,
+			trustapi.BundleHashAnnotationKey: bundleHash,
 		}).
 		WithData(configMapData).
 		WithBinaryData(configMapBinData)
@@ -187,7 +188,7 @@ func (r *Reconciler) SyncSecret(
 
 	// Generated PKCS #12 is not deterministic - best we can do here is update if the pem cert has
 	// changed (hence not checking if PKCS #12 matches)
-	dataHash := fmt.Sprintf("%x", sha256.Sum256([]byte(resolvedBundle.Data)))
+	bundleHash := TrustBundleHash([]byte(resolvedBundle.Data), bundle.Spec.Target.AdditionalFormats)
 	secretData := map[string][]byte{
 		bundleTarget.Secret.Key: []byte(resolvedBundle.Data),
 	}
@@ -199,7 +200,7 @@ func (r *Reconciler) SyncSecret(
 	// If the Secret doesn't exist, create it.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
-		if exit, err := r.needsUpdate(ctx, KindSecret, log, targetObj, bundle, dataHash); err != nil {
+		if exit, err := r.needsUpdate(ctx, KindSecret, log, targetObj, bundle, bundleHash); err != nil {
 			return false, err
 		} else if !exit {
 			return false, nil
@@ -208,7 +209,7 @@ func (r *Reconciler) SyncSecret(
 
 	secretPatch := prepareTargetPatch(coreapplyconfig.Secret(name.Name, name.Namespace), *bundle).
 		WithAnnotations(map[string]string{
-			trustapi.BundleHashAnnotationKey: dataHash,
+			trustapi.BundleHashAnnotationKey: bundleHash,
 		}).
 		WithData(secretData)
 
@@ -228,7 +229,7 @@ const (
 	KindSecret    Kind = "Secret"
 )
 
-func (r *Reconciler) needsUpdate(ctx context.Context, kind Kind, log logr.Logger, obj *metav1.PartialObjectMetadata, bundle *trustapi.Bundle, dataHash string) (bool, error) {
+func (r *Reconciler) needsUpdate(ctx context.Context, kind Kind, log logr.Logger, obj *metav1.PartialObjectMetadata, bundle *trustapi.Bundle, bundleHash string) (bool, error) {
 	needsUpdate := false
 	if !metav1.IsControlledBy(obj, bundle) {
 		needsUpdate = true
@@ -238,7 +239,7 @@ func (r *Reconciler) needsUpdate(ctx context.Context, kind Kind, log logr.Logger
 		needsUpdate = true
 	}
 
-	if obj.GetAnnotations()[trustapi.BundleHashAnnotationKey] != dataHash {
+	if obj.GetAnnotations()[trustapi.BundleHashAnnotationKey] != bundleHash {
 		needsUpdate = true
 	}
 
@@ -395,4 +396,22 @@ func (b *Data) Populate(pool *util.CertPool, formats *trustapi.AdditionalFormats
 		}
 	}
 	return nil
+}
+
+func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats) string {
+	hash := sha256.New()
+
+	_, _ = hash.Write(data)
+
+	if additionalFormats != nil && additionalFormats.JKS != nil && additionalFormats.JKS.Password != nil {
+		_, _ = hash.Write([]byte(*additionalFormats.JKS.Password))
+	}
+	if additionalFormats != nil && additionalFormats.PKCS12 != nil && additionalFormats.PKCS12.Password != nil {
+		_, _ = hash.Write([]byte(*additionalFormats.PKCS12.Password))
+	}
+
+	hashValue := [32]byte{}
+	hash.Sum(hashValue[:0])
+
+	return hex.EncodeToString(hashValue[:])
 }
