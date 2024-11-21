@@ -82,11 +82,13 @@ spec:
                             type: boolean
                           key:
                             description: Key of the entry in the object's `data` field to be used.
+                            minLength: 1
                             type: string
                           name:
                             description: |-
                               Name is the name of the source object in the trust Namespace.
                               This field must be left empty when `selector` is set
+                            minLength: 1
                             type: string
                           selector:
                             description: |-
@@ -135,6 +137,7 @@ spec:
                             type: object
                             x-kubernetes-map-type: atomic
                         type: object
+                        x-kubernetes-map-type: atomic
                       inLine:
                         description: InLine is a simple string to append as the source data.
                         type: string
@@ -150,11 +153,13 @@ spec:
                             type: boolean
                           key:
                             description: Key of the entry in the object's `data` field to be used.
+                            minLength: 1
                             type: string
                           name:
                             description: |-
                               Name is the name of the source object in the trust Namespace.
                               This field must be left empty when `selector` is set
+                            minLength: 1
                             type: string
                           selector:
                             description: |-
@@ -203,6 +208,7 @@ spec:
                             type: object
                             x-kubernetes-map-type: atomic
                         type: object
+                        x-kubernetes-map-type: atomic
                       useDefaultCAs:
                         description: |-
                           UseDefaultCAs, when true, requests the default CA bundle to be used as a source.
@@ -215,7 +221,11 @@ spec:
                           defaultCAPackageVersion field of the Bundle's status field.
                         type: boolean
                     type: object
+                    x-kubernetes-map-type: atomic
+                  maxItems: 100
+                  minItems: 1
                   type: array
+                  x-kubernetes-list-type: atomic
                 target:
                   description: Target is the target location in all namespaces to sync source data to.
                   properties:
@@ -230,6 +240,7 @@ spec:
                           properties:
                             key:
                               description: Key is the key of the entry in the object's `data` field to be used.
+                              minLength: 1
                               type: string
                             password:
                               default: changeit
@@ -240,6 +251,7 @@ spec:
                           required:
                             - key
                           type: object
+                          x-kubernetes-map-type: atomic
                         pkcs12:
                           description: |-
                             PKCS12 requests a PKCS12-formatted binary trust bundle to be written to the target.
@@ -247,6 +259,7 @@ spec:
                           properties:
                             key:
                               description: Key is the key of the entry in the object's `data` field to be used.
+                              minLength: 1
                               type: string
                             password:
                               default: ""
@@ -256,6 +269,7 @@ spec:
                           required:
                             - key
                           type: object
+                          x-kubernetes-map-type: atomic
                       type: object
                     configMap:
                       description: |-
@@ -264,6 +278,7 @@ spec:
                       properties:
                         key:
                           description: Key is the key of the entry in the object's `data` field to be used.
+                          minLength: 1
                           type: string
                       required:
                         - key
@@ -289,6 +304,7 @@ spec:
                       properties:
                         key:
                           description: Key is the key of the entry in the object's `data` field to be used.
+                          minLength: 1
                           type: string
                       required:
                         - key
