@@ -55,5 +55,5 @@ func GenerateBundleStatusPatch(
 		return bundle, nil, err
 	}
 
-	return bundle, applyPatch{encodedPatch}, nil
+	return bundle, ApplyPatch{encodedPatch}, nil
 }

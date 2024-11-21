@@ -30,6 +30,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/sets"
 	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
 	metav1applyconfig "k8s.io/client-go/applyconfigurations/meta/v1"
@@ -56,41 +57,58 @@ type Reconciler struct {
 	PatchResourceOverwrite func(ctx context.Context, obj interface{}) error
 }
 
-// SyncConfigMap syncs the given data to the target ConfigMap in the given namespace.
-// The name of the ConfigMap is the same as the Bundle.
-// Ensures the ConfigMap is owned by the given Bundle, and the data is up to date.
-// Returns true if the ConfigMap has been created or was updated.
-func (r *Reconciler) SyncConfigMap(
+// Sync syncs the given data to the target resource.
+// Ensures the resource is owned by the given Bundle, and the data is up to date.
+// Returns true if the resource has been created, updated or deleted.
+func (r *Reconciler) Sync(
 	ctx context.Context,
-	log logr.Logger,
+	target Resource,
 	bundle *trustapi.Bundle,
-	name types.NamespacedName,
 	resolvedBundle Data,
+	log logr.Logger,
+	shouldExist bool,
+) (bool, error) {
+	switch target.Kind {
+	case KindConfigMap:
+		return r.syncConfigMap(ctx, target, bundle, resolvedBundle, log, shouldExist)
+	case KindSecret:
+		return r.syncSecret(ctx, target, bundle, resolvedBundle, log, shouldExist)
+	default:
+		return false, fmt.Errorf("don't know how to sync target of kind: %s", target.Kind)
+	}
+}
+
+func (r *Reconciler) syncConfigMap(
+	ctx context.Context,
+	target Resource,
+	bundle *trustapi.Bundle,
+	resolvedBundle Data,
+	log logr.Logger,
 	shouldExist bool,
 ) (bool, error) {
 	targetObj := &metav1.PartialObjectMetadata{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
+			Kind:       string(target.Kind),
 			APIVersion: "v1",
 		},
 	}
-	err := r.Cache.Get(ctx, name, targetObj)
+	err := r.Cache.Get(ctx, target.NamespacedName, targetObj)
 	if err != nil && !apierrors.IsNotFound(err) {
-		return false, fmt.Errorf("failed to get ConfigMap %s: %w", name, err)
+		return false, fmt.Errorf("failed to get %s %s: %w", target.Kind, target.NamespacedName, err)
 	}
 
-	// If the ConfigMap is not found, and should not exist, we are done.
+	// If the resource is not found, and should not exist, we are done.
 	if apierrors.IsNotFound(err) && !shouldExist {
 		return false, nil
 	}
 
-	// If the ConfigMap exists, but should not, delete it.
+	// If the resource exists, but should not, delete it.
 	if !apierrors.IsNotFound(err) && !shouldExist {
 		// Apply empty patch to remove the key(s).
-		configMapPatch := prepareTargetPatch(coreapplyconfig.ConfigMap(name.Name, name.Namespace), *bundle)
-		configMap, err := r.patchConfigMap(ctx, configMapPatch)
+		patch := prepareTargetPatch(coreapplyconfig.ConfigMap(target.Name, target.Namespace), *bundle)
+		configMap, err := r.patchConfigMap(ctx, patch)
 		if err != nil {
-			return false, fmt.Errorf("failed to patch ConfigMap %s: %w", name, err)
+			return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
 		}
 		// If the ConfigMap is empty, delete it.
 		if configMap != nil && len(configMap.Data) == 0 && len(configMap.BinaryData) == 0 {
@@ -107,72 +125,68 @@ func (r *Reconciler) SyncConfigMap(
 	// Generated PKCS #12 is not deterministic - best we can do here is update if the pem cert has
 	// changed (hence not checking if PKCS #12 matches)
 	bundleHash := TrustBundleHash([]byte(resolvedBundle.Data), bundle.Spec.Target.AdditionalFormats)
-	configMapData := map[string]string{
+	data := map[string]string{
 		bundleTarget.ConfigMap.Key: resolvedBundle.Data,
 	}
-	configMapBinData := resolvedBundle.BinaryData
+	binData := resolvedBundle.BinaryData
 
-	// If the ConfigMap doesn't exist, create it.
+	// If the resource exists, check if it is up-to-date.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
-		if exit, err := r.needsUpdate(ctx, KindConfigMap, log, targetObj, bundle, bundleHash); err != nil {
+		if exit, err := r.needsUpdate(ctx, target.Kind, log, targetObj, bundle, bundleHash); err != nil {
 			return false, err
 		} else if !exit {
 			return false, nil
 		}
 	}
 
-	configMapPatch := prepareTargetPatch(coreapplyconfig.ConfigMap(name.Name, name.Namespace), *bundle).
+	patch := prepareTargetPatch(coreapplyconfig.ConfigMap(target.Name, target.Namespace), *bundle).
 		WithAnnotations(map[string]string{
 			trustapi.BundleHashAnnotationKey: bundleHash,
 		}).
-		WithData(configMapData).
-		WithBinaryData(configMapBinData)
+		WithData(data).
+		WithBinaryData(binData)
 
-	if _, err = r.patchConfigMap(ctx, configMapPatch); err != nil {
-		return false, fmt.Errorf("failed to patch ConfigMap %s: %w", name, err)
+	if _, err = r.patchConfigMap(ctx, patch); err != nil {
+		return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
 	}
 
-	log.V(2).Info("synced bundle to namespace for target ConfigMap")
+	log.V(2).Info(fmt.Sprintf("synced bundle to namespace for target %s", target.Kind))
 
 	return true, nil
 }
 
-// SyncSecret syncs the given data to the target Secret in the given namespace.
-// The name of the Secret is the same as the Bundle.
-// Ensures the Secret is owned by the given Bundle, and the data is up to date.
-// Returns true if the Secret has been created or was updated.
-func (r *Reconciler) SyncSecret(
+func (r *Reconciler) syncSecret(
 	ctx context.Context,
-	log logr.Logger,
+	target Resource,
 	bundle *trustapi.Bundle,
-	name types.NamespacedName,
 	resolvedBundle Data,
+	log logr.Logger,
 	shouldExist bool,
 ) (bool, error) {
 	targetObj := &metav1.PartialObjectMetadata{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Secret",
+			Kind:       string(target.Kind),
 			APIVersion: "v1",
 		},
 	}
-	err := r.Cache.Get(ctx, name, targetObj)
+	err := r.Cache.Get(ctx, target.NamespacedName, targetObj)
 	if err != nil && !apierrors.IsNotFound(err) {
-		return false, fmt.Errorf("failed to get Secret %s: %w", name, err)
+		return false, fmt.Errorf("failed to get %s %s: %w", target.Kind, target.NamespacedName, err)
 	}
 
-	// If the Secret is not found, and should not exist, we are done.
+	// If the resource is not found, and should not exist, we are done.
 	if apierrors.IsNotFound(err) && !shouldExist {
 		return false, nil
 	}
 
-	// If the Secret exists, but should not, delete it.
+	// If the resource exists, but should not, delete it.
 	if !apierrors.IsNotFound(err) && !shouldExist {
 		// Apply empty patch to remove the key(s).
-		patch := prepareTargetPatch(coreapplyconfig.Secret(name.Name, name.Namespace), *bundle)
+		patch := prepareTargetPatch(coreapplyconfig.Secret(target.Name, target.Namespace), *bundle)
 		secret, err := r.patchSecret(ctx, patch)
 		if err != nil {
-			return false, fmt.Errorf("failed to patch Secret %s: %w", name, err)
+			return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
 		}
 		// If the Secret is empty, delete it.
 		if secret != nil && len(secret.Data) == 0 {
@@ -189,35 +203,35 @@ func (r *Reconciler) SyncSecret(
 	// Generated PKCS #12 is not deterministic - best we can do here is update if the pem cert has
 	// changed (hence not checking if PKCS #12 matches)
 	bundleHash := TrustBundleHash([]byte(resolvedBundle.Data), bundle.Spec.Target.AdditionalFormats)
-	secretData := map[string][]byte{
+	data := map[string][]byte{
 		bundleTarget.Secret.Key: []byte(resolvedBundle.Data),
 	}
 
 	for k, v := range resolvedBundle.BinaryData {
-		secretData[k] = v
+		data[k] = v
 	}
 
-	// If the Secret doesn't exist, create it.
+	// If the resource exists, check if it is up-to-date.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
-		if exit, err := r.needsUpdate(ctx, KindSecret, log, targetObj, bundle, bundleHash); err != nil {
+		if exit, err := r.needsUpdate(ctx, target.Kind, log, targetObj, bundle, bundleHash); err != nil {
 			return false, err
 		} else if !exit {
 			return false, nil
 		}
 	}
 
-	secretPatch := prepareTargetPatch(coreapplyconfig.Secret(name.Name, name.Namespace), *bundle).
+	patch := prepareTargetPatch(coreapplyconfig.Secret(target.Name, target.Namespace), *bundle).
 		WithAnnotations(map[string]string{
 			trustapi.BundleHashAnnotationKey: bundleHash,
 		}).
-		WithData(secretData)
+		WithData(data)
 
-	if _, err = r.patchSecret(ctx, secretPatch); err != nil {
-		return false, fmt.Errorf("failed to patch Secret %s: %w", name, err)
+	if _, err = r.patchSecret(ctx, patch); err != nil {
+		return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
 	}
 
-	log.V(2).Info("synced bundle to namespace for target Secret")
+	log.V(2).Info(fmt.Sprintf("synced bundle to namespace for target %s", target.Kind))
 
 	return true, nil
 }
@@ -324,12 +338,24 @@ func (r *Reconciler) patchConfigMap(ctx context.Context, applyConfig *coreapplyc
 		return nil, r.PatchResourceOverwrite(ctx, applyConfig)
 	}
 
-	target, patch, err := ssa_client.GenerateConfigMapPatch(applyConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate patch: %w", err)
+	if applyConfig == nil || applyConfig.Name == nil || applyConfig.Namespace == nil {
+		panic("target patch must be non-nil and have a name and namespace")
 	}
 
-	return target, r.Client.Patch(ctx, target, patch, ssa_client.FieldManager, client.ForceOwnership)
+	// This object is used to deduce the name & namespace + unmarshall the return value in
+	obj := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      *applyConfig.Name,
+			Namespace: *applyConfig.Namespace,
+		},
+	}
+
+	encodedPatch, err := json.Marshal(applyConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return obj, r.Client.Patch(ctx, obj, ssa_client.ApplyPatch{Patch: encodedPatch}, ssa_client.FieldManager, client.ForceOwnership)
 }
 
 func (r *Reconciler) patchSecret(ctx context.Context, applyConfig *coreapplyconfig.SecretApplyConfiguration) (*corev1.Secret, error) {
@@ -337,12 +363,24 @@ func (r *Reconciler) patchSecret(ctx context.Context, applyConfig *coreapplyconf
 		return nil, r.PatchResourceOverwrite(ctx, applyConfig)
 	}
 
-	target, patch, err := ssa_client.GenerateSecretPatch(applyConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate patch: %w", err)
+	if applyConfig == nil || applyConfig.Name == nil || applyConfig.Namespace == nil {
+		panic("target patch must be non-nil and have a name and namespace")
 	}
 
-	return target, r.Client.Patch(ctx, target, patch, ssa_client.FieldManager, client.ForceOwnership)
+	// This object is used to deduce the name & namespace + unmarshall the return value in
+	obj := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      *applyConfig.Name,
+			Namespace: *applyConfig.Namespace,
+		},
+	}
+
+	encodedPatch, err := json.Marshal(applyConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return obj, r.Client.Patch(ctx, obj, ssa_client.ApplyPatch{Patch: encodedPatch}, ssa_client.FieldManager, client.ForceOwnership)
 }
 
 type targetApplyConfiguration[T any] interface {
@@ -366,6 +404,11 @@ func prepareTargetPatch[T targetApplyConfiguration[T]](target T, bundle trustapi
 				WithBlockOwnerDeletion(true).
 				WithController(true),
 		)
+}
+
+type Resource struct {
+	Kind Kind
+	types.NamespacedName
 }
 
 type Data struct {
