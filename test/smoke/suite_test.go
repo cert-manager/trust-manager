@@ -153,7 +153,7 @@ func testBundleCommon(ctx context.Context, cl client.Client, testBundle *trustap
 	By("Setting Namespace Selector should remove Secrets from Namespaces that do not have a match")
 	Expect(cl.Get(ctx, client.ObjectKey{Name: testBundle.Name}, testBundle)).NotTo(HaveOccurred())
 
-	testBundle.Spec.Target.NamespaceSelector = &trustapi.NamespaceSelector{
+	testBundle.Spec.Target.NamespaceSelector = &metav1.LabelSelector{
 		MatchLabels: map[string]string{"foo": "bar"},
 	}
 	Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())

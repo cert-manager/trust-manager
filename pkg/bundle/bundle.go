@@ -346,9 +346,12 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 func (b *bundle) bundleTargetNamespaceSelector(bundleObj *trustapi.Bundle) (labels.Selector, error) {
 	nsSelector := bundleObj.Spec.Target.NamespaceSelector
 
-	if nsSelector == nil || nsSelector.MatchLabels == nil {
+	// LabelSelectorAsSelector returns a Selector selecting nothing if LabelSelector is nil,
+	// while our current default is to select everything. But this is subject to change.
+	// See https://github.com/cert-manager/trust-manager/issues/39
+	if nsSelector == nil {
 		return labels.Everything(), nil
 	}
 
-	return metav1.LabelSelectorAsSelector(&metav1.LabelSelector{MatchLabels: nsSelector.MatchLabels})
+	return metav1.LabelSelectorAsSelector(nsSelector)
 }

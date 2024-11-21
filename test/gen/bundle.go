@@ -79,7 +79,7 @@ func SetBundleResourceVersion(resourceVersion string) BundleModifier {
 // target namespace selector.
 func SetBundleTargetNamespaceSelectorMatchLabels(matchLabels map[string]string) BundleModifier {
 	return func(bundle *trustapi.Bundle) {
-		bundle.Spec.Target.NamespaceSelector = &trustapi.NamespaceSelector{
+		bundle.Spec.Target.NamespaceSelector = &metav1.LabelSelector{
 			MatchLabels: matchLabels,
 		}
 	}
