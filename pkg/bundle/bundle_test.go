@@ -159,7 +159,7 @@ func Test_Reconcile(t *testing.T) {
 		configMapPatch = func(name, namespace string, data map[string]string, binData map[string][]byte, key *string, additionalFormats *trustapi.AdditionalFormats) *coreapplyconfig.ConfigMapApplyConfiguration {
 			annotations := map[string]string{}
 			if key != nil {
-				annotations[trustapi.BundleHashAnnotationKey] = target.TruststoreHash([]byte(data[*key]), additionalFormats)
+				annotations[trustapi.BundleHashAnnotationKey] = target.TrustBundleHash([]byte(data[*key]), additionalFormats)
 			}
 
 			return coreapplyconfig.
@@ -184,7 +184,7 @@ func Test_Reconcile(t *testing.T) {
 		secretPatch = func(name, namespace string, data map[string]string, key *string, additionaFormats *trustapi.AdditionalFormats) *coreapplyconfig.SecretApplyConfiguration {
 			annotations := map[string]string{}
 			if key != nil {
-				annotations[trustapi.BundleHashAnnotationKey] = target.TruststoreHash([]byte(data[*key]), additionaFormats)
+				annotations[trustapi.BundleHashAnnotationKey] = target.TrustBundleHash([]byte(data[*key]), additionaFormats)
 			}
 
 			binaryData := map[string][]byte{}
@@ -213,7 +213,7 @@ func Test_Reconcile(t *testing.T) {
 		targetConfigMap = func(namespace string, data map[string]string, binData map[string][]byte, key *string, withOwnerRef bool, additionaFormats *trustapi.AdditionalFormats) *corev1.ConfigMap {
 			annotations := map[string]string{}
 			if key != nil {
-				annotations[trustapi.BundleHashAnnotationKey] = target.TruststoreHash([]byte(data[*key]), additionaFormats)
+				annotations[trustapi.BundleHashAnnotationKey] = target.TrustBundleHash([]byte(data[*key]), additionaFormats)
 			}
 
 			dataEntries := make([]string, 0, len(data))
@@ -250,7 +250,7 @@ func Test_Reconcile(t *testing.T) {
 		targetSecret = func(namespace string, data map[string]string, key *string, withOwnerRef bool, additionaFormats *trustapi.AdditionalFormats) *corev1.Secret {
 			annotations := map[string]string{}
 			if key != nil {
-				annotations[trustapi.BundleHashAnnotationKey] = target.TruststoreHash([]byte(data[*key]), additionaFormats)
+				annotations[trustapi.BundleHashAnnotationKey] = target.TrustBundleHash([]byte(data[*key]), additionaFormats)
 			}
 
 			dataEntries := make([]string, 0, len(data))
