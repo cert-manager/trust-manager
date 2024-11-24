@@ -28,7 +28,7 @@ TODO: add more items to checklist
 
 We want to rename `Bundle` to `ClusterBundle` for reasons described in "Motivation" below.
 
-Conversion webhooks in Kubernetes can only be used to convert between versions of and API,
+Conversion webhooks in Kubernetes can only be used to convert between versions of an API,
 and not to convert between resources. This makes renaming harder to do, as it will represent
 deleting the old API and creating a new API.
 
