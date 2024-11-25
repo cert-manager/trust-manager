@@ -140,8 +140,13 @@ TODO
 
 ### Upgrade / Downgrade Strategy
 
-Downgrading from a version where the migration has started will probably not be possible and should
-be clearly documented and stated in the release notes.
+Upgrading should represent less of challenge if we ensure enough release between version X+1 and Y.
+We should document that upgrading directly from version X (or earlier) to Y is explicitly **NOT** supported.
+
+Downgrading to version X (or earlier) from a version where the migration has started could be problematic.
+We can probably mitigate this risk by keeping owner references (non-controller, as Kubernetes doesn't allow
+multiple controller references) from `Bundle` to target resources, in addition to the controller references from
+`ClusterBundle`, during the migration period.
 
 ## Alternatives
 
