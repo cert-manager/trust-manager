@@ -101,8 +101,8 @@ This controller should just create or update the `ClusterBundle` with the same n
 Since the APIs should have identical `spec`, this should be a simple controller.
 
 To allow a user to migrate their resources from `Bundle` to `ClusterBundle`, the controller should not act
-on `Bundle` delete events. Nor add an owner reference to `ClusterBundle` to avoid the Kubernetes garbage collector
-to act on deletes.
+on `Bundle` delete events - nor should it add an owner reference to `ClusterBundle` to avoid the Kubernetes garbage collector
+acting on deletes.
 
 For reconciling a `ClusterBundle` from `Bundle` we should investigate the possibility of "smart field manager name logic".
 It should be possible to read the field manager name used (by user) to create/update the `Bundle` resource.
