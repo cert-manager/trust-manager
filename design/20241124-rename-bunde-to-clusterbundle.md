@@ -51,11 +51,14 @@ The name would also be better aligned with upstream [ClusterTrustBundle](https:/
 
 - `Bundle` resource is renamed to `ClusterBundle`
 - Provide a smooth migration for users of trust-manager
+- Use the opportunity window to improve the API
+  - [Issue summarizing proposed API changes (#242)](https://github.com/cert-manager/trust-manager/issues/242)
+  - [Draft PR for proposed API changes done when migrating (#486)](https://github.com/cert-manager/trust-manager/pull/486)
 
 
 ### Non-Goals
 
-- Change/fix/improve `Bundle`/`ClusterBundle` API while renaming
+- Behavior changes in `Bundle`/`ClusterBundle` API while migrating (only simpler API improvements)
 - Introduce a new API version
 - Introduce a namespace-scoped bundle API (at least not now)
 
@@ -66,6 +69,7 @@ We propose to do this change over multiple releases:
 1. Version X: Only `Bundle` API is served and has the functional controller. (present state)
 2. Version X+1: We introduce `ClusterBundle` with API otherwise identical to `Bundle`:
    - `Bundle` is marked as deprecated.
+   - `ClusterBundle` introduced with agreed API improvements.
    - Functional controller is migrated to `ClusterBundle`
    - Validating webhook for both `Bundle` and `ClusterBundle` with same validations
    - New technical controller added for `Bundle`, converting bundles to cluster bundles
