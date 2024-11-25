@@ -47,9 +47,15 @@ for trust bundle management inside namespaces in multi-tenant clusters.
 In addition, `ClusterBundle` would be a better name looking at cert-manager having `Issuer` and `ClusterIssuer`.
 The name would also be better aligned with upstream [ClusterTrustBundle](https://kubernetes.io/docs/reference/access-authn-authz/certificate-signing-requests/#cluster-trust-bundles).
 
+By pushing users to migrate smoothly to a new API, we can perform requested API changes at the same time.
+Consider it similar to a one-way conversion webhook.
+
+Since trust-manager is maturing and getting more attention, we suggest establishing its own API group: `trust-manager.io`.
+
 ### Goals
 
 - `Bundle` resource is renamed to `ClusterBundle`
+- `ClusterBundle` is created in the new `trust-manager.io` API group
 - Provide a smooth migration for users of trust-manager
 - Use the opportunity window to improve the API
   - [Issue summarizing proposed API changes (#242)](https://github.com/cert-manager/trust-manager/issues/242)
