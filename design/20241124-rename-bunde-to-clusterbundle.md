@@ -156,6 +156,27 @@ multiple controller references) from `Bundle` to target resources, in addition t
 
 ## Alternatives
 
+### Introduce `ClusterBundle` as a new and Independent API
+
+Since a `Bundle` and a `ClusterBundle` could then address the same target resources (by name), we would have to
+take this into account in controllers. In addition, we would have a **lot** more code to maintain and test.
+This could be partly mitigated by creating reusable abstractions that work for both resources.
+But if we want to allow `ClusterBundle` to provide new features, this would become complex.
+
+The migration path from `Bundle` to `ClusterBundle` would also be unclear and complex.
+Use case: As a user, I would like to use `ClusterBundle` instead of `Bundle` **without interrupting the target resources**.
+
+```
+Bundle -> ClusterBundle -> target resources
+```
+
+seems a lot simpler to manage than
+
+```
+Bundle -> target resources AND
+ClusterBundle -> target resources
+```
+
 ### Just rename resource between releases
 
 Since the `Bundle` API version is `v1alpha1`, we could justify just doing the simplest thing and rename.
