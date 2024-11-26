@@ -104,7 +104,10 @@ When the functional controller is migrated to target `ClusterBundle`, we want to
 controller targeting the now deprecated `Bundle` resource.
 
 This controller should just create or update the `ClusterBundle` with the same name as the reconciled `Bundle`.
-Since the APIs should have identical `spec`, this should be a simple controller.
+Since the APIs should be quite similar, this should be a simple controller.
+
+- `Bundle` `.spec` should be copied (and eventually slightly converted) into `ClusterBundle` `.spec`
+- `Bundle` `.status` should be updated from `ClusterBundle` `.status`
 
 To allow a user to migrate their resources from `Bundle` to `ClusterBundle`, the controller should not act
 on `Bundle` delete events - nor should it add an owner reference to `ClusterBundle` to avoid the Kubernetes garbage collector
