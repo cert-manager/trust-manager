@@ -118,6 +118,61 @@ It should be possible to read the field manager name used (by user) to create/up
 If we use the same field manager name in controller (per resource) to create/update `ClusterBundle`, we think it's less
 likely that users will have to force conflicts when migrating from `Bundle` to `ClusterBundle`.
 
+### Proposed API changes when migrating
+
+Improving the trust-manager API while migrating is not something we have to do, but
+appears like nice opportunity to fix some of the long-standing proposed API changes.
+
+There is an [open draft PR for proposed (and breaking) API changes](https://github.com/cert-manager/trust-manager/pull/486),
+but in order to make this a non-braking change for users, only the `ClusterBundle` API will include these changes.
+
+While this is subject to change, an example on how a user would migrate from `Bundle` to `ClusterBundle` without
+changing anything for target resources is shown below:
+
+```yaml
+---
+apiVersion: trust.cert-manager.io/v1alpha1
+kind: Bundle
+metadata:
+  name: my-bundle
+spec:
+  sources:
+    - configMap:
+        name: my-ca
+        key: ca.crt
+  target:
+    configMap:
+      key: ca.crt
+    additionalFormats:
+      jks:
+        key: bundle.jks
+      pkcs12:
+        key: bundle.p12
+```
+
+Which would be migrated to:
+
+```yaml
+---
+apiVersion: trust-manager.io/v1alpha1
+kind: ClusterBundle
+metadata:
+  name: my-bundle
+spec:
+  sources:
+    - configMap:
+        name: my-ca
+        key: ca.crt
+  target:
+    configMap:
+      - key: ca.crt
+      - key: bundle.jks
+        format: JKS
+      - key: bundle.p12
+        format: PKCS12
+    namespaceSelector: {} # Selecting all namespaces here, but now required in API
+```
+
 ### Risks and Mitigations
 
 #### Target configmaps/secrets are accidentally deleted
