@@ -33,9 +33,9 @@ targets:
       repo_hash: 47c10e2ea2ff413fcff219c458df04a3feef2fc3
       repo_path: modules/go
     - folder_name: helm
-      repo_url: https://github.com/cert-manager/makefile-modules.git
-      repo_ref: main
-      repo_hash: 47c10e2ea2ff413fcff219c458df04a3feef2fc3
+      repo_url: https://github.com/erikgb/makefile-modules.git
+      repo_ref: new-gen-crds
+      repo_hash: 0d31381d7329c10857821ddc89d5ca1db05b0baf
       repo_path: modules/helm
     - folder_name: help
       repo_url: https://github.com/cert-manager/makefile-modules.git
