@@ -15,6 +15,6 @@ limitations under the License.
 */
 
 // +kubebuilder:object:generate=true
-// +groupName=trust.cert-manager.io
-// +k8s:conversion-gen=github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2
-package v1alpha1
+// +kubebuilder:skip
+// +groupName=trust-manager.io
+package v1alpha2

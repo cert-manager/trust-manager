@@ -76,7 +76,7 @@ release-debian-bookworm-trust-package: | $(NEEDS_CRANE)
 ## Generate applyconfigurations to support typesafe SSA.
 ## @category Generate/ Verify
 generate-applyconfigurations: | $(NEEDS_APPLYCONFIGURATION-GEN)
-	$(eval apis := $(shell find pkg/apis -mindepth 2 -type d | sed "s|^|$(repo_name)/|" | paste -sd ","))
+	$(eval apis := $(shell find pkg/apis -mindepth 2 -type d | sed "s|^|$(repo_name)/|" | paste -sd " "))
 
 	rm -rf pkg/applyconfigurations
 
@@ -87,3 +87,16 @@ generate-applyconfigurations: | $(NEEDS_APPLYCONFIGURATION-GEN)
 		$(apis)
 
 shared_generate_targets += generate-applyconfigurations
+
+.PHONY: generate-conversion
+## Generate code for converting between Bundle and ClusterBundle API
+## @category Generate/ Verify
+generate-conversion: | $(NEEDS_CONVERSION-GEN)
+	rm -rf ./pkg/apis/trust/v1alpha1/zz_generated.conversion.go
+
+	$(CONVERSION-GEN) \
+		--go-header-file=$(go_header_file) \
+		--output-file=zz_generated.conversion.go \
+		./pkg/apis/trust/v1alpha1
+
+shared_generate_targets += generate-conversion
