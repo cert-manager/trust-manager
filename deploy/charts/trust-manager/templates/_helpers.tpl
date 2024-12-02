@@ -52,5 +52,9 @@ This gets around an problem within helm discussed here
 https://github.com/helm/helm/issues/5358
 */}}
 {{- define "trust-manager.namespace" -}}
-    {{ .Values.namespace | default .Release.Namespace }}
+  {{- if .Values.app.webhook.tls.approverPolicy.certManagerNamespace -}}
+    {{ tpl .Values.app.webhook.tls.approverPolicy.certManagerNamespace . }}
+  {{- else -}}
+    {{ .Release.Namespace }}
+  {{- end -}}
 {{- end -}}
