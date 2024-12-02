@@ -42,10 +42,6 @@ oci_package_debian_image_name_development := cert-manager.local/cert-manager-pac
 deploy_name := trust-manager
 deploy_namespace := cert-manager
 
-api_docs_outfile := docs/api/api.md
-api_docs_package := $(repo_name)/pkg/apis/trust/v1alpha1
-api_docs_branch := main
-
 helm_chart_source_dir := deploy/charts/trust-manager
 helm_chart_name := trust-manager
 helm_chart_version := $(VERSION)
