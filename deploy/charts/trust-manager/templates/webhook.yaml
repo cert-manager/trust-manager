@@ -110,5 +110,5 @@ webhooks:
 {{ end }}
       service:
         name: {{ include "trust-manager.name" . }}
-        namespace: {{ include "trust-manager.namespace" . }} #Dynamic namespace
+        namespace: {{ include "trust-manager.namespace" . }}
         path: /validate-trust-cert-manager-io-v1alpha1-bundle
