@@ -6,6 +6,19 @@ metadata:
   name: {{ include "trust-manager.name" . }}
 rules:
 - apiGroups:
+  - "admissionregistration.k8s.io"
+  resources:
+  - "validatingwebhookconfigurations"
+  verbs: ["get", "list", "watch"]
+- apiGroups:
+  - "admissionregistration.k8s.io"
+  resources:
+  - "validatingwebhookconfigurations"
+  verbs: ["patch"]
+  resourceNames:
+  - {{ include "trust-manager.name" . }}
+
+- apiGroups:
   - "trust.cert-manager.io"
   resources:
   - "bundles"
