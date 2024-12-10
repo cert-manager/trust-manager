@@ -104,6 +104,11 @@ defaultPackageImage:
   # imagePullPolicy for the default package image.
   pullPolicy: IfNotPresent
 
+rbac:
+  # Create required ClusterRole and ClusterRoleBinding for trust-manager.
+  # If set to false it will also disable the possibility to set secretTargets
+  create: true
+
 secretTargets:
   # If set to true, enable writing trust bundles to Kubernetes Secrets as a target.
   # trust-manager can only write to secrets which are explicitly allowed via either authorizedSecrets or authorizedSecretsAll.
