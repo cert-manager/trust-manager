@@ -202,6 +202,6 @@ func testBundleCommon(ctx context.Context, cl client.Client, testBundle *trustap
 			}
 
 			return cl.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: testBundle.Name}, new(corev1.Secret))
-		}, eventuallyTimeout, eventualyPollInterval).ShouldNot(BeNil())
+		}, eventuallyTimeout, eventualyPollInterval).ShouldNot(Succeed())
 	}
 }

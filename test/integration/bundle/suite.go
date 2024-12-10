@@ -666,7 +666,7 @@ var _ = Describe("Integration", func() {
 		// confirm that the new namespace now contains the bundle
 		Eventually(func() error {
 			return testenv.CheckBundleSynced(ctx, cl, testBundle.Name, testNamespace.Name, expectedData)
-		}, eventuallyTimeout, eventuallyPollInterval).Should(BeNil(), "checking that bundle was re-added to newly labelled namespace")
+		}, eventuallyTimeout, eventuallyPollInterval).Should(Succeed(), "checking that bundle was re-added to newly labelled namespace")
 	})
 
 	Context("Reconcile consistency", func() {
@@ -742,7 +742,7 @@ var _ = Describe("Integration", func() {
 			}
 
 			return nil
-		}, eventuallyTimeout, eventuallyPollInterval).Should(BeNil(), "checking that bundle was re-added to newly labelled namespace")
+		}, eventuallyTimeout, eventuallyPollInterval).Should(Succeed(), "checking that bundle was re-added to newly labelled namespace")
 	})
 
 	It("should migrate configmap from CSA to SSA", func() {

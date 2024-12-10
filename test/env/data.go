@@ -307,7 +307,7 @@ func EventuallyBundleHasSyncedToNamespace(ctx context.Context, cl client.Client,
 		EventuallyTimeout, EventuallyPollInterval, ctx,
 	).WithArguments(
 		ctx, cl, bundleName, namespace, expectedData,
-	).Should(BeNil(), fmt.Sprintf("checking bundle %s has synced to namespace %s", bundleName, namespace))
+	).Should(Succeed(), fmt.Sprintf("checking bundle %s has synced to namespace %s", bundleName, namespace))
 }
 
 // EventuallyBundleHasSyncedToNamespaceContains tries to assert that the given bundle is synced correctly to the given namespace
@@ -318,7 +318,7 @@ func EventuallyBundleHasSyncedToNamespaceContains(ctx context.Context, cl client
 		EventuallyTimeout, EventuallyPollInterval, ctx,
 	).WithArguments(
 		ctx, cl, bundleName, namespace, containedData,
-	).Should(BeNil(), fmt.Sprintf("checking bundle %s has synced to namespace %s", bundleName, namespace))
+	).Should(Succeed(), fmt.Sprintf("checking bundle %s has synced to namespace %s", bundleName, namespace))
 }
 
 // EventuallyBundleHasSyncedAllNamespaces tries to assert that the given bundle is synced correctly to every namespace
@@ -329,7 +329,7 @@ func EventuallyBundleHasSyncedAllNamespaces(ctx context.Context, cl client.Clien
 		EventuallyTimeout, EventuallyPollInterval, ctx,
 	).WithArguments(
 		ctx, cl, bundleName, expectedData,
-	).Should(BeNil(), fmt.Sprintf("checking bundle %s has synced to all namespaces", bundleName))
+	).Should(Succeed(), fmt.Sprintf("checking bundle %s has synced to all namespaces", bundleName))
 }
 
 // EventuallyBundleHasSyncedAllNamespacesContains tries to assert that the given bundle is synced correctly to every namespace
@@ -340,7 +340,7 @@ func EventuallyBundleHasSyncedAllNamespacesContains(ctx context.Context, cl clie
 		EventuallyTimeout, EventuallyPollInterval, ctx,
 	).WithArguments(
 		ctx, cl, bundleName, containedData,
-	).Should(BeNil(), fmt.Sprintf("checking bundle %s has synced to all namespaces with correct starting data", bundleName))
+	).Should(Succeed(), fmt.Sprintf("checking bundle %s has synced to all namespaces with correct starting data", bundleName))
 }
 
 // CheckJKSFileSynced ensures that the given JKS data
