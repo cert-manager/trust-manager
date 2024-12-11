@@ -73,8 +73,6 @@ $(helm_chart_archive): $(helm_chart_sources) | $(NEEDS_HELM) $(NEEDS_YQ) $(bin_d
 ## @category [shared] Helm Chart
 helm-chart: $(helm_chart_archive)
 
-ifdef helm_docs_use_helm_tool
-
 helm_tool_header_search ?= ^<!-- AUTO-GENERATED -->
 helm_tool_footer_search ?= ^<!-- /AUTO-GENERATED -->
 
@@ -83,17 +81,9 @@ helm_tool_footer_search ?= ^<!-- /AUTO-GENERATED -->
 ## @category [shared] Generate/ Verify
 generate-helm-docs: | $(NEEDS_HELM-TOOL)
 	$(HELM-TOOL) inject -i $(helm_chart_source_dir)/values.yaml -o $(helm_chart_source_dir)/README.md --header-search "$(helm_tool_header_search)" --footer-search "$(helm_tool_footer_search)"
-else
-.PHONY: generate-helm-docs
-## Generate Helm chart documentation.
-## @category [shared] Generate/ Verify
-generate-helm-docs: | $(NEEDS_HELM-DOCS)
-	$(HELM-DOCS) $(helm_chart_source_dir)/
-endif
 
 shared_generate_targets += generate-helm-docs
 
-ifdef helm_generate_schema
 .PHONY: generate-helm-schema
 ## Generate Helm chart schema.
 ## @category [shared] Generate/ Verify
@@ -101,9 +91,7 @@ generate-helm-schema: | $(NEEDS_HELM-TOOL) $(NEEDS_GOJQ)
 	$(HELM-TOOL) schema -i $(helm_chart_source_dir)/values.yaml | $(GOJQ) > $(helm_chart_source_dir)/values.schema.json
 
 shared_generate_targets += generate-helm-schema
-endif
 
-ifdef helm_verify_values
 .PHONY: verify-helm-values
 ## Verify Helm chart values using helm-tool.
 ## @category [shared] Generate/ Verify
@@ -111,7 +99,6 @@ verify-helm-values: | $(NEEDS_HELM-TOOL) $(NEEDS_GOJQ)
 	$(HELM-TOOL) lint -i $(helm_chart_source_dir)/values.yaml -d $(helm_chart_source_dir)/templates -e $(helm_chart_source_dir)/values.linter.exceptions
 
 shared_verify_targets += verify-helm-values
-endif
 
 .PHONY: verify-pod-security-standards
 ## Verify that the Helm chart complies with the pod security standards.
