@@ -14,6 +14,15 @@ rules:
   - "get"
   - "list"
   - "watch"
+- apiGroups:
+  - ""
+  resources:
+  - "secrets"
+  verbs:
+  - "create"
+  - "patch"
+  resourceNames:
+  - {{ include "trust-manager.name" . }}-dynamic-ca
 ---
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
