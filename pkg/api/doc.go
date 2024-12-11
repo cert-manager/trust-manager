@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// +kubebuilder:object:generate=true
-// +groupName=trust.cert-manager.io
-// +k8s:conversion-gen=github.com/cert-manager/trust-manager/pkg/api/v1alpha1
-package v1alpha1
+package api
+
+const GroupName = "trust-manager.io"
