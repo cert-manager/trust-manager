@@ -24,17 +24,15 @@ ifndef helm_chart_source_dir
 $(error helm_chart_source_dir is not set)
 endif
 
-ifndef helm_chart_name
-$(error helm_chart_name is not set)
+ifndef helm_chart_image_name
+$(error helm_chart_image_name is not set)
 endif
 
 ifndef helm_chart_version
 $(error helm_chart_version is not set)
 endif
-
-ifndef helm_chart_app_version
-# Default to the same as the chart version
-helm_chart_app_version = $(helm_chart_version)
+ifneq ($(helm_chart_version:v%=v),v)
+$(error helm_chart_version "$(helm_chart_version)" should start with a "v")
 endif
 
 ifndef helm_values_mutation_function
@@ -43,6 +41,9 @@ endif
 
 ##########################################
 
+helm_chart_name := $(notdir $(helm_chart_image_name))
+helm_chart_image_registry := $(dir $(helm_chart_image_name))
+helm_chart_image_tag := $(helm_chart_version)
 helm_chart_sources := $(shell find $(helm_chart_source_dir) -maxdepth 1 -type f) $(shell find $(helm_chart_source_dir)/templates -type f)
 helm_chart_archive := $(bin_dir)/scratch/image/$(helm_chart_name)-$(helm_chart_version).tgz
 
@@ -64,9 +65,17 @@ $(helm_chart_archive): $(helm_chart_sources) | $(NEEDS_HELM) $(NEEDS_YQ) $(bin_d
 
 	mkdir -p $(dir $@)
 	$(HELM) package $(helm_chart_source_dir_versioned) \
-		--app-version $(helm_chart_app_version) \
+		--app-version $(helm_chart_version) \
 		--version $(helm_chart_version) \
 		--destination $(dir $@)
+
+.PHONY: helm-chart-oci-push
+## Create and push Helm chart to OCI registry.
+## Will also create a non-v-prefixed tag for the OCI image.
+## @category [shared] Publish
+helm-chart-oci-push: $(helm_chart_archive) | $(NEEDS_HELM) $(NEEDS_CRANE)
+	$(HELM) push "$(helm_chart_archive)" "oci://$(helm_chart_image_registry)"
+	$(CRANE) copy "$(helm_chart_image_name):$(helm_chart_image_tag)" "$(helm_chart_image_name):$(helm_chart_image_tag:v%=%)"
 
 .PHONY: helm-chart
 ## Create a helm chart

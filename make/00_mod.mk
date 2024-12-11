@@ -43,12 +43,9 @@ deploy_name := trust-manager
 deploy_namespace := cert-manager
 
 helm_chart_source_dir := deploy/charts/trust-manager
-helm_chart_name := trust-manager
+helm_chart_image_name := quay.io/jetstack/charts/trust-manager
 helm_chart_version := $(VERSION)
 helm_labels_template_name := trust-manager.labels
-helm_docs_use_helm_tool := 1
-helm_generate_schema := 1
-helm_verify_values := 1
 
 golangci_lint_config := .golangci.yaml
 
