@@ -11,38 +11,44 @@
 
 trust-manager is the easiest way to manage trust bundles in Kubernetes and OpenShift clusters!
 
-It takes a list of trusted certificates which you specify and combines them into a bundle which you can trust directly
+It takes a list of trusted certificate sources and combines them into a bundle which you can trust directly
 in your applications.
 
 Supported sources include a public trust bundle similar to what you get from your Operating System.
 
-[Installation instructions](https://cert-manager.io/docs/projects/trust-manager/) and [API reference documentation](https://cert-manager.io/docs/projects/trust-manager/api-reference/)
-are available on the cert-manager website.
+trust-manager documentation is available on the cert-manager website, including:
 
-## Demo
+- [Installation instructions](https://cert-manager.io/docs/trust/trust-manager/installation/)
+- [Usage guidance](https://cert-manager.io/docs/trust/trust-manager/)
+- [API reference documentation](https://cert-manager.io/docs/trust/trust-manager/api-reference/)
 
-If you've got Docker installed and you just want to play with trust-manager as soon as possible, we provide
-a `demo` command to quickly get a [Kind cluster](https://kind.sigs.k8s.io/) running trust-manager.
+## Developing trust-manager
 
-First, clone the repo then run `make demo`:
+trust-manager uses [makefile-modules](https://github.com/cert-manager/makefile-modules/), meaning that any changes to files under `make/_shared` need to be made in that repo and synchronized here using `make upgrade-klone`.
 
-```bash
-git clone --single-branch https://github.com/cert-manager/trust-manager trust-manager
-cd trust-manager
-make demo
-# kubeconfig is in ./bin/kubeconfig.yaml
-# kind cluster is called "trust"
+The easiest way to get started is to run the trust-manager smoke tests locally.
+
+Use `make test-smoke`, which creates a [Kind cluster](https://kind.sigs.k8s.io/) using Docker and installs trust-manager (and cert-manager) before running the tests.
+
+To create a cluster without running the smoke tests, use `make test-smoke-deps`.
+
+To use or inspect the cluster, the `KUBECONFIG` file needs to be made available:
+
+```console
+export KUBECONFIG=$(pwd)/_bin/scratch/kube.config
 ```
 
-The demo installation uses Helm, and roughly matches what you'd get by installing trust-manager into your own
-cluster using Helm - although it uses locally-built images rather than the ones we publish publicly.
+### Testing
+
+trust-manager has various categories of tests. All categories are run against every PR, along with other checks.
+
+- `make test-unit` - Runs simpler, faster tests which test specific functions
+- `make test-integration` - Runs heavier tests with a simplified control-plane which tests how different pieces work together
+- `make test-smoke` - Runs end-to-end tests in a dedicated Kubernetes cluster
 
 ## Example Bundle
 
-The simplest useful Bundle to start with is likely to be one using default CAs, which are available from trust-manager 0.4.0+.
-
-This default CA package is based on Debian's `ca-certificates` package, and so matches what you'd expect to see in a Debian
-container or VM.
+The simplest useful Bundle uses default CAs. This default CA package is based on Debian's `ca-certificates` package, and so matches what you'd expect to see in a Debian container or VM.
 
 ```yaml
 apiVersion: trust.cert-manager.io/v1alpha1
@@ -62,4 +68,4 @@ and used by your applications.
 
 Your ConfigMap will automatically be updated if you change your bundle, too - so to update it, simply update your Bundle!
 
-For more details see the [trust-manager documentation](https://cert-manager.io/docs/projects/trust-manager/).
+For more details see the [trust-manager documentation](https://cert-manager.io/docs/trust/trust-manager/).
