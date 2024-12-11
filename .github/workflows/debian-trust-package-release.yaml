@@ -6,7 +6,7 @@ on:
       - make/00_debian_version.mk
 
 jobs:
-  build_images:
+  build_and_push:
     runs-on: ubuntu-latest
 
     permissions:
