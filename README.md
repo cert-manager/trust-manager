@@ -43,7 +43,7 @@ export KUBECONFIG=$(pwd)/_bin/scratch/kube.config
 trust-manager has various categories of tests. All categories are run against every PR, along with other checks.
 
 - `make test-unit` - Runs simpler, faster tests which test specific functions
-- `make test-integration` - Runs heavier tests with no Kubernetes cluster which test how different pieces work together
+- `make test-integration` - Runs heavier tests with a simplified control-plane which tests how different pieces work together
 - `make test-smoke` - Runs end-to-end tests in a dedicated Kubernetes cluster
 
 ## Example Bundle
