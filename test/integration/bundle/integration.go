@@ -17,7 +17,7 @@ limitations under the License.
 package test
 
 import (
-	"os"
+	"path"
 
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -37,15 +37,13 @@ var (
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
-	crdsYamlFile := os.Getenv("TRUST_MANAGER_CRDS")
-	Expect(crdsYamlFile).NotTo(BeEmpty(), "TRUST_MANAGER_CRDS must be set to the path of the CRDs to install")
-
 	env = &envtest.Environment{
 		UseExistingCluster: ptr.To(false),
 		CRDDirectoryPaths: []string{
-			crdsYamlFile,
+			path.Join("..", "..", "..", "deploy", "crds"),
 		},
-		Scheme: trustapi.GlobalScheme,
+		ErrorIfCRDPathMissing: true,
+		Scheme:                trustapi.GlobalScheme,
 	}
 
 	_, err := env.Start()
