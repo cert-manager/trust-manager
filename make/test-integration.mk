@@ -12,17 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-trust_manager_crds := $(bin_dir)/scratch/trust.cert-manager.io_bundles.yaml
-$(trust_manager_crds): $(helm_chart_archive) | $(NEEDS_HELM) $(NEEDS_YQ)
-	$(HELM) template test "$(helm_chart_archive)" | \
-		$(YQ) e '. | select(.kind == "CustomResourceDefinition")' \
-		> $@
-
 .PHONY: test-integration
 ## Integration tests
 ## @category Testing
-test-integration: | $(trust_manager_crds) $(NEEDS_GOTESTSUM) $(NEEDS_ETCD) $(NEEDS_KUBE-APISERVER) $(NEEDS_KUBECTL) $(ARTIFACTS)
-	TRUST_MANAGER_CRDS=$(CURDIR)/$(trust_manager_crds) \
+test-integration: | $(NEEDS_GOTESTSUM) $(NEEDS_ETCD) $(NEEDS_KUBE-APISERVER) $(NEEDS_KUBECTL) $(ARTIFACTS)
 	KUBEBUILDER_ASSETS=$(CURDIR)/$(bin_dir)/tools \
 	$(GOTESTSUM) \
 		--junitfile=$(ARTIFACTS)/junit-go-e2e.xml \
