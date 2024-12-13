@@ -9,6 +9,9 @@
         "app": {
           "$ref": "#/$defs/helm-values.app"
         },
+        "automountServiceAccountToken": {
+          "$ref": "#/$defs/helm-values.automountServiceAccountToken"
+        },
         "commonLabels": {
           "$ref": "#/$defs/helm-values.commonLabels"
         },
@@ -57,11 +60,20 @@
         "secretTargets": {
           "$ref": "#/$defs/helm-values.secretTargets"
         },
+        "serviceAccount": {
+          "$ref": "#/$defs/helm-values.serviceAccount"
+        },
         "tolerations": {
           "$ref": "#/$defs/helm-values.tolerations"
         },
         "topologySpreadConstraints": {
           "$ref": "#/$defs/helm-values.topologySpreadConstraints"
+        },
+        "volumeMounts": {
+          "$ref": "#/$defs/helm-values.volumeMounts"
+        },
+        "volumes": {
+          "$ref": "#/$defs/helm-values.volumes"
         }
       },
       "type": "object"
@@ -458,6 +470,11 @@
       "description": "Whether to issue a webhook cert using Helm, which removes the need to install cert-manager. Helm-issued certificates can be challenging to rotate and maintain, and the issued cert will have a duration of 10 years and be modified when trust-manager is updated. It's safer and easier to rely on cert-manager for issuing the webhook cert - avoid using Helm-generated certs in production.",
       "type": "boolean"
     },
+    "helm-values.automountServiceAccountToken": {
+      "default": true,
+      "description": "Automounting API credentials for the trust-manager pod.",
+      "type": "boolean"
+    },
     "helm-values.commonLabels": {
       "default": {},
       "description": "Labels to apply to all resources",
@@ -704,6 +721,35 @@
       "description": "If set to true, enable writing trust bundles to Kubernetes Secrets as a target. trust-manager can only write to secrets which are explicitly allowed via either authorizedSecrets or authorizedSecretsAll. Note that enabling secret targets will grant trust-manager read access to all secrets in the cluster.",
       "type": "boolean"
     },
+    "helm-values.serviceAccount": {
+      "additionalProperties": false,
+      "properties": {
+        "automountServiceAccountToken": {
+          "$ref": "#/$defs/helm-values.serviceAccount.automountServiceAccountToken"
+        },
+        "create": {
+          "$ref": "#/$defs/helm-values.serviceAccount.create"
+        },
+        "name": {
+          "$ref": "#/$defs/helm-values.serviceAccount.name"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.serviceAccount.automountServiceAccountToken": {
+      "default": true,
+      "description": "Automount API credentials for a Service Account.",
+      "type": "boolean"
+    },
+    "helm-values.serviceAccount.create": {
+      "default": true,
+      "description": "Specifies whether a service account should be created.",
+      "type": "boolean"
+    },
+    "helm-values.serviceAccount.name": {
+      "description": "The name of the service account to use.\nIf not set and create is true, a name is generated using the fullname template.",
+      "type": "string"
+    },
     "helm-values.tolerations": {
       "default": [],
       "description": "List of Kubernetes Tolerations, if required. For more information, see [Toleration v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core).\nFor example:\ntolerations:\n- key: foo.bar.com/role\n  operator: Equal\n  value: master\n  effect: NoSchedule",
@@ -713,6 +759,18 @@
     "helm-values.topologySpreadConstraints": {
       "default": [],
       "description": "List of Kubernetes TopologySpreadConstraints. For more information, see [TopologySpreadConstraint v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#topologyspreadconstraint-v1-core).\nFor example:\ntopologySpreadConstraints:\n- maxSkew: 2\n  topologyKey: topology.kubernetes.io/zone\n  whenUnsatisfiable: ScheduleAnyway\n  labelSelector:\n    matchLabels:\n      app.kubernetes.io/name: trust-manager",
+      "items": {},
+      "type": "array"
+    },
+    "helm-values.volumeMounts": {
+      "default": [],
+      "description": "Additional volume mounts to add to the trust-manager container.",
+      "items": {},
+      "type": "array"
+    },
+    "helm-values.volumes": {
+      "default": [],
+      "description": "Additional volumes to add to the trust-manager pod.",
       "items": {},
       "type": "array"
     }
