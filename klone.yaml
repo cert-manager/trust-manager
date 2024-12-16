@@ -43,9 +43,9 @@ targets:
       repo_hash: 124f5ace44727ff538132ca3be21259e1d48c3c3
       repo_path: modules/help
     - folder_name: kind
-      repo_url: https://github.com/cert-manager/makefile-modules.git
+      repo_url: https://github.com/inteon/makefile-modules.git
       repo_ref: main
-      repo_hash: 124f5ace44727ff538132ca3be21259e1d48c3c3
+      repo_hash: 2d38c2480ac27eda704300972a65947d5ce317cd
       repo_path: modules/kind
     - folder_name: klone
       repo_url: https://github.com/cert-manager/makefile-modules.git
