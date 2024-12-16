@@ -13,14 +13,37 @@
 # limitations under the License.
 
 .PHONY: test-unit
-## Unit tests
+## Run all unit tests for trust-manager
 ## @category Testing
-test-unit: | $(NEEDS_GOTESTSUM) $(ARTIFACTS)
+test-unit: test-unit-standard test-unit-negativeserial
+
+
+.PHONY: test-unit-standard
+test-unit-standard: | $(NEEDS_GOTESTSUM) $(ARTIFACTS)
+## Standard unit tests. These tests are in contrast to test-unit-negativeserial,
+## and do not set the x509negativeserial GODEBUG value.
+## We're testing against a "standard" configuration of trust-manager.
+## @category Testing
 	$(GOTESTSUM) \
 		--junitfile=$(ARTIFACTS)/junit-go-e2e.xml \
 		-- \
 		-coverprofile=$(ARTIFACTS)/filtered.cov \
 		./cmd/... ./pkg/... \
+		-- \
+		-ldflags $(go_manager_ldflags) \
+		-test.timeout 2m
+
+.PHONY: test-unit-negativeserial
+## Specialised unit tests which set the x509negativeserial GODEBUG value
+## so we can test our handling of a special case introduced in Go 1.23.
+## See ./pkg/compat for details
+## @category Testing
+test-unit-negativeserial: | $(NEEDS_GOTESTSUM) $(ARTIFACTS)
+	$(GOTESTSUM) \
+		--junitfile=$(ARTIFACTS)/junit-go-unit-negativeserial.xml \
+		-- \
+		-tags=testnegativeserialon \
+		./pkg/compat/... \
 		-- \
 		-ldflags $(go_manager_ldflags) \
 		-test.timeout 2m
