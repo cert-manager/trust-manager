@@ -83,7 +83,7 @@ spec:
           - "--leader-election-lease-duration={{.Values.app.leaderElection.leaseDuration}}"
           - "--leader-election-renew-deadline={{.Values.app.leaderElection.renewDeadline}}"
             # trust
-          - "--trust-namespace={{.Values.app.trust.namespace}}"
+          - {{ printf "--trust-namespace=%s" (include "trust-manager.trust.namespace" .) | quote }}
             # webhook
           - "--webhook-host={{.Values.app.webhook.host}}"
           - "--webhook-port={{.Values.app.webhook.port}}"
