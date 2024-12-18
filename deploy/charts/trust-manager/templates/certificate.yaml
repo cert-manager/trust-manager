@@ -83,7 +83,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: trust-manager-policy-role
+  {{ printf "--trust-namespace=%s" (include "trust-manager.trust.namespace" .) | quote }}
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.app.webhook.tls.approverPolicy.certManagerServiceAccount }}
