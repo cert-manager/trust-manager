@@ -33,8 +33,6 @@ jobs:
           exit 1
 
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        # Adding `fetch-depth: 0` will make sure tags are also be fetched (see https://github.com/actions/checkout/issues/701).
-        with: { fetch-depth: 0 }
 
       - id: go-version
         run: |
