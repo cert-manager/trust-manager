@@ -20,7 +20,6 @@ Get Values.app.trust.namespace as a templated value
 {{- tpl .Values.app.trust.namespace . -}}
 {{- end -}}
 
-
 {{/*
 Common labels
 */}}
