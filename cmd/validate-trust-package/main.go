@@ -19,16 +19,35 @@ package main
 import (
 	"log"
 	"os"
+	"runtime/metrics"
 
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
 
-func main() {
-	stderrLogger := log.New(os.Stderr, "", log.LstdFlags)
-
+func run(logger *log.Logger) int {
 	_, err := fspkg.LoadPackage(os.Stdin)
 	if err != nil {
-		stderrLogger.Printf("failed to load and validate trust package: %s", err.Error())
-		os.Exit(1)
+		logger.Printf("failed to load and validate trust package: %s", err.Error())
+		return 1
 	}
+
+	return 0
+}
+
+func main() {
+	logger := log.New(os.Stderr, "", log.LstdFlags)
+
+	errVal := run(logger)
+
+	negativeSerialSample := []metrics.Sample{{
+		Name: "/godebug/non-default-behavior/x509negativeserial:events",
+	}}
+	metrics.Read(negativeSerialSample)
+
+	negativeSerialCount := negativeSerialSample[0].Value.Uint64()
+	if negativeSerialCount > 0 {
+		logger.Printf("parsed %d certificate(s) with a negative serial number", negativeSerialCount)
+	}
+
+	os.Exit(errVal)
 }
