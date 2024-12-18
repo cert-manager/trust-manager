@@ -230,7 +230,7 @@ app:
       ipFamilyPolicy: ""
       # Sets the families that should be supported and the order in which they should be applied to ClusterIP as well. Can be IPv4 and/or IPv6.
       ipFamilies: []
-      
+
       # The nodePort set on the Service used by the webhook.
       # +docs:property
       # nodePort: 8080
@@ -246,6 +246,7 @@ app:
         # Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this.
         enabled: false
 
+        # The namespace in which cert-manager was installed. Only used if `app.webhook.tls.approverPolicy.enabled` is true.
         certManagerNamespace: "cert-manager"
 
         # The name of cert-manager's Service Account. Only used if `app.webhook.tls.approverPolicy.enabled` is true.
@@ -301,7 +302,7 @@ podDisruptionBudget:
   # if it is used on the Node where the only remaining trust-manager
   # Pod is currently running.
   enabled: false
-  
+
   # This configures the minimum available pods for disruptions. It can either be set to
   # an integer (e.g. 1) or a percentage value (e.g. 25%).
   # It cannot be used if `maxUnavailable` is set.
@@ -316,5 +317,5 @@ podDisruptionBudget:
   # +docs:property
   # maxUnavailable: 1
 
-  # Labels to apply to all resources
+# Labels to apply to all resources
 commonLabels: {}
