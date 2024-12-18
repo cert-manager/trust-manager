@@ -14,6 +14,13 @@ Create chart name and version as used by the chart label.
 {{- end -}}
 
 {{/*
+Get Values.app.trust.namespace as a templated value
+*/}}
+{{- define "trust-manager.trust.namespace" -}}
+{{- tpl .Values.app.trust.namespace . -}}
+{{- end -}}
+
+{{/*
 Common labels
 */}}
 {{- define "trust-manager.labels" -}}
