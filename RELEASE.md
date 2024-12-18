@@ -18,17 +18,14 @@ The release process for this repo is documented below:
    ```
 2. A GitHub action will see the new tag and do the following:
     - Build and publish any container images
-    - Build and bundle the Helm chart
+    - Build and publish the Helm chart
     - Create a draft GitHub release
-    - Upload the Helm chart tarball to the GitHub release
-3. Once the draft GitHub release has been created, download and test the resulting Helm chart.
-4. Create a PR in the [jetstack/jetstack-charts repository on GitHub](https://github.com/jetstack/jetstack-charts), containing the Helm chart file that is attached to the draft GitHub release. This is only currently possible for maintainers inside Venafi, but will be changed in the future.
-5. Wait for the PR to be merged and verify that the Helm chart is available from https://charts.jetstack.io.
-6. Visit the [releases page], edit the draft release, click "Generate release notes", then edit the notes to add the following to the top
+3. Wait for the PR to be merged and wait for OCI Helm chart to propagate and become available from https://charts.jetstack.io (this might take a few hours).
+4. Visit the [releases page], edit the draft release, click "Generate release notes", then edit the notes to add the following to the top
     ```
     trust-manager is the easiest way to manage security-critical TLS trust bundles in Kubernetes and OpenShift clusters.
     ```
-7. Publish the release.
+5. Publish the release.
 
 ## Trust package
 
@@ -42,7 +39,7 @@ As well as the trust-manager container images, we also publish a trust package i
 This repo will produce the following artifacts each release. For documentation on how those artifacts are produced see the "Process" section.
 
 - *Container Images* - Container images for the are published to `quay.io/jetstack`. 
-- *Helm chart* - An official Helm chart is maintained within this repo and published to `charts.jetstack.io` on each release.
+- *Helm chart* - An official Helm chart is maintained within this repo and published to `quay.io/jetstack` and `charts.jetstack.io` on each release.
 
 [release workflow]: https://github.com/cert-manager/trust-manager/actions/workflows/release.yaml
 [releases page]: https://github.com/cert-manager/trust-manager/releases

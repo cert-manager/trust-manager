@@ -37,22 +37,22 @@ include make/debian-trust-package.mk
 .PHONY: release
 ## Publish all release artifacts (image + helm chart)
 ## @category [shared] Release
-release: $(helm_chart_archive) | $(NEEDS_CRANE)
+release:
 	$(MAKE) oci-push-manager
 	$(MAKE) oci-maybe-push-package_debian
+	$(MAKE) helm-chart-oci-push
 
 	@echo "RELEASE_OCI_MANAGER_IMAGE=$(oci_manager_image_name)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_OCI_MANAGER_TAG=$(oci_manager_image_tag)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_OCI_PACKAGE_DEBIAN_IMAGE=$(oci_package_debian_image_name)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_OCI_PACKAGE_DEBIAN_TAG=$(oci_package_debian_image_tag)" >> "$(GITHUB_OUTPUT)"
-	@echo "RELEASE_HELM_CHART_NAME=$(helm_chart_name)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_HELM_CHART_IMAGE=$(helm_chart_image_name)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_HELM_CHART_VERSION=$(helm_chart_version)" >> "$(GITHUB_OUTPUT)"
-	@echo "RELEASE_HELM_CHART_TAR=$(helm_chart_archive)" >> "$(GITHUB_OUTPUT)"
 
 	@echo "Release complete!"
 
 .PHONY: release-debian-trust-package
-release-debian-trust-package: | $(NEEDS_CRANE)
+release-debian-trust-package:
 	$(MAKE) oci-maybe-push-package_debian
 
 	@echo "RELEASE_OCI_PACKAGE_DEBIAN_IMAGE=$(oci_package_debian_image_name)" >> "$(GITHUB_OUTPUT)"
