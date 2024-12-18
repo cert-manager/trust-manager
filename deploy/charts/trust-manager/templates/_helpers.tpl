@@ -54,3 +54,26 @@ https://github.com/helm/helm/issues/5358
 {{- define "trust-manager.namespace" -}}
     {{ .Values.namespace | default .Release.Namespace }}
 {{- end -}}
+
+{{/*
+  Helper templates for DRY implementation in trust-manager Helm chart.
+
+  These helper templates centralize the logic for commonly used parameters
+  related to namespace configuration and certificate manager settings. By
+  using these helpers, we reduce redundancy and improve maintainability
+  of the chart.
+
+  Usage:
+  - Use `{{ include "trust-manager.app.trust.namespace" . }}` to get the
+    configured trust namespace.
+  - Use `{{ include "trust-manager.app.webhook.tls.approverPolicy.certManagerNamespace" . }}` to get the
+    configured certificate manager namespace.
+*/}}
+*/}}
+{{- define "trust-manager.app.trust.namespace" -}}
+{{- tpl .Values.ge-cert-manager.trust-manager.app.trust.namespace . -}}
+{{- end -}}
+
+{{- define "trust-manager.app.webhook.tls.approverPolicy.certManagerNamespace" -}}
+{{- tpl .Values.ge-cert-manager.trust-manager.app.webhook.tls.approverPolicy.certManagerNamespace . -}}
+{{- end -}}
