@@ -122,9 +122,6 @@ func (r *Reconciler) syncConfigMap(
 		return false, errors.New("target not defined")
 	}
 
-	// Generated PKCS #12 is not deterministic - best we can do here is update if the pem cert has
-	// changed (hence not checking if PKCS #12 matches)
-	bundleHash := TrustBundleHash([]byte(resolvedBundle.Data), bundle.Spec.Target.AdditionalFormats)
 	data := map[string]string{
 		bundleTarget.ConfigMap.Key: resolvedBundle.Data,
 	}
@@ -133,7 +130,7 @@ func (r *Reconciler) syncConfigMap(
 	// If the resource exists, check if it is up-to-date.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
-		if exit, err := r.needsUpdate(ctx, target.Kind, log, targetObj, bundle, bundleHash); err != nil {
+		if exit, err := r.needsUpdate(ctx, target.Kind, log, targetObj, bundle, resolvedBundle.Hash); err != nil {
 			return false, err
 		} else if !exit {
 			return false, nil
@@ -142,7 +139,7 @@ func (r *Reconciler) syncConfigMap(
 
 	patch := prepareTargetPatch(coreapplyconfig.ConfigMap(target.Name, target.Namespace), *bundle).
 		WithAnnotations(map[string]string{
-			trustapi.BundleHashAnnotationKey: bundleHash,
+			trustapi.BundleHashAnnotationKey: resolvedBundle.Hash,
 		}).
 		WithData(data).
 		WithBinaryData(binData)
@@ -200,9 +197,6 @@ func (r *Reconciler) syncSecret(
 		return false, errors.New("target not defined")
 	}
 
-	// Generated PKCS #12 is not deterministic - best we can do here is update if the pem cert has
-	// changed (hence not checking if PKCS #12 matches)
-	bundleHash := TrustBundleHash([]byte(resolvedBundle.Data), bundle.Spec.Target.AdditionalFormats)
 	data := map[string][]byte{
 		bundleTarget.Secret.Key: []byte(resolvedBundle.Data),
 	}
@@ -214,7 +208,7 @@ func (r *Reconciler) syncSecret(
 	// If the resource exists, check if it is up-to-date.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
-		if exit, err := r.needsUpdate(ctx, target.Kind, log, targetObj, bundle, bundleHash); err != nil {
+		if exit, err := r.needsUpdate(ctx, target.Kind, log, targetObj, bundle, resolvedBundle.Hash); err != nil {
 			return false, err
 		} else if !exit {
 			return false, nil
@@ -223,7 +217,7 @@ func (r *Reconciler) syncSecret(
 
 	patch := prepareTargetPatch(coreapplyconfig.Secret(target.Name, target.Namespace), *bundle).
 		WithAnnotations(map[string]string{
-			trustapi.BundleHashAnnotationKey: bundleHash,
+			trustapi.BundleHashAnnotationKey: resolvedBundle.Hash,
 		}).
 		WithData(data)
 
@@ -412,8 +406,13 @@ type Resource struct {
 }
 
 type Data struct {
-	Data       string
+	Data string
+
 	BinaryData map[string][]byte
+
+	// Hash is used to determine if target resource needs to be updated or is up-to-date.
+	// The PKCS#12 format is not deterministic meaning target resources cannot be updated unconditionally.
+	Hash string
 }
 
 func (b *Data) Populate(pool *util.CertPool, formats *trustapi.AdditionalFormats) error {
@@ -438,6 +437,9 @@ func (b *Data) Populate(pool *util.CertPool, formats *trustapi.AdditionalFormats
 			b.BinaryData[formats.PKCS12.Key] = encoded
 		}
 	}
+
+	b.Hash = TrustBundleHash([]byte(b.Data), formats)
+
 	return nil
 }
 
