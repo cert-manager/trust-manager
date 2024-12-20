@@ -52,7 +52,10 @@ type bundleData struct {
 // is each bundle is concatenated together with a new line character.
 func (b *bundle) buildSourceBundle(ctx context.Context, sources []trustapi.BundleSource, formats *trustapi.AdditionalFormats) (bundleData, error) {
 	var resolvedBundle bundleData
-	certPool := util.NewCertPool(util.WithFilteredExpiredCerts(b.FilterExpiredCerts))
+	certPool := util.NewCertPool(
+		util.WithFilteredExpiredCerts(b.FilterExpiredCerts),
+		util.WithLogger(b.Log.WithName("cert-pool")),
+	)
 
 	for _, source := range sources {
 		var (
