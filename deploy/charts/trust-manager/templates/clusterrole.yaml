@@ -1,3 +1,4 @@
+{{- if .Values.rbac.create }}
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -64,3 +65,4 @@ rules:
   resourceNames: {{ .Values.secretTargets.authorizedSecrets | toYaml | nindent 2 }}
 {{- end -}}
 {{- end -}}
+{{- end }}
