@@ -87,7 +87,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.app.webhook.tls.approverPolicy.certManagerServiceAccount }}
-  namespace: {{ .Values.app.webhook.tls.approverPolicy.certManagerNamespace }}
+  namespace: {{ tpl .Values.app.webhook.tls.approverPolicy.certManagerNamespace . }}
 
 {{ end }}
 
