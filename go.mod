@@ -2,10 +2,6 @@ module github.com/cert-manager/trust-manager
 
 go 1.23.0
 
-// Added on bump to Go 1.23 as it seems like our current trust bundle contains certs with negative serial numbers.
-// See also https://pkg.go.dev/crypto/x509#ParseCertificate
-godebug x509negativeserial=1
-
 require (
 	github.com/go-logr/logr v1.4.2
 	github.com/onsi/ginkgo/v2 v2.22.2

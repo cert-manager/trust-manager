@@ -24,6 +24,10 @@ import (
 	"fmt"
 	"slices"
 	"time"
+
+	"github.com/go-logr/logr"
+
+	"github.com/cert-manager/trust-manager/pkg/compat"
 )
 
 // CertPool is a set of certificates.
@@ -31,6 +35,8 @@ type CertPool struct {
 	certificates map[[32]byte]*x509.Certificate
 
 	filterExpired bool
+
+	logger logr.Logger
 }
 
 type Option func(*CertPool)
@@ -41,12 +47,20 @@ func WithFilteredExpiredCerts(filterExpired bool) Option {
 	}
 }
 
+func WithLogger(logger logr.Logger) Option {
+	return func(cp *CertPool) {
+		cp.logger = logger
+	}
+}
+
 // NewCertPool returns a new, empty CertPool.
 // It will deduplicate certificates based on their SHA256 hash.
 // Optionally, it can filter out expired certificates.
 func NewCertPool(options ...Option) *CertPool {
 	certPool := &CertPool{
 		certificates: make(map[[32]byte]*x509.Certificate),
+
+		logger: logr.Discard(),
 	}
 
 	for _, option := range options {
@@ -100,8 +114,15 @@ func (cp *CertPool) AddCertsFromPEM(pemData []byte) error {
 			return fmt.Errorf("invalid PEM block in bundle; blocks are not permitted to have PEM headers")
 		}
 
-		certificate, err := x509.ParseCertificate(block.Bytes)
+		certificate, err := compat.ParseCertificate(block.Bytes)
 		if err != nil {
+			if compat.IsSkipError(err) {
+				// there's some compatibility error; we don't want to fail
+				// the whole bundle for this cert, we should just skip it
+				cp.logger.Info("skipping a certificate in PEM bundle for compatibility reasons", "details", err)
+				continue
+			}
+
 			// the presence of an invalid cert (including things which aren't certs)
 			// should cause the bundle to be rejected
 			return fmt.Errorf("invalid PEM block in bundle; invalid PEM certificate: %w", err)
