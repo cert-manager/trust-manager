@@ -54,3 +54,14 @@ https://github.com/helm/helm/issues/5358
 {{- define "trust-manager.namespace" -}}
     {{ .Values.namespace | default .Release.Namespace }}
 {{- end -}}
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "trust-manager.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create -}}
+    {{ default (include "trust-manager.name" .) .Values.serviceAccount.name }}
+{{- else -}}
+    {{ default "default" .Values.serviceAccount.name }}
+{{- end -}}
+{{- end -}}
