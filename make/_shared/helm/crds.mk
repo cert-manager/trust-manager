@@ -67,8 +67,8 @@ generate-crds: | $(NEEDS_CONTROLLER-GEN) $(NEEDS_YQ)
 	done
 
 	@if [ -n "$$(ls $(crds_gen_temp) 2>/dev/null)" ]; then \
-		cp -Tr $(crds_gen_temp) $(crds_dir); \
-		cp $(crds_dir_readme) $(crds_dir)/README.md; \
+		cp -r $(crds_gen_temp) $(crds_dir)/ ; \
+		cp $(crds_dir_readme) $(crds_dir)/README.md ; \
 	fi
 
 shared_generate_targets += generate-crds
