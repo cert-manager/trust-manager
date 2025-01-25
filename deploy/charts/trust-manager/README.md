@@ -179,6 +179,13 @@ digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
 > ```
 
 imagePullPolicy for the default package image.
+#### **rbac.create** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
+
+Create required ClusterRole and ClusterRoleBinding for trust-manager. If set to false it will also disable the possibility to set secretTargets
 #### **secretTargets.enabled** ~ `bool`
 > Default value:
 > ```yaml
