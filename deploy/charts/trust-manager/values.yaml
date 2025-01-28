@@ -104,6 +104,30 @@ defaultPackageImage:
   # imagePullPolicy for the default package image.
   pullPolicy: IfNotPresent
 
+# Automounting API credentials for the trust-manager pod.
+# +docs:property
+automountServiceAccountToken: true
+
+serviceAccount:
+  # Specifies whether a service account should be created.
+  create: true
+
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template.
+  # +docs:property
+  # name: ""
+
+  # Automount API credentials for a Service Account.
+  # +docs:property
+  automountServiceAccountToken: true
+
+
+# Additional volumes to add to the trust-manager pod.
+volumes: []
+
+# Additional volume mounts to add to the trust-manager container.
+volumeMounts: []
+
 secretTargets:
   # If set to true, enable writing trust bundles to Kubernetes Secrets as a target.
   # trust-manager can only write to secrets which are explicitly allowed via either authorizedSecrets or authorizedSecretsAll.

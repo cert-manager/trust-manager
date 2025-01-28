@@ -29,7 +29,10 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      serviceAccountName: {{ include "trust-manager.name" . }}
+      serviceAccountName: {{ include "trust-manager.serviceAccountName" . }}
+      {{- if hasKey .Values "automountServiceAccountToken" }}
+      automountServiceAccountToken: {{ .Values.automountServiceAccountToken }}
+      {{- end }}
       {{- if .Values.defaultPackage.enabled }}
       initContainers:
       - name: cert-manager-package-debian
@@ -104,6 +107,9 @@ spec:
         - mountPath: /packages
           name: packages
           readOnly: true
+        {{- with .Values.volumeMounts }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
         securityContext:
@@ -144,8 +150,10 @@ spec:
         secret:
           defaultMode: 420
           secretName: {{ include "trust-manager.name" . }}-tls
+      {{- with .Values.volumes }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
       {{- if .Values.app.webhook.hostNetwork }}
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       {{- end }}
-
