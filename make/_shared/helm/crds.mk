@@ -47,6 +47,11 @@ generate-crds: | $(NEEDS_CONTROLLER-GEN) $(NEEDS_YQ)
 	$(eval crds_gen_temp := $(bin_dir)/scratch/crds)
 	$(eval directories := $(shell ls -d */ | grep -v -e 'make' $(shell git check-ignore -- * | sed 's/^/-e /')))
 
+	# TODO(@SgtCoDFish): This is a temporary fix for an accidentally created nested crds directory
+	# in the PR: https://github.com/cert-manager/makefile-modules/pull/239
+	# Once this has been run on every repo with the mistaken folder, this can be removed
+	rm -r $(crds_dir)/crds
+
 	rm -rf $(crds_gen_temp)
 	mkdir -p $(crds_gen_temp)
 
@@ -67,7 +72,7 @@ generate-crds: | $(NEEDS_CONTROLLER-GEN) $(NEEDS_YQ)
 	done
 
 	@if [ -n "$$(ls $(crds_gen_temp) 2>/dev/null)" ]; then \
-		cp -r $(crds_gen_temp) $(crds_dir)/ ; \
+		cp $(crds_gen_temp)/* $(crds_dir)/ ; \
 		cp $(crds_dir_readme) $(crds_dir)/README.md ; \
 	fi
 
