@@ -22,7 +22,7 @@ include make/test-integration.mk
 include make/test-unit.mk
 
 # Deprecated ci-target for backwards compatibility
-.PHONY: smoke-setup-trust-manager
+.PHONY: provision-buildx
 provision-buildx: noop
 
 # Deprecated ci-target for backwards compatibility
@@ -32,15 +32,18 @@ smoke:
 	$(MAKE) test-integration
 	$(MAKE) test-smoke
 
+include make/validate-trust-package.mk
 include make/debian-trust-package.mk
+include make/debian-trust-package-bookworm.mk
 
 .PHONY: release
 ## Publish all release artifacts (image + helm chart)
 ## @category [shared] Release
 release:
 	$(MAKE) oci-push-manager
-	$(MAKE) oci-maybe-push-package_debian
 	$(MAKE) helm-chart-oci-push
+	$(MAKE) oci-maybe-push-package_debian
+	$(MAKE) oci-maybe-push-package_debian_bookworm
 
 	@echo "RELEASE_OCI_MANAGER_IMAGE=$(oci_manager_image_name)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_OCI_MANAGER_TAG=$(oci_manager_image_tag)" >> "$(GITHUB_OUTPUT)"
@@ -57,5 +60,14 @@ release-debian-trust-package:
 
 	@echo "RELEASE_OCI_PACKAGE_DEBIAN_IMAGE=$(oci_package_debian_image_name)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_OCI_PACKAGE_DEBIAN_TAG=$(oci_package_debian_image_tag)" >> "$(GITHUB_OUTPUT)"
+
+	@echo "Release complete!
+
+.PHONY: release-debian-bookworm-trust-package
+release-debian-bookworm-trust-package: | $(NEEDS_CRANE)
+	$(MAKE) oci-maybe-push-package_debian_bookworm
+
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_IMAGE=$(oci_package_debian_bookworm_image_name)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_TAG=$(oci_package_debian_bookworm_image_tag)" >> "$(GITHUB_OUTPUT)"
 
 	@echo "Release complete!"
