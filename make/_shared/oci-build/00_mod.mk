@@ -24,6 +24,7 @@ base_image_csi-static := quay.io/jetstack/base-static-csi@sha256:c30595ad2eed496
 
 # Utility functions
 fatal_if_undefined = $(if $(findstring undefined,$(origin $1)),$(error $1 is not set))
+fatal_if_deprecated_defined = $(if $(findstring undefined,$(origin $1)),,$(error $1 is deprecated, use $2 instead))
 
 # Validate globals that are required
 $(call fatal_if_undefined,bin_dir)
@@ -37,9 +38,11 @@ GOEXPERIMENT ?=  # empty by default
 #
 # $1 - build_name
 define default_per_build_variables
-cgo_enabled_$1 ?= $(CGO_ENABLED)
-goexperiment_$1 ?= $(GOEXPERIMENT)
-oci_additional_layers_$1 ?= 
+go_$1_cgo_enabled ?= $(CGO_ENABLED)
+go_$1_goexperiment ?= $(GOEXPERIMENT)
+go_$1_flags ?= -tags=
+oci_$1_additional_layers ?= 
+oci_$1_linux_capabilities ?= 
 endef
 
 $(foreach build_name,$(build_names),$(eval $(call default_per_build_variables,$(build_name))))
@@ -48,6 +51,11 @@ $(foreach build_name,$(build_names),$(eval $(call default_per_build_variables,$(
 #
 # $1 - build_name
 define check_per_build_variables
+# Validate deprecated variables
+$(call fatal_if_deprecated_defined,cgo_enabled_$1,go_$1_cgo_enabled)
+$(call fatal_if_deprecated_defined,goexperiment_$1,go_$1_goexperiment)
+$(call fatal_if_deprecated_defined,oci_additional_layers_$1,oci_$1_additional_layers)
+
 # Validate required config exists
 $(call fatal_if_undefined,go_$1_ldflags)
 $(call fatal_if_undefined,go_$1_main_dir)

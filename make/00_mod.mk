@@ -38,6 +38,8 @@ oci_package_debian_base_image_flavor := static
 oci_package_debian_image_name := quay.io/jetstack/cert-manager-package-debian
 oci_package_debian_image_tag := $(DEBIAN_BUNDLE_VERSION)
 oci_package_debian_image_name_development := cert-manager.local/cert-manager-package-debian
+debian_package_layer := $(bin_dir)/scratch/debian-trust-package
+oci_package_debian_additional_layers += $(debian_package_layer)
 
 deploy_name := trust-manager
 deploy_namespace := cert-manager
