@@ -113,13 +113,18 @@ shared_generate_targets += generate-golangci-lint-config
 .PHONY: verify-golangci-lint
 ## Verify all Go modules using golangci-lint
 ## @category [shared] Generate/ Verify
-verify-golangci-lint: | $(NEEDS_GO) $(NEEDS_GOLANGCI-LINT) $(NEEDS_YQ) $(bin_dir)/scratch
+verify-golangci-lint: | $(NEEDS_GO) $(NEEDS_GOLANGCI-LINT) $(NEEDS_YQ) $(ARTIFACTS) $(bin_dir)/scratch
 	@find . -name go.mod -not \( -path "./$(bin_dir)/*" -or -path "./make/_shared/*" \) \
 		| while read d; do \
 				target=$$(dirname $${d}); \
-				echo "Running '$(bin_dir)/tools/golangci-lint run --go $(VENDORED_GO_VERSION) -c $(CURDIR)/$(golangci_lint_config)' in directory '$${target}'"; \
+				junit_outfile="$${target//[^a-zA-Z0-9_]/-}"; \
+				junit_outfile="$$(echo "$$junit_outfile" | sed 's/-\{2,\}/-/g')" \
+				junit_outfile="$${junit_outfile#-}" \
+				junit_outfile="$${junit_outfile%-}" \
+				junit_outfile="junit-golangci-lint$${junit_outfile:+-}$${junit_outfile}"; \
+				echo "Running '$(bin_dir)/tools/golangci-lint run --go $(VENDORED_GO_VERSION) -c $(CURDIR)/$(golangci_lint_config) --timeout 10m --print-resources-usage --out-format junit-xml > $(CURDIR)/$(ARTIFACTS)/$${junit_outfile}.xml' in directory '$${target}'"; \
 				pushd "$${target}" >/dev/null; \
-				$(GOLANGCI-LINT) run --go $(VENDORED_GO_VERSION) -c $(CURDIR)/$(golangci_lint_config) --timeout 4m || exit; \
+				$(GOLANGCI-LINT) run --go $(VENDORED_GO_VERSION) -c $(CURDIR)/$(golangci_lint_config) --timeout 10m --print-resources-usage --out-format junit-xml > $(CURDIR)/$(ARTIFACTS)/$${junit_outfile}.xml || exit; \
 				popd >/dev/null; \
 				echo ""; \
 			done
