@@ -41,12 +41,12 @@ smoke-setup-cert-manager: | kind-cluster $(NEEDS_HELM) $(NEEDS_KUBECTL)
 # When a "test-smoke" target is run, the currently active cluster must be the kind
 # cluster created by the "kind-cluster" target.
 ifeq ($(findstring test-smoke,$(MAKECMDGOALS)),test-smoke)
-install: kind-cluster oci-load-manager oci-load-package_debian
+install: kind-cluster oci-load-manager oci-load-package_debian oci-load-package_debian_bookworm
 endif
 
 test-smoke-deps: INSTALL_OPTIONS :=
 test-smoke-deps: INSTALL_OPTIONS += --set image.repository=$(oci_manager_image_name_development)
-test-smoke-deps: INSTALL_OPTIONS += --set defaultPackageImage.repository=$(oci_package_debian_image_name_development)
+test-smoke-deps: INSTALL_OPTIONS += --set defaultPackageImage.repository=$(oci_package_debian_bookworm_image_name_development)
 test-smoke-deps: INSTALL_OPTIONS += --set secretTargets.enabled=true --set secretTargets.authorizedSecretsAll=true
 test-smoke-deps: smoke-setup-cert-manager
 test-smoke-deps: install

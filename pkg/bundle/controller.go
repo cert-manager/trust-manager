@@ -71,7 +71,7 @@ func AddBundleController(
 
 		b.defaultPackage = &pkg
 
-		b.Options.Log.Info("successfully loaded default package from filesystem", "path", b.Options.DefaultPackageLocation)
+		b.Options.Log.Info("successfully loaded default package from filesystem", "id", pkg.StringID(), "path", b.Options.DefaultPackageLocation)
 	}
 
 	// Only reconcile config maps that match the well known name

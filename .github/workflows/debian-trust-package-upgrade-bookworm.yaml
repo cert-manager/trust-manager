@@ -1,12 +1,12 @@
-name: debian-trust-package-upgrade
-concurrency: debian-trust-package-upgrade
+name: debian-trust-package-upgrade-bookworm
+concurrency: debian-trust-package-upgrade-bookworm
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '1 1 * * *'
 
 jobs:
-  debian-trust-package-upgrade:
+  debian-trust-package-upgrade-bookworm:
     runs-on: ubuntu-latest
 
     permissions:
@@ -15,7 +15,7 @@ jobs:
 
     env:
       SOURCE_BRANCH: "${{ github.ref_name }}"
-      SELF_UPGRADE_BRANCH: "debian-trust-package-upgrade-${{ github.ref_name }}"
+      SELF_UPGRADE_BRANCH: "debian-trust-package-upgrade-bookworm-${{ github.ref_name }}"
 
     steps:
       - name: Fail if branch is not head of branch.
@@ -25,10 +25,6 @@ jobs:
           exit 1
 
       - uses: actions/checkout@v4
-        # Adding `fetch-depth: 0` makes sure tags are also fetched. We need
-        # the tags so `git describe` returns a valid version.
-        # see https://github.com/actions/checkout/issues/701 for extra info about this option
-        with: { fetch-depth: 0 }
 
       - id: go-version
         run: |
@@ -42,7 +38,7 @@ jobs:
           git checkout -B "$SELF_UPGRADE_BRANCH"
 
       - run: |
-          make -j upgrade-debian-trust-package-version
+          make -j upgrade-debian-trust-package-bookworm-version
 
       - id: is-up-to-date
         shell: bash
@@ -60,7 +56,7 @@ jobs:
         run: |
           git config --global user.name "cert-manager-bot"
           git config --global user.email "cert-manager-bot@users.noreply.github.com"
-          git add -A && git commit -m "BOT: run 'make upgrade-debian-trust-package-version'" --signoff
+          git add -A && git commit -m "BOT: run 'make upgrade-debian-trust-package-bookworm-version'" --signoff
           git push -f origin "$SELF_UPGRADE_BRANCH"
 
       - if: ${{ steps.is-up-to-date.outputs.result != 'true' }}
@@ -84,7 +80,7 @@ jobs:
                 head: process.env.SELF_UPGRADE_BRANCH,
                 base: process.env.SOURCE_BRANCH,
                 body: [
-                  'This PR is auto-generated to bump the Debian package version',
+                  'This PR is auto-generated to bump the Debian Bookworm package version',
                 ].join('\n'),
               });
             }
