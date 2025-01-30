@@ -31,11 +31,13 @@ $(ko_config_path_$1:$(CURDIR)/%=%): | $(NEEDS_YQ) $(bin_dir)/scratch/image
 		$(YQ) '.builds[0].id = "$1"' | \
 		$(YQ) '.builds[0].dir = "$(go_$1_mod_dir)"' | \
 		$(YQ) '.builds[0].main = "$(go_$1_main_dir)"' | \
-		$(YQ) '.builds[0].env[0] = "CGO_ENABLED=$(cgo_enabled_$1)"' | \
-		$(YQ) '.builds[0].env[1] = "GOEXPERIMENT=$(goexperiment_$1)"' | \
+		$(YQ) '.builds[0].env[0] = "CGO_ENABLED=$(go_$1_cgo_enabled)"' | \
+		$(YQ) '.builds[0].env[1] = "GOEXPERIMENT=$(go_$1_goexperiment)"' | \
 		$(YQ) '.builds[0].ldflags[0] = "-s"' | \
 		$(YQ) '.builds[0].ldflags[1] = "-w"' | \
-		$(YQ) '.builds[0].ldflags[2] = "{{.Env.LDFLAGS}}"' \
+		$(YQ) '.builds[0].ldflags[2] = "{{.Env.LDFLAGS}}"' | \
+		$(YQ) '.builds[0].flags[0] = "$(go_$1_flags)"' | \
+		$(YQ) '.builds[0].linux_capabilities = "$(oci_$1_linux_capabilities)"' \
 		> $(CURDIR)/$(oci_layout_path_$1).ko_config.yaml
 
 ko-config-$1: $(ko_config_path_$1:$(CURDIR)/%=%)
@@ -66,7 +68,7 @@ $(oci_build_targets): oci-build-%: ko-config-% | $(NEEDS_KO) $(NEEDS_GO) $(NEEDS
 
 	$(IMAGE_TOOL) append-layers \
 		$(CURDIR)/$(oci_layout_path_$*) \
-		$(oci_additional_layers_$*)
+		$(oci_$*_additional_layers)
 
 	$(IMAGE_TOOL) list-digests \
 		$(CURDIR)/$(oci_layout_path_$*) \

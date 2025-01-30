@@ -20,7 +20,6 @@ ifndef repo_name
 $(error repo_name is not set)
 endif
 
-go_base_dir := $(dir $(lastword $(MAKEFILE_LIST)))/base/
 golangci_lint_override := $(dir $(lastword $(MAKEFILE_LIST)))/.golangci.override.yaml
 
 .PHONY: go-workspace
@@ -58,11 +57,17 @@ generate-go-mod-tidy: | $(NEEDS_GO)
 
 shared_generate_targets += generate-go-mod-tidy
 
+default_govulncheck_generate_base_dir := $(dir $(lastword $(MAKEFILE_LIST)))/base/
+# The base directory used to copy the govulncheck GH action from. This can be
+# overwritten with an action with extra authentication or with a totally different
+# pipeline (eg. a GitLab pipeline).
+govulncheck_generate_base_dir ?= $(default_govulncheck_generate_base_dir)
+
 .PHONY: generate-govulncheck
 ## Generate base files in the repository
 ## @category [shared] Generate/ Verify
 generate-govulncheck:
-	cp -r $(go_base_dir)/. ./
+	cp -r $(govulncheck_generate_base_dir)/. ./
 
 shared_generate_targets += generate-govulncheck
 

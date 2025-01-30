@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-debian_package_layer := $(bin_dir)/scratch/debian-trust-package
 debian_package_json := $(debian_package_layer)/debian-package/cert-manager-package-debian.json
 
 $(debian_package_layer)/debian-package $(bin_dir)/bin:
@@ -25,8 +24,10 @@ $(debian_package_json): | $(bin_dir)/bin/validate-trust-package $(debian_package
 	BIN_VALIDATE_TRUST_PACKAGE=$(bin_dir)/bin/validate-trust-package \
 		./make/debian-trust-package-fetch.sh exact $(DEBIAN_BUNDLE_SOURCE_IMAGE) $@ $(DEBIAN_BUNDLE_VERSION)
 
+# Make sure the build the package json file when building
+# the OCI image. This will ensure that the $(debian_package_layer)
+# folder has the desired contents.
 oci-build-package_debian: $(debian_package_json)
-oci_additional_layers_package_debian += $(debian_package_layer)
 
 # see https://stackoverflow.com/a/53408233
 sed_inplace := sed -i''
