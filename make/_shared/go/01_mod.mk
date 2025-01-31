@@ -110,6 +110,8 @@ generate-golangci-lint-config: | $(NEEDS_YQ) $(bin_dir)/scratch
 
 shared_generate_targets += generate-golangci-lint-config
 
+golangci_lint_timeout ?= 10m
+
 .PHONY: verify-golangci-lint
 ## Verify all Go modules using golangci-lint
 ## @category [shared] Generate/ Verify
@@ -117,9 +119,9 @@ verify-golangci-lint: | $(NEEDS_GO) $(NEEDS_GOLANGCI-LINT) $(NEEDS_YQ) $(bin_dir
 	@find . -name go.mod -not \( -path "./$(bin_dir)/*" -or -path "./make/_shared/*" \) \
 		| while read d; do \
 				target=$$(dirname $${d}); \
-				echo "Running '$(bin_dir)/tools/golangci-lint run --go $(VENDORED_GO_VERSION) -c $(CURDIR)/$(golangci_lint_config)' in directory '$${target}'"; \
+				echo "Running '$(bin_dir)/tools/golangci-lint run --go $(VENDORED_GO_VERSION) -c $(CURDIR)/$(golangci_lint_config) --timeout $(golangci_lint_timeout)' in directory '$${target}'"; \
 				pushd "$${target}" >/dev/null; \
-				$(GOLANGCI-LINT) run --go $(VENDORED_GO_VERSION) -c $(CURDIR)/$(golangci_lint_config) --timeout 4m || exit; \
+				$(GOLANGCI-LINT) run --go $(VENDORED_GO_VERSION) -c $(CURDIR)/$(golangci_lint_config) --timeout $(golangci_lint_timeout) || exit; \
 				popd >/dev/null; \
 				echo ""; \
 			done
