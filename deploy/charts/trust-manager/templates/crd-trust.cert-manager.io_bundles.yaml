@@ -138,6 +138,11 @@ spec:
                             x-kubernetes-map-type: atomic
                         type: object
                         x-kubernetes-map-type: atomic
+                        x-kubernetes-validations:
+                          - message: must specify one and only one of {name, selector}
+                            rule: '[has(self.name), has(self.selector)].exists_one(x,x)'
+                          - message: must specify key or includeAllKeys
+                            rule: '[has(self.key), has(self.includeAllKeys) && self.includeAllKeys].exists_one(x,x)'
                       inLine:
                         description: InLine is a simple string to append as the source data.
                         type: string
@@ -209,6 +214,11 @@ spec:
                             x-kubernetes-map-type: atomic
                         type: object
                         x-kubernetes-map-type: atomic
+                        x-kubernetes-validations:
+                          - message: must specify one and only one of {name, selector}
+                            rule: '[has(self.name), has(self.selector)].exists_one(x,x)'
+                          - message: must specify key or includeAllKeys
+                            rule: '[has(self.key), has(self.includeAllKeys) && self.includeAllKeys].exists_one(x,x)'
                       useDefaultCAs:
                         description: |-
                           UseDefaultCAs, when true, requests the default CA bundle to be used as a source.
@@ -222,10 +232,16 @@ spec:
                         type: boolean
                     type: object
                     x-kubernetes-map-type: atomic
+                    x-kubernetes-validations:
+                      - message: must define exactly one source
+                        rule: '[has(self.configMap), has(self.secret), has(self.inLine), has(self.useDefaultCAs) && self.useDefaultCAs].exists_one(x,x)'
                   maxItems: 100
                   minItems: 1
                   type: array
                   x-kubernetes-list-type: atomic
+                  x-kubernetes-validations:
+                    - message: must request default CAs at most once
+                      rule: size(self.filter(s, has(s.useDefaultCAs) && s.useDefaultCAs)) <= 1
                 target:
                   description: Target is the target location in all namespaces to sync source data to.
                   properties:
@@ -343,6 +359,13 @@ spec:
                         - key
                       type: object
                   type: object
+                  x-kubernetes-validations:
+                    - message: must define at least one target configMap/secret
+                      rule: '[has(self.configMap), has(self.secret)].exists(x,x)'
+                    - message: additional format keys must be unique
+                      rule: '!has(self.additionalFormats) || ![has(self.additionalFormats.jks), has(self.additionalFormats.pkcs12)].all(x,x) || self.additionalFormats.jks.key != self.additionalFormats.pkcs12.key'
+                    - message: additional format keys must be different from configMap/secret keys
+                      rule: '!has(self.additionalFormats) || !((has(self.configMap) ? [self.configMap.key] : []) + (has(self.secret) ? [self.secret.key] : [])).exists(k,(has(self.additionalFormats.jks) && self.additionalFormats.jks.key == k) || (has(self.additionalFormats.pkcs12) && self.additionalFormats.pkcs12.key == k))'
               required:
                 - sources
                 - target
