@@ -3,10 +3,10 @@ on:
   push:
     branches: ['main']
     paths:
-      - make/00_debian_version.mk
+      - make/00_debian_bookworm_version.mk
 
 jobs:
-  build_and_push:
+  build_images:
     runs-on: ubuntu-latest
 
     permissions:
@@ -16,10 +16,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        # Adding `fetch-depth: 0` makes sure tags are also fetched. We need
-        # the tags so `git describe` returns a valid version.
-        # see https://github.com/actions/checkout/issues/701 for extra info about this option
-        with: { fetch-depth: 0 }
 
       - id: go-version
         run: |
@@ -36,8 +32,8 @@ jobs:
           go-version: ${{ steps.go-version.outputs.result }}
 
       - id: release
-        run: make release-debian-trust-package
+        run: make release-debian-bookworm-trust-package
 
     outputs:
-      RELEASE_OCI_MANAGER_IMAGE: ${{ steps.release.outputs.RELEASE_OCI_PACKAGE_DEBIAN_IMAGE }}
-      RELEASE_OCI_MANAGER_TAG: ${{ steps.release.outputs.RELEASE_OCI_PACKAGE_DEBIAN_TAG }}
+      RELEASE_OCI_MANAGER_IMAGE: ${{ steps.release.outputs.RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_IMAGE }}
+      RELEASE_OCI_MANAGER_TAG: ${{ steps.release.outputs.RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_TAG }}
