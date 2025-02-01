@@ -43,6 +43,8 @@ go_$1_goexperiment ?= $(GOEXPERIMENT)
 go_$1_flags ?= -tags=
 oci_$1_additional_layers ?= 
 oci_$1_linux_capabilities ?= 
+oci_$1_image_annotation ?= 
+oci_$1_image_label ?= 
 endef
 
 $(foreach build_name,$(build_names),$(eval $(call default_per_build_variables,$(build_name))))

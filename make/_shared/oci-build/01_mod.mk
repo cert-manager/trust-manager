@@ -60,6 +60,8 @@ $(oci_build_targets): oci-build-%: ko-config-% | $(NEEDS_KO) $(NEEDS_GO) $(NEEDS
 	LDFLAGS="$(go_$*_ldflags)" \
 	$(KO) build $(go_$*_mod_dir)/$(go_$*_main_dir) \
 		--platform=$(oci_platforms) \
+		--image-annotation=$(oci_$*_image_annotation) \
+		--image-label=$(oci_$*_image_label) \
 		--oci-layout-path=$(oci_layout_path_$*) \
 		--sbom-dir=$(CURDIR)/$(oci_layout_path_$*).sbom \
 		--sbom=spdx \
