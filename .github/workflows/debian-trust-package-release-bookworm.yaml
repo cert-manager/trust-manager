@@ -16,6 +16,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      # Adding `fetch-tags: true` is required since the makefiles use tags for versioning
+      # See https://github.com/actions/checkout/issues/701 for extra info
+      with:
+        fetch-tags: true
 
       - id: go-version
         run: |
