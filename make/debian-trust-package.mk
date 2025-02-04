@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+package_name := cert-manager-debian
+
+debian_package_layer := $(bin_dir)/scratch/debian-trust-package
 debian_package_json := $(debian_package_layer)/debian-package/cert-manager-package-debian.json
 
-$(debian_package_layer)/debian-package $(bin_dir)/bin:
+$(debian_package_layer)/debian-package:
 	mkdir -p $@
-
-$(bin_dir)/bin/validate-trust-package: cmd/validate-trust-package/*.go pkg/fspkg/*.go | $(NEEDS_GO) $(bin_dir)/bin
-	$(GO) build -o $@ ./cmd/validate-trust-package
 
 $(debian_package_json): | $(bin_dir)/bin/validate-trust-package $(debian_package_layer)/debian-package
 	BIN_VALIDATE_TRUST_PACKAGE=$(bin_dir)/bin/validate-trust-package \
-		./make/debian-trust-package-fetch.sh exact $(DEBIAN_BUNDLE_SOURCE_IMAGE) $@ $(DEBIAN_BUNDLE_VERSION)
+		./make/debian-trust-package-fetch.sh exact $(DEBIAN_BUNDLE_SOURCE_IMAGE) $@ $(DEBIAN_BUNDLE_VERSION) $(package_name)
 
 # Make sure the build the package json file when building
 # the OCI image. This will ensure that the $(debian_package_layer)
@@ -41,7 +41,7 @@ upgrade-debian-trust-package-version: | $(bin_dir)/bin/validate-trust-package $(
 	rm -rf $(temp_out)
 
 	BIN_VALIDATE_TRUST_PACKAGE=$(bin_dir)/bin/validate-trust-package \
-		./make/debian-trust-package-fetch.sh latest $(DEBIAN_BUNDLE_SOURCE_IMAGE) $(temp_out) $(DEBIAN_BUNDLE_VERSION)
+		./make/debian-trust-package-fetch.sh latest $(DEBIAN_BUNDLE_SOURCE_IMAGE) $(temp_out) $(DEBIAN_BUNDLE_VERSION) $(package_name)
 
 	latest_version=$$(jq -r '.version' $(temp_out)); \
 		$(sed_inplace) "s/DEBIAN_BUNDLE_VERSION := .*/DEBIAN_BUNDLE_VERSION := $$latest_version/" make/00_debian_version.mk

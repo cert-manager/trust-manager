@@ -32,9 +32,10 @@ ACTION=${1:-}
 DEBIAN_SOURCE_IMAGE=${2:-}
 DESTINATION_FILE=${3:-}
 TARGET_DEBIAN_BUNDLE_VERSION=${4:-}
+PACKAGE_NAME=${5:-}
 
 function print_usage() {
-	echo "usage: $0 <latest|exact> <debian-source-image> <destination file> <target version>"
+	echo "usage: $0 <latest|exact> <debian-source-image> <destination file> <target version> <package name>"
 }
 
 if ! command -v "$CTR" &>/dev/null; then
@@ -70,6 +71,12 @@ fi
 if [[ -z $DESTINATION_FILE ]]; then
 	print_usage
 	echo "destination file must be specified"
+	exit 1
+fi
+
+if [[ -z $PACKAGE_NAME ]]; then
+	print_usage
+	echo "package name must be specified"
 	exit 1
 fi
 
@@ -135,7 +142,7 @@ fi
 
 echo "{}" | jq \
 	--rawfile bundle $TMP_DIR/ca-certificates.crt \
-	--arg name "cert-manager-debian" \
+	--arg name "$PACKAGE_NAME" \
 	--arg version "$installed_version$version_suffix" \
 	'.name = $name | .bundle = $bundle | .version = $version' \
 	> "$DESTINATION_FILE"
