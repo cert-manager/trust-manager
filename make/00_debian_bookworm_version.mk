@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# WARNING: Changing this file triggers a build and release of the Debian trust package for Bookworm
+# WARNING: Changing this file triggers a build and release of the Debian trust package for Bookworm (Debian 12)
 #
 # This file is used to store the latest version of the debian trust package and the DEBIAN_BUNDLE_BOOKWORM_VERSION
 # variable is automatically updated by the `upgrade-debian-trust-package-version` target and cron GH action.
