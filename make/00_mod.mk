@@ -67,7 +67,7 @@ define helm_values_mutation_function
 $(YQ) \
 	'( .image.repository = "$(oci_manager_image_name)" ) | \
 	( .image.tag = "$(oci_manager_image_tag)" ) | \
-	( .defaultPackageImage.repository = "$(oci_package_debian_image_name)" ) | \
-	( .defaultPackageImage.tag = "$(oci_package_debian_image_tag)" )' \
+	( .defaultPackageImage.repository = "$(oci_package_debian_bookworm_image_name)" ) | \
+	( .defaultPackageImage.tag = "$(oci_package_debian_bookworm_image_tag)" )' \
 	$1 --inplace
 endef
