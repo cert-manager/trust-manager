@@ -46,6 +46,8 @@ helm_chart_image_registry := $(dir $(helm_chart_image_name))
 helm_chart_image_tag := $(helm_chart_version)
 helm_chart_sources := $(shell find $(helm_chart_source_dir) -maxdepth 1 -type f) $(shell find $(helm_chart_source_dir)/templates -type f)
 helm_chart_archive := $(bin_dir)/scratch/image/$(helm_chart_name)-$(helm_chart_version).tgz
+helm_digest_path := $(bin_dir)/scratch/image/$(helm_chart_name)-$(helm_chart_version).digests
+helm_digest = $(shell head -1 $(helm_digest_path) 2> /dev/null)
 
 $(helm_chart_archive): $(helm_chart_sources) | $(NEEDS_HELM) $(NEEDS_YQ) $(bin_dir)/scratch/image
 	$(eval helm_chart_source_dir_versioned := $@.tmp)
@@ -74,8 +76,11 @@ $(helm_chart_archive): $(helm_chart_sources) | $(NEEDS_HELM) $(NEEDS_YQ) $(bin_d
 ## Will also create a non-v-prefixed tag for the OCI image.
 ## @category [shared] Publish
 helm-chart-oci-push: $(helm_chart_archive) | $(NEEDS_HELM) $(NEEDS_CRANE)
-	$(HELM) push "$(helm_chart_archive)" "oci://$(helm_chart_image_registry)"
-	$(CRANE) copy "$(helm_chart_image_name):$(helm_chart_image_tag)" "$(helm_chart_image_name):$(helm_chart_image_tag:v%=%)"
+	$(HELM) push "$(helm_chart_archive)" "oci://$(helm_chart_image_registry)" 2>&1 \
+		| grep -o "sha256:.\+" \
+		| tee $(helm_digest_path)
+
+	$(CRANE) copy "$(helm_chart_image_name)@$(call helm_digest)" "$(helm_chart_image_name):$(helm_chart_image_tag:v%=%)"
 
 .PHONY: helm-chart
 ## Create a helm chart
