@@ -151,14 +151,14 @@ repository: jetstack/cert-manager-package-debian
 #### **defaultPackageImage.repository** ~ `string`
 > Default value:
 > ```yaml
-> quay.io/jetstack/cert-manager-package-debian
+> quay.io/jetstack/trust-pkg-debian-bookworm
 > ```
 
 The repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles.
 #### **defaultPackageImage.tag** ~ `string`
 > Default value:
 > ```yaml
-> "20210119.0"
+> "20230311.0"
 > ```
 
 Override the image tag of the default package image. If no value is set, the chart's appVersion is used.

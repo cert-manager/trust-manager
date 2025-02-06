@@ -559,12 +559,12 @@
       "type": "string"
     },
     "helm-values.defaultPackageImage.repository": {
-      "default": "quay.io/jetstack/cert-manager-package-debian",
+      "default": "quay.io/jetstack/trust-pkg-debian-bookworm",
       "description": "The repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles.",
       "type": "string"
     },
     "helm-values.defaultPackageImage.tag": {
-      "default": "20210119.0",
+      "default": "20230311.0",
       "description": "Override the image tag of the default package image. If no value is set, the chart's appVersion is used.",
       "type": "string"
     },
