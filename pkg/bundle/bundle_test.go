@@ -1442,13 +1442,12 @@ func Test_Reconcile(t *testing.T) {
 				resourcePatches []interface{}
 			)
 
-			log, ctx := ktesting.NewTestContext(t)
+			_, ctx := ktesting.NewTestContext(t)
 			b := &bundle{
 				client:   fakeClient,
 				recorder: fakeRecorder,
 				clock:    fixedclock,
 				Options: Options{
-					Log:                  log,
 					Namespace:            trustNamespace,
 					SecretTargetsEnabled: !test.disableSecretTargets,
 					FilterExpiredCerts:   true,

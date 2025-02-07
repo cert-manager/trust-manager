@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,6 +33,7 @@ import (
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
@@ -43,9 +43,6 @@ import (
 
 // Options hold options for the Bundle controller.
 type Options struct {
-	// Log is the Bundle controller logger.
-	Log logr.Logger
-
 	// Namespace is the trust Namespace that source data can be referenced.
 	Namespace string
 
@@ -106,7 +103,8 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 }
 
 func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result ctrl.Result, statusPatch *trustapi.BundleStatus, returnedErr error) {
-	log := b.Log.WithValues("bundle", req.NamespacedName.Name)
+	log := logf.FromContext(ctx).WithValues("bundle", req.NamespacedName.Name)
+	ctx = logf.IntoContext(ctx, log)
 	log.V(2).Info("syncing bundle")
 
 	var bundle trustapi.Bundle
@@ -283,7 +281,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 
 	for t, shouldExist := range targetResources {
 		targetLog := log.WithValues("target", t)
-		synced, err := b.targetReconciler.Sync(ctx, t, &bundle, resolvedBundle.Data, targetLog, shouldExist)
+		synced, err := b.targetReconciler.Sync(logf.IntoContext(ctx, targetLog), t, &bundle, resolvedBundle.Data, shouldExist)
 		if err != nil {
 			targetLog.Error(err, "failed sync bundle to target namespace")
 			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, fmt.Sprintf("Sync%sTargetFailed", t.Kind), "Failed to sync target %s in Namespace %q: %s", t.Kind, t.Namespace, err)

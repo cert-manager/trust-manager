@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -71,7 +72,7 @@ func AddBundleController(
 
 		b.defaultPackage = &pkg
 
-		b.Options.Log.Info("successfully loaded default package from filesystem", "id", pkg.StringID(), "path", b.Options.DefaultPackageLocation)
+		logf.FromContext(ctx).Info("successfully loaded default package from filesystem", "id", pkg.StringID(), "path", b.Options.DefaultPackageLocation)
 	}
 
 	// Only reconcile config maps that match the well known name
@@ -191,7 +192,7 @@ func (b *bundle) enqueueRequestsFromBundleFunc(fn func(obj client.Object, bundle
 func (b *bundle) mustBundleList(ctx context.Context) *trustapi.BundleList {
 	var bundleList trustapi.BundleList
 	if err := b.client.List(ctx, &bundleList); err != nil {
-		b.Log.Error(err, "failed to list all Bundles, exiting error")
+		logf.FromContext(ctx).Error(err, "failed to list all Bundles, exiting error")
 		os.Exit(-1)
 	}
 

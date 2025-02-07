@@ -34,7 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/komega"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
@@ -96,7 +95,6 @@ var _ = Describe("Integration", func() {
 
 		By("Created trust Namespace: " + namespace.Name)
 		opts = bundle.Options{
-			Log:                    logf.Log,
 			Namespace:              namespace.Name,
 			DefaultPackageLocation: tmpFileName,
 		}
@@ -104,12 +102,12 @@ var _ = Describe("Integration", func() {
 		By("Make sure that manager is not running")
 		Expect(mgr).To(BeNil())
 
+		ctrl.SetLogger(log)
 		mgr, err = ctrl.NewManager(env.Config, ctrl.Options{
 			Scheme: trustapi.GlobalScheme,
 			// we don't need leader election for this test,
 			// there should only be one test running at a time
 			LeaderElection: false,
-			Logger:         log,
 			Controller: config.Controller{
 				// need to skip unique controller name validation
 				// since all tests need a dedicated controller
