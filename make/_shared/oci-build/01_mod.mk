@@ -22,7 +22,10 @@ IMAGE_TOOL := $(CURDIR)/$(bin_dir)/tools/image_tool
 NEEDS_IMAGE_TOOL := $(bin_dir)/tools/image_tool
 $(NEEDS_IMAGE_TOOL): $(wildcard $(image_tool_dir)/*.go) | $(NEEDS_GO)
 	cd $(image_tool_dir) && GOWORK=off GOBIN=$(CURDIR)/$(dir $@) $(GO) install .
-	
+
+$(bin_dir)/scratch/image:
+	@mkdir -p $@
+
 define ko_config_target
 .PHONY: $(ko_config_path_$1:$(CURDIR)/%=%)
 $(ko_config_path_$1:$(CURDIR)/%=%): | $(NEEDS_YQ) $(bin_dir)/scratch/image
