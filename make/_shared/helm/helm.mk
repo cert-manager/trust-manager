@@ -45,11 +45,14 @@ helm_chart_name := $(notdir $(helm_chart_image_name))
 helm_chart_image_registry := $(dir $(helm_chart_image_name))
 helm_chart_image_tag := $(helm_chart_version)
 helm_chart_sources := $(shell find $(helm_chart_source_dir) -maxdepth 1 -type f) $(shell find $(helm_chart_source_dir)/templates -type f)
-helm_chart_archive := $(bin_dir)/scratch/image/$(helm_chart_name)-$(helm_chart_version).tgz
-helm_digest_path := $(bin_dir)/scratch/image/$(helm_chart_name)-$(helm_chart_version).digests
+helm_chart_archive := $(bin_dir)/scratch/helm/$(helm_chart_name)-$(helm_chart_version).tgz
+helm_digest_path := $(bin_dir)/scratch/helm/$(helm_chart_name)-$(helm_chart_version).digests
 helm_digest = $(shell head -1 $(helm_digest_path) 2> /dev/null)
 
-$(helm_chart_archive): $(helm_chart_sources) | $(NEEDS_HELM) $(NEEDS_YQ) $(bin_dir)/scratch/image
+$(bin_dir)/scratch/helm:
+	@mkdir -p $@
+
+$(helm_chart_archive): $(helm_chart_sources) | $(NEEDS_HELM) $(NEEDS_YQ) $(bin_dir)/scratch/helm
 	$(eval helm_chart_source_dir_versioned := $@.tmp)
 	rm -rf $(helm_chart_source_dir_versioned)
 	mkdir -p $(dir $(helm_chart_source_dir_versioned))
