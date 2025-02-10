@@ -26,6 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/target"
@@ -54,7 +55,7 @@ func (b *bundle) buildSourceBundle(ctx context.Context, sources []trustapi.Bundl
 	var resolvedBundle bundleData
 	certPool := util.NewCertPool(
 		util.WithFilteredExpiredCerts(b.FilterExpiredCerts),
-		util.WithLogger(b.Log.WithName("cert-pool")),
+		util.WithLogger(logf.FromContext(ctx).WithName("cert-pool")),
 	)
 
 	for _, source := range sources {
@@ -88,7 +89,7 @@ func (b *bundle) buildSourceBundle(ctx context.Context, sources []trustapi.Bundl
 
 		// A source selector may select no configmaps/secrets, and this is not an error.
 		if errors.As(err, &selectsNothingError{}) {
-			b.Log.Info(err.Error())
+			logf.FromContext(ctx).Info(err.Error())
 			continue
 		}
 

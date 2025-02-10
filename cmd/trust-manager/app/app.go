@@ -28,6 +28,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -66,12 +67,12 @@ func NewCommand() *cobra.Command {
 				return fmt.Errorf("error creating kubernetes client: %s", err.Error())
 			}
 
-			mlog := opts.Logr.WithName("manager")
-
-			ctrl.SetLogger(mlog)
+			log := opts.NewLogger()
+			klog.SetLogger(log)
+			ctrl.SetLogger(log)
 
 			eventBroadcaster := record.NewBroadcaster()
-			eventBroadcaster.StartLogging(func(format string, args ...any) { mlog.V(3).Info(fmt.Sprintf(format, args...)) })
+			eventBroadcaster.StartLogging(func(format string, args ...any) { log.V(3).Info(fmt.Sprintf(format, args...)) })
 			eventBroadcaster.StartRecordingToSink(&clientv1.EventSinkImpl{Interface: cl.CoreV1().Events("")})
 
 			mgr, err := ctrl.NewManager(opts.RestConfig, ctrl.Options{
@@ -92,7 +93,6 @@ func NewCommand() *cobra.Command {
 				Metrics: server.Options{
 					BindAddress: fmt.Sprintf("0.0.0.0:%d", opts.MetricsPort),
 				},
-				Logger: mlog,
 				Cache: cache.Options{
 					ReaderFailOnMissingInformer: true,
 					ByObject: map[client.Object]cache.ByObject{
@@ -159,7 +159,8 @@ func NewCommand() *cobra.Command {
 			}
 
 			// Register webhook handlers with manager.
-			if err := webhook.Register(mgr, webhook.Options{Log: opts.Logr.WithName("webhook")}); err != nil {
+			log.Info("registering webhook endpoints")
+			if err := webhook.Register(mgr); err != nil {
 				return fmt.Errorf("failed to register webhook: %w", err)
 			}
 

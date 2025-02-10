@@ -29,7 +29,6 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest"
 	cliflag "k8s.io/component-base/cli/flag"
-	"k8s.io/klog/v2"
 
 	"github.com/cert-manager/trust-manager/pkg/bundle"
 
@@ -48,9 +47,6 @@ type Options struct {
 	// MetricsPort is the port for exposing Prometheus metrics on 0.0.0.0 on the
 	// path '/metrics'.
 	MetricsPort int
-
-	// Logr is the shared base logger.
-	Logr logr.Logger
 
 	// RestConfig is the shared based rest config to connect to the Kubernetes
 	// API.
@@ -126,9 +122,8 @@ func (o *Options) Prepare(cmd *cobra.Command) *Options {
 	return o
 }
 
-// Complete will populate the remaining Options from the CLI flags. Must be run
-// before consuming Options.
-func (o *Options) Complete() error {
+// NewLogger constructs a new root logger based on the CLI flags.
+func (o *Options) NewLogger() logr.Logger {
 	opts := &slog.HandlerOptions{
 		// To avoid a breaking change in application configuration,
 		// we negate the (configured) logr verbosity level to get the corresponding slog level
@@ -141,17 +136,17 @@ func (o *Options) Complete() error {
 
 	slog.SetDefault(slog.New(handler))
 
-	log := logr.FromSlogHandler(handler)
-	klog.SetLogger(log)
-	o.Logr = log.WithName("trust")
+	return logr.FromSlogHandler(handler)
+}
 
+// Complete will populate the remaining Options from the CLI flags. Must be run
+// before consuming Options.
+func (o *Options) Complete() error {
 	var err error
 	o.RestConfig, err = o.kubeConfigFlags.ToRESTConfig()
 	if err != nil {
 		return fmt.Errorf("failed to build kubernetes rest config: %s", err)
 	}
-
-	o.Bundle.Log = o.Logr.WithName("bundle")
 
 	return nil
 }

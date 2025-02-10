@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,6 +35,7 @@ import (
 	metav1applyconfig "k8s.io/client-go/applyconfigurations/meta/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/structured-merge-diff/fieldpath"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
@@ -65,14 +65,13 @@ func (r *Reconciler) Sync(
 	target Resource,
 	bundle *trustapi.Bundle,
 	resolvedBundle Data,
-	log logr.Logger,
 	shouldExist bool,
 ) (bool, error) {
 	switch target.Kind {
 	case KindConfigMap:
-		return r.syncConfigMap(ctx, target, bundle, resolvedBundle, log, shouldExist)
+		return r.syncConfigMap(ctx, target, bundle, resolvedBundle, shouldExist)
 	case KindSecret:
-		return r.syncSecret(ctx, target, bundle, resolvedBundle, log, shouldExist)
+		return r.syncSecret(ctx, target, bundle, resolvedBundle, shouldExist)
 	default:
 		return false, fmt.Errorf("don't know how to sync target of kind: %s", target.Kind)
 	}
@@ -83,7 +82,6 @@ func (r *Reconciler) syncConfigMap(
 	target Resource,
 	bundle *trustapi.Bundle,
 	resolvedBundle Data,
-	log logr.Logger,
 	shouldExist bool,
 ) (bool, error) {
 	targetObj := &metav1.PartialObjectMetadata{
@@ -133,7 +131,7 @@ func (r *Reconciler) syncConfigMap(
 	// If the resource exists, check if it is up-to-date.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
-		if exit, err := r.needsUpdate(ctx, target.Kind, log, targetObj, bundle, bundleHash); err != nil {
+		if exit, err := r.needsUpdate(ctx, target.Kind, targetObj, bundle, bundleHash); err != nil {
 			return false, err
 		} else if !exit {
 			return false, nil
@@ -151,7 +149,7 @@ func (r *Reconciler) syncConfigMap(
 		return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
 	}
 
-	log.V(2).Info(fmt.Sprintf("synced bundle to namespace for target %s", target.Kind))
+	logf.FromContext(ctx).V(2).Info("synced bundle to namespace")
 
 	return true, nil
 }
@@ -161,7 +159,6 @@ func (r *Reconciler) syncSecret(
 	target Resource,
 	bundle *trustapi.Bundle,
 	resolvedBundle Data,
-	log logr.Logger,
 	shouldExist bool,
 ) (bool, error) {
 	targetObj := &metav1.PartialObjectMetadata{
@@ -214,7 +211,7 @@ func (r *Reconciler) syncSecret(
 	// If the resource exists, check if it is up-to-date.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
-		if exit, err := r.needsUpdate(ctx, target.Kind, log, targetObj, bundle, bundleHash); err != nil {
+		if exit, err := r.needsUpdate(ctx, target.Kind, targetObj, bundle, bundleHash); err != nil {
 			return false, err
 		} else if !exit {
 			return false, nil
@@ -231,7 +228,7 @@ func (r *Reconciler) syncSecret(
 		return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
 	}
 
-	log.V(2).Info(fmt.Sprintf("synced bundle to namespace for target %s", target.Kind))
+	logf.FromContext(ctx).V(2).Info("synced bundle to namespace")
 
 	return true, nil
 }
@@ -243,7 +240,7 @@ const (
 	KindSecret    Kind = "Secret"
 )
 
-func (r *Reconciler) needsUpdate(ctx context.Context, kind Kind, log logr.Logger, obj *metav1.PartialObjectMetadata, bundle *trustapi.Bundle, bundleHash string) (bool, error) {
+func (r *Reconciler) needsUpdate(ctx context.Context, kind Kind, obj *metav1.PartialObjectMetadata, bundle *trustapi.Bundle, bundleHash string) (bool, error) {
 	needsUpdate := false
 	if !metav1.IsControlledBy(obj, bundle) {
 		needsUpdate = true
@@ -292,7 +289,7 @@ func (r *Reconciler) needsUpdate(ctx context.Context, kind Kind, log logr.Logger
 				if didMigrate, err := ssa_client.MigrateToApply(ctx, r.Client, obj); err != nil {
 					return false, fmt.Errorf("failed to migrate ConfigMap %s/%s to Apply: %w", obj.Namespace, obj.Name, err)
 				} else if didMigrate {
-					log.V(2).Info("migrated configmap from CSA to SSA")
+					logf.FromContext(ctx).V(2).Info("migrated configmap from CSA to SSA")
 					needsUpdate = true
 				}
 			}

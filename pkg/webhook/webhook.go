@@ -19,22 +19,15 @@ package webhook
 import (
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 )
 
-// Options are options for running the wehook.
-type Options struct {
-	Log logr.Logger
-}
-
 // Register the webhook endpoints against the Manager.
-func Register(mgr manager.Manager, opts Options) error {
-	opts.Log.Info("registering webhook endpoints")
-	validator := &validator{log: opts.Log.WithName("validation")}
+func Register(mgr manager.Manager) error {
+	validator := &validator{}
 	if err := builder.WebhookManagedBy(mgr).
 		For(&trustapi.Bundle{}).
 		WithValidator(validator).

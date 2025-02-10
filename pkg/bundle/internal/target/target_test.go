@@ -600,14 +600,14 @@ func Test_syncConfigMapTarget(t *testing.T) {
 				resolvedBundle.BinaryData[pkcs12Key] = pkcs12Data
 			}
 
-			log, ctx := ktesting.NewTestContext(t)
+			_, ctx := ktesting.NewTestContext(t)
 			needsUpdate, err := r.Sync(ctx, Resource{
 				Kind:           KindConfigMap,
 				NamespacedName: types.NamespacedName{Name: bundleName, Namespace: test.namespace.Name},
 			}, &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       spec,
-			}, resolvedBundle, log, test.shouldExist)
+			}, resolvedBundle, test.shouldExist)
 			assert.NoError(t, err)
 
 			assert.Equalf(t, test.expNeedsUpdate, needsUpdate, "unexpected needsUpdate, exp=%t got=%t", test.expNeedsUpdate, needsUpdate)
@@ -1212,14 +1212,14 @@ func Test_syncSecretTarget(t *testing.T) {
 				resolvedBundle.BinaryData[pkcs12Key] = pkcs12Data
 			}
 
-			log, ctx := ktesting.NewTestContext(t)
+			_, ctx := ktesting.NewTestContext(t)
 			needsUpdate, err := r.Sync(ctx, Resource{
 				Kind:           KindSecret,
 				NamespacedName: types.NamespacedName{Name: bundleName, Namespace: test.namespace.Name},
 			}, &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
 				Spec:       spec,
-			}, resolvedBundle, log, test.shouldExist)
+			}, resolvedBundle, test.shouldExist)
 			assert.NoError(t, err)
 
 			assert.Equalf(t, test.expNeedsUpdate, needsUpdate, "unexpected needsUpdate, exp=%t got=%t", test.expNeedsUpdate, needsUpdate)

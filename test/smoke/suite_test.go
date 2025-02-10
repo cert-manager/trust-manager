@@ -19,7 +19,6 @@ package smoke
 import (
 	"context"
 
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,12 +44,10 @@ var _ = Describe("Smoke", func() {
 	var (
 		ctx    context.Context
 		cancel func()
-
-		log logr.Logger
 	)
 
 	BeforeEach(func() {
-		log, ctx = ktesting.NewTestContext(GinkgoT())
+		_, ctx = ktesting.NewTestContext(GinkgoT())
 		ctx, cancel = context.WithCancel(ctx)
 	})
 
@@ -68,7 +65,6 @@ var _ = Describe("Smoke", func() {
 		testData := env.DefaultTrustData()
 
 		testBundle := env.NewTestBundleConfigMapTarget(ctx, cl, bundle.Options{
-			Log:       log,
 			Namespace: cnf.TrustNamespace,
 		}, testData)
 
@@ -88,7 +84,6 @@ var _ = Describe("Smoke", func() {
 		testData := env.DefaultTrustData()
 
 		testBundle := env.NewTestBundleSecretTarget(ctx, cl, bundle.Options{
-			Log:       log,
 			Namespace: cnf.TrustNamespace,
 		}, testData)
 
