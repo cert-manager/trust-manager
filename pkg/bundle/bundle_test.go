@@ -42,6 +42,7 @@ import (
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/target"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/truststore"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
+	"github.com/cert-manager/trust-manager/pkg/options"
 	"github.com/cert-manager/trust-manager/pkg/util"
 	"github.com/cert-manager/trust-manager/test/dummy"
 	"github.com/cert-manager/trust-manager/test/gen"
@@ -1443,14 +1444,19 @@ func Test_Reconcile(t *testing.T) {
 			)
 
 			_, ctx := ktesting.NewTestContext(t)
+			opts := options.Bundle{
+				Namespace:            trustNamespace,
+				SecretTargetsEnabled: !test.disableSecretTargets,
+				FilterExpiredCerts:   true,
+			}
 			b := &bundle{
 				client:   fakeClient,
 				recorder: fakeRecorder,
 				clock:    fixedclock,
-				Options: Options{
-					Namespace:            trustNamespace,
-					SecretTargetsEnabled: !test.disableSecretTargets,
-					FilterExpiredCerts:   true,
+				Options:  opts,
+				sources: &target.BundleBuilder{
+					Client:  fakeClient,
+					Options: opts,
 				},
 				targetReconciler: &target.Reconciler{
 					Client: fakeClient,
@@ -1466,7 +1472,7 @@ func Test_Reconcile(t *testing.T) {
 			}
 
 			if test.configureDefaultPackage {
-				b.defaultPackage = testDefaultPackage.Clone()
+				b.sources.DefaultPackage = testDefaultPackage.Clone()
 			}
 			resp, result, err := b.reconcileBundle(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: bundleName}})
 			if (err != nil) != test.expError {

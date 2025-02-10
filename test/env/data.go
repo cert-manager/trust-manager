@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
-	bundlectrl "github.com/cert-manager/trust-manager/pkg/bundle"
+	"github.com/cert-manager/trust-manager/pkg/options"
 	"github.com/cert-manager/trust-manager/pkg/util"
 	"github.com/cert-manager/trust-manager/test/dummy"
 
@@ -78,7 +78,7 @@ func DefaultTrustData() TestData {
 
 // newTestBundle creates a new Bundle in the API using the input test data.
 // Returns the create Bundle object.
-func newTestBundle(ctx context.Context, cl client.Client, opts bundlectrl.Options, td TestData, targetType string) *trustapi.Bundle {
+func newTestBundle(ctx context.Context, cl client.Client, opts options.Bundle, td TestData, targetType string) *trustapi.Bundle {
 	By("creating trust Bundle")
 
 	configMap := corev1.ConfigMap{
@@ -148,13 +148,13 @@ func newTestBundle(ctx context.Context, cl client.Client, opts bundlectrl.Option
 
 // NewTestBundleSecretTarget creates a new Bundle in the API using the input test data.
 // Returns the create Bundle object.
-func NewTestBundleSecretTarget(ctx context.Context, cl client.Client, opts bundlectrl.Options, td TestData) *trustapi.Bundle {
+func NewTestBundleSecretTarget(ctx context.Context, cl client.Client, opts options.Bundle, td TestData) *trustapi.Bundle {
 	return newTestBundle(ctx, cl, opts, td, "Secret")
 }
 
 // newTestBundleConfigMapTarget creates a new Bundle in the API using the input test data with target set to ConfigMap.
 // Returns the create Bundle object.
-func NewTestBundleConfigMapTarget(ctx context.Context, cl client.Client, opts bundlectrl.Options, td TestData) *trustapi.Bundle {
+func NewTestBundleConfigMapTarget(ctx context.Context, cl client.Client, opts options.Bundle, td TestData) *trustapi.Bundle {
 	return newTestBundle(ctx, cl, opts, td, "ConfigMap")
 }
 

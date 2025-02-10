@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust-manager/pkg/bundle"
+	"github.com/cert-manager/trust-manager/pkg/options"
 	"github.com/cert-manager/trust-manager/test/dummy"
 	"github.com/cert-manager/trust-manager/test/env"
 
@@ -64,7 +64,7 @@ var _ = Describe("Smoke", func() {
 		By("Creating Bundle for test")
 		testData := env.DefaultTrustData()
 
-		testBundle := env.NewTestBundleConfigMapTarget(ctx, cl, bundle.Options{
+		testBundle := env.NewTestBundleConfigMapTarget(ctx, cl, options.Bundle{
 			Namespace: cnf.TrustNamespace,
 		}, testData)
 
@@ -83,7 +83,7 @@ var _ = Describe("Smoke", func() {
 		By("Creating Bundle for test")
 		testData := env.DefaultTrustData()
 
-		testBundle := env.NewTestBundleSecretTarget(ctx, cl, bundle.Options{
+		testBundle := env.NewTestBundleSecretTarget(ctx, cl, options.Bundle{
 			Namespace: cnf.TrustNamespace,
 		}, testData)
 

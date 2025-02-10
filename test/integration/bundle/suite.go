@@ -39,6 +39,7 @@ import (
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
+	"github.com/cert-manager/trust-manager/pkg/options"
 	"github.com/cert-manager/trust-manager/test/dummy"
 	testenv "github.com/cert-manager/trust-manager/test/env"
 
@@ -62,7 +63,7 @@ var _ = Describe("Integration", func() {
 		cl         client.Client
 		mgr        manager.Manager
 		mgrStopped chan struct{}
-		opts       bundle.Options
+		opts       options.Bundle
 
 		testBundle *trustapi.Bundle
 		testData   testenv.TestData
@@ -94,7 +95,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, namespace)).NotTo(HaveOccurred())
 
 		By("Created trust Namespace: " + namespace.Name)
-		opts = bundle.Options{
+		opts = options.Bundle{
 			Namespace:              namespace.Name,
 			DefaultPackageLocation: tmpFileName,
 		}
