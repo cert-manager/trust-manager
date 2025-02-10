@@ -599,6 +599,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 				}
 				resolvedBundle.BinaryData[pkcs12Key] = pkcs12Data
 			}
+			resolvedBundle.Hash = TrustBundleHash([]byte(data), spec.Target.AdditionalFormats)
 
 			_, ctx := ktesting.NewTestContext(t)
 			needsUpdate, err := r.Sync(ctx, Resource{
@@ -1211,6 +1212,7 @@ func Test_syncSecretTarget(t *testing.T) {
 				}
 				resolvedBundle.BinaryData[pkcs12Key] = pkcs12Data
 			}
+			resolvedBundle.Hash = TrustBundleHash([]byte(data), spec.Target.AdditionalFormats)
 
 			_, ctx := ktesting.NewTestContext(t)
 			needsUpdate, err := r.Sync(ctx, Resource{
