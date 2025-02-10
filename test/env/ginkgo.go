@@ -17,9 +17,7 @@ limitations under the License.
 package env
 
 import (
-	"fmt"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -35,18 +33,6 @@ func init() {
 func RunSuite(t *testing.T, suiteName, artifactDir string) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
-	// NB: ARTIFACTS is set in prow jobs to a location which prow uses when consuming reports
-	// see: https://docs.prow.k8s.io/docs/jobs/#job-environment-variables
-	if path := os.Getenv("ARTIFACTS"); len(path) > 0 {
-		artifactDir = path
-	}
-
-	if err := os.MkdirAll(artifactDir, 0o775); err != nil {
-		t.Fatalf("failed to ensure artifactDir %q exists to store reports in: %s", artifactDir, err.Error())
-	}
-
-	junitDestination := filepath.Join(artifactDir, fmt.Sprintf("junit-go-%s.xml", suiteName))
-
 	suiteConfig, reporterConfig := ginkgo.GinkgoConfiguration()
 
 	// NB: CI is set in prow jobs
@@ -55,8 +41,6 @@ func RunSuite(t *testing.T, suiteName, artifactDir string) {
 		reporterConfig.NoColor = true
 		reporterConfig.Verbose = true
 	}
-
-	reporterConfig.JUnitReport = junitDestination
 
 	suiteConfig.RandomizeAllSpecs = true
 
