@@ -18,7 +18,7 @@
 test-integration: | $(NEEDS_GOTESTSUM) $(NEEDS_ETCD) $(NEEDS_KUBE-APISERVER) $(NEEDS_KUBECTL) $(ARTIFACTS)
 	KUBEBUILDER_ASSETS=$(CURDIR)/$(bin_dir)/tools \
 	$(GOTESTSUM) \
-		--junitfile=$(ARTIFACTS)/junit-go-e2e.xml \
+		--junitfile=$(ARTIFACTS)/junit-go-integration.xml \
 		-- \
 		-coverprofile=$(ARTIFACTS)/filtered.cov \
 		./test/integration/... \
