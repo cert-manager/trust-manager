@@ -38,7 +38,7 @@ As well as the trust-manager container images, we also publish a trust package i
 
 This repo will produce the following artifacts each release. For documentation on how those artifacts are produced see the "Process" section.
 
-- *Container Images* - Container images for the are published to `quay.io/jetstack`. 
+- *Container Images* - Container images for the are published to `quay.io/jetstack`.
 - *Helm chart* - An official Helm chart is maintained within this repo and published to `quay.io/jetstack` and `charts.jetstack.io` on each release.
 
 [release workflow]: https://github.com/cert-manager/trust-manager/actions/workflows/release.yaml
