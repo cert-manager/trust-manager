@@ -78,11 +78,11 @@ func NewCommand() *cobra.Command {
 			mgr, err := ctrl.NewManager(opts.RestConfig, ctrl.Options{
 				Scheme:                        trustapi.GlobalScheme,
 				EventBroadcaster:              eventBroadcaster,
-				LeaderElection:                opts.LeaderElection,
+				LeaderElection:                opts.LeaderElectionConfig.Enabled,
 				LeaderElectionID:              "trust-manager-leader-election",
 				LeaderElectionReleaseOnCancel: true,
-				LeaseDuration:                 &opts.LeaseDuration,
-				RenewDeadline:                 &opts.RenewDeadline,
+				LeaseDuration:                 &opts.LeaderElectionConfig.LeaseDuration,
+				RenewDeadline:                 &opts.LeaderElectionConfig.RenewDeadline,
 				ReadinessEndpointName:         opts.ReadyzPath,
 				HealthProbeBindAddress:        fmt.Sprintf("0.0.0.0:%d", opts.ReadyzPort),
 				WebhookServer: ctrlwebhook.NewServer(ctrlwebhook.Options{

@@ -206,6 +206,8 @@ app:
   logLevel: 1
 
   leaderElection:
+    # Whether to enable leader election for trust-manager.
+    enabled: true
     # The duration that non-leader candidates will wait to force acquire leadership.
     # The default should be sufficient in a healthy cluster but can be slightly increased to prevent trust-manager from restart-looping when the API server is overloaded.
     leaseDuration: 15s
