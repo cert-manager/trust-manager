@@ -463,32 +463,6 @@ The nodePort set on the Service used by the webhook.
 > ```
 
 Whether to issue a webhook cert using Helm, which removes the need to install cert-manager. Helm-issued certificates can be challenging to rotate and maintain, and the issued cert will have a duration of 10 years and be modified when trust-manager is updated. It's safer and easier to rely on cert-manager for issuing the webhook cert - avoid using Helm-generated certs in production.
-#### **app.webhook.tls.approverPolicy.enabled** ~ `bool`
-> Default value:
-> ```yaml
-> false
-> ```
-
-Whether to create an approver-policy CertificateRequestPolicy allowing auto-approval of the trust-manager webhook certificate. If you have approver-policy installed, you almost certainly want to enable this.
-#### **app.webhook.tls.approverPolicy.certManagerNamespace** ~ `string`
-> Default value:
-> ```yaml
-> cert-manager
-> ```
-
-The namespace in which cert-manager was installed. Only used if `app.webhook.tls.approverPolicy.enabled` is true.
-#### **app.webhook.tls.approverPolicy.certManagerServiceAccount** ~ `string`
-> Default value:
-> ```yaml
-> cert-manager
-> ```
-
-The name of cert-manager's Service Account. Only used if `app.webhook.tls.approverPolicy.enabled` is true.
-#### **app.webhook.tls.certificate.secretTemplate** ~ `object`
-> Default value:
-> ```yaml
-> {}
-> ```
 #### **app.webhook.hostNetwork** ~ `bool`
 > Default value:
 > ```yaml

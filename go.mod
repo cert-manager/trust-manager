@@ -3,6 +3,7 @@ module github.com/cert-manager/trust-manager
 go 1.23.0
 
 require (
+	github.com/erikgb/dynamic-authority v0.0.0-20241105063705-d20d55e85d05
 	github.com/go-logr/logr v1.4.2
 	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
