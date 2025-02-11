@@ -1,4 +1,4 @@
-name: debian-trust-package-release
+name: debian-trust-package-release-bullseye
 on:
   push:
     branches: ['main']
