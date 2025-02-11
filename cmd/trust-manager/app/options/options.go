@@ -64,6 +64,9 @@ type Options struct {
 	// Leader election lease duration
 	LeaseDuration time.Duration
 
+	// Leader election if leader election is enabled
+	LeaderElection bool
+
 	// Leader election lease renew duration
 	RenewDeadline time.Duration
 }
@@ -200,6 +203,10 @@ func (o *Options) addAppFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&o.MetricsPort,
 		"metrics-port", 9402,
 		"Port to expose Prometheus metrics on 0.0.0.0 on path '/metrics'.")
+
+	fs.BoolVar(&o.LeaderElection,
+		"leader-election", true,
+		"Enable leader election for trust manager.")
 }
 
 func (o *Options) addBundleFlags(fs *pflag.FlagSet) {

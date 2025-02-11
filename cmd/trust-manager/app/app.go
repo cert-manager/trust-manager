@@ -78,7 +78,7 @@ func NewCommand() *cobra.Command {
 			mgr, err := ctrl.NewManager(opts.RestConfig, ctrl.Options{
 				Scheme:                        trustapi.GlobalScheme,
 				EventBroadcaster:              eventBroadcaster,
-				LeaderElection:                true,
+				LeaderElection:                opts.LeaderElection,
 				LeaderElectionID:              "trust-manager-leader-election",
 				LeaderElectionReleaseOnCancel: true,
 				LeaseDuration:                 &opts.LeaseDuration,
