@@ -36,8 +36,8 @@ import (
 )
 
 type LeaderElectionConfig struct {
-	// If true, cert-manager will perform leader election between instances to
-	// ensure no more than one instance of cert-manager operates at a time
+	// If true, trust-manager will perform leader election between instances to
+	// ensure no more than one instance of trust-manager operates at a time
 	Enabled bool
 
 	// The duration that non-leader candidates will wait after observing a leadership
