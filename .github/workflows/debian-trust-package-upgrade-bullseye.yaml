@@ -1,5 +1,5 @@
-name: debian-trust-package-upgrade
-concurrency: debian-trust-package-upgrade
+name: debian-trust-package-upgrade-bullseye
+concurrency: debian-trust-package-upgrade-bullseye
 on:
   workflow_dispatch: {}
   schedule:
