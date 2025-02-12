@@ -83,6 +83,7 @@ spec:
           - "--metrics-port={{.Values.app.metrics.port}}"
           - "--readiness-probe-port={{.Values.app.readinessProbe.port}}"
           - "--readiness-probe-path={{.Values.app.readinessProbe.path}}"
+          - "--leader-elect={{.Values.app.leaderElection.enabled}}"
           - "--leader-election-lease-duration={{.Values.app.leaderElection.leaseDuration}}"
           - "--leader-election-renew-deadline={{.Values.app.leaderElection.renewDeadline}}"
             # trust

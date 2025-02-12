@@ -352,6 +352,13 @@ The format of trust-manager logging. Accepted values are text or json.
 > ```
 
 The verbosity of trust-manager logging. This takes a value from 1-5, with the higher value being more verbose.
+#### **app.leaderElection.enabled** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
+
+Whether to enable leader election for trust-manager.
 #### **app.leaderElection.leaseDuration** ~ `string`
 > Default value:
 > ```yaml

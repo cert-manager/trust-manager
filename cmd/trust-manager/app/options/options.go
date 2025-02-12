@@ -35,6 +35,24 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
+type LeaderElectionConfig struct {
+	// If true, trust-manager will perform leader election between instances to
+	// ensure no more than one instance of trust-manager operates at a time
+	Enabled bool
+
+	// The duration that non-leader candidates will wait after observing a leadership
+	// renewal until attempting to acquire leadership of a led but unrenewed leader
+	// slot. This is effectively the maximum duration that a leader can be stopped
+	// before it is replaced by another candidate. This is only applicable if leader
+	// election is enabled.
+	LeaseDuration time.Duration
+
+	// The interval between attempts by the acting master to renew a leadership slot
+	// before it stops leading. This must be less than or equal to the lease duration.
+	// This is only applicable if leader election is enabled.
+	RenewDeadline time.Duration
+}
+
 // Options is a struct to hold options for trust-manager
 type Options struct {
 	kubeConfigFlags *genericclioptions.ConfigFlags
@@ -61,11 +79,7 @@ type Options struct {
 	// log are options controlling logging
 	log logOptions
 
-	// Leader election lease duration
-	LeaseDuration time.Duration
-
-	// Leader election lease renew duration
-	RenewDeadline time.Duration
+	LeaderElectionConfig LeaderElectionConfig
 }
 
 type logOptions struct {
@@ -189,13 +203,17 @@ func (o *Options) addAppFlags(fs *pflag.FlagSet) {
 		"readiness-probe-path", "/readyz",
 		"HTTP path to expose the readiness probe server.")
 
-	fs.DurationVar(&o.LeaseDuration,
+	fs.BoolVar(&o.LeaderElectionConfig.Enabled, "leader-elect", true, ""+
+		"If true, trust-manager will perform leader election between instances to ensure no more "+
+		"than one instance of trust-manager operates at a time")
+
+	fs.DurationVar(&o.LeaderElectionConfig.LeaseDuration,
 		"leader-election-lease-duration", time.Second*15,
 		"Lease duration for leader election")
 
-	fs.DurationVar(&o.RenewDeadline,
+	fs.DurationVar(&o.LeaderElectionConfig.RenewDeadline,
 		"leader-election-renew-deadline", time.Second*10,
-		"Lease renew deadline for leader election")
+		"Lease renew deadline for leader election.")
 
 	fs.IntVar(&o.MetricsPort,
 		"metrics-port", 9402,

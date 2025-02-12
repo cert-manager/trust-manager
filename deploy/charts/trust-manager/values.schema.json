@@ -122,6 +122,9 @@
     "helm-values.app.leaderElection": {
       "additionalProperties": false,
       "properties": {
+        "enabled": {
+          "$ref": "#/$defs/helm-values.app.leaderElection.enabled"
+        },
         "leaseDuration": {
           "$ref": "#/$defs/helm-values.app.leaderElection.leaseDuration"
         },
@@ -130,6 +133,11 @@
         }
       },
       "type": "object"
+    },
+    "helm-values.app.leaderElection.enabled": {
+      "default": true,
+      "description": "Whether to enable leader election for trust-manager.",
+      "type": "boolean"
     },
     "helm-values.app.leaderElection.leaseDuration": {
       "default": "15s",
