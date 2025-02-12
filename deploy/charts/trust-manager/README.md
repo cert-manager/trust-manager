@@ -338,6 +338,20 @@ topologySpreadConstraints:
 > ```
 
 Whether to filter expired certificates from the trust bundle.
+#### **app.minTLSVersion** ~ `string`
+> Default value:
+> ```yaml
+> ""
+> ```
+
+Minimum TLS version supported. If omitted, the default Go minimum version will be used.
+#### **app.ciphersSuite** ~ `string`
+> Default value:
+> ```yaml
+> ""
+> ```
+
+Comma-separated list of cipher suites for the server. If omitted, the default Go cipher suites will be used.
 #### **app.logFormat** ~ `string`
 > Default value:
 > ```yaml

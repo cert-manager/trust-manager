@@ -17,10 +17,12 @@ limitations under the License.
 package options
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -80,6 +82,24 @@ type Options struct {
 	log logOptions
 
 	LeaderElectionConfig LeaderElectionConfig
+
+	// Leader election lease duration
+	LeaseDuration time.Duration
+
+	// Leader election lease renew duration
+	RenewDeadline time.Duration
+
+	// minTLSVersion is the minimum TLS version supported.
+	// Values are from tls package constants (https://golang.org/pkg/crypto/tls/#pkg-constants).
+	// If not specified, the default for the Go version will be used and may change over time.
+	MinTLSVersion string
+
+	// cipherSuites is the list of allowed cipher suites for the webhook server.
+	// Values are from tls package constants (https://golang.org/pkg/crypto/tls/#pkg-constants).
+	// If not specified, the default for the Go version will be used and may change over time.
+	CipherSuite []string
+
+	TLSConfig tls.Config
 }
 
 type logOptions struct {
@@ -173,6 +193,7 @@ func (o *Options) addFlags(cmd *cobra.Command) {
 	o.addBundleFlags(nfs.FlagSet("Bundle"))
 	o.addLoggingFlags(nfs.FlagSet("Logging"))
 	o.addWebhookFlags(nfs.FlagSet("Webhook"))
+	o.addTLSConfigFlags(nfs.FlagSet("TLSConfig"))
 	o.kubeConfigFlags = genericclioptions.NewConfigFlags(true)
 	o.kubeConfigFlags.AddFlags(nfs.FlagSet("Kubernetes"))
 
@@ -260,4 +281,20 @@ func (o *Options) addWebhookFlags(fs *pflag.FlagSet) {
 		"Directory where the Webhook certificate and private key are located. "+
 			"Certificate and private key must be named 'tls.crt' and 'tls.key' "+
 			"respectively.")
+}
+
+func (o *Options) addTLSConfigFlags(fs *pflag.FlagSet) {
+	tlsPossibleVersions := cliflag.TLSPossibleVersions()
+	fs.StringVar(&o.MinTLSVersion,
+		"tls-min-version", "",
+		"Minimum TLS version supported. "+
+			"If omitted, the default Go minimum version will be used. "+
+			"Possible values: "+strings.Join(tlsPossibleVersions, ","))
+
+	tlsCipherPossibleValues := cliflag.TLSCipherPossibleValues()
+	fs.StringSliceVar(&o.CipherSuite,
+		"tls-cipher-suites", nil,
+		"Comma-separated list of cipher suites for the server. "+
+			"If omitted, the default Go cipher suites will be used. "+
+			"Possible values: "+strings.Join(tlsCipherPossibleValues, ","))
 }
