@@ -17,6 +17,7 @@ limitations under the License.
 package app
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
@@ -28,6 +29,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
+	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -89,6 +91,25 @@ func NewCommand() *cobra.Command {
 					Port:    opts.Webhook.Port,
 					Host:    opts.Webhook.Host,
 					CertDir: opts.Webhook.CertDir,
+					TLSOpts: []func(*tls.Config){
+						func(c *tls.Config) {
+							// Get Minimum TLS version from CLI arguments
+							c.MinVersion, err = cliflag.TLSVersion(opts.MinTLSVersion)
+							if err != nil {
+								log.Error(err, "error parsing minimum TLS version")
+							}
+
+							// Note that TLS 1.3 ciphersuites are not configurable.
+							if c.MinVersion == tls.VersionTLS13 {
+								return
+							}
+
+							c.CipherSuites, err = cliflag.TLSCipherSuites(opts.CipherSuite)
+							if err != nil {
+								log.Error(err, "error parsing cipher suites")
+							}
+						},
+					},
 				}),
 				Metrics: server.Options{
 					BindAddress: fmt.Sprintf("0.0.0.0:%d", opts.MetricsPort),
