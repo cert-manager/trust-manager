@@ -101,6 +101,9 @@
         "podAnnotations": {
           "$ref": "#/$defs/helm-values.app.podAnnotations"
         },
+        "podSecurityContext": {
+          "$ref": "#/$defs/helm-values.app.podSecurityContext"
+        },
         "podLabels": {
           "$ref": "#/$defs/helm-values.app.podLabels"
         },
@@ -267,6 +270,11 @@
     "helm-values.app.podAnnotations": {
       "default": {},
       "description": "Pod annotations to add to trust-manager pods.",
+      "type": "object"
+    },
+    "helm-values.app.podSecurityContext": {
+      "default": null,
+      "description": "Pod level security context to add to trust-manager pods.",
       "type": "object"
     },
     "helm-values.app.podLabels": {
