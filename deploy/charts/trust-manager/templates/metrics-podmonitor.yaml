@@ -1,0 +1,35 @@
+{{- if and .Values.app.metrics.podmonitor.enabled .Values.app.metrics.service.servicemonitor.enabled }}
+{{- fail "Either .Values.app.metrics.podmonitor.enabled or .Values.app.metrics.service.servicemonitor.enabled can be enabled at a time, but not both." }}
+{{- else if .Values.app.metrics.podmonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name:  {{ include "trust-manager.name" . }}
+  namespace: {{ include "trust-manager.namespace" . }}
+  labels:
+    app: {{ include "trust-manager.name" . }}
+{{ include "trust-manager.labels" . | indent 4 }}
+    prometheus: {{ .Values.app.metrics.podmonitor.prometheusInstance }}
+{{- if .Values.app.metrics.podmonitor.labels }}
+{{ toYaml .Values.app.metrics.podmonitor.labels | indent 4}}
+{{- end }}
+{{- if .Values.app.metrics.podmonitor.annotations }}
+  annotations:
+    {{- with .Values.app.metrics.podmonitor.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}
+spec:
+  jobLabel: {{ include "trust-manager.name" . }}
+  selector:
+    matchLabels:
+      app: {{ include "trust-manager.name" . }}
+  namespaceSelector:
+    matchNames:
+      - {{ include "trust-manager.namespace" . }}
+  podMetricsEndpoints:
+    - port: {{ .Values.app.metrics.port }}
+      path: "/metrics"
+      interval: {{ .Values.app.metrics.podmonitor.interval }}
+      scrapeTimeout: {{ .Values.app.metrics.podmonitor.scrapeTimeout }}
+{{- end }}
