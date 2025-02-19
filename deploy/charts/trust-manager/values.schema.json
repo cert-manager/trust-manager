@@ -86,6 +86,9 @@
     "helm-values.app": {
       "additionalProperties": false,
       "properties": {
+        "ciphersSuite": {
+          "$ref": "#/$defs/helm-values.app.ciphersSuite"
+        },
         "leaderElection": {
           "$ref": "#/$defs/helm-values.app.leaderElection"
         },
@@ -97,6 +100,9 @@
         },
         "metrics": {
           "$ref": "#/$defs/helm-values.app.metrics"
+        },
+        "minTLSVersion": {
+          "$ref": "#/$defs/helm-values.app.minTLSVersion"
         },
         "podAnnotations": {
           "$ref": "#/$defs/helm-values.app.podAnnotations"
@@ -118,6 +124,11 @@
         }
       },
       "type": "object"
+    },
+    "helm-values.app.ciphersSuite": {
+      "default": "",
+      "description": "Comma-separated list of cipher suites for the server. If omitted, the default Go cipher suites will be used.",
+      "type": "string"
     },
     "helm-values.app.leaderElection": {
       "additionalProperties": false,
@@ -262,6 +273,11 @@
     "helm-values.app.metrics.service.type": {
       "default": "ClusterIP",
       "description": "The Service type to expose metrics.",
+      "type": "string"
+    },
+    "helm-values.app.minTLSVersion": {
+      "default": "",
+      "description": "Minimum TLS version supported. If omitted, the default Go minimum version will be used.",
       "type": "string"
     },
     "helm-values.app.podAnnotations": {
