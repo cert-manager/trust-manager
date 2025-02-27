@@ -17,14 +17,24 @@ limitations under the License.
 package test
 
 import (
+	"context"
+	"crypto/tls"
+	"fmt"
+	"net"
 	"path"
+	"time"
 
+	admissionv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	ctrlwebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/webhook"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -42,16 +52,80 @@ var _ = BeforeSuite(func() {
 		CRDDirectoryPaths: []string{
 			path.Join("..", "..", "..", "deploy", "crds"),
 		},
+		WebhookInstallOptions: envtest.WebhookInstallOptions{
+			ValidatingWebhooks: []*admissionv1.ValidatingWebhookConfiguration{validatingWebhookConfiguration()},
+		},
 		ErrorIfCRDPathMissing: true,
 		Scheme:                trustapi.GlobalScheme,
 	}
 
-	_, err := env.Start()
+	cfg, err := env.Start()
 	Expect(err).NotTo(HaveOccurred())
 	if err != nil {
 		env = nil // prevent AfterSuite from trying to stop it
 	}
+
+	// start webhook server using Manager
+	webhookInstallOptions := &env.WebhookInstallOptions
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+		Scheme: trustapi.GlobalScheme,
+		WebhookServer: ctrlwebhook.NewServer(ctrlwebhook.Options{
+			Host:    webhookInstallOptions.LocalServingHost,
+			Port:    webhookInstallOptions.LocalServingPort,
+			CertDir: webhookInstallOptions.LocalServingCertDir,
+		}),
+		LeaderElection: false,
+		Metrics:        server.Options{BindAddress: "0"},
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	Expect(webhook.Register(mgr)).Should(Succeed())
+
+	go func() {
+		err = mgr.Start(context.TODO())
+		Expect(err).NotTo(HaveOccurred())
+	}()
+
+	// wait for the webhook server to get ready
+	dialer := &net.Dialer{Timeout: time.Second}
+	addrPort := fmt.Sprintf("%s:%d", webhookInstallOptions.LocalServingHost, webhookInstallOptions.LocalServingPort)
+	Eventually(func() error {
+		conn, err := tls.DialWithDialer(dialer, "tcp", addrPort, &tls.Config{InsecureSkipVerify: true}) // #nosec G402
+		if err != nil {
+			return err
+		}
+		return conn.Close()
+	}).Should(Succeed())
 })
+
+// validatingWebhookConfiguration creates a simplified validating webhook configuration.
+// We should ideally use the "real" configuration, but it's currently sourced from a Helm template only,
+// which is not supported by envtest.
+func validatingWebhookConfiguration() *admissionv1.ValidatingWebhookConfiguration {
+	v := &admissionv1.ValidatingWebhookConfiguration{}
+	v.Name = "trust-manager"
+	v.Webhooks = []admissionv1.ValidatingWebhook{{
+		Name: "trust.cert-manager.io",
+		Rules: []admissionv1.RuleWithOperations{{
+			Rule: admissionv1.Rule{
+				APIGroups:   []string{trustapi.SchemeGroupVersion.Group},
+				APIVersions: []string{"*"},
+				Resources:   []string{"*/*"},
+			},
+			Operations: []admissionv1.OperationType{admissionv1.Create, admissionv1.Update},
+		}},
+		SideEffects:             ptr.To(admissionv1.SideEffectClassNone),
+		AdmissionReviewVersions: []string{"v1"},
+		ClientConfig: admissionv1.WebhookClientConfig{
+			Service: &admissionv1.ServiceReference{
+				Namespace: "cert-manager",
+				Name:      "trust-manager",
+				Path:      ptr.To("/validate-trust-cert-manager-io-v1alpha1-bundle"),
+			},
+		},
+	}}
+	return v
+}
 
 var _ = AfterSuite(func() {
 	if env == nil {
