@@ -229,60 +229,41 @@ spec:
                 target:
                   description: Target is the target location in all namespaces to sync source data to.
                   properties:
-                    additionalFormats:
-                      description: AdditionalFormats specifies any additional formats to write to the target
-                      properties:
-                        jks:
-                          description: |-
-                            JKS requests a JKS-formatted binary trust bundle to be written to the target.
-                            The bundle has "changeit" as the default password.
-                            For more information refer to this link https://cert-manager.io/docs/faq/#keystore-passwords
-                          properties:
-                            key:
-                              description: Key is the key of the entry in the object's `data` field to be used.
-                              minLength: 1
-                              type: string
-                            password:
-                              default: changeit
-                              description: Password for JKS trust store
-                              maxLength: 128
-                              minLength: 1
-                              type: string
-                          required:
-                            - key
-                          type: object
-                          x-kubernetes-map-type: atomic
-                        pkcs12:
-                          description: |-
-                            PKCS12 requests a PKCS12-formatted binary trust bundle to be written to the target.
-                            The bundle is by default created without a password.
-                          properties:
-                            key:
-                              description: Key is the key of the entry in the object's `data` field to be used.
-                              minLength: 1
-                              type: string
-                            password:
-                              default: ""
-                              description: Password for PKCS12 trust store
-                              maxLength: 128
-                              type: string
-                          required:
-                            - key
-                          type: object
-                          x-kubernetes-map-type: atomic
-                      type: object
                     configMap:
                       description: |-
                         ConfigMap is the target ConfigMap in Namespaces that all Bundle source
                         data will be synced to.
-                      properties:
-                        key:
-                          description: Key is the key of the entry in the object's `data` field to be used.
-                          minLength: 1
-                          type: string
-                      required:
+                      items:
+                        description: TargetKey is the specification of a key in a target configmap/secret.
+                        properties:
+                          format:
+                            default: PEM
+                            description: Format defines the bundle format
+                            enum:
+                              - PEM
+                              - JKS
+                              - PKCS12
+                            type: string
+                          key:
+                            description: Key is the key of the entry in the object's `data` field to be used.
+                            minLength: 1
+                            type: string
+                          password:
+                            description: |-
+                              Password used to encrypt truststore if Format is JKS or PKCS12.
+                              Default password for JKS truststore is `changeit`.
+                              For PKCS#12 the truststore is by default created without a password.
+                            maxLength: 128
+                            minLength: 1
+                            type: string
+                        required:
+                          - key
+                        type: object
+                      minItems: 1
+                      type: array
+                      x-kubernetes-list-map-keys:
                         - key
-                      type: object
+                      x-kubernetes-list-type: map
                     namespaceSelector:
                       description: |-
                         NamespaceSelector will, if set, only sync the target resource in
@@ -334,14 +315,39 @@ spec:
                         Secret is the target Secret that all Bundle source data will be synced to.
                         Using Secrets as targets is only supported if enabled at trust-manager startup.
                         By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
-                      properties:
-                        key:
-                          description: Key is the key of the entry in the object's `data` field to be used.
-                          minLength: 1
-                          type: string
-                      required:
+                      items:
+                        description: TargetKey is the specification of a key in a target configmap/secret.
+                        properties:
+                          format:
+                            default: PEM
+                            description: Format defines the bundle format
+                            enum:
+                              - PEM
+                              - JKS
+                              - PKCS12
+                            type: string
+                          key:
+                            description: Key is the key of the entry in the object's `data` field to be used.
+                            minLength: 1
+                            type: string
+                          password:
+                            description: |-
+                              Password used to encrypt truststore if Format is JKS or PKCS12.
+                              Default password for JKS truststore is `changeit`.
+                              For PKCS#12 the truststore is by default created without a password.
+                            maxLength: 128
+                            minLength: 1
+                            type: string
+                        required:
+                          - key
+                        type: object
+                      minItems: 1
+                      type: array
+                      x-kubernetes-list-map-keys:
                         - key
-                      type: object
+                      x-kubernetes-list-type: map
+                  required:
+                    - namespaceSelector
                   type: object
               required:
                 - sources
