@@ -62,6 +62,7 @@ type BundleSpec struct {
 	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
+	// +kubebuilder:validation:XValidation:rule="size(self.filter(s, has(s.useDefaultCAs) && s.useDefaultCAs)) <= 1", message="must request default CAs at most once"
 	Sources []BundleSource `json:"sources"`
 
 	// Target is the target location in all namespaces to sync source data to.
@@ -71,6 +72,7 @@ type BundleSpec struct {
 // BundleSource is the set of sources whose data will be appended and synced to
 // the BundleTarget in all Namespaces.
 // +structType=atomic
+// +kubebuilder:validation:XValidation:rule="[has(self.configMap), has(self.secret), has(self.inLine), has(self.useDefaultCAs) && self.useDefaultCAs].exists_one(x,x)", message="must define exactly one source"
 type BundleSource struct {
 	// ConfigMap is a reference (by name) to a ConfigMap's `data` key(s), or to a
 	// list of ConfigMap's `data` key(s) using label selector, in the trust Namespace.
@@ -100,6 +102,9 @@ type BundleSource struct {
 
 // BundleTarget is the target resource that the Bundle will sync all source
 // data to.
+// +kubebuilder:validation:XValidation:rule="[has(self.configMap), has(self.secret)].exists(x,x)", message="must define at least one target configMap/secret"
+// +kubebuilder:validation:XValidation:rule="!has(self.additionalFormats) || ![has(self.additionalFormats.jks), has(self.additionalFormats.pkcs12)].all(x,x) || self.additionalFormats.jks.key != self.additionalFormats.pkcs12.key", message="additional format keys must be unique"
+// +kubebuilder:validation:XValidation:rule="!has(self.additionalFormats) || !((has(self.configMap) ? [self.configMap.key] : []) + (has(self.secret) ? [self.secret.key] : [])).exists(k,(has(self.additionalFormats.jks) && self.additionalFormats.jks.key == k) || (has(self.additionalFormats.pkcs12) && self.additionalFormats.pkcs12.key == k))", message="additional format keys must be different from configMap/secret keys"
 type BundleTarget struct {
 	// ConfigMap is the target ConfigMap in Namespaces that all Bundle source
 	// data will be synced to.
@@ -163,6 +168,8 @@ type PKCS12 struct {
 // SourceObjectKeySelector is a reference to a source object and its `data` key(s)
 // in the trust Namespace.
 // +structType=atomic
+// +kubebuilder:validation:XValidation:rule="[has(self.name), has(self.selector)].exists_one(x,x)", message="must specify one and only one of {name, selector}"
+// +kubebuilder:validation:XValidation:rule="[has(self.key), has(self.includeAllKeys) && self.includeAllKeys].exists_one(x,x)", message="must specify key or includeAllKeys"
 type SourceObjectKeySelector struct {
 	// Name is the name of the source object in the trust Namespace.
 	// This field must be left empty when `selector` is set
