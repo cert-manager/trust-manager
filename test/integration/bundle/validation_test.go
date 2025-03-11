@@ -67,34 +67,36 @@ var _ = Describe("Bundle Validation", func() {
 				{UseDefaultCAs: ptr.To(true)},
 			}
 
-			expectedErr := "spec.sources: Forbidden: must request default CAs either once or not at all but got 2 requests"
+			expectedErr := "spec.sources: Invalid value: \"array\": must request default CAs at most once"
 			Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
 		})
 	})
 
 	Context("Source item", func() {
 		DescribeTable("should require exactly one source",
-			func(source trustapi.BundleSource, wantErr string) {
+			func(source trustapi.BundleSource, wantErr bool) {
 				bundle.Spec.Sources = []trustapi.BundleSource{source}
-				if wantErr != "" {
-					Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(wantErr)))
+				if wantErr {
+					expectedErr := "spec.sources[0]: Invalid value: \"object\": must define exactly one source"
+					Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
 				} else {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
 				}
 			},
-			Entry("when none set", trustapi.BundleSource{}, "spec.sources.[0]: Forbidden: must define exactly one source type for each item but found 0 defined types, spec.sources: Forbidden: must define at least one source"),
-			Entry("when configMap set", trustapi.BundleSource{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "ca", Key: "ca.crt"}}, ""),
-			Entry("when secret set", trustapi.BundleSource{Secret: &trustapi.SourceObjectKeySelector{Name: "ca", Key: "ca.crt"}}, ""),
-			Entry("when inLine set", trustapi.BundleSource{InLine: ptr.To("")}, ""),
-			Entry("when useDefaultCAs=true set", trustapi.BundleSource{UseDefaultCAs: ptr.To(true)}, ""),
-			Entry("when useDefaultCAs=false set", trustapi.BundleSource{UseDefaultCAs: ptr.To(false)}, "spec.sources: Forbidden: must define at least one source"),
-			Entry("when multiple set", trustapi.BundleSource{InLine: ptr.To(""), UseDefaultCAs: ptr.To(true)}, "spec.sources.[0]: Forbidden: must define exactly one source type for each item but found 2 defined types"),
+			Entry("when none set", trustapi.BundleSource{}, true),
+			Entry("when configMap set", trustapi.BundleSource{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "ca", Key: "ca.crt"}}, false),
+			Entry("when secret set", trustapi.BundleSource{Secret: &trustapi.SourceObjectKeySelector{Name: "ca", Key: "ca.crt"}}, false),
+			Entry("when inLine set", trustapi.BundleSource{InLine: ptr.To("")}, false),
+			Entry("when useDefaultCAs=true set", trustapi.BundleSource{UseDefaultCAs: ptr.To(true)}, false),
+			Entry("when useDefaultCAs=false set", trustapi.BundleSource{UseDefaultCAs: ptr.To(false)}, true),
+			Entry("when multiple set", trustapi.BundleSource{InLine: ptr.To(""), UseDefaultCAs: ptr.To(true)}, true),
 		)
 	})
 
 	Context("Source object item", func() {
 		var (
 			selectorAccessor func(*trustapi.SourceObjectKeySelector)
+			field            string
 		)
 
 		BeforeEach(func() {
@@ -107,8 +109,8 @@ var _ = Describe("Bundle Validation", func() {
 					selector.Key = "ca.crt"
 					selectorAccessor(selector)
 					if wantErr {
-						expectedErr := "must validate one and only one schema (oneOf): [name, selector]"
-						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
+						expectedErr := "spec.sources[0].%s: Invalid value: \"object\": must specify one and only one of {name, selector}"
+						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr, field)))
 					} else {
 						Expect(cl.Create(ctx, bundle)).To(Succeed())
 					}
@@ -124,8 +126,8 @@ var _ = Describe("Bundle Validation", func() {
 					selector.Name = "ca"
 					selectorAccessor(selector)
 					if wantErr {
-						expectedErr := "be defined when includeAllKeys"
-						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
+						expectedErr := "spec.sources[0].%s: Invalid value: \"object\": must specify key or includeAllKeys"
+						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr, field)))
 					} else {
 						Expect(cl.Create(ctx, bundle)).To(Succeed())
 					}
@@ -142,6 +144,7 @@ var _ = Describe("Bundle Validation", func() {
 				selectorAccessor = func(selector *trustapi.SourceObjectKeySelector) {
 					bundle.Spec.Sources[0].ConfigMap = selector
 				}
+				field = "configMap"
 			})
 
 			sourceObjectAsserts()
@@ -152,6 +155,7 @@ var _ = Describe("Bundle Validation", func() {
 				selectorAccessor = func(selector *trustapi.SourceObjectKeySelector) {
 					bundle.Spec.Sources[0].Secret = selector
 				}
+				field = "secret"
 			})
 
 			sourceObjectAsserts()
@@ -168,7 +172,7 @@ var _ = Describe("Bundle Validation", func() {
 			func(target trustapi.BundleTarget, wantErr bool) {
 				bundle.Spec.Target = target
 				if wantErr {
-					expectedErr := "spec.target: Invalid value: v1alpha1.BundleTarget{ConfigMap:(*v1alpha1.TargetTemplate)(nil), Secret:(*v1alpha1.TargetTemplate)(nil), AdditionalFormats:(*v1alpha1.AdditionalFormats)(nil), NamespaceSelector:(*v1.LabelSelector)(nil)}: must define at least one target"
+					expectedErr := "spec.target: Invalid value: \"object\": must define at least one target configMap/secret"
 					Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
 				} else {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
@@ -235,7 +239,7 @@ var _ = Describe("Bundle Validation", func() {
 				bundle.Spec.Target = target
 
 				if wantErr {
-					expectedErr := "key must be unique in target"
+					expectedErr := "spec.target: Invalid value: \"object\": additional format keys must be different from configMap/secret keys"
 					Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
 				} else {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
@@ -264,7 +268,7 @@ var _ = Describe("Bundle Validation", func() {
 			func(formats *trustapi.AdditionalFormats, wantErr bool) {
 				bundle.Spec.Target.AdditionalFormats = formats
 				if wantErr {
-					expectedErr := "spec.target.additionalFormats.pkcs12.key: Invalid value: \"cacerts\": key must be unique in target configMap"
+					expectedErr := "spec.target: Invalid value: \"object\": additional format keys must be unique"
 					Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
 				} else {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
@@ -283,6 +287,17 @@ var _ = Describe("Bundle Validation", func() {
 				selectorAccessor(&trustapi.TargetTemplate{})
 				expectedErr := "spec.target.%s.key: Invalid value: \"\": spec.target.%s.key in body should be at least 1 chars long"
 				Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr, field, field)))
+			})
+
+			It("should disallow target removal", func() {
+				bundle.Spec.Target = trustapi.BundleTarget{
+					ConfigMap: &trustapi.TargetTemplate{Key: "key"},
+					Secret:    &trustapi.TargetTemplate{Key: "key"},
+				}
+				Expect(cl.Create(ctx, bundle)).Should(Succeed())
+				selectorAccessor(nil)
+				expectedErr := "spec.target: Invalid value: \"object\": target %s removal is not allowed"
+				Expect(cl.Update(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr, field)))
 			})
 		}
 
