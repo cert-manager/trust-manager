@@ -128,7 +128,28 @@ $(bin_dir)/scratch/kyverno/pod-security-policy.yaml: | $(NEEDS_KUSTOMIZE) $(bin_
 # Extra arguments for kyverno apply.
 kyverno_apply_extra_args :=
 # Allows known policy violations to be skipped by supplying Kyverno policy
-# exceptions.
+# exceptions as a Kyverno YAML resource, e.g.:
+# apiVersion: kyverno.io/v2
+# kind: PolicyException
+# metadata:
+#   name: pod-security-exceptions
+# spec:
+#   exceptions:
+#   - policyName: disallow-privilege-escalation
+#     ruleNames:
+#     - autogen-privilege-escalation
+#   - policyName: restrict-seccomp-strict
+#     ruleNames:
+#     - autogen-check-seccomp-strict
+#   match:
+#     any:
+#     - resources:
+#         kinds:
+#         - Deployment
+#         namespaces:
+#         - mynamespace
+#         names:
+#         - my-deployment
 ifneq ("$(wildcard make/verify-pod-security-standards-exceptions.yaml)","")
 		kyverno_apply_extra_args += --exceptions make/verify-pod-security-standards-exceptions.yaml
 endif
