@@ -56,9 +56,9 @@ test-smoke-deps: install
 ## @category Testing
 test-smoke: test-smoke-deps | kind-cluster $(NEEDS_GINKGO) $(ARTIFACTS)
 	$(GINKGO) \
-		--output-dir=$(ARTIFACTS) \
-		--junit-report=junit-go-e2e.xml \
+		--output-dir $(ARTIFACTS) \
+		--junit-report junit-go-e2e.xml \
+		--ldflags "$(go_manager_ldflags)" \
 		./test/smoke/ \
-		-ldflags $(go_manager_ldflags) \
 		-- \
 		--kubeconfig-path $(CURDIR)/$(kind_kubeconfig)
