@@ -25,6 +25,7 @@ import (
 	"github.com/pavlo-v-chernykh/keystore-go/v4"
 	"software.sslmate.com/src/go-pkcs12"
 
+	"github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/util"
 )
 
@@ -81,12 +82,13 @@ func (e jksEncoder) Encode(trustBundle *util.CertPool) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func NewPKCS12Encoder(password string) Encoder {
-	return &pkcs12Encoder{password: password}
+func NewPKCS12Encoder(password string, profile v1alpha1.PKCS12Profile) Encoder {
+	return &pkcs12Encoder{password: password, profile: profile}
 }
 
 type pkcs12Encoder struct {
 	password string
+	profile  v1alpha1.PKCS12Profile
 }
 
 func (e pkcs12Encoder) Encode(trustBundle *util.CertPool) ([]byte, error) {
@@ -98,7 +100,17 @@ func (e pkcs12Encoder) Encode(trustBundle *util.CertPool) ([]byte, error) {
 		})
 	}
 
-	encoder := pkcs12.LegacyRC2
+	var encoder *pkcs12.Encoder
+	switch e.profile {
+	case v1alpha1.LegacyRC2PKCS12Profile:
+		encoder = pkcs12.LegacyRC2
+	case v1alpha1.LegacyDESPKCS12Profile:
+		encoder = pkcs12.LegacyDES
+	case v1alpha1.Modern2023PKCS12Profile:
+		encoder = pkcs12.Modern2023
+	default: // Default when PKCS12 Profile is unpopulated
+		encoder = pkcs12.LegacyRC2
+	}
 
 	if e.password == "" {
 		encoder = pkcs12.Passwordless
