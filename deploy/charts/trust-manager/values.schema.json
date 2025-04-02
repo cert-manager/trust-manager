@@ -592,6 +592,11 @@
       "description": "Override the image tag of the default package image. If no value is set, the chart's appVersion is used.",
       "type": "string"
     },
+    "helm-values.enabled": {
+      "default": true,
+      "description": "Field that can be used as a condition when trust-manager is a dependency. This definition is only here as a placeholder such that it is included in the json schema. See https://helm.sh/docs/chart_best_practices/dependencies/#conditions-and-tags for more info.",
+      "type": "boolean"
+    },
     "helm-values.filterExpiredCertificates": {
       "additionalProperties": false,
       "properties": {
