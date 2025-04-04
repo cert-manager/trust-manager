@@ -104,60 +104,18 @@ type BundleTarget struct {
 	// ConfigMap is the target ConfigMap in Namespaces that all Bundle source
 	// data will be synced to.
 	// +optional
-	ConfigMap *KeySelector `json:"configMap,omitempty"`
+	ConfigMap Target `json:"configMap,omitempty"`
 
 	// Secret is the target Secret that all Bundle source data will be synced to.
 	// Using Secrets as targets is only supported if enabled at trust-manager startup.
 	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
 	// +optional
-	Secret *KeySelector `json:"secret,omitempty"`
-
-	// AdditionalFormats specifies any additional formats to write to the target
-	// +optional
-	AdditionalFormats *AdditionalFormats `json:"additionalFormats,omitempty"`
+	Secret Target `json:"secret,omitempty"`
 
 	// NamespaceSelector will, if set, only sync the target resource in
 	// Namespaces which match the selector.
-	// +optional
-	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
-}
-
-// AdditionalFormats specifies any additional formats to write to the target
-type AdditionalFormats struct {
-	// JKS requests a JKS-formatted binary trust bundle to be written to the target.
-	// The bundle has "changeit" as the default password.
-	// For more information refer to this link https://cert-manager.io/docs/faq/#keystore-passwords
-	// +optional
-	JKS *JKS `json:"jks,omitempty"`
-	// PKCS12 requests a PKCS12-formatted binary trust bundle to be written to the target.
-	// The bundle is by default created without a password.
-	// +optional
-	PKCS12 *PKCS12 `json:"pkcs12,omitempty"`
-}
-
-// JKS specifies additional target JKS files
-// +structType=atomic
-type JKS struct {
-	KeySelector `json:",inline"`
-
-	// Password for JKS trust store
-	//+optional
-	//+kubebuilder:validation:MinLength=1
-	//+kubebuilder:validation:MaxLength=128
-	//+kubebuilder:default=changeit
-	Password *string `json:"password"`
-}
-
-// PKCS12 specifies additional target PKCS#12 files
-// +structType=atomic
-type PKCS12 struct {
-	KeySelector `json:",inline"`
-
-	// Password for PKCS12 trust store
-	//+optional
-	//+kubebuilder:validation:MaxLength=128
-	//+kubebuilder:default=""
-	Password *string `json:"password,omitempty"`
+	// +required
+	NamespaceSelector metav1.LabelSelector `json:"namespaceSelector"`
 }
 
 // SourceObjectKeySelector is a reference to a source object and its `data` key(s)
@@ -186,11 +144,31 @@ type SourceObjectKeySelector struct {
 	IncludeAllKeys bool `json:"includeAllKeys,omitempty"`
 }
 
-// KeySelector is a reference to a key for some map data object.
-type KeySelector struct {
+// Target is the specification of target key(s)
+// +listType=map
+// +listMapKey=key
+// +kubebuilder:validation:MinItems=1
+type Target []TargetKey
+
+// TargetKey is the specification of a key in a target configmap/secret.
+type TargetKey struct {
 	// Key is the key of the entry in the object's `data` field to be used.
 	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key"`
+
+	// Format defines the bundle format
+	// +kubebuilder:validation:Enum=PEM;JKS;PKCS12
+	// +kubebuilder:default=PEM
+	//+optional
+	Format *string `json:"format,omitempty"`
+
+	// Password used to encrypt truststore if Format is JKS or PKCS12.
+	// Default password for JKS truststore is `changeit`.
+	// For PKCS#12 the truststore is by default created without a password.
+	//+optional
+	//+kubebuilder:validation:MinLength=1
+	//+kubebuilder:validation:MaxLength=128
+	Password *string `json:"password"`
 }
 
 // BundleStatus defines the observed state of the Bundle.
