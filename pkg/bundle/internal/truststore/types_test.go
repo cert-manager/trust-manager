@@ -42,10 +42,16 @@ func Test_Encoder_Deterministic(t *testing.T) {
 			encoder: NewJKSEncoder("my-password"),
 		},
 		"PKCS#12 default password": {
-			encoder: NewPKCS12Encoder(v1alpha1.DefaultPKCS12Password),
+			encoder: NewPKCS12Encoder(v1alpha1.DefaultPKCS12Password, ""),
+		},
+		"PKCS#12 default password, DES encryption": {
+			encoder: NewPKCS12Encoder(v1alpha1.DefaultPKCS12Password, "LegacyDES"),
+		},
+		"PKCS#12 default password, modern encryption": {
+			encoder: NewPKCS12Encoder(v1alpha1.DefaultPKCS12Password, "Modern2023"),
 		},
 		"PKCS#12 custom password": {
-			encoder: NewPKCS12Encoder("my-password"),
+			encoder: NewPKCS12Encoder("my-password", ""),
 			// FIXME: We should try to make all encoders deterministic
 			expNonDeterministic: true,
 		},

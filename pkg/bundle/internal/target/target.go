@@ -428,7 +428,7 @@ func (b *Data) Populate(pool *util.CertPool, formats *trustapi.AdditionalFormats
 		}
 
 		if formats.PKCS12 != nil {
-			encoded, err := truststore.NewPKCS12Encoder(*formats.PKCS12.Password).Encode(pool)
+			encoded, err := truststore.NewPKCS12Encoder(*formats.PKCS12.Password, formats.PKCS12.Profile).Encode(pool)
 			if err != nil {
 				return fmt.Errorf("failed to encode PKCS12: %w", err)
 			}
