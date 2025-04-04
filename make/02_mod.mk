@@ -71,3 +71,14 @@ release-debian-bookworm-trust-package: | $(NEEDS_CRANE)
 	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_TAG=$(oci_package_debian_bookworm_image_tag)" >> "$(GITHUB_OUTPUT)"
 
 	@echo "Release complete!"
+
+.PHONY: generate-conversion
+## Generate code for converting between Bundle and ClusterBundle API
+## @category Generate/ Verify
+generate-conversion: | $(NEEDS_CONVERSION-GEN)
+	rm -rf ./pkg/apis/trust/v1alpha1/zz_generated.conversion.go
+
+	$(CONVERSION-GEN) \
+		--go-header-file=$(go_header_file) \
+		--output-file=zz_generated.conversion.go \
+		./pkg/apis/trust/v1alpha1
