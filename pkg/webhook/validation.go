@@ -20,7 +20,9 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
+	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -231,9 +233,41 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 		}
 	}
 
+	if bundle.Spec.Target.ConfigMapTemplate != nil {
+		el = append(el, validateAnnotationsLabelsTemplate(bundle.Spec.Target.ConfigMapTemplate, path.Child("target", "configMapTemplate"))...)
+	}
+	if bundle.Spec.Target.SecretTemplate != nil {
+		el = append(el, validateAnnotationsLabelsTemplate(bundle.Spec.Target.SecretTemplate, path.Child("target", "secretTemplate"))...)
+	}
+
 	errs := validation.ValidateLabelSelector(bundle.Spec.Target.NamespaceSelector, validation.LabelSelectorValidationOptions{}, path.Child("target", "namespaceSelector"))
 	el = append(el, errs...)
 
 	return warnings, el.ToAggregate()
 
+}
+
+// validateAnnotationsLabelsTemplate Validates that the target template annotations and labels are both valid and that they do not contain reserved keys.
+func validateAnnotationsLabelsTemplate(template *trustapi.AnnotationsLabelsTemplate, fldPath *field.Path) field.ErrorList {
+	el := field.ErrorList{}
+
+	templateAnnotationsPath := fldPath.Child("annotations")
+	for key := range template.Annotations {
+		if strings.HasPrefix(key, "trust.cert-manager.io/") {
+			el = append(el, field.Invalid(templateAnnotationsPath, key, "trust.cert-manager.io/* annotations are not allowed"))
+		}
+	}
+
+	el = append(el, apivalidation.ValidateAnnotations(template.Annotations, templateAnnotationsPath)...)
+
+	templateLabelsPath := fldPath.Child("labels")
+	for key := range template.Labels {
+		if strings.HasPrefix(key, "trust.cert-manager.io/") {
+			el = append(el, field.Invalid(templateLabelsPath, key, "trust.cert-manager.io/* labels are not allowed"))
+		}
+	}
+
+	el = append(el, validation.ValidateLabels(template.Annotations, templateLabelsPath)...)
+
+	return el
 }

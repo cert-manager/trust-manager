@@ -299,6 +299,25 @@ spec:
                       required:
                         - key
                       type: object
+                    configMapTemplate:
+                      description: |-
+                        Defines annotations and labels to be copied to the Bundles ConfigMap.
+                        Labels and annotations on the ConfigMap will be changed as they appear on the
+                        ConfigMapTemplate when added or removed. ConfigMapTemplate annotations are added
+                        in conjunction with, and cannot overwrite, the base set of annotations
+                        trust-manager sets on the Bundles ConfigMap.
+                      properties:
+                        annotations:
+                          additionalProperties:
+                            type: string
+                          description: Annotations is a key value map to be copied to the target.
+                          type: object
+                        labels:
+                          additionalProperties:
+                            type: string
+                          description: Labels is a key value map to be copied to the target.
+                          type: object
+                      type: object
                     namespaceSelector:
                       description: |-
                         NamespaceSelector will, if set, only sync the target resource in
@@ -357,6 +376,25 @@ spec:
                           type: string
                       required:
                         - key
+                      type: object
+                    secretTemplate:
+                      description: |-
+                        Defines annotations and labels to be copied to the Bundles ConfigMap.
+                        Labels and annotations on the Secret will be changed as they appear on the
+                        SecretTemplate when added or removed. SecretTemplate annotations are added
+                        in conjunction with, and cannot overwrite, the base set of annotations
+                        trust-manager sets on the Bundles Secret.
+                      properties:
+                        annotations:
+                          additionalProperties:
+                            type: string
+                          description: Annotations is a key value map to be copied to the target.
+                          type: object
+                        labels:
+                          additionalProperties:
+                            type: string
+                          description: Labels is a key value map to be copied to the target.
+                          type: object
                       type: object
                   type: object
               required:
