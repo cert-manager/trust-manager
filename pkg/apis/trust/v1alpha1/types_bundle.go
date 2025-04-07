@@ -158,7 +158,33 @@ type PKCS12 struct {
 	//+kubebuilder:validation:MaxLength=128
 	//+kubebuilder:default=""
 	Password *string `json:"password,omitempty"`
+
+	// Profile specifies the key and certificate encryption algorithms and the HMAC algorithm
+	// used to create the PKCS12 keystore. Default value is `LegacyRC2` for backward compatibility.
+	//
+	// If provided, allowed values are:
+	// `LegacyRC2`: Deprecated. Not supported by default in OpenSSL 3 or Java 20.
+	// `LegacyDES`: Less secure algorithm. Use this option for maximal compatibility.
+	// `Modern2023`: Secure algorithm. Use this option in case you have to always use secure algorithms
+	// (eg. because of company policy). Please note that the security of the algorithm is not that important
+	// in reality, because the unencrypted certificate and private key are also stored in the Secret.
+	// +optional
+	Profile PKCS12Profile `json:"profile,omitempty"`
 }
+
+// +kubebuilder:validation:Enum=LegacyRC2;LegacyDES;Modern2023
+type PKCS12Profile string
+
+const (
+	// see: https://pkg.go.dev/software.sslmate.com/src/go-pkcs12#LegacyRC2
+	LegacyRC2PKCS12Profile PKCS12Profile = "LegacyRC2"
+
+	// see: https://pkg.go.dev/software.sslmate.com/src/go-pkcs12#LegacyDES
+	LegacyDESPKCS12Profile PKCS12Profile = "LegacyDES"
+
+	// see: https://pkg.go.dev/software.sslmate.com/src/go-pkcs12#Modern2023
+	Modern2023PKCS12Profile PKCS12Profile = "Modern2023"
+)
 
 // SourceObjectKeySelector is a reference to a source object and its `data` key(s)
 // in the trust Namespace.
