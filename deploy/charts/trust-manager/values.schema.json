@@ -24,6 +24,9 @@
         "defaultPackageImage": {
           "$ref": "#/$defs/helm-values.defaultPackageImage"
         },
+        "enabled": {
+          "$ref": "#/$defs/helm-values.enabled"
+        },
         "filterExpiredCertificates": {
           "$ref": "#/$defs/helm-values.filterExpiredCertificates"
         },
