@@ -3,7 +3,7 @@ apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: {{ include "trust-manager.name" . }}
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ include "trust-manager.namespace" . }}
   labels:
     app: {{ include "trust-manager.name" . }}
     {{- include "trust-manager.labels" . | nindent 4 }}
