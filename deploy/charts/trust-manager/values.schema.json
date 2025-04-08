@@ -24,6 +24,9 @@
         "defaultPackageImage": {
           "$ref": "#/$defs/helm-values.defaultPackageImage"
         },
+        "extraObjects": {
+          "$ref": "#/$defs/helm-values.extraObjects"
+        },
         "filterExpiredCertificates": {
           "$ref": "#/$defs/helm-values.filterExpiredCertificates"
         },
@@ -591,6 +594,12 @@
       "default": "20230311.0",
       "description": "Override the image tag of the default package image. If no value is set, the chart's appVersion is used.",
       "type": "string"
+    },
+    "helm-values.extraObjects": {
+      "default": [],
+      "description": "Extra manifests to be deployed. This is useful for deploying additional resources that are not part of the chart.\nFor example:\nextraObjects:\n - apiVersion: cilium.io/v2\n   kind: CiliumNetworkPolicy\n   metadata:\n     name: trust-manager\n     namespace: trust-manager\n   spec:\n     endpointSelector:\n       matchLabels:\n         io.cilium.k8s.policy.serviceaccount: trust-manager\n     egress:\n       - toEntities:\n           - kube-apiserver",
+      "items": {},
+      "type": "array"
     },
     "helm-values.filterExpiredCertificates": {
       "additionalProperties": false,
