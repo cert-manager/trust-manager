@@ -16,11 +16,11 @@ oci_platforms ?= linux/amd64,linux/arm/v7,linux/arm64,linux/ppc64le
 
 # Use distroless as minimal base image to package the manager binary
 # To get latest SHA run "crane digest quay.io/jetstack/base-static:latest"
-base_image_static := quay.io/jetstack/base-static@sha256:8be2dc621c1863a7fa290634c4eb7f28dbcd4ea60fb0a386adb80d2027a80444
+base_image_static := quay.io/jetstack/base-static@sha256:713aaf3b2c45b103d37778943f2c384120eabb97b9097eea4b5cbbd32880b86d
 
 # Use custom apko-built image as minimal base image to package the manager binary
 # To get latest SHA run "crane digest quay.io/jetstack/base-static-csi:latest"
-base_image_csi-static := quay.io/jetstack/base-static-csi@sha256:b3c11dedbac22b060c935569c63a32faaeb8bc6109aa00f42fb15c143eb63617
+base_image_csi-static := quay.io/jetstack/base-static-csi@sha256:3499c6d3073503bd13e015c27b039e58a790e5623906af1cf42ebbf85a8ff7f6
 
 # Utility functions
 fatal_if_undefined = $(if $(findstring undefined,$(origin $1)),$(error $1 is not set))
@@ -43,8 +43,7 @@ go_$1_goexperiment ?= $(GOEXPERIMENT)
 go_$1_flags ?= -tags=
 oci_$1_additional_layers ?= 
 oci_$1_linux_capabilities ?= 
-oci_$1_image_annotation ?= 
-oci_$1_image_label ?= 
+oci_$1_build_args ?= 
 endef
 
 $(foreach build_name,$(build_names),$(eval $(call default_per_build_variables,$(build_name))))
