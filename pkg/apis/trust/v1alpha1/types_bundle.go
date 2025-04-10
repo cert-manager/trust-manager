@@ -106,11 +106,27 @@ type BundleTarget struct {
 	// +optional
 	ConfigMap *KeySelector `json:"configMap,omitempty"`
 
+	// Defines annotations and labels to be copied to the Bundles ConfigMap.
+	// Labels and annotations on the ConfigMap will be changed as they appear on the
+	// ConfigMapTemplate when added or removed. ConfigMapTemplate annotations are added
+	// in conjunction with, and cannot overwrite, the base set of annotations
+	// trust-manager sets on the Bundles ConfigMap.
+	// +optional
+	ConfigMapTemplate *AnnotationsLabelsTemplate `json:"configMapTemplate,omitempty"`
+
 	// Secret is the target Secret that all Bundle source data will be synced to.
 	// Using Secrets as targets is only supported if enabled at trust-manager startup.
 	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
 	// +optional
 	Secret *KeySelector `json:"secret,omitempty"`
+
+	// Defines annotations and labels to be copied to the Bundles ConfigMap.
+	// Labels and annotations on the Secret will be changed as they appear on the
+	// SecretTemplate when added or removed. SecretTemplate annotations are added
+	// in conjunction with, and cannot overwrite, the base set of annotations
+	// trust-manager sets on the Bundles Secret.
+	// +optional
+	SecretTemplate *AnnotationsLabelsTemplate `json:"secretTemplate,omitempty"`
 
 	// AdditionalFormats specifies any additional formats to write to the target
 	// +optional
@@ -217,6 +233,18 @@ type KeySelector struct {
 	// Key is the key of the entry in the object's `data` field to be used.
 	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key"`
+}
+
+// AnnotationsLabelsTemplate defines the default labels and annotations
+// to be copied to the Kubernetes Secret or ConfigMap bundle targets.
+type AnnotationsLabelsTemplate struct {
+	// Annotations is a key value map to be copied to the target.
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+
+	// Labels is a key value map to be copied to the target.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // BundleStatus defines the observed state of the Bundle.
