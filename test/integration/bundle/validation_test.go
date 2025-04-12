@@ -197,10 +197,10 @@ var _ = Describe("Bundle Validation", func() {
 					target.Secret = &trustapi.KeySelector{Key: keySpec.SecretKey}
 				}
 				if keySpec.JKSKey != "" {
-					target.AdditionalFormats.JKS = &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: keySpec.JKSKey}}
+					target.AdditionalFormats.JKS = &trustapi.JKS{KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{Key: keySpec.JKSKey}}
 				}
 				if keySpec.PKCS12Key != "" {
-					target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: keySpec.PKCS12Key}}
+					target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{Key: keySpec.PKCS12Key}}
 				}
 				bundle.Spec.Target = target
 
@@ -241,10 +241,10 @@ var _ = Describe("Bundle Validation", func() {
 				}
 			},
 			Entry("when none set", &trustapi.AdditionalFormats{}, false),
-			Entry("when JKS key set", &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "trust.jks"}}}, false),
-			Entry("when PKCS key set", &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "trust.p12"}}}, false),
-			Entry("when both keys set, but different value", &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "trust.jks"}}, PKCS12: &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "trust.p12"}}}, false),
-			Entry("when both keys set, same value", &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "cacerts"}}, PKCS12: &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "cacerts"}}}, true),
+			Entry("when JKS key set", &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{Key: "trust.jks"}}}, false),
+			Entry("when PKCS key set", &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{Key: "trust.p12"}}}, false),
+			Entry("when both keys set, but different value", &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{Key: "trust.jks"}}, PKCS12: &trustapi.PKCS12{KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{Key: "trust.p12"}}}, false),
+			Entry("when both keys set, same value", &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{Key: "cacerts"}}, PKCS12: &trustapi.PKCS12{KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{Key: "cacerts"}}}, true),
 		)
 
 		targetObjectAsserts := func() {

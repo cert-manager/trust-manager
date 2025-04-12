@@ -283,7 +283,7 @@ func Test_validate(t *testing.T) {
 					Target: trustapi.BundleTarget{
 						AdditionalFormats: &trustapi.AdditionalFormats{
 							JKS: &trustapi.JKS{
-								KeySelector: trustapi.KeySelector{
+								KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{
 									Key: "bar",
 								},
 							},
@@ -309,7 +309,7 @@ func Test_validate(t *testing.T) {
 					Target: trustapi.BundleTarget{
 						AdditionalFormats: &trustapi.AdditionalFormats{
 							PKCS12: &trustapi.PKCS12{
-								KeySelector: trustapi.KeySelector{
+								KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{
 									Key: "bar",
 								},
 							},
@@ -364,7 +364,7 @@ func Test_validate(t *testing.T) {
 					Target: trustapi.BundleTarget{
 						AdditionalFormats: &trustapi.AdditionalFormats{
 							JKS: &trustapi.JKS{
-								KeySelector: trustapi.KeySelector{
+								KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{
 									Key: "bar.jks",
 								},
 							},
@@ -390,7 +390,7 @@ func Test_validate(t *testing.T) {
 					Target: trustapi.BundleTarget{
 						AdditionalFormats: &trustapi.AdditionalFormats{
 							PKCS12: &trustapi.PKCS12{
-								KeySelector: trustapi.KeySelector{
+								KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{
 									Key: "bar.p12",
 								},
 							},

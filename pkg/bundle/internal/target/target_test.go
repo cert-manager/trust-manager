@@ -585,7 +585,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 			resolvedBundle := Data{Data: data, BinaryData: make(map[string][]byte)}
 			if test.withJKS {
 				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
-					KeySelector: trustapi.KeySelector{
+					KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{
 						Key: jksKey,
 					},
 				}
@@ -593,7 +593,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 			}
 			if test.withPKCS12 {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{
-					KeySelector: trustapi.KeySelector{
+					KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{
 						Key: pkcs12Key,
 					},
 				}
@@ -1197,7 +1197,7 @@ func Test_syncSecretTarget(t *testing.T) {
 			resolvedBundle := Data{Data: data, BinaryData: make(map[string][]byte)}
 			if test.withJKS {
 				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
-					KeySelector: trustapi.KeySelector{
+					KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{
 						Key: jksKey,
 					},
 				}
@@ -1205,7 +1205,7 @@ func Test_syncSecretTarget(t *testing.T) {
 			}
 			if test.withPKCS12 {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{
-					KeySelector: trustapi.KeySelector{
+					KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{
 						Key: pkcs12Key,
 					},
 				}

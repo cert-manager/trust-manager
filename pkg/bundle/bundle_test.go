@@ -141,7 +141,7 @@ func Test_Reconcile(t *testing.T) {
 
 		jksDefaultAdditionalFormats = trustapi.AdditionalFormats{
 			JKS: &trustapi.JKS{
-				KeySelector: trustapi.KeySelector{
+				KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{
 					Key: "target.jks",
 				},
 				Password: ptr.To(trustapi.DefaultJKSPassword),
@@ -149,7 +149,7 @@ func Test_Reconcile(t *testing.T) {
 		}
 		jksDefaultAdditionalFormatsOldPassword = trustapi.AdditionalFormats{
 			JKS: &trustapi.JKS{
-				KeySelector: trustapi.KeySelector{
+				KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{
 					Key: "target.jks",
 				},
 				Password: ptr.To("OLD PASSWORD"),

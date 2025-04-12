@@ -19,15 +19,13 @@ package webhook
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
-
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"strconv"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 )
@@ -204,7 +202,7 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 	}
 
 	if bundle.Spec.Target.AdditionalFormats != nil {
-		var formats = make(map[string]*trustapi.KeySelector)
+		var formats = make(map[string]*trustapi.KeySelectorWithoutMetadata)
 		targetKeys := map[string]struct{}{}
 		if configMap != nil {
 			targetKeys[configMap.Key] = struct{}{}
@@ -215,12 +213,12 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 
 		// Checks for nil to avoid nil point dereference error
 		if bundle.Spec.Target.AdditionalFormats.JKS != nil {
-			formats["jks"] = &bundle.Spec.Target.AdditionalFormats.JKS.KeySelector
+			formats["jks"] = &bundle.Spec.Target.AdditionalFormats.JKS.KeySelectorWithoutMetadata
 		}
 
 		// Checks for nil to avoid nil point dereference error
 		if bundle.Spec.Target.AdditionalFormats.PKCS12 != nil {
-			formats["pkcs12"] = &bundle.Spec.Target.AdditionalFormats.PKCS12.KeySelector
+			formats["pkcs12"] = &bundle.Spec.Target.AdditionalFormats.PKCS12.KeySelectorWithoutMetadata
 		}
 
 		for f, selector := range formats {
@@ -233,11 +231,11 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 		}
 	}
 
-	if bundle.Spec.Target.ConfigMapTemplate != nil {
-		el = append(el, validateAnnotationsLabelsTemplate(bundle.Spec.Target.ConfigMapTemplate, path.Child("target", "configMapTemplate"))...)
+	if bundle.Spec.Target.ConfigMap != nil {
+		el = append(el, validateTargetMetadata(bundle.Spec.Target.ConfigMap.Metadata, path.Child("target", "configMapTemplate"))...)
 	}
-	if bundle.Spec.Target.SecretTemplate != nil {
-		el = append(el, validateAnnotationsLabelsTemplate(bundle.Spec.Target.SecretTemplate, path.Child("target", "secretTemplate"))...)
+	if bundle.Spec.Target.Secret != nil {
+		el = append(el, validateTargetMetadata(bundle.Spec.Target.Secret.Metadata, path.Child("target", "secretTemplate"))...)
 	}
 
 	errs := validation.ValidateLabelSelector(bundle.Spec.Target.NamespaceSelector, validation.LabelSelectorValidationOptions{}, path.Child("target", "namespaceSelector"))
@@ -248,26 +246,18 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 }
 
 // validateAnnotationsLabelsTemplate Validates that the target template annotations and labels are both valid and that they do not contain reserved keys.
-func validateAnnotationsLabelsTemplate(template *trustapi.AnnotationsLabelsTemplate, fldPath *field.Path) field.ErrorList {
+func validateTargetMetadata(targetMetadata *trustapi.TargetMetadata, fldPath *field.Path) field.ErrorList {
 	el := field.ErrorList{}
 
-	templateAnnotationsPath := fldPath.Child("annotations")
-	for key := range template.Annotations {
-		if strings.HasPrefix(key, "trust.cert-manager.io/") {
-			el = append(el, field.Invalid(templateAnnotationsPath, key, "trust.cert-manager.io/* annotations are not allowed"))
-		}
+	if targetMetadata == nil {
+		return el
 	}
 
-	el = append(el, apivalidation.ValidateAnnotations(template.Annotations, templateAnnotationsPath)...)
+	templateAnnotationsPath := fldPath.Child("annotations")
+	el = append(el, apivalidation.ValidateAnnotations(targetMetadata.Annotations, templateAnnotationsPath)...)
 
 	templateLabelsPath := fldPath.Child("labels")
-	for key := range template.Labels {
-		if strings.HasPrefix(key, "trust.cert-manager.io/") {
-			el = append(el, field.Invalid(templateLabelsPath, key, "trust.cert-manager.io/* labels are not allowed"))
-		}
-	}
-
-	el = append(el, validation.ValidateLabels(template.Annotations, templateLabelsPath)...)
+	el = append(el, validation.ValidateLabels(targetMetadata.Labels, templateLabelsPath)...)
 
 	return el
 }

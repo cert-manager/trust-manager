@@ -128,7 +128,7 @@ func (r *Reconciler) syncConfigMap(
 	}
 	binData := resolvedBundle.BinaryData
 
-	annotations, labels := mapsFromBundle(bundle.Spec.Target.ConfigMapTemplate)
+	annotations, labels := mapsFromBundle(bundleTarget.ConfigMap.Metadata)
 	annotations[trustapi.BundleHashAnnotationKey] = bundleHash
 
 	// If the resource exists, check if it is up-to-date.
@@ -210,7 +210,7 @@ func (r *Reconciler) syncSecret(
 		data[k] = v
 	}
 
-	annotations, labels := mapsFromBundle(bundle.Spec.Target.SecretTemplate)
+	annotations, labels := mapsFromBundle(bundleTarget.Secret.Metadata)
 	annotations[trustapi.BundleHashAnnotationKey] = bundleHash
 
 	// If the resource exists, check if it is up-to-date.
@@ -489,15 +489,15 @@ func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats)
 }
 
 // mapsFromBundle returns the annotations and labels maps from a template ensuring the maps are not nil.
-func mapsFromBundle(template *trustapi.AnnotationsLabelsTemplate) (map[string]string, map[string]string) {
+func mapsFromBundle(targetMetadata *trustapi.TargetMetadata) (map[string]string, map[string]string) {
 	annotations := map[string]string{}
 	labels := map[string]string{}
 
-	if template != nil && template.Annotations != nil {
-		annotations = template.Annotations
+	if targetMetadata != nil && targetMetadata.Annotations != nil {
+		annotations = targetMetadata.Annotations
 	}
-	if template != nil && template.Labels != nil {
-		labels = template.Labels
+	if targetMetadata != nil && targetMetadata.Labels != nil {
+		labels = targetMetadata.Labels
 	}
 	return annotations, labels
 }
