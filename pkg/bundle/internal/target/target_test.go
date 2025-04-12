@@ -38,11 +38,13 @@ import (
 )
 
 const (
-	bundleName = "test-bundle"
-	key        = "trust.pem"
-	jksKey     = "trust.jks"
-	pkcs12Key  = "trust.p12"
-	data       = dummy.TestCertificate1
+	bundleName       = "test-bundle"
+	key              = "trust.pem"
+	jksKey           = "trust.jks"
+	pkcs12Key        = "trust.p12"
+	data             = dummy.TestCertificate1
+	targetAnnotation = "dummyannotation"
+	targetLabel      = "dummylabel"
 )
 
 var (
@@ -62,6 +64,10 @@ func Test_syncConfigMapTarget(t *testing.T) {
 		withJKS bool
 		// Add PKCS12 to AdditionalFormats
 		withPKCS12 bool
+		// Add annotation to target metadata
+		withTargetAnnotation bool
+		// Add label to target metadata
+		withTargetLabel bool
 		// Expect the configmap to exist at the end of the sync.
 		expExists bool
 		// Expect JKS to exist in the configmap at the end of the sync.
@@ -71,6 +77,10 @@ func Test_syncConfigMapTarget(t *testing.T) {
 		// Expect the owner reference of the configmap to point to the bundle.
 		expOwnerReference bool
 		expNeedsUpdate    bool
+		// Expect configmap to have the target annotation
+		expTargetAnnotation bool
+		// Expect configmap to have the target label
+		expTargetLabel bool
 	}{
 		"if object doesn't exist, expect update": {
 			object:            nil,
@@ -545,6 +555,68 @@ func Test_syncConfigMapTarget(t *testing.T) {
 			expOwnerReference: false,
 			expNeedsUpdate:    true,
 		},
+		"if object exists but without target annotation, expect update": {
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string]string{key: data},
+			},
+			namespace: corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name:   "test-namespace",
+				Labels: map[string]string{"foo": "bar"},
+			}},
+			shouldExist:          true,
+			expExists:            true,
+			expOwnerReference:    true,
+			withTargetAnnotation: true,
+			expNeedsUpdate:       true,
+			expTargetAnnotation:  true,
+		},
+		"if object exists but without target label, expect update": {
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string]string{key: data},
+			},
+			namespace: corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name:   "test-namespace",
+				Labels: map[string]string{"foo": "bar"},
+			}},
+			shouldExist:       true,
+			expExists:         true,
+			expOwnerReference: true,
+			withTargetLabel:   true,
+			expNeedsUpdate:    true,
+			expTargetLabel:    true,
+		},
 	}
 
 	for name, test := range tests {
@@ -599,6 +671,18 @@ func Test_syncConfigMapTarget(t *testing.T) {
 				}
 				resolvedBundle.BinaryData[pkcs12Key] = pkcs12Data
 			}
+			if test.withTargetAnnotation {
+				if spec.Target.ConfigMap.Metadata == nil {
+					spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{}
+				}
+				spec.Target.ConfigMap.Metadata.Annotations = map[string]string{targetAnnotation: "true"}
+			}
+			if test.withTargetLabel {
+				if spec.Target.ConfigMap.Metadata == nil {
+					spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{}
+				}
+				spec.Target.ConfigMap.Metadata.Labels = map[string]string{targetLabel: "true"}
+			}
 
 			_, ctx := ktesting.NewTestContext(t)
 			needsUpdate, err := r.Sync(ctx, Resource{
@@ -652,6 +736,13 @@ func Test_syncConfigMapTarget(t *testing.T) {
 
 				if test.expPKCS12 {
 					assert.Equal(t, pkcs12Data, binData)
+				}
+
+				if test.expTargetLabel {
+					assert.Contains(t, configmap.Labels, targetLabel)
+				}
+				if test.expTargetAnnotation {
+					assert.Contains(t, configmap.Annotations, targetAnnotation)
 				}
 			}
 		})
