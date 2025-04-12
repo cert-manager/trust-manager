@@ -17,7 +17,6 @@ limitations under the License.
 package options
 
 import (
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -83,23 +82,19 @@ type Options struct {
 
 	LeaderElectionConfig LeaderElectionConfig
 
-	// Leader election lease duration
-	LeaseDuration time.Duration
+	TLSConfig TLSConfig
+}
 
-	// Leader election lease renew duration
-	RenewDeadline time.Duration
-
-	// minTLSVersion is the minimum TLS version supported.
+type TLSConfig struct {
+	// MinVersion is the minimum TLS version supported.
 	// Values are from tls package constants (https://golang.org/pkg/crypto/tls/#pkg-constants).
 	// If not specified, the default for the Go version will be used and may change over time.
-	MinTLSVersion string
+	MinVersion string
 
-	// cipherSuites is the list of allowed cipher suites for the webhook server.
+	// CipherSuites is the list of allowed cipher suites for the webhook server.
 	// Values are from tls package constants (https://golang.org/pkg/crypto/tls/#pkg-constants).
 	// If not specified, the default for the Go version will be used and may change over time.
-	CipherSuite []string
-
-	TLSConfig tls.Config
+	CipherSuites []string
 }
 
 type logOptions struct {
@@ -285,16 +280,18 @@ func (o *Options) addWebhookFlags(fs *pflag.FlagSet) {
 
 func (o *Options) addTLSConfigFlags(fs *pflag.FlagSet) {
 	tlsPossibleVersions := cliflag.TLSPossibleVersions()
-	fs.StringVar(&o.MinTLSVersion,
+	fs.StringVar(&o.TLSConfig.MinVersion,
 		"tls-min-version", "",
 		"Minimum TLS version supported. "+
 			"If omitted, the default Go minimum version will be used. "+
 			"Possible values: "+strings.Join(tlsPossibleVersions, ","))
 
-	tlsCipherPossibleValues := cliflag.TLSCipherPossibleValues()
-	fs.StringSliceVar(&o.CipherSuite,
+	tlsCipherPreferredValues := cliflag.PreferredTLSCipherNames()
+	tlsCipherInsecureValues := cliflag.InsecureTLSCipherNames()
+	fs.StringSliceVar(&o.TLSConfig.CipherSuites,
 		"tls-cipher-suites", nil,
-		"Comma-separated list of cipher suites for the server. "+
-			"If omitted, the default Go cipher suites will be used. "+
-			"Possible values: "+strings.Join(tlsCipherPossibleValues, ","))
+		"Comma-separated list of cipher suites for the webhook server. "+
+			"If omitted, the default Go cipher suites will be used. \n"+
+			"Preferred values: "+strings.Join(tlsCipherPreferredValues, ", ")+". \n"+
+			"Insecure values: "+strings.Join(tlsCipherInsecureValues, ", ")+".")
 }
