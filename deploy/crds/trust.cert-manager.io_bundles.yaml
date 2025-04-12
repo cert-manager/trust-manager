@@ -322,13 +322,6 @@ spec:
                               the target.
                             type: object
                         type: object
-                        x-kubernetes-validations:
-                        - message: Annotation keys must not start with 'trust.cert-manager.io/'.
-                          rule: '!(self.annotations.exists(k, self.annotations[k].size()
-                            >= 0 && k.startsWith(''trust.cert-manager.io/'')))'
-                        - message: Label keys must not start with 'trust.cert-manager.io/'.
-                          rule: '!(self.labels.exists(k, self.labels[k].size() >=
-                            0 && k.startsWith(''trust.cert-manager.io/'')))'
                     required:
                     - key
                     type: object
@@ -408,13 +401,6 @@ spec:
                               the target.
                             type: object
                         type: object
-                        x-kubernetes-validations:
-                        - message: Annotation keys must not start with 'trust.cert-manager.io/'.
-                          rule: '!(self.annotations.exists(k, self.annotations[k].size()
-                            >= 0 && k.startsWith(''trust.cert-manager.io/'')))'
-                        - message: Label keys must not start with 'trust.cert-manager.io/'.
-                          rule: '!(self.labels.exists(k, self.labels[k].size() >=
-                            0 && k.startsWith(''trust.cert-manager.io/'')))'
                     required:
                     - key
                     type: object

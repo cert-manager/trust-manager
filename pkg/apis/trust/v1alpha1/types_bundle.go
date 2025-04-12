@@ -232,18 +232,12 @@ type KeySelectorWithoutMetadata struct {
 
 // TargetMetadata defines the default labels and annotations
 // to be copied to the Kubernetes Secret or ConfigMap bundle targets.
-// +kubebuilder:validation:XValidation:rule="!(self.annotations.exists(k, self.annotations[k].size() >= 0 && k.startsWith('trust.cert-manager.io/')))",message="Annotation keys must not start with 'trust.cert-manager.io/'."
-// +kubebuilder:validation:XValidation:rule="!(self.labels.exists(k, self.labels[k].size() >= 0 && k.startsWith('trust.cert-manager.io/')))",message="Label keys must not start with 'trust.cert-manager.io/'."
 type TargetMetadata struct {
 	// Annotations is a key value map to be copied to the target.
-	// +kubebuilder:validation:Type=object
-	// +kubebuilder:validation:AdditionalProperties=string
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 
 	// Labels is a key value map to be copied to the target.
-	// +kubebuilder:validation:Type=object
-	// +kubebuilder:validation:AdditionalProperties=string
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 }
