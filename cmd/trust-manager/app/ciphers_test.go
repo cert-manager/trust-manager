@@ -175,6 +175,22 @@ func setupWebHookServer(tmpDir string) error {
 		cmd.PrintErrf("error: %v\n", err)
 		return err
 	}
+
+	// Wait for the webhook server to be ready
+	for attempt := 0; attempt < 10; attempt++ {
+		var conn net.Conn
+		conn, err = net.DialTimeout("tcp", net.JoinHostPort(hostname, "6443"), 100*time.Millisecond)
+		if err != nil {
+			continue
+		}
+		_ = conn.Close()
+		break
+	}
+	if err != nil {
+		cmd.PrintErrf("error: %v\n", err)
+		return err
+	}
+
 	return nil
 }
 
