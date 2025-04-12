@@ -788,6 +788,31 @@ var _ = Describe("Integration", func() {
 
 		Expect(cm.Data).To(Not(HaveKey(oldKey)))
 	})
+
+	It("should add target annotations when added to a bundle", func() {
+		Expect(komega.Update(testBundle, func() {
+			testBundle.Spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{
+				Annotations: map[string]string{
+					"test1": "test1",
+				},
+			}
+		})()).To(Succeed())
+
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.DefaultJoinedCerts())
+
+		var namespaceList corev1.NamespaceList
+		Expect(cl.List(ctx, &namespaceList)).ToNot(HaveOccurred())
+
+		for _, namespace := range namespaceList.Items {
+			if namespace.Status.Phase == corev1.NamespaceTerminating {
+				continue
+			}
+
+			var configMap corev1.ConfigMap
+			Expect(cl.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
+			Expect(configMap.Annotations).To(HaveKeyWithValue("test1", "test1"), "Ensuring target contains additional annotations")
+		}
+	})
 })
 
 func writeDefaultPackage() (string, error) {

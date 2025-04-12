@@ -354,6 +354,87 @@ func Test_validate(t *testing.T) {
 			},
 			expErr: nil,
 		},
+		"valid Bundle with annotations and labels": {
+			bundle: &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle-1"},
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{InLine: ptr.To("test-1")},
+					},
+					Target: trustapi.BundleTarget{
+						ConfigMap: &trustapi.KeySelector{
+							Key: "test-1",
+							Metadata: &trustapi.TargetMetadata{
+								Labels: map[string]string{
+									"app.kubernetes.io/part-of": "service-a",
+								},
+								Annotations: map[string]string{
+									"kustomize.toolkit.fluxcd.io/prune": "disabled",
+								},
+							},
+						},
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"foo": "bar"},
+						},
+					},
+				},
+				Status: trustapi.BundleStatus{
+					Conditions: []trustapi.BundleCondition{
+						{
+							Type:   "A",
+							Reason: "B",
+						},
+						{
+							Type:   "B",
+							Reason: "C",
+						},
+					},
+				},
+			},
+			expErr: nil,
+		},
+		"a bundle with target metadata containing reserved keys should fail": {
+			bundle: &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle-1"},
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{InLine: ptr.To("test-1")},
+					},
+					Target: trustapi.BundleTarget{
+						ConfigMap: &trustapi.KeySelector{
+							Key: "test-1",
+							Metadata: &trustapi.TargetMetadata{
+								Annotations: map[string]string{
+									"trust-manager.io/hash": "hash",
+								},
+								Labels: map[string]string{
+									"trust.cert-manager.io/bundle": "bundle",
+								},
+							},
+						},
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"foo": "bar"},
+						},
+					},
+				},
+				Status: trustapi.BundleStatus{
+					Conditions: []trustapi.BundleCondition{
+						{
+							Type:   "A",
+							Reason: "B",
+						},
+						{
+							Type:   "B",
+							Reason: "C",
+						},
+					},
+				},
+			},
+			expErr: ptr.To(field.ErrorList{
+				field.Invalid(field.NewPath("spec", "target", "configMapTemplate", "annotations"), "trust-manager.io/hash", "trust-manager.io/* annotations are not allowed"),
+				field.Invalid(field.NewPath("spec", "target", "configMapTemplate", "labels"), "trust.cert-manager.io/bundle", "trust.cert-manager.io/* labels are not allowed"),
+			}.ToAggregate().Error()),
+		},
 		"valid Bundle with JKS": {
 			bundle: &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: "testing"},

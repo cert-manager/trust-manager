@@ -180,6 +180,36 @@ var _ = Describe("Bundle Validation", func() {
 			Entry("when both set", trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "ca-bundle.crt"}, Secret: &trustapi.KeySelector{Key: "ca-bundle.crt"}}, false),
 		)
 
+		DescribeTable("should prevent annotations and labels with the trust manager prefixes",
+			func(target trustapi.BundleTarget, wantErr bool) {
+				bundle.Spec.Target = target
+				if wantErr {
+					Expect(cl.Create(ctx, bundle)).Should(MatchError(
+						SatisfyAny(
+							ContainSubstring("Invalid value: \"trust.cert-manager.io/bundle\": trust.cert-manager.io/* labels are not allowed"),
+							ContainSubstring("Invalid value: \"trust.cert-manager.io/hash\": trust.cert-manager.io/* annotations are not allowed"),
+							ContainSubstring("Invalid value: \"trust-manager.io/bundle\": trust-manager.io/* labels are not allowed"),
+							ContainSubstring("Invalid value: \"trust-manager.io/hash\": trust-manager.io/* annotations are not allowed"),
+						),
+					))
+				} else {
+					Expect(cl.Create(ctx, bundle)).To(Succeed())
+				}
+			},
+			Entry("when trust-manager.io annotations are used", trustapi.BundleTarget{
+				ConfigMap: &trustapi.KeySelector{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"trust-manager.io/hash": "test"}}}}, true),
+			Entry("when trust.cert-manager.io annotations are used", trustapi.BundleTarget{
+				ConfigMap: &trustapi.KeySelector{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"trust.cert-manager.io/hash": "test"}}}}, true),
+			Entry("when trust-manager.io labels are used", trustapi.BundleTarget{
+				ConfigMap: &trustapi.KeySelector{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"trust-manager.io/bundle": "bundle"}}}}, true),
+			Entry("when trust.cert-manager.io labels are used", trustapi.BundleTarget{
+				ConfigMap: &trustapi.KeySelector{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"trust.cert-manager.io/bundle": "bundle"}}}}, true),
+			Entry("when non-reserved annotations are used", trustapi.BundleTarget{
+				ConfigMap: &trustapi.KeySelector{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"not-trust-manager.io/hash": "test"}}}}, false),
+			Entry("when non-reserved labels are used", trustapi.BundleTarget{
+				ConfigMap: &trustapi.KeySelector{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"not-trust-manager.io/bundle": "bundle"}}}}, false),
+		)
+
 		type TargetKeySpec struct {
 			ConfigMapKey string
 			SecretKey    string
