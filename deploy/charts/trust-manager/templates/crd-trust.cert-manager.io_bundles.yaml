@@ -296,27 +296,27 @@ spec:
                           description: Key is the key of the entry in the object's `data` field to be used.
                           minLength: 1
                           type: string
+                        metadata:
+                          description: Metadata is an optional set of labels and annotations to be copied to the target.
+                          properties:
+                            annotations:
+                              additionalProperties:
+                                type: string
+                              description: Annotations is a key value map to be copied to the target.
+                              type: object
+                            labels:
+                              additionalProperties:
+                                type: string
+                              description: Labels is a key value map to be copied to the target.
+                              type: object
+                          type: object
+                          x-kubernetes-validations:
+                            - message: Annotation keys must not start with 'trust.cert-manager.io/'.
+                              rule: '!(self.annotations.exists(k, self.annotations[k].size() >= 0 && k.startsWith(''trust.cert-manager.io/'')))'
+                            - message: Label keys must not start with 'trust.cert-manager.io/'.
+                              rule: '!(self.labels.exists(k, self.labels[k].size() >= 0 && k.startsWith(''trust.cert-manager.io/'')))'
                       required:
                         - key
-                      type: object
-                    configMapTemplate:
-                      description: |-
-                        Defines annotations and labels to be copied to the Bundles ConfigMap.
-                        Labels and annotations on the ConfigMap will be changed as they appear on the
-                        ConfigMapTemplate when added or removed. ConfigMapTemplate annotations are added
-                        in conjunction with, and cannot overwrite, the base set of annotations
-                        trust-manager sets on the Bundles ConfigMap.
-                      properties:
-                        annotations:
-                          additionalProperties:
-                            type: string
-                          description: Annotations is a key value map to be copied to the target.
-                          type: object
-                        labels:
-                          additionalProperties:
-                            type: string
-                          description: Labels is a key value map to be copied to the target.
-                          type: object
                       type: object
                     namespaceSelector:
                       description: |-
@@ -374,27 +374,27 @@ spec:
                           description: Key is the key of the entry in the object's `data` field to be used.
                           minLength: 1
                           type: string
+                        metadata:
+                          description: Metadata is an optional set of labels and annotations to be copied to the target.
+                          properties:
+                            annotations:
+                              additionalProperties:
+                                type: string
+                              description: Annotations is a key value map to be copied to the target.
+                              type: object
+                            labels:
+                              additionalProperties:
+                                type: string
+                              description: Labels is a key value map to be copied to the target.
+                              type: object
+                          type: object
+                          x-kubernetes-validations:
+                            - message: Annotation keys must not start with 'trust.cert-manager.io/'.
+                              rule: '!(self.annotations.exists(k, self.annotations[k].size() >= 0 && k.startsWith(''trust.cert-manager.io/'')))'
+                            - message: Label keys must not start with 'trust.cert-manager.io/'.
+                              rule: '!(self.labels.exists(k, self.labels[k].size() >= 0 && k.startsWith(''trust.cert-manager.io/'')))'
                       required:
                         - key
-                      type: object
-                    secretTemplate:
-                      description: |-
-                        Defines annotations and labels to be copied to the Bundles ConfigMap.
-                        Labels and annotations on the Secret will be changed as they appear on the
-                        SecretTemplate when added or removed. SecretTemplate annotations are added
-                        in conjunction with, and cannot overwrite, the base set of annotations
-                        trust-manager sets on the Bundles Secret.
-                      properties:
-                        annotations:
-                          additionalProperties:
-                            type: string
-                          description: Annotations is a key value map to be copied to the target.
-                          type: object
-                        labels:
-                          additionalProperties:
-                            type: string
-                          description: Labels is a key value map to be copied to the target.
-                          type: object
                       type: object
                   type: object
               required:
