@@ -261,7 +261,7 @@ func Test_validate(t *testing.T) {
 					},
 				},
 				Status: trustapi.BundleStatus{
-					Conditions: []trustapi.BundleCondition{
+					Conditions: []metav1.Condition{
 						{
 							Type:   "A",
 							Reason: "C",
@@ -340,7 +340,7 @@ func Test_validate(t *testing.T) {
 					},
 				},
 				Status: trustapi.BundleStatus{
-					Conditions: []trustapi.BundleCondition{
+					Conditions: []metav1.Condition{
 						{
 							Type:   "A",
 							Reason: "B",

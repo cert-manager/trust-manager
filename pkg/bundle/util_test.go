@@ -35,33 +35,33 @@ func Test_bundleHasCondition(t *testing.T) {
 	)
 
 	tests := map[string]struct {
-		existingConditions []trustapi.BundleCondition
-		newCondition       trustapi.BundleCondition
+		existingConditions []metav1.Condition
+		newCondition       metav1.Condition
 		expectHasCondition bool
 	}{
 		"no existing conditions returns no matching condition": {
-			existingConditions: []trustapi.BundleCondition{},
-			newCondition:       trustapi.BundleCondition{Reason: "A", ObservedGeneration: bundleGeneration},
+			existingConditions: []metav1.Condition{},
+			newCondition:       metav1.Condition{Reason: "A", ObservedGeneration: bundleGeneration},
 			expectHasCondition: false,
 		},
 		"an existing condition which doesn't match the current condition should return false": {
-			existingConditions: []trustapi.BundleCondition{{Reason: "B"}},
-			newCondition:       trustapi.BundleCondition{Reason: "A", ObservedGeneration: bundleGeneration},
+			existingConditions: []metav1.Condition{{Reason: "B"}},
+			newCondition:       metav1.Condition{Reason: "A", ObservedGeneration: bundleGeneration},
 			expectHasCondition: false,
 		},
 		"an existing condition which shares the same condition but is an older generation should return false": {
-			existingConditions: []trustapi.BundleCondition{{Reason: "A", ObservedGeneration: bundleGeneration - 1}},
-			newCondition:       trustapi.BundleCondition{Reason: "A", ObservedGeneration: bundleGeneration},
+			existingConditions: []metav1.Condition{{Reason: "A", ObservedGeneration: bundleGeneration - 1}},
+			newCondition:       metav1.Condition{Reason: "A", ObservedGeneration: bundleGeneration},
 			expectHasCondition: false,
 		},
 		"an existing condition which shares the same condition and generation should return true": {
-			existingConditions: []trustapi.BundleCondition{{Reason: "A", ObservedGeneration: bundleGeneration}},
-			newCondition:       trustapi.BundleCondition{Reason: "A", ObservedGeneration: bundleGeneration},
+			existingConditions: []metav1.Condition{{Reason: "A", ObservedGeneration: bundleGeneration}},
+			newCondition:       metav1.Condition{Reason: "A", ObservedGeneration: bundleGeneration},
 			expectHasCondition: true,
 		},
 		"an existing condition with a different LastTransitionTime should return true still": {
-			existingConditions: []trustapi.BundleCondition{{Reason: "A", ObservedGeneration: bundleGeneration, LastTransitionTime: metav1.Time{Time: fixedTime.Add(-time.Second)}}},
-			newCondition:       trustapi.BundleCondition{Reason: "A", ObservedGeneration: bundleGeneration},
+			existingConditions: []metav1.Condition{{Reason: "A", ObservedGeneration: bundleGeneration, LastTransitionTime: metav1.Time{Time: fixedTime.Add(-time.Second)}}},
+			newCondition:       metav1.Condition{Reason: "A", ObservedGeneration: bundleGeneration},
 			expectHasCondition: true,
 		},
 	}
@@ -85,19 +85,19 @@ func Test_setBundleCondition(t *testing.T) {
 	)
 
 	tests := map[string]struct {
-		existingConditions []trustapi.BundleCondition
-		newCondition       trustapi.BundleCondition
-		expectedConditions []trustapi.BundleCondition
+		existingConditions []metav1.Condition
+		newCondition       metav1.Condition
+		expectedConditions []metav1.Condition
 	}{
 		"no existing conditions should add the condition with time and gen to the bundle": {
-			existingConditions: []trustapi.BundleCondition{},
-			newCondition: trustapi.BundleCondition{
+			existingConditions: []metav1.Condition{},
+			newCondition: metav1.Condition{
 				Type:    "A",
 				Status:  metav1.ConditionTrue,
 				Reason:  "B",
 				Message: "C",
 			},
-			expectedConditions: []trustapi.BundleCondition{
+			expectedConditions: []metav1.Condition{
 				{
 					Type:               "A",
 					Status:             metav1.ConditionTrue,
@@ -109,14 +109,14 @@ func Test_setBundleCondition(t *testing.T) {
 			},
 		},
 		"an existing condition of different type should add a different condition with time and gen to the bundle": {
-			existingConditions: []trustapi.BundleCondition{{Type: "B"}},
-			newCondition: trustapi.BundleCondition{
+			existingConditions: []metav1.Condition{{Type: "B"}},
+			newCondition: metav1.Condition{
 				Type:    "A",
 				Status:  metav1.ConditionTrue,
 				Reason:  "B",
 				Message: "C",
 			},
-			expectedConditions: []trustapi.BundleCondition{
+			expectedConditions: []metav1.Condition{
 				{
 					Type:               "A",
 					Status:             metav1.ConditionTrue,
@@ -128,7 +128,7 @@ func Test_setBundleCondition(t *testing.T) {
 			},
 		},
 		"an existing condition of the same type but different status should be replaced with new time if it has a different status": {
-			existingConditions: []trustapi.BundleCondition{
+			existingConditions: []metav1.Condition{
 				{
 					Type:               "A",
 					Status:             metav1.ConditionFalse,
@@ -138,13 +138,13 @@ func Test_setBundleCondition(t *testing.T) {
 					ObservedGeneration: bundleGeneration - 1,
 				},
 			},
-			newCondition: trustapi.BundleCondition{
+			newCondition: metav1.Condition{
 				Type:    "A",
 				Status:  metav1.ConditionTrue,
 				Reason:  "B",
 				Message: "C",
 			},
-			expectedConditions: []trustapi.BundleCondition{
+			expectedConditions: []metav1.Condition{
 				{
 					Type:               "A",
 					Status:             metav1.ConditionTrue,
@@ -156,7 +156,7 @@ func Test_setBundleCondition(t *testing.T) {
 			},
 		},
 		"an existing condition of the same type and status should be replaced with same time": {
-			existingConditions: []trustapi.BundleCondition{
+			existingConditions: []metav1.Condition{
 				{
 					Type:               "A",
 					Status:             metav1.ConditionTrue,
@@ -166,13 +166,13 @@ func Test_setBundleCondition(t *testing.T) {
 					ObservedGeneration: bundleGeneration - 1,
 				},
 			},
-			newCondition: trustapi.BundleCondition{
+			newCondition: metav1.Condition{
 				Type:    "A",
 				Status:  metav1.ConditionTrue,
 				Reason:  "B",
 				Message: "C",
 			},
-			expectedConditions: []trustapi.BundleCondition{
+			expectedConditions: []metav1.Condition{
 				{
 					Type:               "A",
 					Status:             metav1.ConditionTrue,
@@ -197,11 +197,11 @@ func Test_setBundleCondition(t *testing.T) {
 				},
 			}
 
-			var patchConditions []trustapi.BundleCondition
+			var patchConditions []metav1.Condition
 			b.setBundleCondition(
 				bundle.Status.Conditions,
 				&patchConditions,
-				trustapi.BundleCondition{
+				metav1.Condition{
 					Type:               test.newCondition.Type,
 					Status:             test.newCondition.Status,
 					Reason:             test.newCondition.Reason,

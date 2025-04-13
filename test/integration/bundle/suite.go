@@ -706,7 +706,7 @@ var _ = Describe("Integration", func() {
 		Expect(komega.UpdateStatus(testBundle, func() {
 			testBundle.Status = trustapi.BundleStatus{
 				DefaultCAPackageVersion: ptr.To("OLD_VERSION"),
-				Conditions: []trustapi.BundleCondition{
+				Conditions: []metav1.Condition{
 					{
 						Type:               "OLD_CONDITION",
 						Status:             metav1.ConditionTrue,
