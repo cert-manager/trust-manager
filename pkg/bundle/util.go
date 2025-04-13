@@ -26,8 +26,8 @@ import (
 // The given condition will have the ObservedGeneration set to the bundle Generation.
 // The LastTransitionTime is ignored.
 func bundleHasCondition(
-	existingConditions []trustapi.BundleCondition,
-	searchCondition trustapi.BundleCondition,
+	existingConditions []metav1.Condition,
+	searchCondition metav1.Condition,
 ) bool {
 	for _, existingCondition := range existingConditions {
 		if existingCondition.Type == searchCondition.Type {
@@ -48,10 +48,10 @@ func bundleHasCondition(
 // LastTransitionTime will not be updated if an existing condition of the same
 // Type and Status already exists.
 func (b *bundle) setBundleCondition(
-	existingConditions []trustapi.BundleCondition,
-	patchConditions *[]trustapi.BundleCondition,
-	newCondition trustapi.BundleCondition,
-) trustapi.BundleCondition { // nolint:unparam
+	existingConditions []metav1.Condition,
+	patchConditions *[]metav1.Condition,
+	newCondition metav1.Condition,
+) metav1.Condition { // nolint:unparam
 	newCondition.LastTransitionTime = metav1.Time{Time: b.clock.Now()}
 
 	// Reset the LastTransitionTime if the status hasn't changed
