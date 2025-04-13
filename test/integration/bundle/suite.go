@@ -519,7 +519,7 @@ var _ = Describe("Integration", func() {
 	It("should delete old targets and update to new ones when the Spec.Target is modified", func() {
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Target = trustapi.BundleTarget{
-				ConfigMap: &trustapi.KeySelector{Key: "changed-target-key"},
+				ConfigMap: &trustapi.TargetTemplate{Key: "changed-target-key"},
 			}
 		})()).To(Succeed())
 
@@ -545,7 +545,7 @@ var _ = Describe("Integration", func() {
 	It("should delete old targets and update to new ones when a JKS file is requested in the target", func() {
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Target = trustapi.BundleTarget{
-				ConfigMap: &trustapi.KeySelector{Key: testData.Target.Key},
+				ConfigMap: &trustapi.TargetTemplate{Key: testData.Target.Key},
 				AdditionalFormats: &trustapi.AdditionalFormats{
 					JKS: &trustapi.JKS{
 						KeySelector: trustapi.KeySelector{
@@ -787,6 +787,31 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Get(ctx, client.ObjectKey{Namespace: testNamespace.Name, Name: testBundle.Name}, &cm)).NotTo(HaveOccurred())
 
 		Expect(cm.Data).To(Not(HaveKey(oldKey)))
+	})
+
+	It("should add target annotations when added to a bundle", func() {
+		Expect(komega.Update(testBundle, func() {
+			testBundle.Spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{
+				Annotations: map[string]string{
+					"test1": "test1",
+				},
+			}
+		})()).To(Succeed())
+
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.DefaultJoinedCerts())
+
+		var namespaceList corev1.NamespaceList
+		Expect(cl.List(ctx, &namespaceList)).ToNot(HaveOccurred())
+
+		for _, namespace := range namespaceList.Items {
+			if namespace.Status.Phase == corev1.NamespaceTerminating {
+				continue
+			}
+
+			var configMap corev1.ConfigMap
+			Expect(cl.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
+			Expect(configMap.Annotations).To(HaveKeyWithValue("test1", "test1"), "Ensuring target contains additional annotations")
+		}
 	})
 })
 

@@ -60,7 +60,7 @@ type TestData struct {
 		}
 	}
 
-	Target trustapi.KeySelector
+	Target trustapi.TargetTemplate
 }
 
 // DefaultTrustData returns a well-known set of default data for a test.

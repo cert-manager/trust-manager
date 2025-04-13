@@ -104,13 +104,13 @@ type BundleTarget struct {
 	// ConfigMap is the target ConfigMap in Namespaces that all Bundle source
 	// data will be synced to.
 	// +optional
-	ConfigMap *KeySelector `json:"configMap,omitempty"`
+	ConfigMap *TargetTemplate `json:"configMap,omitempty"`
 
 	// Secret is the target Secret that all Bundle source data will be synced to.
 	// Using Secrets as targets is only supported if enabled at trust-manager startup.
 	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
 	// +optional
-	Secret *KeySelector `json:"secret,omitempty"`
+	Secret *TargetTemplate `json:"secret,omitempty"`
 
 	// AdditionalFormats specifies any additional formats to write to the target
 	// +optional
@@ -212,11 +212,50 @@ type SourceObjectKeySelector struct {
 	IncludeAllKeys bool `json:"includeAllKeys,omitempty"`
 }
 
+// TargetTemplate defines the form of the Kubernetes Secret or ConfigMap bundle targets.
+type TargetTemplate struct {
+	// Key is the key of the entry in the object's `data` field to be used.
+	// +kubebuilder:validation:MinLength=1
+	Key string `json:"key"`
+
+	// Metadata is an optional set of labels and annotations to be copied to the target.
+	// +optional
+	Metadata *TargetMetadata `json:"metadata,omitempty"`
+}
+
+// GetAnnotations returns the annotations to be copied to the target or an empty map if there are no annotations.
+func (t *TargetTemplate) GetAnnotations() map[string]string {
+	if t == nil || t.Metadata == nil {
+		return nil
+	}
+	return t.Metadata.Annotations
+}
+
+// GetLabels returns the labels to be copied to the target or an empty map if there are no labels.
+func (t *TargetTemplate) GetLabels() map[string]string {
+	if t == nil || t.Metadata == nil {
+		return nil
+	}
+	return t.Metadata.Labels
+}
+
 // KeySelector is a reference to a key for some map data object.
 type KeySelector struct {
 	// Key is the key of the entry in the object's `data` field to be used.
 	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key"`
+}
+
+// TargetMetadata defines the default labels and annotations
+// to be copied to the Kubernetes Secret or ConfigMap bundle targets.
+type TargetMetadata struct {
+	// Annotations is a key value map to be copied to the target.
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+
+	// Labels is a key value map to be copied to the target.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // BundleStatus defines the observed state of the Bundle.

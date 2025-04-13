@@ -24,8 +24,8 @@ import (
 // BundleTargetApplyConfiguration represents a declarative configuration of the BundleTarget type for use
 // with apply.
 type BundleTargetApplyConfiguration struct {
-	ConfigMap         *KeySelectorApplyConfiguration       `json:"configMap,omitempty"`
-	Secret            *KeySelectorApplyConfiguration       `json:"secret,omitempty"`
+	ConfigMap         *TargetTemplateApplyConfiguration    `json:"configMap,omitempty"`
+	Secret            *TargetTemplateApplyConfiguration    `json:"secret,omitempty"`
 	AdditionalFormats *AdditionalFormatsApplyConfiguration `json:"additionalFormats,omitempty"`
 	NamespaceSelector *v1.LabelSelectorApplyConfiguration  `json:"namespaceSelector,omitempty"`
 }
@@ -39,7 +39,7 @@ func BundleTarget() *BundleTargetApplyConfiguration {
 // WithConfigMap sets the ConfigMap field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ConfigMap field is set to the value of the last call.
-func (b *BundleTargetApplyConfiguration) WithConfigMap(value *KeySelectorApplyConfiguration) *BundleTargetApplyConfiguration {
+func (b *BundleTargetApplyConfiguration) WithConfigMap(value *TargetTemplateApplyConfiguration) *BundleTargetApplyConfiguration {
 	b.ConfigMap = value
 	return b
 }
@@ -47,7 +47,7 @@ func (b *BundleTargetApplyConfiguration) WithConfigMap(value *KeySelectorApplyCo
 // WithSecret sets the Secret field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Secret field is set to the value of the last call.
-func (b *BundleTargetApplyConfiguration) WithSecret(value *KeySelectorApplyConfiguration) *BundleTargetApplyConfiguration {
+func (b *BundleTargetApplyConfiguration) WithSecret(value *TargetTemplateApplyConfiguration) *BundleTargetApplyConfiguration {
 	b.Secret = value
 	return b
 }
