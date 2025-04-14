@@ -71,3 +71,19 @@ release-debian-bookworm-trust-package: | $(NEEDS_CRANE)
 	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_TAG=$(oci_package_debian_bookworm_image_tag)" >> "$(GITHUB_OUTPUT)"
 
 	@echo "Release complete!"
+
+.PHONY: generate-applyconfigurations
+## Generate applyconfigurations to support typesafe SSA.
+## @category Generate/ Verify
+generate-applyconfigurations: | $(NEEDS_APPLYCONFIGURATION-GEN)
+	$(eval apis := $(shell find pkg/apis -mindepth 2 -type d | sed "s|^|$(repo_name)/|" | paste -sd ","))
+
+	rm -rf pkg/applyconfigurations
+
+	$(APPLYCONFIGURATION-GEN) \
+		--go-header-file $(go_header_file) \
+		--output-dir "pkg/applyconfigurations" \
+		--output-pkg "$(repo_name)/pkg/applyconfigurations" \
+		$(apis)
+
+shared_generate_targets += generate-applyconfigurations
