@@ -17,10 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"testing"
+
 	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	"testing"
 
 	trustv1alpha2 "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	utilconversion "github.com/cert-manager/trust-manager/pkg/util/conversion"

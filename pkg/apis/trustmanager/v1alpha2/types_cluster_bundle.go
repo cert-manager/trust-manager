@@ -144,10 +144,9 @@ type PKCS12 struct {
 	// Allowed values are:
 	// `LegacyRC2`: Deprecated. Not supported by default in OpenSSL 3 or Java 20.
 	// `LegacyDES`: Less secure algorithm. Use this option for maximal compatibility.
-	// `Modern2023`: Secure algorithm. Use this option in case you have to always use secure algorithms
-	// (eg. because of company policy).
+	// `Modern2023`: Secure algorithm. Use this option in case you have to always use secure algorithms (e.g. because of company policy).
 	//
-	// Default value is `Modern2023`.
+	// Default value is `LegacyDES`.
 	//
 	// +optional
 	Profile PKCS12Profile `json:"profile,omitempty"`
@@ -207,7 +206,6 @@ type TargetKeyValue struct {
 	Key string `json:"key"`
 
 	// Format defines the format of the target value.
-	// +kubebuilder:validation:Enum=PEM;JKS;PKCS12
 	// The default format is PEM.
 	//+optional
 	Format BundleFormat `json:"format,omitempty"`
@@ -223,6 +221,7 @@ type TargetKeyValue struct {
 	PKCS12 *PKCS12 `json:"pkcs12,omitempty"`
 }
 
+// BundleFormat defines the trust bundle format.
 // +kubebuilder:validation:Enum=PEM;JKS;PKCS12
 type BundleFormat string
 
