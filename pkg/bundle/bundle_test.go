@@ -129,7 +129,7 @@ func Test_Reconcile(t *testing.T) {
 			&corev1.Namespace{TypeMeta: metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"}, ObjectMeta: metav1.ObjectMeta{Name: "ns-2"}},
 		}
 
-		fixedTime     = time.Date(2021, 01, 01, 01, 0, 0, 0, time.Local)
+		fixedTime     = time.Date(2021, 01, 01, 01, 0, 0, 0, time.Local) // nolint: gosmopolitan // metav1.Time when unmarshalled returns a local time
 		fixedmetatime = metav1.Time{Time: fixedTime}
 		fixedclock    = fakeclock.NewFakeClock(fixedTime)
 

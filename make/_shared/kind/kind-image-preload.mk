@@ -46,19 +46,14 @@ images_tars := $(images_files:%=$(images_tar_dir)/%.tar)
 # tag to point to a different digest. This prevents CI from breaking due to upstream
 # changes. However, it also means that we can incorrectly combine digests with tags,
 # hence caution is advised.
-$(images_tars): $(images_tar_dir)/%.tar: | $(NEEDS_CRANE) $(NEEDS_GOJQ)
+$(images_tars): $(images_tar_dir)/%.tar: | $(NEEDS_IMAGE-TOOL) $(NEEDS_CRANE) $(NEEDS_GOJQ)
 	@$(eval full_image=$(subst +,:,$*))
 	@$(eval bare_image=$(word 1,$(subst :, ,$(full_image))))
 	@$(eval digest=$(word 2,$(subst @, ,$(full_image))))
 	@$(eval tag=$(word 2,$(subst :, ,$(word 1,$(subst @, ,$(full_image))))))
-	@mkdir -p $@.tmp.unpacked
-	$(CRANE) pull "$(bare_image)@$(digest)" $@.tmp --platform=linux/$(HOST_ARCH)
-	@tar xf $@.tmp -C $@.tmp.unpacked
-	@rm -rf $@.tmp
-	@$(GOJQ) '.[0].RepoTags[0] |= rtrimstr("i-was-a-digest") + "$(tag)"' $@.tmp.unpacked/manifest.json > $@.tmp.unpacked/manifest.json.new
-	@mv $@.tmp.unpacked/manifest.json.new $@.tmp.unpacked/manifest.json
-	@find $@.tmp.unpacked \( -type f -o -type d \) -printf "%P\n" | tar -cf $@ --no-recursion -C $@.tmp.unpacked -T -
-	@rm -rf $@.tmp.unpacked
+	@mkdir -p $(dir $@)
+	$(CRANE) pull "$(bare_image)@$(digest)" $@ --platform=linux/$(HOST_ARCH)
+	$(IMAGE-TOOL) tag-docker-tar $@ "$(bare_image):$(tag)"
 
 images_tar_envs := $(images_files:%=env-%)
 
