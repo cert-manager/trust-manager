@@ -305,6 +305,23 @@ spec:
                           field to be used.
                         minLength: 1
                         type: string
+                      metadata:
+                        description: Metadata is an optional set of labels and annotations
+                          to be copied to the target.
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            description: Annotations is a key value map to be copied
+                              to the target.
+                            type: object
+                          labels:
+                            additionalProperties:
+                              type: string
+                            description: Labels is a key value map to be copied to
+                              the target.
+                            type: object
+                        type: object
                     required:
                     - key
                     type: object
@@ -367,6 +384,23 @@ spec:
                           field to be used.
                         minLength: 1
                         type: string
+                      metadata:
+                        description: Metadata is an optional set of labels and annotations
+                          to be copied to the target.
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            description: Annotations is a key value map to be copied
+                              to the target.
+                            type: object
+                          labels:
+                            additionalProperties:
+                              type: string
+                            description: Labels is a key value map to be copied to
+                              the target.
+                            type: object
+                        type: object
                     required:
                     - key
                     type: object

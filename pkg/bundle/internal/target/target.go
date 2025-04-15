@@ -128,10 +128,13 @@ func (r *Reconciler) syncConfigMap(
 	}
 	binData := resolvedBundle.BinaryData
 
+	annotations, labels := mapsFromBundle(bundleTarget.ConfigMap.Metadata)
+	annotations[trustapi.BundleHashAnnotationKey] = bundleHash
+
 	// If the resource exists, check if it is up-to-date.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
-		if exit, err := r.needsUpdate(ctx, target.Kind, targetObj, bundle, bundleHash); err != nil {
+		if exit, err := r.needsUpdate(ctx, target.Kind, targetObj, bundle, bundleHash, annotations, labels); err != nil {
 			return false, err
 		} else if !exit {
 			return false, nil
@@ -139,9 +142,8 @@ func (r *Reconciler) syncConfigMap(
 	}
 
 	patch := prepareTargetPatch(coreapplyconfig.ConfigMap(target.Name, target.Namespace), *bundle).
-		WithAnnotations(map[string]string{
-			trustapi.BundleHashAnnotationKey: bundleHash,
-		}).
+		WithAnnotations(annotations).
+		WithLabels(labels).
 		WithData(data).
 		WithBinaryData(binData)
 
@@ -208,10 +210,13 @@ func (r *Reconciler) syncSecret(
 		data[k] = v
 	}
 
+	annotations, labels := mapsFromBundle(bundleTarget.Secret.Metadata)
+	annotations[trustapi.BundleHashAnnotationKey] = bundleHash
+
 	// If the resource exists, check if it is up-to-date.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
-		if exit, err := r.needsUpdate(ctx, target.Kind, targetObj, bundle, bundleHash); err != nil {
+		if exit, err := r.needsUpdate(ctx, target.Kind, targetObj, bundle, bundleHash, annotations, labels); err != nil {
 			return false, err
 		} else if !exit {
 			return false, nil
@@ -219,9 +224,8 @@ func (r *Reconciler) syncSecret(
 	}
 
 	patch := prepareTargetPatch(coreapplyconfig.Secret(target.Name, target.Namespace), *bundle).
-		WithAnnotations(map[string]string{
-			trustapi.BundleHashAnnotationKey: bundleHash,
-		}).
+		WithAnnotations(annotations).
+		WithLabels(labels).
 		WithData(data)
 
 	if _, err = r.patchSecret(ctx, patch); err != nil {
@@ -240,7 +244,7 @@ const (
 	KindSecret    Kind = "Secret"
 )
 
-func (r *Reconciler) needsUpdate(ctx context.Context, kind Kind, obj *metav1.PartialObjectMetadata, bundle *trustapi.Bundle, bundleHash string) (bool, error) {
+func (r *Reconciler) needsUpdate(ctx context.Context, kind Kind, obj *metav1.PartialObjectMetadata, bundle *trustapi.Bundle, bundleHash string, annotations, labels map[string]string) (bool, error) {
 	needsUpdate := false
 	if !metav1.IsControlledBy(obj, bundle) {
 		needsUpdate = true
@@ -252,6 +256,34 @@ func (r *Reconciler) needsUpdate(ctx context.Context, kind Kind, obj *metav1.Par
 
 	if obj.GetAnnotations()[trustapi.BundleHashAnnotationKey] != bundleHash {
 		needsUpdate = true
+	}
+
+	// Find keys that are not present in the target but should be
+	for annotationKey, annotationValue := range annotations {
+		if obj.GetAnnotations()[annotationKey] != annotationValue {
+			needsUpdate = true
+		}
+	}
+	for labelKey, labelValue := range labels {
+		if obj.GetLabels()[labelKey] != labelValue {
+			needsUpdate = true
+		}
+	}
+
+	// Find keys present in the target that should be removed
+	for annotationKey := range obj.GetAnnotations() {
+		if annotationKey == trustapi.BundleHashAnnotationKey {
+			continue
+		} else if _, exists := annotations[annotationKey]; !exists {
+			needsUpdate = true
+		}
+	}
+	for labelKey := range obj.GetLabels() {
+		if labelKey == trustapi.BundleLabelKey {
+			continue
+		} else if _, exists := labels[labelKey]; !exists {
+			needsUpdate = true
+		}
 	}
 
 	{
@@ -454,4 +486,18 @@ func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats)
 	hash.Sum(hashValue[:0])
 
 	return hex.EncodeToString(hashValue[:])
+}
+
+// mapsFromBundle returns the annotations and labels maps from a template ensuring the maps are not nil.
+func mapsFromBundle(targetMetadata *trustapi.TargetMetadata) (map[string]string, map[string]string) {
+	annotations := map[string]string{}
+	labels := map[string]string{}
+
+	if targetMetadata != nil && targetMetadata.Annotations != nil {
+		annotations = targetMetadata.Annotations
+	}
+	if targetMetadata != nil && targetMetadata.Labels != nil {
+		labels = targetMetadata.Labels
+	}
+	return annotations, labels
 }

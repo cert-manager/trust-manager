@@ -362,7 +362,7 @@ func Test_buildSourceBundle(t *testing.T) {
 			},
 			formats: &trustapi.AdditionalFormats{
 				JKS: &trustapi.JKS{
-					KeySelector: trustapi.KeySelector{
+					KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{
 						Key: jksKey,
 					},
 					Password: ptr.To(trustapi.DefaultJKSPassword),
@@ -381,7 +381,7 @@ func Test_buildSourceBundle(t *testing.T) {
 			},
 			formats: &trustapi.AdditionalFormats{
 				JKS: &trustapi.JKS{
-					KeySelector: trustapi.KeySelector{
+					KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{
 						Key: jksKey,
 					},
 					Password: ptr.To("testPasswd123"),
@@ -401,7 +401,7 @@ func Test_buildSourceBundle(t *testing.T) {
 			},
 			formats: &trustapi.AdditionalFormats{
 				PKCS12: &trustapi.PKCS12{
-					KeySelector: trustapi.KeySelector{
+					KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{
 						Key: pkcs12Key,
 					},
 					Password: ptr.To(trustapi.DefaultPKCS12Password),
@@ -420,7 +420,7 @@ func Test_buildSourceBundle(t *testing.T) {
 			},
 			formats: &trustapi.AdditionalFormats{
 				PKCS12: &trustapi.PKCS12{
-					KeySelector: trustapi.KeySelector{
+					KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{
 						Key: pkcs12Key,
 					},
 					Password: ptr.To("testPasswd123"),

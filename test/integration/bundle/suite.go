@@ -548,7 +548,7 @@ var _ = Describe("Integration", func() {
 				ConfigMap: &trustapi.KeySelector{Key: testData.Target.Key},
 				AdditionalFormats: &trustapi.AdditionalFormats{
 					JKS: &trustapi.JKS{
-						KeySelector: trustapi.KeySelector{
+						KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{
 							Key: "myfile.jks",
 						},
 					},
@@ -678,7 +678,7 @@ var _ = Describe("Integration", func() {
 		It("should have stable resourceVersion for JKS target", func() {
 			Expect(komega.Update(testBundle, func() {
 				testBundle.Spec.Target.AdditionalFormats = &trustapi.AdditionalFormats{
-					JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "target.jks"}}}
+					JKS: &trustapi.JKS{KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{Key: "target.jks"}}}
 			})()).To(Succeed())
 
 			configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "kube-system", Name: testBundle.Name}}
@@ -691,7 +691,7 @@ var _ = Describe("Integration", func() {
 		It("should have stable resourceVersion for PKCS12 target", func() {
 			Expect(komega.Update(testBundle, func() {
 				testBundle.Spec.Target.AdditionalFormats = &trustapi.AdditionalFormats{
-					PKCS12: &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "target.p12"}}}
+					PKCS12: &trustapi.PKCS12{KeySelectorWithoutMetadata: trustapi.KeySelectorWithoutMetadata{Key: "target.p12"}}}
 			})()).To(Succeed())
 
 			configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "kube-system", Name: testBundle.Name}}
@@ -787,6 +787,31 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Get(ctx, client.ObjectKey{Namespace: testNamespace.Name, Name: testBundle.Name}, &cm)).NotTo(HaveOccurred())
 
 		Expect(cm.Data).To(Not(HaveKey(oldKey)))
+	})
+
+	It("should add target annotations when added to a bundle", func() {
+		Expect(komega.Update(testBundle, func() {
+			testBundle.Spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{
+				Annotations: map[string]string{
+					"test1": "test1",
+				},
+			}
+		})()).To(Succeed())
+
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.DefaultJoinedCerts())
+
+		var namespaceList corev1.NamespaceList
+		Expect(cl.List(ctx, &namespaceList)).ToNot(HaveOccurred())
+
+		for _, namespace := range namespaceList.Items {
+			if namespace.Status.Phase == corev1.NamespaceTerminating {
+				continue
+			}
+
+			var configMap corev1.ConfigMap
+			Expect(cl.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
+			Expect(configMap.Annotations).To(HaveKeyWithValue("test1", "test1"), "Ensuring target contains additional annotations")
+		}
 	})
 })
 

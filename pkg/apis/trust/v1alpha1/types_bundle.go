@@ -138,7 +138,7 @@ type AdditionalFormats struct {
 // JKS specifies additional target JKS files
 // +structType=atomic
 type JKS struct {
-	KeySelector `json:",inline"`
+	KeySelectorWithoutMetadata `json:",inline"`
 
 	// Password for JKS trust store
 	//+optional
@@ -151,7 +151,7 @@ type JKS struct {
 // PKCS12 specifies additional target PKCS#12 files
 // +structType=atomic
 type PKCS12 struct {
-	KeySelector `json:",inline"`
+	KeySelectorWithoutMetadata `json:",inline"`
 
 	// Password for PKCS12 trust store
 	//+optional
@@ -217,6 +217,29 @@ type KeySelector struct {
 	// Key is the key of the entry in the object's `data` field to be used.
 	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key"`
+
+	// Metadata is an optional set of labels and annotations to be copied to the target.
+	// +optional
+	Metadata *TargetMetadata `json:"metadata"`
+}
+
+// KeySelectorWithoutMetadata is a reference to a key for some map data object without optional metadata
+type KeySelectorWithoutMetadata struct {
+	// Key is the key of the entry in the object's `data` field to be used.
+	// +kubebuilder:validation:MinLength=1
+	Key string `json:"key"`
+}
+
+// TargetMetadata defines the default labels and annotations
+// to be copied to the Kubernetes Secret or ConfigMap bundle targets.
+type TargetMetadata struct {
+	// Annotations is a key value map to be copied to the target.
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+
+	// Labels is a key value map to be copied to the target.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // BundleStatus defines the observed state of the Bundle.
