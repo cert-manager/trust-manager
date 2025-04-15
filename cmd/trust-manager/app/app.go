@@ -64,6 +64,11 @@ func NewCommand() *cobra.Command {
 				return err
 			}
 
+			tlsOptions, err := GetTLSOptions(opts.TLSConfig)
+			if err != nil {
+				return fmt.Errorf("invalid flags: %s", err.Error())
+			}
+
 			cl, err := kubernetes.NewForConfig(opts.RestConfig)
 			if err != nil {
 				return fmt.Errorf("error creating kubernetes client: %s", err.Error())
@@ -91,25 +96,7 @@ func NewCommand() *cobra.Command {
 					Port:    opts.Webhook.Port,
 					Host:    opts.Webhook.Host,
 					CertDir: opts.Webhook.CertDir,
-					TLSOpts: []func(*tls.Config){
-						func(c *tls.Config) {
-							// Get Minimum TLS version from CLI arguments
-							c.MinVersion, err = cliflag.TLSVersion(opts.MinTLSVersion)
-							if err != nil {
-								log.Error(err, "error parsing minimum TLS version")
-							}
-
-							// Note that TLS 1.3 ciphersuites are not configurable.
-							if c.MinVersion == tls.VersionTLS13 {
-								return
-							}
-
-							c.CipherSuites, err = cliflag.TLSCipherSuites(opts.CipherSuite)
-							if err != nil {
-								log.Error(err, "error parsing cipher suites")
-							}
-						},
-					},
+					TLSOpts: tlsOptions,
 				}),
 				Metrics: server.Options{
 					BindAddress: fmt.Sprintf("0.0.0.0:%d", opts.MetricsPort),
@@ -193,4 +180,30 @@ func NewCommand() *cobra.Command {
 	opts = opts.Prepare(cmd)
 
 	return cmd
+}
+
+func GetTLSOptions(config options.TLSConfig) ([]func(*tls.Config), error) {
+	var tlsOptions []func(config *tls.Config)
+
+	if config.MinVersion != "" {
+		tlsVersion, err := cliflag.TLSVersion(config.MinVersion)
+		if err != nil {
+			return nil, err
+		}
+		tlsOptions = append(tlsOptions, func(cfg *tls.Config) {
+			cfg.MinVersion = tlsVersion
+		})
+	}
+
+	if len(config.CipherSuites) > 0 {
+		suites, err := cliflag.TLSCipherSuites(config.CipherSuites)
+		if err != nil {
+			return nil, err
+		}
+		tlsOptions = append(tlsOptions, func(cfg *tls.Config) {
+			cfg.CipherSuites = suites
+		})
+	}
+
+	return tlsOptions, nil
 }
