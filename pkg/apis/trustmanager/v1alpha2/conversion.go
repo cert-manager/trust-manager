@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The cert-manager Authors.
+Copyright 2025 The cert-manager Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// +kubebuilder:object:generate=true
-// +groupName=trust.cert-manager.io
-// +k8s:conversion-gen=github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2
-package v1alpha1
+package v1alpha2
+
+func (in *ClusterBundle) Hub() {}

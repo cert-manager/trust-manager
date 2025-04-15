@@ -19,8 +19,10 @@ package applyconfigurations
 
 import (
 	v1alpha1 "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	v1alpha2 "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	internal "github.com/cert-manager/trust-manager/pkg/applyconfigurations/internal"
 	trustv1alpha1 "github.com/cert-manager/trust-manager/pkg/applyconfigurations/trust/v1alpha1"
+	trustmanagerv1alpha2 "github.com/cert-manager/trust-manager/pkg/applyconfigurations/trustmanager/v1alpha2"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	testing "k8s.io/client-go/testing"
@@ -30,7 +32,29 @@ import (
 // apply configuration type exists for the given GroupVersionKind.
 func ForKind(kind schema.GroupVersionKind) interface{} {
 	switch kind {
-	// Group=trust.cert-manager.io, Version=v1alpha1
+	// Group=trust-manager.io, Version=v1alpha2
+	case v1alpha2.SchemeGroupVersion.WithKind("AdditionalFormats"):
+		return &trustmanagerv1alpha2.AdditionalFormatsApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("BundleSource"):
+		return &trustmanagerv1alpha2.BundleSourceApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("BundleSpec"):
+		return &trustmanagerv1alpha2.BundleSpecApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("BundleStatus"):
+		return &trustmanagerv1alpha2.BundleStatusApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("BundleTarget"):
+		return &trustmanagerv1alpha2.BundleTargetApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("ClusterBundle"):
+		return &trustmanagerv1alpha2.ClusterBundleApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("JKS"):
+		return &trustmanagerv1alpha2.JKSApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("KeySelector"):
+		return &trustmanagerv1alpha2.KeySelectorApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("PKCS12"):
+		return &trustmanagerv1alpha2.PKCS12ApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("SourceObjectKeySelector"):
+		return &trustmanagerv1alpha2.SourceObjectKeySelectorApplyConfiguration{}
+
+		// Group=trust.cert-manager.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithKind("AdditionalFormats"):
 		return &trustv1alpha1.AdditionalFormatsApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Bundle"):
