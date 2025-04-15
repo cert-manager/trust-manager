@@ -66,28 +66,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*BundleTarget)(nil), (*v1alpha2.BundleTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(a.(*BundleTarget), b.(*v1alpha2.BundleTarget), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha2.BundleTarget)(nil), (*BundleTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(a.(*v1alpha2.BundleTarget), b.(*BundleTarget), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*JKS)(nil), (*v1alpha2.JKS)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_JKS_To_v1alpha2_JKS(a.(*JKS), b.(*v1alpha2.JKS), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*v1alpha2.JKS)(nil), (*JKS)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha2_JKS_To_v1alpha1_JKS(a.(*v1alpha2.JKS), b.(*JKS), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*PKCS12)(nil), (*v1alpha2.PKCS12)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_PKCS12_To_v1alpha2_PKCS12(a.(*PKCS12), b.(*v1alpha2.PKCS12), scope)
 	}); err != nil {
 		return err
 	}
@@ -103,6 +83,26 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1alpha2.SourceObjectKeySelector)(nil), (*SourceObjectKeySelector)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha2_SourceObjectKeySelector_To_v1alpha1_SourceObjectKeySelector(a.(*v1alpha2.SourceObjectKeySelector), b.(*SourceObjectKeySelector), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*BundleTarget)(nil), (*v1alpha2.BundleTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(a.(*BundleTarget), b.(*v1alpha2.BundleTarget), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*JKS)(nil), (*v1alpha2.JKS)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_JKS_To_v1alpha2_JKS(a.(*JKS), b.(*v1alpha2.JKS), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*PKCS12)(nil), (*v1alpha2.PKCS12)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_PKCS12_To_v1alpha2_PKCS12(a.(*PKCS12), b.(*v1alpha2.PKCS12), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1alpha2.BundleTarget)(nil), (*BundleTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(a.(*v1alpha2.BundleTarget), b.(*BundleTarget), scope)
 	}); err != nil {
 		return err
 	}
