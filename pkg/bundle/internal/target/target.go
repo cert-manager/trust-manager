@@ -241,18 +241,10 @@ const (
 )
 
 func (r *Reconciler) needsUpdate(ctx context.Context, kind Kind, obj *metav1.PartialObjectMetadata, bundle *trustapi.Bundle, bundleHash string) (bool, error) {
-	needsUpdate := false
-	if !metav1.IsControlledBy(obj, bundle) {
-		needsUpdate = true
-	}
-
-	if obj.GetLabels()[trustapi.BundleLabelKey] != bundle.Name {
-		needsUpdate = true
-	}
-
-	if obj.GetAnnotations()[trustapi.BundleHashAnnotationKey] != bundleHash {
-		needsUpdate = true
-	}
+	needsUpdate := false ||
+		!metav1.IsControlledBy(obj, bundle) ||
+		obj.GetLabels()[trustapi.BundleLabelKey] != bundle.Name ||
+		obj.GetAnnotations()[trustapi.BundleHashAnnotationKey] != bundleHash
 
 	{
 		var key string
