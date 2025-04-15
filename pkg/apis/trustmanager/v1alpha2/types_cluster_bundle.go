@@ -210,7 +210,7 @@ type TargetKeyValue struct {
 	// +kubebuilder:validation:Enum=PEM;JKS;PKCS12
 	// The default format is PEM.
 	//+optional
-	Format *string `json:"format,omitempty"`
+	Format BundleFormat `json:"format,omitempty"`
 
 	// JKS specifies configs for target JKS files.
 	// May only be used when format is JKS.
@@ -222,6 +222,17 @@ type TargetKeyValue struct {
 	// +optional
 	PKCS12 *PKCS12 `json:"pkcs12,omitempty"`
 }
+
+// +kubebuilder:validation:Enum=PEM;JKS;PKCS12
+type BundleFormat string
+
+const (
+	BundleFormatPEM BundleFormat = "PEM"
+
+	BundleFormatJKS BundleFormat = "JKS"
+
+	BundleFormatPKCS12 BundleFormat = "PKCS12"
+)
 
 // BundleStatus defines the observed state of the Bundle.
 type BundleStatus struct {

@@ -17,13 +17,17 @@ limitations under the License.
 
 package v1alpha2
 
+import (
+	trustmanagerv1alpha2 "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
+)
+
 // TargetKeyValueApplyConfiguration represents a declarative configuration of the TargetKeyValue type for use
 // with apply.
 type TargetKeyValueApplyConfiguration struct {
-	Key    *string                   `json:"key,omitempty"`
-	Format *string                   `json:"format,omitempty"`
-	JKS    *JKSApplyConfiguration    `json:"jks,omitempty"`
-	PKCS12 *PKCS12ApplyConfiguration `json:"pkcs12,omitempty"`
+	Key    *string                            `json:"key,omitempty"`
+	Format *trustmanagerv1alpha2.BundleFormat `json:"format,omitempty"`
+	JKS    *JKSApplyConfiguration             `json:"jks,omitempty"`
+	PKCS12 *PKCS12ApplyConfiguration          `json:"pkcs12,omitempty"`
 }
 
 // TargetKeyValueApplyConfiguration constructs a declarative configuration of the TargetKeyValue type for use with
@@ -43,7 +47,7 @@ func (b *TargetKeyValueApplyConfiguration) WithKey(value string) *TargetKeyValue
 // WithFormat sets the Format field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Format field is set to the value of the last call.
-func (b *TargetKeyValueApplyConfiguration) WithFormat(value string) *TargetKeyValueApplyConfiguration {
+func (b *TargetKeyValueApplyConfiguration) WithFormat(value trustmanagerv1alpha2.BundleFormat) *TargetKeyValueApplyConfiguration {
 	b.Format = &value
 	return b
 }
