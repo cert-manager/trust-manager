@@ -18,15 +18,15 @@ limitations under the License.
 package v1alpha2
 
 import (
+	trustmanagerv1alpha2 "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // BundleTargetApplyConfiguration represents a declarative configuration of the BundleTarget type for use
 // with apply.
 type BundleTargetApplyConfiguration struct {
-	ConfigMap         *KeySelectorApplyConfiguration       `json:"configMap,omitempty"`
-	Secret            *KeySelectorApplyConfiguration       `json:"secret,omitempty"`
-	AdditionalFormats *AdditionalFormatsApplyConfiguration `json:"additionalFormats,omitempty"`
+	ConfigMap         *trustmanagerv1alpha2.KeyValueTarget `json:"configMap,omitempty"`
+	Secret            *trustmanagerv1alpha2.KeyValueTarget `json:"secret,omitempty"`
 	NamespaceSelector *v1.LabelSelectorApplyConfiguration  `json:"namespaceSelector,omitempty"`
 }
 
@@ -39,24 +39,16 @@ func BundleTarget() *BundleTargetApplyConfiguration {
 // WithConfigMap sets the ConfigMap field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ConfigMap field is set to the value of the last call.
-func (b *BundleTargetApplyConfiguration) WithConfigMap(value *KeySelectorApplyConfiguration) *BundleTargetApplyConfiguration {
-	b.ConfigMap = value
+func (b *BundleTargetApplyConfiguration) WithConfigMap(value trustmanagerv1alpha2.KeyValueTarget) *BundleTargetApplyConfiguration {
+	b.ConfigMap = &value
 	return b
 }
 
 // WithSecret sets the Secret field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Secret field is set to the value of the last call.
-func (b *BundleTargetApplyConfiguration) WithSecret(value *KeySelectorApplyConfiguration) *BundleTargetApplyConfiguration {
-	b.Secret = value
-	return b
-}
-
-// WithAdditionalFormats sets the AdditionalFormats field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the AdditionalFormats field is set to the value of the last call.
-func (b *BundleTargetApplyConfiguration) WithAdditionalFormats(value *AdditionalFormatsApplyConfiguration) *BundleTargetApplyConfiguration {
-	b.AdditionalFormats = value
+func (b *BundleTargetApplyConfiguration) WithSecret(value trustmanagerv1alpha2.KeyValueTarget) *BundleTargetApplyConfiguration {
+	b.Secret = &value
 	return b
 }
 

@@ -101,46 +101,26 @@ type BundleSource struct {
 // BundleTarget is the target resource that the Bundle will sync all source
 // data to.
 type BundleTarget struct {
-	// ConfigMap is the target ConfigMap in Namespaces that all Bundle source
-	// data will be synced to.
+	// ConfigMap is the target ConfigMap in Namespaces that all Bundle source data will be synced to.
 	// +optional
-	ConfigMap *KeySelector `json:"configMap,omitempty"`
+	ConfigMap KeyValueTarget `json:"configMap,omitempty"`
 
-	// Secret is the target Secret that all Bundle source data will be synced to.
+	// Secret is the target Secret in Namespaces that all Bundle source data will be synced to.
 	// Using Secrets as targets is only supported if enabled at trust-manager startup.
 	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
 	// +optional
-	Secret *KeySelector `json:"secret,omitempty"`
+	Secret KeyValueTarget `json:"secret,omitempty"`
 
-	// AdditionalFormats specifies any additional formats to write to the target
-	// +optional
-	AdditionalFormats *AdditionalFormats `json:"additionalFormats,omitempty"`
-
-	// NamespaceSelector will, if set, only sync the target resource in
-	// Namespaces which match the selector.
-	// +optional
-	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
+	// NamespaceSelector specifies the namespaces where target resources will be synced.
+	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector"`
 }
 
-// AdditionalFormats specifies any additional formats to write to the target
-type AdditionalFormats struct {
-	// JKS requests a JKS-formatted binary trust bundle to be written to the target.
-	// The bundle has "changeit" as the default password.
-	// For more information refer to this link https://cert-manager.io/docs/faq/#keystore-passwords
-	// +optional
-	JKS *JKS `json:"jks,omitempty"`
-	// PKCS12 requests a PKCS12-formatted binary trust bundle to be written to the target.
-	// The bundle is by default created without a password.
-	// +optional
-	PKCS12 *PKCS12 `json:"pkcs12,omitempty"`
-}
-
-// JKS specifies additional target JKS files
+// JKS specifies configs for target JKS files.
 // +structType=atomic
 type JKS struct {
-	KeySelector `json:",inline"`
-
-	// Password for JKS trust store
+	// Password for JKS trust store.
+	// Default value is "changeit".
+	// For more information refer to this link https://cert-manager.io/docs/faq/#keystore-passwords
 	//+optional
 	//+kubebuilder:validation:MinLength=1
 	//+kubebuilder:validation:MaxLength=128
@@ -148,26 +128,27 @@ type JKS struct {
 	Password *string `json:"password"`
 }
 
-// PKCS12 specifies additional target PKCS#12 files
+// PKCS12 specifies configs for target PKCS#12 files.
 // +structType=atomic
 type PKCS12 struct {
-	KeySelector `json:",inline"`
-
-	// Password for PKCS12 trust store
+	// Password for PKCS12 trust store.
+	// By default, no password is used (password-less PKCS#12).
 	//+optional
 	//+kubebuilder:validation:MaxLength=128
 	//+kubebuilder:default=""
 	Password *string `json:"password,omitempty"`
 
-	// Profile specifies the certificate encryption algorithms and the HMAC algorithm
+	// Profile specifies the key and certificate encryption algorithms and the HMAC algorithm
 	// used to create the PKCS12 trust store.
 	//
-	// If provided, allowed values are:
+	// Allowed values are:
 	// `LegacyRC2`: Deprecated. Not supported by default in OpenSSL 3 or Java 20.
 	// `LegacyDES`: Less secure algorithm. Use this option for maximal compatibility.
-	// `Modern2023`: Secure algorithm. Use this option in case you have to always use secure algorithms (e.g. because of company policy).
+	// `Modern2023`: Secure algorithm. Use this option in case you have to always use secure algorithms
+	// (eg. because of company policy).
 	//
-	// Default value is `LegacyRC2` for backward compatibility.
+	// Default value is `Modern2023`.
+	//
 	// +optional
 	Profile PKCS12Profile `json:"profile,omitempty"`
 }
@@ -212,11 +193,34 @@ type SourceObjectKeySelector struct {
 	IncludeAllKeys bool `json:"includeAllKeys,omitempty"`
 }
 
-// KeySelector is a reference to a key for some map data object.
-type KeySelector struct {
-	// Key is the key of the entry in the object's `data` field to be used.
+// KeyValueTarget is the specification of key value target resources as ConfigMaps and Secrets.
+// +listType=map
+// +listMapKey=key
+// +kubebuilder:validation:MinItems=1
+type KeyValueTarget []TargetKeyValue
+
+// TargetKeyValue is the specification of a key with value in a key-value target resource.
+// +structType=atomic
+type TargetKeyValue struct {
+	// Key is the key of the entry in the object's `data`field to be used.
 	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key"`
+
+	// Format defines the format of the target value.
+	// +kubebuilder:validation:Enum=PEM;JKS;PKCS12
+	// The default format is PEM.
+	//+optional
+	Format *string `json:"format,omitempty"`
+
+	// JKS specifies configs for target JKS files.
+	// May only be used when format is JKS.
+	// +optional
+	JKS *JKS `json:"jks,omitempty"`
+
+	// PKCS12 specifies configs for PKCS#12 files.
+	// May only be used when format is PKCS12.
+	// +optional
+	PKCS12 *PKCS12 `json:"pkcs12,omitempty"`
 }
 
 // BundleStatus defines the observed state of the Bundle.
