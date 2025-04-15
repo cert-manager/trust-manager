@@ -264,7 +264,7 @@ func (r *Reconciler) needsUpdate(ctx context.Context, kind Kind, obj *metav1.Par
 		if err != nil {
 			return false, fmt.Errorf("failed to list managed properties: %w", err)
 		}
-		expectedProperties := sets.New[string](key)
+		expectedProperties := sets.New(key)
 		if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.JKS != nil {
 			expectedProperties.Insert(bundle.Spec.Target.AdditionalFormats.JKS.Key)
 		}
