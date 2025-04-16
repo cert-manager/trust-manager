@@ -159,15 +159,15 @@ type PKCS12 struct {
 	//+kubebuilder:default=""
 	Password *string `json:"password,omitempty"`
 
-	// Profile specifies the key and certificate encryption algorithms and the HMAC algorithm
-	// used to create the PKCS12 keystore. Default value is `LegacyRC2` for backward compatibility.
+	// Profile specifies the certificate encryption algorithms and the HMAC algorithm
+	// used to create the PKCS12 trust store.
 	//
 	// If provided, allowed values are:
 	// `LegacyRC2`: Deprecated. Not supported by default in OpenSSL 3 or Java 20.
 	// `LegacyDES`: Less secure algorithm. Use this option for maximal compatibility.
-	// `Modern2023`: Secure algorithm. Use this option in case you have to always use secure algorithms
-	// (eg. because of company policy). Please note that the security of the algorithm is not that important
-	// in reality, because the unencrypted certificate and private key are also stored in the Secret.
+	// `Modern2023`: Secure algorithm. Use this option in case you have to always use secure algorithms (e.g. because of company policy).
+	//
+	// Default value is `LegacyRC2` for backward compatibility.
 	// +optional
 	Profile PKCS12Profile `json:"profile,omitempty"`
 }
