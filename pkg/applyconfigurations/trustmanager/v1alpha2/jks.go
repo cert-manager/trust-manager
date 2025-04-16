@@ -20,22 +20,13 @@ package v1alpha2
 // JKSApplyConfiguration represents a declarative configuration of the JKS type for use
 // with apply.
 type JKSApplyConfiguration struct {
-	KeySelectorApplyConfiguration `json:",inline"`
-	Password                      *string `json:"password,omitempty"`
+	Password *string `json:"password,omitempty"`
 }
 
 // JKSApplyConfiguration constructs a declarative configuration of the JKS type for use with
 // apply.
 func JKS() *JKSApplyConfiguration {
 	return &JKSApplyConfiguration{}
-}
-
-// WithKey sets the Key field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Key field is set to the value of the last call.
-func (b *JKSApplyConfiguration) WithKey(value string) *JKSApplyConfiguration {
-	b.KeySelectorApplyConfiguration.Key = &value
-	return b
 }
 
 // WithPassword sets the Password field in the declarative configuration to the given value
