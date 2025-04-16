@@ -145,12 +145,13 @@ func Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *trustv1alpha2.Bu
 			if tkv.PKCS12 != nil {
 				pkcs12.Password = tkv.PKCS12.Password
 				pkcs12.Profile = PKCS12Profile(tkv.PKCS12.Profile)
-				if pkcs12.Profile == "" {
-					// Default profile changed from LegacyRC2 to LegacyDES in v1alpha1->v1alpha2
-					pkcs12.Profile = LegacyDESPKCS12Profile
-				}
-
 			}
+			if pkcs12.Profile == "" {
+				// Default profile changed from LegacyRC2 to LegacyDES in v1alpha1->v1alpha2
+				pkcs12.Profile = LegacyDESPKCS12Profile
+			}
+		case trustv1alpha2.BundleFormatPEM:
+			// Handled above
 		}
 		if jks != nil && pkcs12 != nil {
 			break
