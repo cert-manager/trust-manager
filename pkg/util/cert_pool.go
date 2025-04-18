@@ -132,21 +132,24 @@ func (cp *CertPool) AddCertsFromPEM(pemData []byte) error {
 			return fmt.Errorf("failed appending a certificate: certificate is nil")
 		}
 
-		if cp.filterExpired && time.Now().After(certificate.NotAfter) {
-			continue
-		}
-
-		ok = true // at least one non-expired certificate was found in the input
-
-		hash := sha256.Sum256(certificate.Raw)
-		cp.certificates[hash] = certificate
+		ok = cp.AddCert(certificate) || ok
 	}
 
 	if !ok {
 		return fmt.Errorf("no non-expired certificates found in input bundle")
 	}
-
+	// at least one non-expired certificate was found in the input
 	return nil
+}
+
+func (cp *CertPool) AddCert(certificate *x509.Certificate) bool {
+	if cp.filterExpired && time.Now().After(certificate.NotAfter) {
+		return false
+	}
+
+	hash := sha256.Sum256(certificate.Raw)
+	cp.certificates[hash] = certificate
+	return true
 }
 
 // Get certificates quantity in the certificates pool

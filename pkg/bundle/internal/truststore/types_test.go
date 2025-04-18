@@ -17,13 +17,12 @@ limitations under the License.
 package truststore
 
 import (
-	"bytes"
 	"crypto/x509"
 	"encoding/pem"
 	"testing"
 
-	"github.com/pavlo-v-chernykh/keystore-go/v4"
 	"github.com/stretchr/testify/assert"
+	"software.sslmate.com/src/go-pkcs12"
 
 	"github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/util"
@@ -36,10 +35,12 @@ func Test_Encoder_Deterministic(t *testing.T) {
 		expNonDeterministic bool
 	}{
 		"JKS default password": {
-			encoder: NewJKSEncoder(v1alpha1.DefaultJKSPassword),
+			encoder:             NewJKSEncoder(v1alpha1.DefaultJKSPassword),
+			expNonDeterministic: true,
 		},
 		"JKS custom password": {
-			encoder: NewJKSEncoder("my-password"),
+			encoder:             NewJKSEncoder("my-password"),
+			expNonDeterministic: true,
 		},
 		"PKCS#12 default password": {
 			encoder: NewPKCS12Encoder(v1alpha1.DefaultPKCS12Password, ""),
@@ -51,8 +52,7 @@ func Test_Encoder_Deterministic(t *testing.T) {
 			encoder: NewPKCS12Encoder(v1alpha1.DefaultPKCS12Password, "Modern2023"),
 		},
 		"PKCS#12 custom password": {
-			encoder: NewPKCS12Encoder("my-password", ""),
-			// FIXME: We should try to make all encoders deterministic
+			encoder:             NewPKCS12Encoder("my-password", ""),
 			expNonDeterministic: true,
 		},
 	}
@@ -100,24 +100,18 @@ func Test_encodeJKSAliases(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	jksFile, err := jksEncoder{password: v1alpha1.DefaultJKSPassword}.Encode(certPool)
+	jksFile, err := NewJKSEncoder(v1alpha1.DefaultJKSPassword).Encode(certPool)
 	if err != nil {
 		t.Fatalf("didn't expect an error but got: %s", err)
 	}
 
-	reader := bytes.NewReader(jksFile)
-
-	ks := keystore.New()
-
-	err = ks.Load(reader, []byte(v1alpha1.DefaultJKSPassword))
+	certs, err := pkcs12.DecodeTrustStore(jksFile, v1alpha1.DefaultJKSPassword)
 	if err != nil {
 		t.Fatalf("failed to parse generated JKS file: %s", err)
 	}
 
-	entryNames := ks.Aliases()
-
-	if len(entryNames) != 2 {
-		t.Fatalf("expected two certs in JKS file but got %d", len(entryNames))
+	if len(certs) != 2 {
+		t.Fatalf("expected two certs in JKS file but got %d", len(certs))
 	}
 }
 

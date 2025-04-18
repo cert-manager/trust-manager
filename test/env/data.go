@@ -23,11 +23,11 @@ import (
 	"fmt"
 	"strings"
 
-	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"software.sslmate.com/src/go-pkcs12"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	bundlectrl "github.com/cert-manager/trust-manager/pkg/bundle"
@@ -345,29 +345,24 @@ func EventuallyBundleHasSyncedAllNamespacesContains(ctx context.Context, cl clie
 
 // CheckJKSFileSynced ensures that the given JKS data
 func CheckJKSFileSynced(jksData []byte, expectedPassword string, expectedCertPEMData string) error {
-	reader := bytes.NewReader(jksData)
 	certPool := util.NewCertPool(util.WithFilteredExpiredCerts(false))
-
-	ks := jks.New()
-
-	err := ks.Load(reader, []byte(expectedPassword))
-	if err != nil {
-		return err
+	if err := certPool.AddCertsFromPEM([]byte(expectedCertPEMData)); err != nil {
+		return fmt.Errorf("invalid PEM data passed to CheckJKSFileSynced: %s", err)
 	}
 
-	err = certPool.AddCertsFromPEM([]byte(expectedCertPEMData))
+	certs, err := pkcs12.DecodeTrustStore(jksData, expectedPassword)
 	if err != nil {
-		return fmt.Errorf("invalid PEM data passed to CheckJKSFileSynced: %s", err)
+		return err
 	}
 
 	// TODO: check that the cert content matches expectedCertPEMData exactly, not just
 	// that the count is the same
 
-	aliasCount := len(ks.Aliases())
+	certCount := len(certs)
 	expectedPEMCount := certPool.Size()
 
-	if aliasCount != expectedPEMCount {
-		return fmt.Errorf("expected %d certificates in JKS but found %d", expectedPEMCount, aliasCount)
+	if certCount != expectedPEMCount {
+		return fmt.Errorf("expected %d certificates in JKS but found %d", expectedPEMCount, certCount)
 	}
 
 	return nil
