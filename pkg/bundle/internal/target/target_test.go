@@ -38,11 +38,13 @@ import (
 )
 
 const (
-	bundleName = "test-bundle"
-	key        = "trust.pem"
-	jksKey     = "trust.jks"
-	pkcs12Key  = "trust.p12"
-	data       = dummy.TestCertificate1
+	bundleName       = "test-bundle"
+	key              = "trust.pem"
+	jksKey           = "trust.jks"
+	pkcs12Key        = "trust.p12"
+	data             = dummy.TestCertificate1
+	targetAnnotation = "dummyannotation"
+	targetLabel      = "dummylabel"
 )
 
 var (
@@ -52,7 +54,7 @@ var (
 )
 
 func Test_syncConfigMapTarget(t *testing.T) {
-	bundleHash := TrustBundleHash([]byte(data), nil)
+	bundleHash := TrustBundleHash([]byte(data), nil, nil)
 
 	tests := map[string]struct {
 		object      runtime.Object
@@ -62,6 +64,10 @@ func Test_syncConfigMapTarget(t *testing.T) {
 		withJKS bool
 		// Add PKCS12 to AdditionalFormats
 		withPKCS12 bool
+		// Add annotation to target metadata
+		withTargetAnnotation bool
+		// Add label to target metadata
+		withTargetLabel bool
 		// Expect the configmap to exist at the end of the sync.
 		expExists bool
 		// Expect JKS to exist in the configmap at the end of the sync.
@@ -71,6 +77,10 @@ func Test_syncConfigMapTarget(t *testing.T) {
 		// Expect the owner reference of the configmap to point to the bundle.
 		expOwnerReference bool
 		expNeedsUpdate    bool
+		// Expect configmap to have the target annotation
+		expTargetAnnotation bool
+		// Expect configmap to have the target label
+		expTargetLabel bool
 	}{
 		"if object doesn't exist, expect update": {
 			object:            nil,
@@ -545,6 +555,68 @@ func Test_syncConfigMapTarget(t *testing.T) {
 			expOwnerReference: false,
 			expNeedsUpdate:    true,
 		},
+		"if object exists but without target annotation, expect update": {
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string]string{key: data},
+			},
+			namespace: corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name:   "test-namespace",
+				Labels: map[string]string{"foo": "bar"},
+			}},
+			shouldExist:          true,
+			expExists:            true,
+			expOwnerReference:    true,
+			withTargetAnnotation: true,
+			expNeedsUpdate:       true,
+			expTargetAnnotation:  true,
+		},
+		"if object exists but without target label, expect update": {
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   "test-namespace",
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string]string{key: data},
+			},
+			namespace: corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+				Name:   "test-namespace",
+				Labels: map[string]string{"foo": "bar"},
+			}},
+			shouldExist:       true,
+			expExists:         true,
+			expOwnerReference: true,
+			withTargetLabel:   true,
+			expNeedsUpdate:    true,
+			expTargetLabel:    true,
+		},
 	}
 
 	for name, test := range tests {
@@ -578,7 +650,7 @@ func Test_syncConfigMapTarget(t *testing.T) {
 
 			spec := trustapi.BundleSpec{
 				Target: trustapi.BundleTarget{
-					ConfigMap:         &trustapi.KeySelector{Key: key},
+					ConfigMap:         &trustapi.TargetTemplate{Key: key},
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
@@ -598,6 +670,18 @@ func Test_syncConfigMapTarget(t *testing.T) {
 					},
 				}
 				resolvedBundle.BinaryData[pkcs12Key] = pkcs12Data
+			}
+			if test.withTargetAnnotation {
+				if spec.Target.ConfigMap.Metadata == nil {
+					spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{}
+				}
+				spec.Target.ConfigMap.Metadata.Annotations = map[string]string{targetAnnotation: "true"}
+			}
+			if test.withTargetLabel {
+				if spec.Target.ConfigMap.Metadata == nil {
+					spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{}
+				}
+				spec.Target.ConfigMap.Metadata.Labels = map[string]string{targetLabel: "true"}
 			}
 
 			_, ctx := ktesting.NewTestContext(t)
@@ -653,13 +737,20 @@ func Test_syncConfigMapTarget(t *testing.T) {
 				if test.expPKCS12 {
 					assert.Equal(t, pkcs12Data, binData)
 				}
+
+				if test.expTargetLabel {
+					assert.Contains(t, configmap.Labels, targetLabel)
+				}
+				if test.expTargetAnnotation {
+					assert.Contains(t, configmap.Annotations, targetAnnotation)
+				}
 			}
 		})
 	}
 }
 
 func Test_syncSecretTarget(t *testing.T) {
-	bundleHash := TrustBundleHash([]byte(data), nil)
+	bundleHash := TrustBundleHash([]byte(data), nil, nil)
 	const (
 		bundleName = "test-bundle"
 		key        = "key"
@@ -1190,7 +1281,7 @@ func Test_syncSecretTarget(t *testing.T) {
 
 			spec := trustapi.BundleSpec{
 				Target: trustapi.BundleTarget{
-					Secret:            &trustapi.KeySelector{Key: key},
+					Secret:            &trustapi.TargetTemplate{Key: key},
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
@@ -1272,6 +1363,7 @@ func Test_TrustBundleHash(t *testing.T) {
 	type inputArgs struct {
 		data              []byte
 		additionalFormats *trustapi.AdditionalFormats
+		targetTemplate    *trustapi.TargetTemplate
 	}
 	tests := map[string]struct {
 		input      inputArgs
@@ -1322,20 +1414,84 @@ func Test_TrustBundleHash(t *testing.T) {
 				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: ptr.To("wrong")}}},
 			},
 		},
+		"target metadata": {
+			input: inputArgs{
+				data:              []byte("data"),
+				additionalFormats: &trustapi.AdditionalFormats{},
+				targetTemplate: &trustapi.TargetTemplate{
+					Metadata: &trustapi.TargetMetadata{
+						Annotations: map[string]string{"annotation1": "value1"},
+						Labels:      map[string]string{"annotation1": "value1"},
+					},
+				},
+			},
+			matches: []inputArgs{
+				{
+					data:              []byte("data"),
+					additionalFormats: &trustapi.AdditionalFormats{},
+					targetTemplate: &trustapi.TargetTemplate{
+						Metadata: &trustapi.TargetMetadata{
+							Annotations: map[string]string{"annotation1": "value1"},
+							Labels:      map[string]string{"annotation1": "value1"},
+						},
+					},
+				},
+			},
+			mismatches: []inputArgs{
+				{
+					data:              []byte("data"),
+					additionalFormats: &trustapi.AdditionalFormats{},
+					targetTemplate: &trustapi.TargetTemplate{
+						Metadata: &trustapi.TargetMetadata{
+							Annotations: map[string]string{"annotation1": "value1"},
+						},
+					},
+				},
+				{
+					data:              []byte("data"),
+					additionalFormats: &trustapi.AdditionalFormats{},
+					targetTemplate: &trustapi.TargetTemplate{
+						Metadata: &trustapi.TargetMetadata{
+							Labels: map[string]string{"annotation1": "value1"},
+						},
+					},
+				},
+				{
+					data:              []byte("data"),
+					additionalFormats: &trustapi.AdditionalFormats{},
+					targetTemplate: &trustapi.TargetTemplate{
+						Metadata: &trustapi.TargetMetadata{
+							Annotations: map[string]string{"annotation1": "value2"},
+							Labels:      map[string]string{"annotation1": "value1"},
+						},
+					},
+				},
+				{
+					data:              []byte("data"),
+					additionalFormats: &trustapi.AdditionalFormats{},
+					targetTemplate: &trustapi.TargetTemplate{
+						Metadata: &trustapi.TargetMetadata{
+							Annotations: map[string]string{"annotation1": "value1"},
+							Labels:      map[string]string{"annotation1": "value2"},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			inputHash := TrustBundleHash(test.input.data, test.input.additionalFormats)
+			inputHash := TrustBundleHash(test.input.data, test.input.additionalFormats, test.input.targetTemplate)
 			for _, match := range test.matches {
-				matchHash := TrustBundleHash(match.data, match.additionalFormats)
+				matchHash := TrustBundleHash(match.data, match.additionalFormats, match.targetTemplate)
 				assert.Equal(t, inputHash, matchHash)
 			}
 
 			for _, mismatch := range test.mismatches {
-				mismatchHash := TrustBundleHash(mismatch.data, mismatch.additionalFormats)
+				mismatchHash := TrustBundleHash(mismatch.data, mismatch.additionalFormats, mismatch.targetTemplate)
 				assert.NotEqual(t, inputHash, mismatchHash)
 			}
 		})

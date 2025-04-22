@@ -53,6 +53,10 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &trustmanagerv1alpha2.PKCS12ApplyConfiguration{}
 	case v1alpha2.SchemeGroupVersion.WithKind("SourceObjectKeySelector"):
 		return &trustmanagerv1alpha2.SourceObjectKeySelectorApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("TargetMetadata"):
+		return &trustmanagerv1alpha2.TargetMetadataApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("TargetTemplate"):
+		return &trustmanagerv1alpha2.TargetTemplateApplyConfiguration{}
 
 		// Group=trust.cert-manager.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithKind("AdditionalFormats"):
@@ -75,6 +79,10 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &trustv1alpha1.PKCS12ApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("SourceObjectKeySelector"):
 		return &trustv1alpha1.SourceObjectKeySelectorApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("TargetMetadata"):
+		return &trustv1alpha1.TargetMetadataApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("TargetTemplate"):
+		return &trustv1alpha1.TargetTemplateApplyConfiguration{}
 
 	}
 	return nil

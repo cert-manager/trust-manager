@@ -50,7 +50,7 @@ var _ = Describe("Bundle Validation", func() {
 		bundle.Spec.Sources = []trustapi.BundleSource{{
 			UseDefaultCAs: ptr.To(true),
 		}}
-		bundle.Spec.Target = trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "ca-bundle.crt"}}
+		bundle.Spec.Target = trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt"}}
 	})
 
 	Context("Sources", func() {
@@ -160,7 +160,7 @@ var _ = Describe("Bundle Validation", func() {
 
 	Context("Target", func() {
 		var (
-			selectorAccessor func(*trustapi.KeySelector)
+			selectorAccessor func(*trustapi.TargetTemplate)
 			field            string
 		)
 
@@ -168,16 +168,46 @@ var _ = Describe("Bundle Validation", func() {
 			func(target trustapi.BundleTarget, wantErr bool) {
 				bundle.Spec.Target = target
 				if wantErr {
-					expectedErr := "spec.target: Invalid value: v1alpha1.BundleTarget{ConfigMap:(*v1alpha1.KeySelector)(nil), Secret:(*v1alpha1.KeySelector)(nil), AdditionalFormats:(*v1alpha1.AdditionalFormats)(nil), NamespaceSelector:(*v1.LabelSelector)(nil)}: must define at least one target"
+					expectedErr := "spec.target: Invalid value: v1alpha1.BundleTarget{ConfigMap:(*v1alpha1.TargetTemplate)(nil), Secret:(*v1alpha1.TargetTemplate)(nil), AdditionalFormats:(*v1alpha1.AdditionalFormats)(nil), NamespaceSelector:(*v1.LabelSelector)(nil)}: must define at least one target"
 					Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
 				} else {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
 				}
 			},
 			Entry("when none set", trustapi.BundleTarget{}, true),
-			Entry("when configMap set", trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "ca-bundle.crt"}}, false),
-			Entry("when secret set", trustapi.BundleTarget{Secret: &trustapi.KeySelector{Key: "ca-bundle.crt"}}, false),
-			Entry("when both set", trustapi.BundleTarget{ConfigMap: &trustapi.KeySelector{Key: "ca-bundle.crt"}, Secret: &trustapi.KeySelector{Key: "ca-bundle.crt"}}, false),
+			Entry("when configMap set", trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt"}}, false),
+			Entry("when secret set", trustapi.BundleTarget{Secret: &trustapi.TargetTemplate{Key: "ca-bundle.crt"}}, false),
+			Entry("when both set", trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt"}, Secret: &trustapi.TargetTemplate{Key: "ca-bundle.crt"}}, false),
+		)
+
+		DescribeTable("should prevent annotations and labels with the trust manager prefixes",
+			func(target trustapi.BundleTarget, wantErr bool) {
+				bundle.Spec.Target = target
+				if wantErr {
+					Expect(cl.Create(ctx, bundle)).Should(MatchError(
+						SatisfyAny(
+							ContainSubstring("Invalid value: \"trust.cert-manager.io/bundle\": trust.cert-manager.io/* labels are not allowed"),
+							ContainSubstring("Invalid value: \"trust.cert-manager.io/hash\": trust.cert-manager.io/* annotations are not allowed"),
+							ContainSubstring("Invalid value: \"trust-manager.io/bundle\": trust-manager.io/* labels are not allowed"),
+							ContainSubstring("Invalid value: \"trust-manager.io/hash\": trust-manager.io/* annotations are not allowed"),
+						),
+					))
+				} else {
+					Expect(cl.Create(ctx, bundle)).To(Succeed())
+				}
+			},
+			Entry("when trust-manager.io annotations are used", trustapi.BundleTarget{
+				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"trust-manager.io/hash": "test"}}}}, true),
+			Entry("when trust.cert-manager.io annotations are used", trustapi.BundleTarget{
+				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"trust.cert-manager.io/hash": "test"}}}}, true),
+			Entry("when trust-manager.io labels are used", trustapi.BundleTarget{
+				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"trust-manager.io/bundle": "bundle"}}}}, true),
+			Entry("when trust.cert-manager.io labels are used", trustapi.BundleTarget{
+				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"trust.cert-manager.io/bundle": "bundle"}}}}, true),
+			Entry("when non-reserved annotations are used", trustapi.BundleTarget{
+				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"not-trust-manager.io/hash": "test"}}}}, false),
+			Entry("when non-reserved labels are used", trustapi.BundleTarget{
+				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"not-trust-manager.io/bundle": "bundle"}}}}, false),
 		)
 
 		type TargetKeySpec struct {
@@ -191,10 +221,10 @@ var _ = Describe("Bundle Validation", func() {
 			func(keySpec TargetKeySpec, wantErr bool) {
 				target := trustapi.BundleTarget{AdditionalFormats: &trustapi.AdditionalFormats{}}
 				if keySpec.ConfigMapKey != "" {
-					target.ConfigMap = &trustapi.KeySelector{Key: keySpec.ConfigMapKey}
+					target.ConfigMap = &trustapi.TargetTemplate{Key: keySpec.ConfigMapKey}
 				}
 				if keySpec.SecretKey != "" {
-					target.Secret = &trustapi.KeySelector{Key: keySpec.SecretKey}
+					target.Secret = &trustapi.TargetTemplate{Key: keySpec.SecretKey}
 				}
 				if keySpec.JKSKey != "" {
 					target.AdditionalFormats.JKS = &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: keySpec.JKSKey}}
@@ -250,7 +280,7 @@ var _ = Describe("Bundle Validation", func() {
 		targetObjectAsserts := func() {
 			It("should require target key", func() {
 				bundle.Spec.Target = trustapi.BundleTarget{}
-				selectorAccessor(&trustapi.KeySelector{})
+				selectorAccessor(&trustapi.TargetTemplate{})
 				expectedErr := "spec.target.%s.key: Invalid value: \"\": spec.target.%s.key in body should be at least 1 chars long"
 				Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr, field, field)))
 			})
@@ -258,7 +288,7 @@ var _ = Describe("Bundle Validation", func() {
 
 		Context("ConfigMap", func() {
 			BeforeEach(func() {
-				selectorAccessor = func(selector *trustapi.KeySelector) {
+				selectorAccessor = func(selector *trustapi.TargetTemplate) {
 					bundle.Spec.Target.ConfigMap = selector
 				}
 				field = "configMap"
@@ -269,7 +299,7 @@ var _ = Describe("Bundle Validation", func() {
 
 		Context("Secret", func() {
 			BeforeEach(func() {
-				selectorAccessor = func(selector *trustapi.KeySelector) {
+				selectorAccessor = func(selector *trustapi.TargetTemplate) {
 					bundle.Spec.Target.Secret = selector
 				}
 				field = "secret"

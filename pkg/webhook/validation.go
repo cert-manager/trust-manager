@@ -20,7 +20,9 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
+	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -231,9 +233,49 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 		}
 	}
 
+	if bundle.Spec.Target.ConfigMap != nil {
+		el = append(el, validateTargetMetadata(bundle.Spec.Target.ConfigMap.Metadata, path.Child("target", "configMap", "metadata"))...)
+	}
+	if bundle.Spec.Target.Secret != nil {
+		el = append(el, validateTargetMetadata(bundle.Spec.Target.Secret.Metadata, path.Child("target", "secret", "metadata"))...)
+	}
+
 	errs := validation.ValidateLabelSelector(bundle.Spec.Target.NamespaceSelector, validation.LabelSelectorValidationOptions{}, path.Child("target", "namespaceSelector"))
 	el = append(el, errs...)
 
 	return warnings, el.ToAggregate()
 
+}
+
+// validateAnnotationsLabelsTemplate Validates that the target template annotations and labels are both valid and that they do not contain reserved keys.
+func validateTargetMetadata(targetMetadata *trustapi.TargetMetadata, fldPath *field.Path) field.ErrorList {
+	if targetMetadata == nil {
+		return nil
+	}
+
+	el := field.ErrorList{}
+
+	templateAnnotationsPath := fldPath.Child("annotations")
+	for key := range targetMetadata.Annotations {
+		if strings.HasPrefix(key, "trust.cert-manager.io/") {
+			el = append(el, field.Invalid(templateAnnotationsPath, key, "trust.cert-manager.io/* annotations are not allowed"))
+		}
+		if strings.HasPrefix(key, "trust-manager.io/") {
+			el = append(el, field.Invalid(templateAnnotationsPath, key, "trust-manager.io/* annotations are not allowed"))
+		}
+	}
+	el = append(el, apivalidation.ValidateAnnotations(targetMetadata.Annotations, templateAnnotationsPath)...)
+
+	templateLabelsPath := fldPath.Child("labels")
+	for key := range targetMetadata.Labels {
+		if strings.HasPrefix(key, "trust.cert-manager.io/") {
+			el = append(el, field.Invalid(templateLabelsPath, key, "trust.cert-manager.io/* labels are not allowed"))
+		}
+		if strings.HasPrefix(key, "trust-manager.io/") {
+			el = append(el, field.Invalid(templateLabelsPath, key, "trust-manager.io/* labels are not allowed"))
+		}
+	}
+	el = append(el, validation.ValidateLabels(targetMetadata.Labels, templateLabelsPath)...)
+
+	return el
 }

@@ -122,7 +122,7 @@ func (r *Reconciler) syncConfigMap(
 
 	// Generated PKCS #12 is not deterministic - best we can do here is update if the pem cert has
 	// changed (hence not checking if PKCS #12 matches)
-	bundleHash := TrustBundleHash([]byte(resolvedBundle.Data), bundle.Spec.Target.AdditionalFormats)
+	bundleHash := TrustBundleHash([]byte(resolvedBundle.Data), bundleTarget.AdditionalFormats, bundleTarget.ConfigMap)
 	data := map[string]string{
 		bundleTarget.ConfigMap.Key: resolvedBundle.Data,
 	}
@@ -139,9 +139,11 @@ func (r *Reconciler) syncConfigMap(
 	}
 
 	patch := prepareTargetPatch(coreapplyconfig.ConfigMap(target.Name, target.Namespace), *bundle).
+		WithAnnotations(bundleTarget.ConfigMap.GetAnnotations()).
 		WithAnnotations(map[string]string{
 			trustapi.BundleHashAnnotationKey: bundleHash,
 		}).
+		WithLabels(bundleTarget.ConfigMap.GetLabels()).
 		WithData(data).
 		WithBinaryData(binData)
 
@@ -199,7 +201,7 @@ func (r *Reconciler) syncSecret(
 
 	// Generated PKCS #12 is not deterministic - best we can do here is update if the pem cert has
 	// changed (hence not checking if PKCS #12 matches)
-	bundleHash := TrustBundleHash([]byte(resolvedBundle.Data), bundle.Spec.Target.AdditionalFormats)
+	bundleHash := TrustBundleHash([]byte(resolvedBundle.Data), bundleTarget.AdditionalFormats, bundleTarget.Secret)
 	data := map[string][]byte{
 		bundleTarget.Secret.Key: []byte(resolvedBundle.Data),
 	}
@@ -219,9 +221,11 @@ func (r *Reconciler) syncSecret(
 	}
 
 	patch := prepareTargetPatch(coreapplyconfig.Secret(target.Name, target.Namespace), *bundle).
+		WithAnnotations(bundleTarget.Secret.GetAnnotations()).
 		WithAnnotations(map[string]string{
 			trustapi.BundleHashAnnotationKey: bundleHash,
 		}).
+		WithLabels(bundleTarget.Secret.GetLabels()).
 		WithData(data)
 
 	if _, err = r.patchSecret(ctx, patch); err != nil {
@@ -430,7 +434,7 @@ func (b *Data) Populate(pool *util.CertPool, formats *trustapi.AdditionalFormats
 	return nil
 }
 
-func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats) string {
+func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats, target *trustapi.TargetTemplate) string {
 	hash := sha256.New()
 
 	_, _ = hash.Write(data)
@@ -440,6 +444,14 @@ func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats)
 	}
 	if additionalFormats != nil && additionalFormats.PKCS12 != nil && additionalFormats.PKCS12.Password != nil {
 		_, _ = hash.Write([]byte(*additionalFormats.PKCS12.Password))
+	}
+
+	// Add Target annotations and labels to the hash so it becomes aware of changes and triggers an update.
+	for k, v := range target.GetAnnotations() {
+		_, _ = hash.Write([]byte(k + v))
+	}
+	for k, v := range target.GetLabels() {
+		_, _ = hash.Write([]byte(k + v))
 	}
 
 	hashValue := [32]byte{}
