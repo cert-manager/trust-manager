@@ -49,7 +49,7 @@ import (
 	"github.com/cert-manager/trust-manager/test/gen"
 )
 
-func testEncodeJKS(t *testing.T, data string) []byte {
+func testEncodePKCS12(t *testing.T, data string) []byte {
 	t.Helper()
 
 	certPool := util.NewCertPool()
@@ -57,7 +57,7 @@ func testEncodeJKS(t *testing.T, data string) []byte {
 		t.Fatal(err)
 	}
 
-	encoded, err := truststore.NewJKSEncoder(trustapi.DefaultJKSPassword).Encode(certPool)
+	encoded, err := truststore.NewPKCS12Encoder(trustapi.DefaultPKCS12Password, trustapi.Modern2023PKCS12Profile).Encode(certPool)
 	if err != nil {
 		t.Error(err)
 	}
@@ -141,18 +141,18 @@ func Test_Reconcile(t *testing.T) {
 			Bundle:  dummy.TestCertificate5,
 		}
 
-		jksDefaultAdditionalFormats = trustapi.AdditionalFormats{
-			JKS: &trustapi.JKS{
+		pkcs12DefaultAdditionalFormats = trustapi.AdditionalFormats{
+			PKCS12: &trustapi.PKCS12{
 				KeySelector: trustapi.KeySelector{
-					Key: "target.jks",
+					Key: "target.p12",
 				},
-				Password: ptr.To(trustapi.DefaultJKSPassword),
+				Password: ptr.To(trustapi.DefaultPKCS12Password),
 			},
 		}
-		jksDefaultAdditionalFormatsOldPassword = trustapi.AdditionalFormats{
-			JKS: &trustapi.JKS{
+		pkcs12DefaultAdditionalFormatsOldPassword = trustapi.AdditionalFormats{
+			PKCS12: &trustapi.PKCS12{
 				KeySelector: trustapi.KeySelector{
-					Key: "target.jks",
+					Key: "target.p12",
 				},
 				Password: ptr.To("OLD PASSWORD"),
 			},
@@ -493,10 +493,10 @@ func Test_Reconcile(t *testing.T) {
 						"old-target": "foo",
 					},
 					map[string][]byte{
-						"target.jks": []byte("foo"),
+						"target.p12": []byte("foo"),
 					},
 					ptr.To("old-target"),
-					true, &jksDefaultAdditionalFormats,
+					true, &pkcs12DefaultAdditionalFormats,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -505,16 +505,16 @@ func Test_Reconcile(t *testing.T) {
 						"old-target": "foo",
 					},
 					map[string][]byte{
-						"target.jks": []byte("foo"),
+						"target.p12": []byte("foo"),
 					},
 					ptr.To("old-target"),
-					true, &jksDefaultAdditionalFormats,
+					true, &pkcs12DefaultAdditionalFormats,
 				),
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(jksDefaultAdditionalFormats),
+					gen.SetBundleTargetAdditionalFormats(pkcs12DefaultAdditionalFormats),
 				)},
 			expResult: ctrl.Result{},
 			expError:  false,
@@ -522,18 +522,18 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "trust-namespace", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
-					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &jksDefaultAdditionalFormats),
+					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
-					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &jksDefaultAdditionalFormats),
+					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
-					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &jksDefaultAdditionalFormats),
+					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
 				Conditions: []metav1.Condition{
@@ -549,7 +549,7 @@ func Test_Reconcile(t *testing.T) {
 			},
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
-		"if Bundle Status Target.AdditionalFormats.JKS doesn't match the Spec Target.AdditionalFormats.JKS, delete old targets and update": {
+		"if Bundle Status Target.AdditionalFormats.PKCS12 doesn't match the Spec Target.AdditionalFormats.PKCS12, delete old targets and update": {
 			existingNamespaces: namespaces,
 			existingConfigMaps: []client.Object{sourceConfigMap,
 				targetConfigMap(
@@ -559,10 +559,10 @@ func Test_Reconcile(t *testing.T) {
 						targetKey: "foo",
 					},
 					map[string][]byte{
-						"old-target.jks": []byte("foo"),
+						"old-target.p12": []byte("foo"),
 					},
 					ptr.To(targetKey),
-					true, &jksDefaultAdditionalFormats,
+					true, &pkcs12DefaultAdditionalFormats,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -571,16 +571,16 @@ func Test_Reconcile(t *testing.T) {
 						targetKey: "foo",
 					},
 					map[string][]byte{
-						"old-target.jks": []byte("foo"),
+						"old-target.p12": []byte("foo"),
 					},
 					ptr.To(targetKey),
-					true, &jksDefaultAdditionalFormats,
+					true, &pkcs12DefaultAdditionalFormats,
 				),
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(jksDefaultAdditionalFormats),
+					gen.SetBundleTargetAdditionalFormats(pkcs12DefaultAdditionalFormats),
 				),
 			},
 			expResult: ctrl.Result{},
@@ -589,18 +589,18 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "trust-namespace", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
-					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &jksDefaultAdditionalFormats),
+					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
-					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &jksDefaultAdditionalFormats),
+					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
-					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &jksDefaultAdditionalFormats),
+					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
 				Conditions: []metav1.Condition{
@@ -616,7 +616,7 @@ func Test_Reconcile(t *testing.T) {
 			},
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
-		"if the JKS password matches, don't patch": {
+		"if the PKCS12 password matches, don't patch": {
 			existingNamespaces: namespaces,
 			existingConfigMaps: []client.Object{sourceConfigMap,
 				targetConfigMap(
@@ -625,10 +625,10 @@ func Test_Reconcile(t *testing.T) {
 						targetKey: dummy.DefaultJoinedCerts(),
 					},
 					map[string][]byte{
-						"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
+						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
 					},
 					ptr.To(targetKey),
-					true, &jksDefaultAdditionalFormats,
+					true, &pkcs12DefaultAdditionalFormats,
 				),
 				targetConfigMap(
 					"ns-1",
@@ -636,10 +636,10 @@ func Test_Reconcile(t *testing.T) {
 						targetKey: dummy.DefaultJoinedCerts(),
 					},
 					map[string][]byte{
-						"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
+						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
 					},
 					ptr.To(targetKey),
-					true, &jksDefaultAdditionalFormats,
+					true, &pkcs12DefaultAdditionalFormats,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -647,16 +647,16 @@ func Test_Reconcile(t *testing.T) {
 						targetKey: dummy.DefaultJoinedCerts(),
 					},
 					map[string][]byte{
-						"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
+						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
 					},
 					ptr.To(targetKey),
-					true, &jksDefaultAdditionalFormats,
+					true, &pkcs12DefaultAdditionalFormats,
 				),
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(jksDefaultAdditionalFormats),
+					gen.SetBundleTargetAdditionalFormats(pkcs12DefaultAdditionalFormats),
 				),
 			},
 			expResult:  ctrl.Result{},
@@ -676,7 +676,7 @@ func Test_Reconcile(t *testing.T) {
 			},
 			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
-		"if the JKS password changed, apply patch": {
+		"if the PKCS12 password changed, apply patch": {
 			existingNamespaces: namespaces,
 			existingConfigMaps: []client.Object{sourceConfigMap,
 				targetConfigMap(
@@ -685,10 +685,10 @@ func Test_Reconcile(t *testing.T) {
 						targetKey: dummy.DefaultJoinedCerts(),
 					},
 					map[string][]byte{
-						"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
+						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
 					},
 					ptr.To(targetKey),
-					true, &jksDefaultAdditionalFormatsOldPassword,
+					true, &pkcs12DefaultAdditionalFormatsOldPassword,
 				),
 				targetConfigMap(
 					"ns-1",
@@ -696,10 +696,10 @@ func Test_Reconcile(t *testing.T) {
 						targetKey: dummy.DefaultJoinedCerts(),
 					},
 					map[string][]byte{
-						"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
+						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
 					},
 					ptr.To(targetKey),
-					true, &jksDefaultAdditionalFormatsOldPassword,
+					true, &pkcs12DefaultAdditionalFormatsOldPassword,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -707,16 +707,16 @@ func Test_Reconcile(t *testing.T) {
 						targetKey: dummy.DefaultJoinedCerts(),
 					},
 					map[string][]byte{
-						"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
+						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
 					},
 					ptr.To(targetKey),
-					true, &jksDefaultAdditionalFormats,
+					true, &pkcs12DefaultAdditionalFormats,
 				),
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(jksDefaultAdditionalFormats),
+					gen.SetBundleTargetAdditionalFormats(pkcs12DefaultAdditionalFormats),
 				),
 			},
 			expResult: ctrl.Result{},
@@ -725,13 +725,13 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "trust-namespace", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
-					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &jksDefaultAdditionalFormats),
+					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
-					"target.jks": testEncodeJKS(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &jksDefaultAdditionalFormats),
+					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
 				Conditions: []metav1.Condition{
