@@ -24,10 +24,9 @@ import (
 // BundleTargetApplyConfiguration represents a declarative configuration of the BundleTarget type for use
 // with apply.
 type BundleTargetApplyConfiguration struct {
-	ConfigMap         *TargetTemplateApplyConfiguration    `json:"configMap,omitempty"`
-	Secret            *TargetTemplateApplyConfiguration    `json:"secret,omitempty"`
-	AdditionalFormats *AdditionalFormatsApplyConfiguration `json:"additionalFormats,omitempty"`
-	NamespaceSelector *v1.LabelSelectorApplyConfiguration  `json:"namespaceSelector,omitempty"`
+	ConfigMap         *KeyValueTargetApplyConfiguration   `json:"configMap,omitempty"`
+	Secret            *KeyValueTargetApplyConfiguration   `json:"secret,omitempty"`
+	NamespaceSelector *v1.LabelSelectorApplyConfiguration `json:"namespaceSelector,omitempty"`
 }
 
 // BundleTargetApplyConfiguration constructs a declarative configuration of the BundleTarget type for use with
@@ -39,7 +38,7 @@ func BundleTarget() *BundleTargetApplyConfiguration {
 // WithConfigMap sets the ConfigMap field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ConfigMap field is set to the value of the last call.
-func (b *BundleTargetApplyConfiguration) WithConfigMap(value *TargetTemplateApplyConfiguration) *BundleTargetApplyConfiguration {
+func (b *BundleTargetApplyConfiguration) WithConfigMap(value *KeyValueTargetApplyConfiguration) *BundleTargetApplyConfiguration {
 	b.ConfigMap = value
 	return b
 }
@@ -47,16 +46,8 @@ func (b *BundleTargetApplyConfiguration) WithConfigMap(value *TargetTemplateAppl
 // WithSecret sets the Secret field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Secret field is set to the value of the last call.
-func (b *BundleTargetApplyConfiguration) WithSecret(value *TargetTemplateApplyConfiguration) *BundleTargetApplyConfiguration {
+func (b *BundleTargetApplyConfiguration) WithSecret(value *KeyValueTargetApplyConfiguration) *BundleTargetApplyConfiguration {
 	b.Secret = value
-	return b
-}
-
-// WithAdditionalFormats sets the AdditionalFormats field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the AdditionalFormats field is set to the value of the last call.
-func (b *BundleTargetApplyConfiguration) WithAdditionalFormats(value *AdditionalFormatsApplyConfiguration) *BundleTargetApplyConfiguration {
-	b.AdditionalFormats = value
 	return b
 }
 
