@@ -55,7 +55,8 @@ func testEncodeJKS(t *testing.T, data string) []byte {
 		t.Fatal(err)
 	}
 
-	encoded, err := truststore.NewJKSEncoder(trustapi.DefaultJKSPassword).Encode(certPool)
+	// Note: Must use the PKCS12 default password here, as encoding with (non-empty) password is non-deterministic.
+	encoded, err := truststore.NewJKSEncoder(trustapi.DefaultPKCS12Password).Encode(certPool)
 	if err != nil {
 		t.Error(err)
 	}
@@ -144,7 +145,8 @@ func Test_Reconcile(t *testing.T) {
 				KeySelector: trustapi.KeySelector{
 					Key: "target.jks",
 				},
-				Password: ptr.To(trustapi.DefaultJKSPassword),
+				// Note: Must use the PKCS12 default password here, as encoding with (non-empty) password is non-deterministic.
+				Password: ptr.To(trustapi.DefaultPKCS12Password),
 			},
 		}
 		jksDefaultAdditionalFormatsOldPassword = trustapi.AdditionalFormats{
