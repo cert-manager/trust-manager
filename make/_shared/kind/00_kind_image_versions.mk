@@ -25,6 +25,8 @@ kind_image_kube_1.31_amd64 := docker.io/kindest/node:v1.31.6@sha256:37d52dc19f59
 kind_image_kube_1.31_arm64 := docker.io/kindest/node:v1.31.6@sha256:4e6223faa19178922d30e7b62546c5464fdf9bc66a3df64073424a51ab44f2ab
 kind_image_kube_1.32_amd64 := docker.io/kindest/node:v1.32.2@sha256:a37b679ad8c1cfa7c64aca1734cc4299dc833258d6c131ed0204c8cd2bd56ff7
 kind_image_kube_1.32_arm64 := docker.io/kindest/node:v1.32.2@sha256:4d0e1b60f1da0d1349996a9778f8bace905189af5e05e04618eae0a155dd9f9c
+kind_image_kube_1.33_amd64 := docker.io/kindest/node:v1.33.0@sha256:c9ec7bf998c310c5a6c903d66c2e595fb3e2eb53fb626cd53d07a3a5499de412
+kind_image_kube_1.33_arm64 := docker.io/kindest/node:v1.33.0@sha256:96ae3b980f87769e0117c2a89ec74fc660b84eedb573432abd2a682af3eccc02
 
-kind_image_latest_amd64 := $(kind_image_kube_1.32_amd64)
-kind_image_latest_arm64 := $(kind_image_kube_1.32_arm64)
+kind_image_latest_amd64 := $(kind_image_kube_1.33_amd64)
+kind_image_latest_arm64 := $(kind_image_kube_1.33_arm64)
