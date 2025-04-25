@@ -52,6 +52,11 @@ targets:
       repo_ref: main
       repo_hash: 17f1b472676a6d4e5a8d3b05367cd42a520b4b04
       repo_path: modules/klone
+    - folder_name: licenses
+      repo_url: https://github.com/cert-manager/makefile-modules.git
+      repo_ref: main
+      repo_hash: c50107e376014fcc18cc2d1805adf06c649b069c
+      repo_path: modules/licenses
     - folder_name: oci-build
       repo_url: https://github.com/cert-manager/makefile-modules.git
       repo_ref: main
