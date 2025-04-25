@@ -128,7 +128,7 @@ ko_config_targets := $(build_names:%=ko-config-%)
 # - oci_digest_path_$(build_name) = path to the file that will contain the digests
 # - ko_config_path_$(build_name) = path to the ko config file
 # - docker_tarball_path_$(build_name) = path that the docker tarball that the docker-tarball-$(build_name) will produce
-$(foreach build_name,$(build_names),$(eval oci_layout_path_$(build_name) := $(bin_dir)/scratch/image/oci-layout-$(build_name).$(oci_$(build_name)_image_tag)))
+$(foreach build_name,$(build_names),$(eval oci_layout_path_$(build_name) := $(bin_dir)/scratch/image/oci-layout-$(build_name)))
 $(foreach build_name,$(build_names),$(eval oci_digest_path_$(build_name) := $(CURDIR)/$(oci_layout_path_$(build_name)).digests))
 $(foreach build_name,$(build_names),$(eval ko_config_path_$(build_name) := $(CURDIR)/$(oci_layout_path_$(build_name)).ko_config.yaml))
 $(foreach build_name,$(build_names),$(eval docker_tarball_path_$(build_name) := $(CURDIR)/$(oci_layout_path_$(build_name)).docker.tar))
