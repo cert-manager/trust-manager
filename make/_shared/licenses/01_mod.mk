@@ -16,14 +16,14 @@
 
 ## Generate licenses for the golang dependencies
 ## @category [shared] Generate/Verify
-generate-go-licences: #
-shared_generate_targets += generate-go-licences
+generate-go-licenses: #
+shared_generate_targets += generate-go-licenses
 
 define license_generate
 $1/LICENSES: $1/go.mod | $(NEEDS_GO-LICENSES)
 	cd $$(dir $$@) && GOOS=linux GOARCH=amd64 $(GO-LICENSES) report --ignore "$$(license_ignore)" ./... > LICENSES
 
-generate-go-licences: $1/LICENSES
+generate-go-licenses: $1/LICENSES
 endef
 
 # Calculate all the go.mod directories, build targets may share go.mod dirs so
@@ -45,7 +45,7 @@ oci-license-layer-$1: | $(bin_dir)/scratch $(NEEDS_GO-LICENSES)
 	cp $$(go_$1_mod_dir)/LICENSES $$(license_layer_path_$1)/licenses/LICENSES
 
 oci-build-$1: oci-license-layer-$1
-oci_$1_additional_layers += $(license_layer_path_$1)
+oci_$1_additional_layers += $$(license_layer_path_$1)
 endef
 
 $(foreach build_name,$(build_names),$(eval $(call license_layer,$(build_name))))
