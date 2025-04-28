@@ -617,5 +617,29 @@ This configures the maximum unavailable pods for disruptions. It can either be s
 > ```
 
 Labels to apply to all resources
+#### **extraObjects** ~ `array`
+> Default value:
+> ```yaml
+> []
+> ```
+
+Extra manifests to be deployed. This is useful for deploying additional resources that are not part of the chart.  
+For example:
+
+```yaml
+extraObjects:
+ - apiVersion: cilium.io/v2
+   kind: CiliumNetworkPolicy
+   metadata:
+     name: trust-manager
+     namespace: trust-manager
+   spec:
+     endpointSelector:
+       matchLabels:
+         io.cilium.k8s.policy.serviceaccount: trust-manager
+     egress:
+       - toEntities:
+           - kube-apiserver
+```
 
 <!-- /AUTO-GENERATED -->
