@@ -14,22 +14,42 @@
 
 ###################### Generate LICENSES files ######################
 
+# Create a go.work file so that go-licenses can discover the LICENSE file of the
+# other modules in the repo.
+#
+# Without this, go-licenses *guesses* the wrong LICENSE for local dependencies and
+# links to the wrong versions of LICENSES for transitive dependencies.
+licenses_go_work := $(bin_dir)/scratch/LICENSES.go.work
+$(licenses_go_work): $(bin_dir)/scratch
+	GOWORK=$(abspath $@) \
+		$(MAKE) go-workspace
+
 ## Generate licenses for the golang dependencies
 ## @category [shared] Generate/Verify
 generate-go-licenses: #
 shared_generate_targets += generate-go-licenses
 
-define license_generate
-$1/LICENSES: $1/go.mod | $(NEEDS_GO-LICENSES)
-	cd $$(dir $$@) && GOOS=linux GOARCH=amd64 $(GO-LICENSES) report --ignore "$$(license_ignore)" ./... > LICENSES
+define licenses_target
+$1/LICENSES: $1/go.mod $(licenses_go_work) | $(NEEDS_GO-LICENSES)
+	cd $$(dir $$@) && \
+		GOWORK=$(abspath $(licenses_go_work)) \
+		GOOS=linux GOARCH=amd64 \
+		$(GO-LICENSES) report --ignore "$$(license_ignore)" ./... > LICENSES
 
 generate-go-licenses: $1/LICENSES
+# The /LICENSE targets make sure these files exist.
+# Otherwise, make will error.
+generate-go-licenses: $1/LICENSE
 endef
 
 # Calculate all the go.mod directories, build targets may share go.mod dirs so
 # we use $(sort) to de-duplicate.
-go_mod_dirs := $(sort $(foreach build_name,$(build_names),$(go_$(build_name)_mod_dir)))
-$(foreach go_mod_dir,$(go_mod_dirs),$(eval $(call license_generate,$(go_mod_dir))))
+go_mod_dirs := $(foreach build_name,$(build_names),$(go_$(build_name)_mod_dir))
+ifneq ("$(wildcard go.mod)","")
+    go_mod_dirs += .
+endif
+go_mod_dirs := $(sort $(go_mod_dirs))
+$(foreach go_mod_dir,$(go_mod_dirs),$(eval $(call licenses_target,$(go_mod_dir))))
 
 ###################### Include LICENSES in OCI image ######################
 
@@ -41,7 +61,7 @@ license_layer_path_$1 := $$(abspath $(bin_dir)/scratch/licenses-$1)
 oci-license-layer-$1: | $(bin_dir)/scratch $(NEEDS_GO-LICENSES)
 	rm -rf $$(license_layer_path_$1)
 	mkdir -p $$(license_layer_path_$1)/licenses
-	cp LICENSE $$(license_layer_path_$1)/licenses/LICENSE
+	cp $$(go_$1_mod_dir)/LICENSE $$(license_layer_path_$1)/licenses/LICENSE
 	cp $$(go_$1_mod_dir)/LICENSES $$(license_layer_path_$1)/licenses/LICENSES
 
 oci-build-$1: oci-license-layer-$1
