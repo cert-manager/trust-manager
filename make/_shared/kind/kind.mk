@@ -80,7 +80,7 @@ kind-cluster-clean: $(NEEDS_KIND)
 .PHONY: kind-logs
 ## Get the Kind cluster
 ## @category [shared] Kind cluster
-kind-logs: | kind-cluster $(NEEDS_KIND) $(bin_dir)/artifacts
-	rm -rf $(bin_dir)/artifacts/e2e-logs
-	mkdir -p $(bin_dir)/artifacts/e2e-logs
-	$(KIND) export logs $(bin_dir)/artifacts/e2e-logs --name=$(kind_cluster_name)
+kind-logs: | kind-cluster $(NEEDS_KIND) $(ARTIFACTS)
+	rm -rf $(ARTIFACTS)/e2e-logs
+	mkdir -p $(ARTIFACTS)/e2e-logs
+	$(KIND) export logs $(ARTIFACTS)/e2e-logs --name=$(kind_cluster_name)
