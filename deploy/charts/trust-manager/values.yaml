@@ -292,7 +292,7 @@ app:
           #     my-secret-annotation-1: "foo"
           #     my-secret-annotation-2: "bar"
           #   labels:
-          #     my-secret-label: foo
+        #     my-secret-label: foo
 
     # This value specifies if the app should be started in hostNetwork mode. It is required for use in some managed Kubernetes clusters (such as AWS EKS) with custom CNI.
     hostNetwork: false
@@ -352,6 +352,9 @@ podDisruptionBudget:
 # Labels to apply to all resources
 commonLabels: {}
 
+# Annotations to apply to all resources
+# NOTE: These annotations won't be added to the CRDs.
+commonAnnotations: {}
 # Extra manifests to be deployed. This is useful for deploying additional resources that are not part of the chart.
 # For example:
 # extraObjects:

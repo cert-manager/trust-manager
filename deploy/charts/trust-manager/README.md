@@ -617,6 +617,14 @@ This configures the maximum unavailable pods for disruptions. It can either be s
 > ```
 
 Labels to apply to all resources
+#### **commonAnnotations** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+
+Annotations to apply to all resources  
+NOTE: These annotations won't be added to the CRDs.
 #### **extraObjects** ~ `array`
 > Default value:
 > ```yaml
