@@ -36,7 +36,11 @@ metadata:
   name: {{ include "trust-manager.name" . }}-tls
   namespace: {{ .Release.Namespace }}
   labels:
-{{ include "trust-manager.labels" . | indent 4 }}
+    {{- include "trust-manager.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 type: kubernetes.io/tls
 data:
   ca.crt: {{ $ca.Cert | b64enc }}
@@ -55,6 +59,10 @@ metadata:
   labels:
     app: {{ include "trust-manager.name" . }}
     {{- include "trust-manager.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.app.webhook.service.type }}
   {{- if .Values.app.webhook.service.ipFamilyPolicy }}
@@ -83,11 +91,15 @@ metadata:
   labels:
     app: {{ include "trust-manager.name" . }}
     {{- include "trust-manager.labels" . | nindent 4 }}
-{{ if not .Values.app.webhook.tls.helmCert.enabled }}
+  {{- if or (not .Values.app.webhook.tls.helmCert.enabled) .Values.commonAnnotations }}
   annotations:
+    {{- if not .Values.app.webhook.tls.helmCert.enabled }}
     cert-manager.io/inject-ca-from: "{{ include "trust-manager.namespace" . }}/{{ include "trust-manager.name" . }}"
-{{ end }}
-
+    {{- end }}
+    {{- with .Values.commonAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
 webhooks:
   - name: trust.cert-manager.io
     rules:

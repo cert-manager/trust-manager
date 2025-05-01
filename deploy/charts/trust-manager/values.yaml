@@ -352,6 +352,9 @@ podDisruptionBudget:
 # Labels to apply to all resources
 commonLabels: {}
 
+# Annotations to apply to all resources
+# NOTE: These annotations won't be added to the CRDs.
+commonAnnotations: {}
 # Extra manifests to be deployed. This is useful for deploying additional resources that are not part of the chart.
 # For example:
 # extraObjects:

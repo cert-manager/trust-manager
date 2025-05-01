@@ -7,6 +7,10 @@ metadata:
   labels:
     app: {{ include "trust-manager.name" . }}
     {{- include "trust-manager.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   selector:
     matchLabels:
