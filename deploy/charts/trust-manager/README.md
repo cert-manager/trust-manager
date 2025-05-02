@@ -345,7 +345,7 @@ Whether to filter expired certificates from the trust bundle.
 > ```
 
 Minimum TLS version supported. If omitted, the default Go minimum version will be used.
-#### **app.ciphersSuite** ~ `string`
+#### **app.cipherSuites** ~ `string`
 > Default value:
 > ```yaml
 > ""

@@ -92,8 +92,8 @@
     "helm-values.app": {
       "additionalProperties": false,
       "properties": {
-        "ciphersSuite": {
-          "$ref": "#/$defs/helm-values.app.ciphersSuite"
+        "cipherSuites": {
+          "$ref": "#/$defs/helm-values.app.cipherSuites"
         },
         "leaderElection": {
           "$ref": "#/$defs/helm-values.app.leaderElection"
@@ -131,7 +131,7 @@
       },
       "type": "object"
     },
-    "helm-values.app.ciphersSuite": {
+    "helm-values.app.cipherSuites": {
       "default": "",
       "description": "Comma-separated list of cipher suites for the server. If omitted, the default Go cipher suites will be used.",
       "type": "string"
