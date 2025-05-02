@@ -12,6 +12,9 @@
         "automountServiceAccountToken": {
           "$ref": "#/$defs/helm-values.automountServiceAccountToken"
         },
+        "commonAnnotations": {
+          "$ref": "#/$defs/helm-values.commonAnnotations"
+        },
         "commonLabels": {
           "$ref": "#/$defs/helm-values.commonLabels"
         },
@@ -501,6 +504,11 @@
       "default": true,
       "description": "Automounting API credentials for the trust-manager pod.",
       "type": "boolean"
+    },
+    "helm-values.commonAnnotations": {
+      "default": {},
+      "description": "Annotations to apply to all resources\nNOTE: These annotations won't be added to the CRDs.",
+      "type": "object"
     },
     "helm-values.commonLabels": {
       "default": {},
