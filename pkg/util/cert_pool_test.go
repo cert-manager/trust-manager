@@ -19,7 +19,7 @@ package util
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/cert-manager/trust-manager/test/dummy"
 )
@@ -27,33 +27,25 @@ import (
 func TestNewCertPool(t *testing.T) {
 	certPool := NewCertPool(WithFilteredExpiredCerts(false))
 
-	if certPool == nil {
-		t.Fatal("pool is nil")
-	}
+	assert.NotNil(t, certPool)
 }
 
 func TestAppendCertFromPEM(t *testing.T) {
-	// list of certificates
-	certificateList := [...]struct {
-		certificateName string
-		certificate     string
-		expectError     string
-		expectNil       bool
+	tests := map[string]struct {
+		pemData       string
+		filterExpired bool
+		expError      string
+		expEmpty      bool
 	}{
-		{
-			certificateName: "TestCertificate5",
-			certificate:     dummy.TestCertificate5,
-			expectNil:       false,
+		"if single certificate, should return": {
+			pemData: dummy.TestCertificate5,
 		},
-		{
-			certificateName: "TestCertificateChain6",
-			certificate:     dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3),
-			expectNil:       false,
+		"if multiple certificates, should return": {
+			pemData: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3),
 		},
-		{
+		"if invalid certificate, should return empty bundle": {
 			// invalid certificate
-			certificateName: "TestCertificateInvalid7",
-			certificate: `-----BEGIN CERTIFICATE-----
+			pemData: `-----BEGIN CERTIFICATE-----
 			MIIFazCCA1OgAwIBAgIRAIIQz7DSQONZRGPgu2OCiwAwDQYJKoZIhvcNAQELBQAw
 			TzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh
 			cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMTUwNjA0MTEwNDM4
@@ -63,38 +55,40 @@ func TestAppendCertFromPEM(t *testing.T) {
 			h77ct984kIxuPOZXoHj3dcKi/vVqbvYATyjb3miGbESTtrFj/RQSa78f0uoxmyF+
 			0TM8ukj13Xnfs7j/EvEhmkvBioZxaUpmZmyPfjxwv60pIgbz5MDmgK7iS4+3mX6U
 			A5/TR5d8mUgjU+g4rk8Kb4Mu0UlXjIB0ttov0DiNewNwIRt18jA8+o+u3dpjq+sW`,
-			expectError: "no non-expired certificates found in input bundle",
-			expectNil:   true,
+			expEmpty: true,
 		},
-		{
-			certificateName: "TestCertificateInvalid8",
-			certificate:     "qwerty",
-			expectError:     "no non-expired certificates found in input bundle",
-			expectNil:       true,
+		"if invalid PEM data, should return empty bundle": {
+			pemData:  "qwerty",
+			expEmpty: true,
 		},
-		{
-			certificateName: "TestExpiredCertificate",
-			certificate:     dummy.TestExpiredCertificate,
-			expectNil:       false,
+		"if expired certificate, should return": {
+			pemData: dummy.TestExpiredCertificate,
+		},
+		"if expired certificate with filter expired enabled, should return empty bundle": {
+			pemData:       dummy.TestExpiredCertificate,
+			filterExpired: true,
+			expEmpty:      true,
 		},
 	}
 
 	// populate certificates bundle
-	for _, crt := range certificateList {
-		certPool := NewCertPool(WithFilteredExpiredCerts(false))
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 
-		err := certPool.AddCertsFromPEM([]byte(crt.certificate))
-		if crt.expectError != "" {
-			require.Error(t, err)
-			require.Equal(t, crt.expectError, err.Error())
-			continue
-		} else {
-			require.NoError(t, err)
-		}
+			certPool := NewCertPool(WithFilteredExpiredCerts(test.filterExpired))
 
-		certPEM := certPool.PEM()
-		if len(certPEM) != 0 == (crt.expectNil) {
-			t.Fatalf("error getting PEM certificates from pool: certificate data is nil")
-		}
+			err := certPool.AddCertsFromPEM([]byte(test.pemData))
+			if test.expError != "" {
+				assert.Error(t, err, test.expError)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			certPEM := certPool.PEM()
+			if len(certPEM) != 0 == (test.expEmpty) {
+				t.Fatalf("error getting PEM certificates from pool: certificate data is nil")
+			}
+		})
 	}
 }
