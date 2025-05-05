@@ -31,6 +31,7 @@ github.com/monochromegane/go-gitignore,https://github.com/monochromegane/go-giti
 github.com/munnerz/goautoneg,https://github.com/munnerz/goautoneg/blob/a7dc8b61c822/LICENSE,BSD-3-Clause
 github.com/onsi/ginkgo/v2,https://github.com/onsi/ginkgo/blob/v2.23.4/LICENSE,MIT
 github.com/onsi/gomega,https://github.com/onsi/gomega/blob/v1.37.0/LICENSE,MIT
+github.com/pavlo-v-chernykh/keystore-go/v4,https://github.com/pavlo-v-chernykh/keystore-go/blob/v4.5.0/LICENSE,MIT
 github.com/peterbourgon/diskv,https://github.com/peterbourgon/diskv/blob/v2.0.1/LICENSE,MIT
 github.com/pkg/errors,https://github.com/pkg/errors/blob/v0.9.1/LICENSE,BSD-2-Clause
 github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil,https://github.com/prometheus/client_golang/blob/v1.22.0/internal/github.com/golang/gddo/LICENSE,BSD-3-Clause
