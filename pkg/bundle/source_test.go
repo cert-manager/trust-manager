@@ -17,11 +17,13 @@ limitations under the License.
 package bundle
 
 import (
+	"bytes"
 	"encoding/pem"
 	"errors"
 	"strings"
 	"testing"
 
+	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -488,14 +490,24 @@ func Test_buildSourceBundle(t *testing.T) {
 			assert.Equal(t, test.expJKS, jksExists)
 
 			if test.expJKS {
-				certs, err := pkcs12.DecodeTrustStore(binData, password)
+				reader := bytes.NewReader(binData)
+
+				ks := jks.New()
+
+				err := ks.Load(reader, []byte(password))
 				assert.Nil(t, err)
 
-				assert.Len(t, certs, 1)
+				entryNames := ks.Aliases()
+
+				assert.Len(t, entryNames, 1)
+				assert.True(t, ks.IsTrustedCertificateEntry(entryNames[0]))
+
+				// Safe to ignore errors here, we've tested that it's present and a TrustedCertificateEntry
+				cert, _ := ks.GetTrustedCertificateEntry(entryNames[0])
 
 				// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
 				p, _ := pem.Decode([]byte(data))
-				assert.Equal(t, p.Bytes, certs[0].Raw)
+				assert.Equal(t, p.Bytes, cert.Certificate.Content)
 			}
 
 			binData, pkcs12Exists := resolvedBundle.Data.BinaryData[pkcs12Key]

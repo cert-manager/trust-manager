@@ -17,9 +17,12 @@ limitations under the License.
 package truststore
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 
+	"github.com/pavlo-v-chernykh/keystore-go/v4"
 	"software.sslmate.com/src/go-pkcs12"
 
 	"github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
@@ -31,7 +34,52 @@ type Encoder interface {
 }
 
 func NewJKSEncoder(password string) Encoder {
-	return NewPKCS12Encoder(password, v1alpha1.LegacyRC2PKCS12Profile)
+	return &jksEncoder{password: password}
+}
+
+type jksEncoder struct {
+	password string
+}
+
+// Encode creates a binary JKS file from the given PEM-encoded trust bundle and Password.
+// Note that the Password is not treated securely; JKS files generally seem to expect a Password
+// to exist and so we have the option for one.
+func (e jksEncoder) Encode(trustBundle *util.CertPool) ([]byte, error) {
+	// WithOrderedAliases ensures that trusted certs are added to the JKS file in order,
+	// which makes the files appear to be reliably deterministic.
+	ks := keystore.New(keystore.WithOrderedAliases())
+
+	for _, c := range trustBundle.Certificates() {
+		alias := certAlias(c.Raw, c.Subject.String())
+
+		// Note on CreationTime:
+		// Debian's JKS trust store sets the creation time to match the time that certs are added to the
+		// trust store (i.e., it's effectively time.Now() at the instant the file is generated).
+		// Using that method would make our JKS files in trust-manager non-deterministic, leaving us with
+		// two options if we want to maintain determinism:
+		// - Using something from the cert being added (e.g. NotBefore / NotAfter)
+		// - Using a fixed time (i.e. unix epoch)
+		// We use NotBefore here, arbitrarily.
+
+		if err := ks.SetTrustedCertificateEntry(alias, keystore.TrustedCertificateEntry{
+			CreationTime: c.NotBefore,
+			Certificate: keystore.Certificate{
+				Type:    "X509",
+				Content: c.Raw,
+			},
+		}); err != nil {
+			// this error should never happen if we set jks.Certificate correctly
+			return nil, fmt.Errorf("failed to add cert with alias %q to trust store: %w", alias, err)
+		}
+	}
+
+	buf := &bytes.Buffer{}
+
+	if err := ks.Store(buf, []byte(e.password)); err != nil {
+		return nil, fmt.Errorf("failed to create JKS file: %w", err)
+	}
+
+	return buf.Bytes(), nil
 }
 
 func NewPKCS12Encoder(password string, profile v1alpha1.PKCS12Profile) Encoder {

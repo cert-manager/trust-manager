@@ -17,12 +17,13 @@ limitations under the License.
 package truststore
 
 import (
+	"bytes"
 	"crypto/x509"
 	"encoding/pem"
 	"testing"
 
+	"github.com/pavlo-v-chernykh/keystore-go/v4"
 	"github.com/stretchr/testify/assert"
-	"software.sslmate.com/src/go-pkcs12"
 
 	"github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/util"
@@ -35,12 +36,10 @@ func Test_Encoder_Deterministic(t *testing.T) {
 		expNonDeterministic bool
 	}{
 		"JKS default password": {
-			encoder:             NewJKSEncoder(v1alpha1.DefaultJKSPassword),
-			expNonDeterministic: true,
+			encoder: NewJKSEncoder(v1alpha1.DefaultJKSPassword),
 		},
 		"JKS custom password": {
-			encoder:             NewJKSEncoder("my-password"),
-			expNonDeterministic: true,
+			encoder: NewJKSEncoder("my-password"),
 		},
 		"PKCS#12 default password": {
 			encoder: NewPKCS12Encoder(v1alpha1.DefaultPKCS12Password, ""),
@@ -105,13 +104,19 @@ func Test_encodeJKSAliases(t *testing.T) {
 		t.Fatalf("didn't expect an error but got: %s", err)
 	}
 
-	certs, err := pkcs12.DecodeTrustStore(jksFile, v1alpha1.DefaultJKSPassword)
+	reader := bytes.NewReader(jksFile)
+
+	ks := keystore.New()
+
+	err = ks.Load(reader, []byte(v1alpha1.DefaultJKSPassword))
 	if err != nil {
 		t.Fatalf("failed to parse generated JKS file: %s", err)
 	}
 
-	if len(certs) != 2 {
-		t.Fatalf("expected two certs in JKS file but got %d", len(certs))
+	entryNames := ks.Aliases()
+
+	if len(entryNames) != 2 {
+		t.Fatalf("expected two certs in JKS file but got %d", len(entryNames))
 	}
 }
 
