@@ -135,30 +135,36 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 	}
 	resolvedBundle, err := b.buildSourceBundle(ctx, bundle.Spec.Sources, bundle.Spec.Target.AdditionalFormats)
 
-	// If any source is not found, update the Bundle status to an unready state.
-	if errors.As(err, &notFoundError{}) {
-		log.Error(err, "bundle source was not found")
+	if err != nil {
+		var reason, message string
+
+		switch {
+		case errors.As(err, &notFoundError{}):
+			reason = "SourceNotFound"
+			message = "bundle source was not found"
+		default:
+			reason = "SourceBuildError"
+			message = "failed to build bundle sources"
+			returnedErr = fmt.Errorf("%s: %w", message, err)
+		}
+
+		log.Error(err, message)
+
+		errMsg := fmt.Sprintf("%s: %s", strings.ToUpper(message[:1])+message[1:], err)
 		b.setBundleCondition(
 			bundle.Status.Conditions,
 			&statusPatch.Conditions,
 			metav1.Condition{
 				Type:               trustapi.BundleConditionSynced,
 				Status:             metav1.ConditionFalse,
-				Reason:             "SourceNotFound",
-				Message:            "Bundle source was not found: " + err.Error(),
+				Reason:             reason,
+				Message:            errMsg,
 				ObservedGeneration: bundle.Generation,
 			},
 		)
+		b.recorder.Event(&bundle, corev1.EventTypeWarning, reason, errMsg)
 
-		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SourceNotFound", "Bundle source was not found: %s", err)
-
-		return ctrl.Result{}, statusPatch, nil
-	}
-
-	if err != nil {
-		log.Error(err, "failed to build source bundle")
-		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SourceBuildError", "Failed to build bundle sources: %s", err)
-		return ctrl.Result{}, nil, fmt.Errorf("failed to build bundle source: %w", err)
+		return ctrl.Result{}, statusPatch, returnedErr
 	}
 
 	// Detect if we have a bundle with Secret targets but the feature is disabled.
