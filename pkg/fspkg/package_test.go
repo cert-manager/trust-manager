@@ -60,13 +60,13 @@ func Test_LoadPackage(t *testing.T) {
 			}),
 			expError: true,
 		},
-		"package with invalid cert is rejected": {
+		"package with invalid cert is loaded without error": {
 			testData: quickJSONFromPackage(Package{
 				Name:    "asd",
 				Version: "123",
 				Bundle:  "not-a-certificate",
 			}),
-			expError: true,
+			expError: false,
 		},
 		"valid package is loaded without error": {
 			testData: quickJSONFromPackage(Package{

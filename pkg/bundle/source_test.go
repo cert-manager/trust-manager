@@ -47,6 +47,7 @@ const (
 func Test_buildSourceBundle(t *testing.T) {
 	tests := map[string]struct {
 		sources                     []trustapi.BundleSource
+		filterExpired               bool
 		formats                     *trustapi.AdditionalFormats
 		objects                     []runtime.Object
 		expData                     string
@@ -355,6 +356,24 @@ func Test_buildSourceBundle(t *testing.T) {
 			expError:                    true,
 			expInvalidSecretSourceError: true,
 		},
+		"if has any non-expired certificate, return data": {
+			sources: []trustapi.BundleSource{
+				// The first in-line source contains an expired certificate (only)
+				{InLine: ptr.To(dummy.TestExpiredCertificate)},
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
+			},
+			filterExpired: true,
+			objects: []runtime.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+					Data:       map[string]string{"key": dummy.TestCertificate1},
+				},
+			},
+			expData:          dummy.JoinCerts(dummy.TestCertificate1),
+			expError:         false,
+			expNotFoundError: false,
+		},
+
 		"if has JKS target, return binaryData with encoded JKS": {
 			sources: []trustapi.BundleSource{
 				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
@@ -451,6 +470,7 @@ func Test_buildSourceBundle(t *testing.T) {
 					Version: "123",
 					Bundle:  dummy.TestCertificate5,
 				},
+				Options: Options{FilterExpiredCerts: test.filterExpired},
 			}
 
 			// for corresponding store if arbitrary password is expected then set it instead of default one
@@ -546,7 +566,6 @@ func TestBundlesDeduplication(t *testing.T) {
 		"no certs in sources": {
 			bundle:     []string{},
 			testBundle: nil,
-			expError:   "no non-expired certificates found in input bundle",
 		},
 		"single cert in the first source, joined certs in the second source": {
 			bundle: []string{
@@ -597,9 +616,7 @@ func TestBundlesDeduplication(t *testing.T) {
 			certPool := util.NewCertPool()
 			err := certPool.AddCertsFromPEM([]byte(strings.Join(test.bundle, "\n")))
 			if test.expError != "" {
-				assert.NotNil(t, err)
-				assert.Equal(t, err.Error(), test.expError)
-				return
+				assert.Error(t, err, test.expError)
 			} else {
 				assert.Nil(t, err)
 			}

@@ -39,24 +39,29 @@ func TestAddCertsFromPEM(t *testing.T) {
 		parts                 []string
 		filterDuplicateCerts  bool
 		filterExpiredCerts    bool
+		expectCertCount       int
 		expectExpiredCerts    bool
 		expectErr             bool
 		expectDuplicatesCerts bool
 	}{
 		"valid bundle with all types of cert and no comments succeeds": {
-			parts:     []string{dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3},
-			expectErr: false,
+			parts:           []string{dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3},
+			expectCertCount: 3,
+			expectErr:       false,
 		},
 		"valid bundle with all types of cert and a random comment succeeds": {
-			parts:     []string{dummy.TestCertificate1, randomComment, dummy.TestCertificate2, randomComment, dummy.TestCertificate3, randomComment},
-			expectErr: false,
+			parts:           []string{dummy.TestCertificate1, randomComment, dummy.TestCertificate2, randomComment, dummy.TestCertificate3, randomComment},
+			expectCertCount: 3,
+			expectErr:       false,
 		},
 		"valid bundle with all types of cert and a poison comment succeeds": {
-			parts:     []string{dummy.TestCertificate1, string(poisonComment), dummy.TestCertificate2, randomComment, dummy.TestCertificate3, string(poisonComment)},
-			expectErr: false,
+			parts:           []string{dummy.TestCertificate1, string(poisonComment), dummy.TestCertificate2, randomComment, dummy.TestCertificate3, string(poisonComment)},
+			expectCertCount: 3,
+			expectErr:       false,
 		},
 		"valid bundle with expired cert succeeds with the expired cert intact": {
 			parts:              []string{dummy.TestCertificate1, dummy.TestExpiredCertificate},
+			expectCertCount:    2,
 			expectExpiredCerts: true,
 			expectErr:          false,
 		},
@@ -72,30 +77,31 @@ func TestAddCertsFromPEM(t *testing.T) {
 			parts:     []string{dummy.TestCertificate1, privateKey},
 			expectErr: true,
 		},
-		"invalid bundle with no certificates fails": {
-			parts:     []string{"abc123"},
-			expectErr: true,
+		"invalid bundle with no certificates succeeds": {
+			parts: []string{"abc123"},
 		},
 		"valid bundle with valid certs and filtered expired cert": {
 			parts:              []string{dummy.TestCertificate1, dummy.TestExpiredCertificate, dummy.TestCertificate3},
 			filterExpiredCerts: true,
+			expectCertCount:    2,
 			expectExpiredCerts: false,
 			expectErr:          false,
 		},
 		"valid bundle with valid cert and multiple filtered expired certs": {
 			parts:              []string{dummy.TestCertificate1, dummy.TestExpiredCertificate, dummy.TestExpiredCertificate},
 			filterExpiredCerts: true,
+			expectCertCount:    1,
 			expectExpiredCerts: false,
 			expectErr:          false,
 		},
-		"bundle with only a filtered expired cert is invalid": {
+		"valid bundle with only a filtered expired cert": {
 			parts:              []string{dummy.TestExpiredCertificate},
 			filterExpiredCerts: true,
-			expectErr:          true,
 		},
 		"duplicate certificate should be removed": {
 			parts:                 []string{dummy.TestCertificate1, dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate1), dummy.TestCertificate2, dummy.TestCertificate2},
 			filterExpiredCerts:    true,
+			expectCertCount:       2,
 			expectErr:             false,
 			expectDuplicatesCerts: true,
 		},
@@ -117,8 +123,8 @@ func TestAddCertsFromPEM(t *testing.T) {
 				return
 			}
 
-			if certPool.Size() == 0 {
-				t.Fatalf("got no error from AddCertsFromPEM but sanitizedBundle was nil")
+			if certPool.Size() != test.expectCertCount {
+				t.Errorf("cert count = %d; want %d", certPool.Size(), test.expectCertCount)
 			}
 
 			for _, strippable := range strippableText {
