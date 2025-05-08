@@ -101,59 +101,25 @@ type BundleSource struct {
 // BundleTarget is the target resource that the Bundle will sync all source
 // data to.
 type BundleTarget struct {
-	// ConfigMap is the target ConfigMap in Namespaces that all Bundle source
-	// data will be synced to.
+	// ConfigMap is the target ConfigMap in Namespaces that all Bundle source data will be synced to.
 	// +optional
-	ConfigMap *TargetTemplate `json:"configMap,omitempty"`
+	ConfigMap *KeyValueTarget `json:"configMap,omitempty"`
 
-	// Secret is the target Secret that all Bundle source data will be synced to.
+	// Secret is the target Secret in Namespaces that all Bundle source data will be synced to.
 	// Using Secrets as targets is only supported if enabled at trust-manager startup.
 	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
 	// +optional
-	Secret *TargetTemplate `json:"secret,omitempty"`
+	Secret *KeyValueTarget `json:"secret,omitempty"`
 
-	// AdditionalFormats specifies any additional formats to write to the target
-	// +optional
-	AdditionalFormats *AdditionalFormats `json:"additionalFormats,omitempty"`
-
-	// NamespaceSelector will, if set, only sync the target resource in
-	// Namespaces which match the selector.
-	// +optional
-	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
+	// NamespaceSelector specifies the namespaces where target resources will be synced.
+	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector"`
 }
 
-// AdditionalFormats specifies any additional formats to write to the target
-type AdditionalFormats struct {
-	// JKS requests a JKS-formatted binary trust bundle to be written to the target.
-	// The bundle has "changeit" as the default password.
-	// For more information refer to this link https://cert-manager.io/docs/faq/#keystore-passwords
-	// +optional
-	JKS *JKS `json:"jks,omitempty"`
-	// PKCS12 requests a PKCS12-formatted binary trust bundle to be written to the target.
-	// The bundle is by default created without a password.
-	// +optional
-	PKCS12 *PKCS12 `json:"pkcs12,omitempty"`
-}
-
-// JKS specifies additional target JKS files
-// +structType=atomic
-type JKS struct {
-	KeySelector `json:",inline"`
-
-	// Password for JKS trust store
-	//+optional
-	//+kubebuilder:validation:MinLength=1
-	//+kubebuilder:validation:MaxLength=128
-	//+kubebuilder:default=changeit
-	Password *string `json:"password"`
-}
-
-// PKCS12 specifies additional target PKCS#12 files
+// PKCS12 specifies configs for target PKCS#12 files.
 // +structType=atomic
 type PKCS12 struct {
-	KeySelector `json:",inline"`
-
-	// Password for PKCS12 trust store
+	// Password for PKCS12 trust store.
+	// By default, no password is used (password-less PKCS#12).
 	//+optional
 	//+kubebuilder:validation:MaxLength=128
 	//+kubebuilder:default=""
@@ -167,7 +133,7 @@ type PKCS12 struct {
 	// `LegacyDES`: Less secure algorithm. Use this option for maximal compatibility.
 	// `Modern2023`: Secure algorithm. Use this option in case you have to always use secure algorithms (e.g. because of company policy).
 	//
-	// Default value is `LegacyRC2` for backward compatibility.
+	// Default value is `LegacyDES`.
 	// +optional
 	Profile PKCS12Profile `json:"profile,omitempty"`
 }
@@ -212,11 +178,13 @@ type SourceObjectKeySelector struct {
 	IncludeAllKeys bool `json:"includeAllKeys,omitempty"`
 }
 
-// TargetTemplate defines the form of the Kubernetes Secret or ConfigMap bundle targets.
-type TargetTemplate struct {
-	// Key is the key of the entry in the object's `data` field to be used.
-	// +kubebuilder:validation:MinLength=1
-	Key string `json:"key"`
+// KeyValueTarget is the specification of key value target resources as ConfigMaps and Secrets.
+type KeyValueTarget struct {
+	// Data is the specification of the object's `data` field.
+	// +listType=map
+	// +listMapKey=key
+	// +kubebuilder:validation:MinItems=1
+	Data []TargetKeyValue `json:"data"`
 
 	// Metadata is an optional set of labels and annotations to be copied to the target.
 	// +optional
@@ -224,7 +192,7 @@ type TargetTemplate struct {
 }
 
 // GetAnnotations returns the annotations to be copied to the target or an empty map if there are no annotations.
-func (t *TargetTemplate) GetAnnotations() map[string]string {
+func (t *KeyValueTarget) GetAnnotations() map[string]string {
 	if t == nil || t.Metadata == nil {
 		return nil
 	}
@@ -232,19 +200,40 @@ func (t *TargetTemplate) GetAnnotations() map[string]string {
 }
 
 // GetLabels returns the labels to be copied to the target or an empty map if there are no labels.
-func (t *TargetTemplate) GetLabels() map[string]string {
+func (t *KeyValueTarget) GetLabels() map[string]string {
 	if t == nil || t.Metadata == nil {
 		return nil
 	}
 	return t.Metadata.Labels
 }
 
-// KeySelector is a reference to a key for some map data object.
-type KeySelector struct {
-	// Key is the key of the entry in the object's `data` field to be used.
+// TargetKeyValue is the specification of a key with value in a key-value target resource.
+// +structType=atomic
+type TargetKeyValue struct {
+	// Key is the key of the entry in the object's `data`field to be used.
 	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key"`
+
+	// Format defines the format of the target value.
+	// The default format is PEM.
+	//+optional
+	Format BundleFormat `json:"format,omitempty"`
+
+	// PKCS12 specifies configs for PKCS#12 files.
+	// May only be used when format is PKCS12.
+	// +optional
+	PKCS12 `json:",inline"`
 }
+
+// BundleFormat defines the trust bundle format.
+// +kubebuilder:validation:Enum=PEM;PKCS12
+type BundleFormat string
+
+const (
+	BundleFormatPEM BundleFormat = "PEM"
+
+	BundleFormatPKCS12 BundleFormat = "PKCS12"
+)
 
 // TargetMetadata defines the default labels and annotations
 // to be copied to the Kubernetes Secret or ConfigMap bundle targets.
@@ -276,10 +265,6 @@ type BundleStatus struct {
 }
 
 const (
-	// DefaultJKSPassword is the default password that Java uses; it's a Java convention to use this exact password.
-	// Since we're not storing anything secret in the JKS files we generate, this password is not a meaningful security measure
-	// but seems often to be expected by applications consuming JKS files
-	DefaultJKSPassword = "changeit"
 	// DefaultPKCS12Password is the empty string, that will create a password-less PKCS12 truststore.
 	// Password-less PKCS is the new default Java truststore from Java 18.
 	// By password-less, it means the certificates are not encrypted, and it contains no MacData for integrity check.

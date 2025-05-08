@@ -36,16 +36,6 @@ func init() {
 // RegisterConversions adds conversion functions to the given scheme.
 // Public to allow building arbitrary schemes.
 func RegisterConversions(s *runtime.Scheme) error {
-	if err := s.AddGeneratedConversionFunc((*AdditionalFormats)(nil), (*v1alpha2.AdditionalFormats)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_AdditionalFormats_To_v1alpha2_AdditionalFormats(a.(*AdditionalFormats), b.(*v1alpha2.AdditionalFormats), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha2.AdditionalFormats)(nil), (*AdditionalFormats)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_AdditionalFormats_To_v1alpha1_AdditionalFormats(a.(*v1alpha2.AdditionalFormats), b.(*AdditionalFormats), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*BundleSource)(nil), (*v1alpha2.BundleSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(a.(*BundleSource), b.(*v1alpha2.BundleSource), scope)
 	}); err != nil {
@@ -76,41 +66,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*BundleTarget)(nil), (*v1alpha2.BundleTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(a.(*BundleTarget), b.(*v1alpha2.BundleTarget), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha2.BundleTarget)(nil), (*BundleTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(a.(*v1alpha2.BundleTarget), b.(*BundleTarget), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*JKS)(nil), (*v1alpha2.JKS)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_JKS_To_v1alpha2_JKS(a.(*JKS), b.(*v1alpha2.JKS), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha2.JKS)(nil), (*JKS)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_JKS_To_v1alpha1_JKS(a.(*v1alpha2.JKS), b.(*JKS), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*KeySelector)(nil), (*v1alpha2.KeySelector)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_KeySelector_To_v1alpha2_KeySelector(a.(*KeySelector), b.(*v1alpha2.KeySelector), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha2.KeySelector)(nil), (*KeySelector)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_KeySelector_To_v1alpha1_KeySelector(a.(*v1alpha2.KeySelector), b.(*KeySelector), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*PKCS12)(nil), (*v1alpha2.PKCS12)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_PKCS12_To_v1alpha2_PKCS12(a.(*PKCS12), b.(*v1alpha2.PKCS12), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*v1alpha2.PKCS12)(nil), (*PKCS12)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha2_PKCS12_To_v1alpha1_PKCS12(a.(*v1alpha2.PKCS12), b.(*PKCS12), scope)
 	}); err != nil {
@@ -136,39 +91,32 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*TargetTemplate)(nil), (*v1alpha2.TargetTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_TargetTemplate_To_v1alpha2_TargetTemplate(a.(*TargetTemplate), b.(*v1alpha2.TargetTemplate), scope)
+	if err := s.AddConversionFunc((*BundleTarget)(nil), (*v1alpha2.BundleTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(a.(*BundleTarget), b.(*v1alpha2.BundleTarget), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha2.TargetTemplate)(nil), (*TargetTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_TargetTemplate_To_v1alpha1_TargetTemplate(a.(*v1alpha2.TargetTemplate), b.(*TargetTemplate), scope)
+	if err := s.AddConversionFunc((*PKCS12)(nil), (*v1alpha2.PKCS12)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_PKCS12_To_v1alpha2_PKCS12(a.(*PKCS12), b.(*v1alpha2.PKCS12), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*TargetTemplate)(nil), (*v1alpha2.KeyValueTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(a.(*TargetTemplate), b.(*v1alpha2.KeyValueTarget), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1alpha2.BundleTarget)(nil), (*BundleTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(a.(*v1alpha2.BundleTarget), b.(*BundleTarget), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1alpha2.KeyValueTarget)(nil), (*TargetTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha2_KeyValueTarget_To_v1alpha1_TargetTemplate(a.(*v1alpha2.KeyValueTarget), b.(*TargetTemplate), scope)
 	}); err != nil {
 		return err
 	}
 	return nil
-}
-
-func autoConvert_v1alpha1_AdditionalFormats_To_v1alpha2_AdditionalFormats(in *AdditionalFormats, out *v1alpha2.AdditionalFormats, s conversion.Scope) error {
-	out.JKS = (*v1alpha2.JKS)(unsafe.Pointer(in.JKS))
-	out.PKCS12 = (*v1alpha2.PKCS12)(unsafe.Pointer(in.PKCS12))
-	return nil
-}
-
-// Convert_v1alpha1_AdditionalFormats_To_v1alpha2_AdditionalFormats is an autogenerated conversion function.
-func Convert_v1alpha1_AdditionalFormats_To_v1alpha2_AdditionalFormats(in *AdditionalFormats, out *v1alpha2.AdditionalFormats, s conversion.Scope) error {
-	return autoConvert_v1alpha1_AdditionalFormats_To_v1alpha2_AdditionalFormats(in, out, s)
-}
-
-func autoConvert_v1alpha2_AdditionalFormats_To_v1alpha1_AdditionalFormats(in *v1alpha2.AdditionalFormats, out *AdditionalFormats, s conversion.Scope) error {
-	out.JKS = (*JKS)(unsafe.Pointer(in.JKS))
-	out.PKCS12 = (*PKCS12)(unsafe.Pointer(in.PKCS12))
-	return nil
-}
-
-// Convert_v1alpha2_AdditionalFormats_To_v1alpha1_AdditionalFormats is an autogenerated conversion function.
-func Convert_v1alpha2_AdditionalFormats_To_v1alpha1_AdditionalFormats(in *v1alpha2.AdditionalFormats, out *AdditionalFormats, s conversion.Scope) error {
-	return autoConvert_v1alpha2_AdditionalFormats_To_v1alpha1_AdditionalFormats(in, out, s)
 }
 
 func autoConvert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(in *BundleSource, out *v1alpha2.BundleSource, s conversion.Scope) error {
@@ -246,95 +194,60 @@ func Convert_v1alpha2_BundleStatus_To_v1alpha1_BundleStatus(in *v1alpha2.BundleS
 }
 
 func autoConvert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, out *v1alpha2.BundleTarget, s conversion.Scope) error {
-	out.ConfigMap = (*v1alpha2.TargetTemplate)(unsafe.Pointer(in.ConfigMap))
-	out.Secret = (*v1alpha2.TargetTemplate)(unsafe.Pointer(in.Secret))
-	out.AdditionalFormats = (*v1alpha2.AdditionalFormats)(unsafe.Pointer(in.AdditionalFormats))
+	if in.ConfigMap != nil {
+		in, out := &in.ConfigMap, &out.ConfigMap
+		*out = new(v1alpha2.KeyValueTarget)
+		if err := Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ConfigMap = nil
+	}
+	if in.Secret != nil {
+		in, out := &in.Secret, &out.Secret
+		*out = new(v1alpha2.KeyValueTarget)
+		if err := Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Secret = nil
+	}
+	// WARNING: in.AdditionalFormats requires manual conversion: does not exist in peer-type
 	out.NamespaceSelector = (*v1.LabelSelector)(unsafe.Pointer(in.NamespaceSelector))
 	return nil
-}
-
-// Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget is an autogenerated conversion function.
-func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, out *v1alpha2.BundleTarget, s conversion.Scope) error {
-	return autoConvert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in, out, s)
 }
 
 func autoConvert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *v1alpha2.BundleTarget, out *BundleTarget, s conversion.Scope) error {
-	out.ConfigMap = (*TargetTemplate)(unsafe.Pointer(in.ConfigMap))
-	out.Secret = (*TargetTemplate)(unsafe.Pointer(in.Secret))
-	out.AdditionalFormats = (*AdditionalFormats)(unsafe.Pointer(in.AdditionalFormats))
+	if in.ConfigMap != nil {
+		in, out := &in.ConfigMap, &out.ConfigMap
+		*out = new(TargetTemplate)
+		if err := Convert_v1alpha2_KeyValueTarget_To_v1alpha1_TargetTemplate(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.ConfigMap = nil
+	}
+	if in.Secret != nil {
+		in, out := &in.Secret, &out.Secret
+		*out = new(TargetTemplate)
+		if err := Convert_v1alpha2_KeyValueTarget_To_v1alpha1_TargetTemplate(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Secret = nil
+	}
 	out.NamespaceSelector = (*v1.LabelSelector)(unsafe.Pointer(in.NamespaceSelector))
 	return nil
 }
 
-// Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget is an autogenerated conversion function.
-func Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *v1alpha2.BundleTarget, out *BundleTarget, s conversion.Scope) error {
-	return autoConvert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in, out, s)
-}
-
-func autoConvert_v1alpha1_JKS_To_v1alpha2_JKS(in *JKS, out *v1alpha2.JKS, s conversion.Scope) error {
-	if err := Convert_v1alpha1_KeySelector_To_v1alpha2_KeySelector(&in.KeySelector, &out.KeySelector, s); err != nil {
-		return err
-	}
-	out.Password = (*string)(unsafe.Pointer(in.Password))
-	return nil
-}
-
-// Convert_v1alpha1_JKS_To_v1alpha2_JKS is an autogenerated conversion function.
-func Convert_v1alpha1_JKS_To_v1alpha2_JKS(in *JKS, out *v1alpha2.JKS, s conversion.Scope) error {
-	return autoConvert_v1alpha1_JKS_To_v1alpha2_JKS(in, out, s)
-}
-
-func autoConvert_v1alpha2_JKS_To_v1alpha1_JKS(in *v1alpha2.JKS, out *JKS, s conversion.Scope) error {
-	if err := Convert_v1alpha2_KeySelector_To_v1alpha1_KeySelector(&in.KeySelector, &out.KeySelector, s); err != nil {
-		return err
-	}
-	out.Password = (*string)(unsafe.Pointer(in.Password))
-	return nil
-}
-
-// Convert_v1alpha2_JKS_To_v1alpha1_JKS is an autogenerated conversion function.
-func Convert_v1alpha2_JKS_To_v1alpha1_JKS(in *v1alpha2.JKS, out *JKS, s conversion.Scope) error {
-	return autoConvert_v1alpha2_JKS_To_v1alpha1_JKS(in, out, s)
-}
-
-func autoConvert_v1alpha1_KeySelector_To_v1alpha2_KeySelector(in *KeySelector, out *v1alpha2.KeySelector, s conversion.Scope) error {
-	out.Key = in.Key
-	return nil
-}
-
-// Convert_v1alpha1_KeySelector_To_v1alpha2_KeySelector is an autogenerated conversion function.
-func Convert_v1alpha1_KeySelector_To_v1alpha2_KeySelector(in *KeySelector, out *v1alpha2.KeySelector, s conversion.Scope) error {
-	return autoConvert_v1alpha1_KeySelector_To_v1alpha2_KeySelector(in, out, s)
-}
-
-func autoConvert_v1alpha2_KeySelector_To_v1alpha1_KeySelector(in *v1alpha2.KeySelector, out *KeySelector, s conversion.Scope) error {
-	out.Key = in.Key
-	return nil
-}
-
-// Convert_v1alpha2_KeySelector_To_v1alpha1_KeySelector is an autogenerated conversion function.
-func Convert_v1alpha2_KeySelector_To_v1alpha1_KeySelector(in *v1alpha2.KeySelector, out *KeySelector, s conversion.Scope) error {
-	return autoConvert_v1alpha2_KeySelector_To_v1alpha1_KeySelector(in, out, s)
-}
-
 func autoConvert_v1alpha1_PKCS12_To_v1alpha2_PKCS12(in *PKCS12, out *v1alpha2.PKCS12, s conversion.Scope) error {
-	if err := Convert_v1alpha1_KeySelector_To_v1alpha2_KeySelector(&in.KeySelector, &out.KeySelector, s); err != nil {
-		return err
-	}
+	// WARNING: in.KeySelector requires manual conversion: does not exist in peer-type
 	out.Password = (*string)(unsafe.Pointer(in.Password))
 	out.Profile = v1alpha2.PKCS12Profile(in.Profile)
 	return nil
 }
 
-// Convert_v1alpha1_PKCS12_To_v1alpha2_PKCS12 is an autogenerated conversion function.
-func Convert_v1alpha1_PKCS12_To_v1alpha2_PKCS12(in *PKCS12, out *v1alpha2.PKCS12, s conversion.Scope) error {
-	return autoConvert_v1alpha1_PKCS12_To_v1alpha2_PKCS12(in, out, s)
-}
-
 func autoConvert_v1alpha2_PKCS12_To_v1alpha1_PKCS12(in *v1alpha2.PKCS12, out *PKCS12, s conversion.Scope) error {
-	if err := Convert_v1alpha2_KeySelector_To_v1alpha1_KeySelector(&in.KeySelector, &out.KeySelector, s); err != nil {
-		return err
-	}
 	out.Password = (*string)(unsafe.Pointer(in.Password))
 	out.Profile = PKCS12Profile(in.Profile)
 	return nil
@@ -391,26 +304,4 @@ func autoConvert_v1alpha2_TargetMetadata_To_v1alpha1_TargetMetadata(in *v1alpha2
 // Convert_v1alpha2_TargetMetadata_To_v1alpha1_TargetMetadata is an autogenerated conversion function.
 func Convert_v1alpha2_TargetMetadata_To_v1alpha1_TargetMetadata(in *v1alpha2.TargetMetadata, out *TargetMetadata, s conversion.Scope) error {
 	return autoConvert_v1alpha2_TargetMetadata_To_v1alpha1_TargetMetadata(in, out, s)
-}
-
-func autoConvert_v1alpha1_TargetTemplate_To_v1alpha2_TargetTemplate(in *TargetTemplate, out *v1alpha2.TargetTemplate, s conversion.Scope) error {
-	out.Key = in.Key
-	out.Metadata = (*v1alpha2.TargetMetadata)(unsafe.Pointer(in.Metadata))
-	return nil
-}
-
-// Convert_v1alpha1_TargetTemplate_To_v1alpha2_TargetTemplate is an autogenerated conversion function.
-func Convert_v1alpha1_TargetTemplate_To_v1alpha2_TargetTemplate(in *TargetTemplate, out *v1alpha2.TargetTemplate, s conversion.Scope) error {
-	return autoConvert_v1alpha1_TargetTemplate_To_v1alpha2_TargetTemplate(in, out, s)
-}
-
-func autoConvert_v1alpha2_TargetTemplate_To_v1alpha1_TargetTemplate(in *v1alpha2.TargetTemplate, out *TargetTemplate, s conversion.Scope) error {
-	out.Key = in.Key
-	out.Metadata = (*TargetMetadata)(unsafe.Pointer(in.Metadata))
-	return nil
-}
-
-// Convert_v1alpha2_TargetTemplate_To_v1alpha1_TargetTemplate is an autogenerated conversion function.
-func Convert_v1alpha2_TargetTemplate_To_v1alpha1_TargetTemplate(in *v1alpha2.TargetTemplate, out *TargetTemplate, s conversion.Scope) error {
-	return autoConvert_v1alpha2_TargetTemplate_To_v1alpha1_TargetTemplate(in, out, s)
 }
