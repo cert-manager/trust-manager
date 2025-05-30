@@ -33,8 +33,6 @@ import (
 func ForKind(kind schema.GroupVersionKind) interface{} {
 	switch kind {
 	// Group=trust-manager.io, Version=v1alpha2
-	case v1alpha2.SchemeGroupVersion.WithKind("AdditionalFormats"):
-		return &trustmanagerv1alpha2.AdditionalFormatsApplyConfiguration{}
 	case v1alpha2.SchemeGroupVersion.WithKind("BundleSource"):
 		return &trustmanagerv1alpha2.BundleSourceApplyConfiguration{}
 	case v1alpha2.SchemeGroupVersion.WithKind("BundleSpec"):
@@ -45,18 +43,16 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &trustmanagerv1alpha2.BundleTargetApplyConfiguration{}
 	case v1alpha2.SchemeGroupVersion.WithKind("ClusterBundle"):
 		return &trustmanagerv1alpha2.ClusterBundleApplyConfiguration{}
-	case v1alpha2.SchemeGroupVersion.WithKind("JKS"):
-		return &trustmanagerv1alpha2.JKSApplyConfiguration{}
-	case v1alpha2.SchemeGroupVersion.WithKind("KeySelector"):
-		return &trustmanagerv1alpha2.KeySelectorApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("KeyValueTarget"):
+		return &trustmanagerv1alpha2.KeyValueTargetApplyConfiguration{}
 	case v1alpha2.SchemeGroupVersion.WithKind("PKCS12"):
 		return &trustmanagerv1alpha2.PKCS12ApplyConfiguration{}
 	case v1alpha2.SchemeGroupVersion.WithKind("SourceObjectKeySelector"):
 		return &trustmanagerv1alpha2.SourceObjectKeySelectorApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("TargetKeyValue"):
+		return &trustmanagerv1alpha2.TargetKeyValueApplyConfiguration{}
 	case v1alpha2.SchemeGroupVersion.WithKind("TargetMetadata"):
 		return &trustmanagerv1alpha2.TargetMetadataApplyConfiguration{}
-	case v1alpha2.SchemeGroupVersion.WithKind("TargetTemplate"):
-		return &trustmanagerv1alpha2.TargetTemplateApplyConfiguration{}
 
 		// Group=trust.cert-manager.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithKind("AdditionalFormats"):

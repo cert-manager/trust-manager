@@ -24,23 +24,14 @@ import (
 // PKCS12ApplyConfiguration represents a declarative configuration of the PKCS12 type for use
 // with apply.
 type PKCS12ApplyConfiguration struct {
-	KeySelectorApplyConfiguration `json:",inline"`
-	Password                      *string                             `json:"password,omitempty"`
-	Profile                       *trustmanagerv1alpha2.PKCS12Profile `json:"profile,omitempty"`
+	Password *string                             `json:"password,omitempty"`
+	Profile  *trustmanagerv1alpha2.PKCS12Profile `json:"profile,omitempty"`
 }
 
 // PKCS12ApplyConfiguration constructs a declarative configuration of the PKCS12 type for use with
 // apply.
 func PKCS12() *PKCS12ApplyConfiguration {
 	return &PKCS12ApplyConfiguration{}
-}
-
-// WithKey sets the Key field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Key field is set to the value of the last call.
-func (b *PKCS12ApplyConfiguration) WithKey(value string) *PKCS12ApplyConfiguration {
-	b.KeySelectorApplyConfiguration.Key = &value
-	return b
 }
 
 // WithPassword sets the Password field in the declarative configuration to the given value
