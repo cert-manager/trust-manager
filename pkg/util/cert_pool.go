@@ -90,13 +90,11 @@ func NewCertPool(options ...Option) *CertPool {
 // https://www.rfc-editor.org/rfc/rfc7468
 //
 // Additionally, if the input PEM bundle contains no non-expired certificates, an error is returned.
-// TODO: Reconsider what should happen if the input only contains expired certificates.
 func (cp *CertPool) AddCertsFromPEM(pemData []byte) error {
 	if pemData == nil {
 		return fmt.Errorf("certificate data can't be nil")
 	}
 
-	ok := false
 	for {
 		var block *pem.Block
 		block, pemData = pem.Decode(pemData)
@@ -132,18 +130,15 @@ func (cp *CertPool) AddCertsFromPEM(pemData []byte) error {
 			return fmt.Errorf("failed appending a certificate: certificate is nil")
 		}
 
-		ok = cp.AddCert(certificate) || ok
+		cp.AddCert(certificate)
 	}
 
-	if !ok {
-		return fmt.Errorf("no non-expired certificates found in input bundle")
-	}
-	// at least one non-expired certificate was found in the input
 	return nil
 }
 
 func (cp *CertPool) AddCert(certificate *x509.Certificate) bool {
 	if cp.filterExpired && time.Now().After(certificate.NotAfter) {
+		cp.logger.Info("ignoring expired certificate", "certificate", certificate.Subject)
 		return false
 	}
 
