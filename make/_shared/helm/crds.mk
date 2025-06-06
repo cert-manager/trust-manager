@@ -39,6 +39,7 @@ endif
 
 crds_dir ?= deploy/crds
 crds_dir_readme := $(dir $(lastword $(MAKEFILE_LIST)))/crds_dir.README.md
+crds_expression ?= .Values.crds.enabled
 
 .PHONY: generate-crds
 ## Generate CRD manifests.
@@ -60,6 +61,7 @@ generate-crds: | $(NEEDS_CONTROLLER-GEN) $(NEEDS_YQ)
 		crd_name=$$($(YQ) eval '.metadata.name' $(crds_gen_temp)/$$i); \
 		cat $(crd_template_header) > $(helm_chart_source_dir)/templates/crd-$$i; \
 		echo "" >> $(helm_chart_source_dir)/templates/crd-$$i; \
+		$(sed_inplace) "s/REPLACE_CRD_EXPRESSION/$(crds_expression)/g" $(helm_chart_source_dir)/templates/crd-$$i; \
 		$(sed_inplace) "s/REPLACE_CRD_NAME/$$crd_name/g" $(helm_chart_source_dir)/templates/crd-$$i; \
 		$(sed_inplace) "s/REPLACE_LABELS_TEMPLATE/$(helm_labels_template_name)/g" $(helm_chart_source_dir)/templates/crd-$$i; \
 		$(YQ) -I2 '{"spec": .spec}' $(crds_gen_temp)/$$i >> $(helm_chart_source_dir)/templates/crd-$$i; \
