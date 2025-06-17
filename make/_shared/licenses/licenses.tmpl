@@ -36,4 +36,6 @@ You can retrieve the actual license text by following these steps:
 
 ---
 
-github.com/cert-manager/trust-manager/debian-bundle-static,Apache-2.0
+{{ range . -}}
+{{ .Name }},{{ .LicenseName }}
+{{ end -}}
