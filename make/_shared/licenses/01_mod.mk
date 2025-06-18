@@ -28,7 +28,7 @@ $(licenses_go_work): $(bin_dir)/scratch
 		$(MAKE) go-workspace
 
 ## Generate licenses for the golang dependencies
-## @category [shared] Generate/Verify
+## @category [shared] Generate/ Verify
 generate-go-licenses: #
 shared_generate_targets += generate-go-licenses
 
