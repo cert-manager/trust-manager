@@ -1,6 +1,6 @@
 module github.com/cert-manager/trust-manager
 
-go 1.24.0
+go 1.24.4
 
 require (
 	github.com/go-logr/logr v1.4.3
