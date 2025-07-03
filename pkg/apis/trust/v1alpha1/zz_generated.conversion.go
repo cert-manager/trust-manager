@@ -36,23 +36,8 @@ func init() {
 // RegisterConversions adds conversion functions to the given scheme.
 // Public to allow building arbitrary schemes.
 func RegisterConversions(s *runtime.Scheme) error {
-	if err := s.AddGeneratedConversionFunc((*BundleSource)(nil), (*v1alpha2.BundleSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(a.(*BundleSource), b.(*v1alpha2.BundleSource), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha2.BundleSource)(nil), (*BundleSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_BundleSource_To_v1alpha1_BundleSource(a.(*v1alpha2.BundleSource), b.(*BundleSource), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*BundleSpec)(nil), (*v1alpha2.BundleSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(a.(*BundleSpec), b.(*v1alpha2.BundleSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha2.BundleSpec)(nil), (*BundleSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(a.(*v1alpha2.BundleSpec), b.(*BundleSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -71,16 +56,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*SourceObjectKeySelector)(nil), (*v1alpha2.SourceObjectKeySelector)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_SourceObjectKeySelector_To_v1alpha2_SourceObjectKeySelector(a.(*SourceObjectKeySelector), b.(*v1alpha2.SourceObjectKeySelector), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha2.SourceObjectKeySelector)(nil), (*SourceObjectKeySelector)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_SourceObjectKeySelector_To_v1alpha1_SourceObjectKeySelector(a.(*v1alpha2.SourceObjectKeySelector), b.(*SourceObjectKeySelector), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*TargetMetadata)(nil), (*v1alpha2.TargetMetadata)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_TargetMetadata_To_v1alpha2_TargetMetadata(a.(*TargetMetadata), b.(*v1alpha2.TargetMetadata), scope)
 	}); err != nil {
@@ -88,6 +63,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1alpha2.TargetMetadata)(nil), (*TargetMetadata)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha2_TargetMetadata_To_v1alpha1_TargetMetadata(a.(*v1alpha2.TargetMetadata), b.(*TargetMetadata), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*BundleSource)(nil), (*v1alpha2.BundleSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(a.(*BundleSource), b.(*v1alpha2.BundleSource), scope)
 	}); err != nil {
 		return err
 	}
@@ -106,6 +86,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1alpha2.BundleSource)(nil), (*BundleSource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha2_BundleSource_To_v1alpha1_BundleSource(a.(*v1alpha2.BundleSource), b.(*BundleSource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1alpha2.BundleSpec)(nil), (*BundleSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(a.(*v1alpha2.BundleSpec), b.(*BundleSpec), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1alpha2.BundleTarget)(nil), (*BundleTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(a.(*v1alpha2.BundleTarget), b.(*BundleTarget), scope)
 	}); err != nil {
@@ -120,33 +110,32 @@ func RegisterConversions(s *runtime.Scheme) error {
 }
 
 func autoConvert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(in *BundleSource, out *v1alpha2.BundleSource, s conversion.Scope) error {
-	out.ConfigMap = (*v1alpha2.SourceObjectKeySelector)(unsafe.Pointer(in.ConfigMap))
-	out.Secret = (*v1alpha2.SourceObjectKeySelector)(unsafe.Pointer(in.Secret))
-	out.InLine = (*string)(unsafe.Pointer(in.InLine))
-	out.UseDefaultCAs = (*bool)(unsafe.Pointer(in.UseDefaultCAs))
+	// WARNING: in.ConfigMap requires manual conversion: does not exist in peer-type
+	// WARNING: in.Secret requires manual conversion: does not exist in peer-type
+	// WARNING: in.InLine requires manual conversion: does not exist in peer-type
+	// WARNING: in.UseDefaultCAs requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSource is an autogenerated conversion function.
-func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(in *BundleSource, out *v1alpha2.BundleSource, s conversion.Scope) error {
-	return autoConvert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(in, out, s)
 }
 
 func autoConvert_v1alpha2_BundleSource_To_v1alpha1_BundleSource(in *v1alpha2.BundleSource, out *BundleSource, s conversion.Scope) error {
-	out.ConfigMap = (*SourceObjectKeySelector)(unsafe.Pointer(in.ConfigMap))
-	out.Secret = (*SourceObjectKeySelector)(unsafe.Pointer(in.Secret))
-	out.InLine = (*string)(unsafe.Pointer(in.InLine))
-	out.UseDefaultCAs = (*bool)(unsafe.Pointer(in.UseDefaultCAs))
+	// WARNING: in.SourceReference requires manual conversion: does not exist in peer-type
+	// WARNING: in.Key requires manual conversion: does not exist in peer-type
+	// WARNING: in.IncludeAllKeys requires manual conversion: does not exist in peer-type
 	return nil
 }
 
-// Convert_v1alpha2_BundleSource_To_v1alpha1_BundleSource is an autogenerated conversion function.
-func Convert_v1alpha2_BundleSource_To_v1alpha1_BundleSource(in *v1alpha2.BundleSource, out *BundleSource, s conversion.Scope) error {
-	return autoConvert_v1alpha2_BundleSource_To_v1alpha1_BundleSource(in, out, s)
-}
-
 func autoConvert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in *BundleSpec, out *v1alpha2.BundleSpec, s conversion.Scope) error {
-	out.Sources = *(*[]v1alpha2.BundleSource)(unsafe.Pointer(&in.Sources))
+	if in.Sources != nil {
+		in, out := &in.Sources, &out.Sources
+		*out = make([]v1alpha2.BundleSource, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Sources = nil
+	}
 	if err := Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(&in.Target, &out.Target, s); err != nil {
 		return err
 	}
@@ -159,16 +148,23 @@ func Convert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in *BundleSpec, out *v1a
 }
 
 func autoConvert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *v1alpha2.BundleSpec, out *BundleSpec, s conversion.Scope) error {
-	out.Sources = *(*[]BundleSource)(unsafe.Pointer(&in.Sources))
+	if in.Sources != nil {
+		in, out := &in.Sources, &out.Sources
+		*out = make([]BundleSource, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha2_BundleSource_To_v1alpha1_BundleSource(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Sources = nil
+	}
+	// WARNING: in.IncludeDefaultCAs requires manual conversion: does not exist in peer-type
+	// WARNING: in.InLineCAs requires manual conversion: does not exist in peer-type
 	if err := Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(&in.Target, &out.Target, s); err != nil {
 		return err
 	}
 	return nil
-}
-
-// Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec is an autogenerated conversion function.
-func Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *v1alpha2.BundleSpec, out *BundleSpec, s conversion.Scope) error {
-	return autoConvert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in, out, s)
 }
 
 func autoConvert_v1alpha1_BundleStatus_To_v1alpha2_BundleStatus(in *BundleStatus, out *v1alpha2.BundleStatus, s conversion.Scope) error {
@@ -256,32 +252,6 @@ func autoConvert_v1alpha2_PKCS12_To_v1alpha1_PKCS12(in *v1alpha2.PKCS12, out *PK
 // Convert_v1alpha2_PKCS12_To_v1alpha1_PKCS12 is an autogenerated conversion function.
 func Convert_v1alpha2_PKCS12_To_v1alpha1_PKCS12(in *v1alpha2.PKCS12, out *PKCS12, s conversion.Scope) error {
 	return autoConvert_v1alpha2_PKCS12_To_v1alpha1_PKCS12(in, out, s)
-}
-
-func autoConvert_v1alpha1_SourceObjectKeySelector_To_v1alpha2_SourceObjectKeySelector(in *SourceObjectKeySelector, out *v1alpha2.SourceObjectKeySelector, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Selector = (*v1.LabelSelector)(unsafe.Pointer(in.Selector))
-	out.Key = in.Key
-	out.IncludeAllKeys = in.IncludeAllKeys
-	return nil
-}
-
-// Convert_v1alpha1_SourceObjectKeySelector_To_v1alpha2_SourceObjectKeySelector is an autogenerated conversion function.
-func Convert_v1alpha1_SourceObjectKeySelector_To_v1alpha2_SourceObjectKeySelector(in *SourceObjectKeySelector, out *v1alpha2.SourceObjectKeySelector, s conversion.Scope) error {
-	return autoConvert_v1alpha1_SourceObjectKeySelector_To_v1alpha2_SourceObjectKeySelector(in, out, s)
-}
-
-func autoConvert_v1alpha2_SourceObjectKeySelector_To_v1alpha1_SourceObjectKeySelector(in *v1alpha2.SourceObjectKeySelector, out *SourceObjectKeySelector, s conversion.Scope) error {
-	out.Name = in.Name
-	out.Selector = (*v1.LabelSelector)(unsafe.Pointer(in.Selector))
-	out.Key = in.Key
-	out.IncludeAllKeys = in.IncludeAllKeys
-	return nil
-}
-
-// Convert_v1alpha2_SourceObjectKeySelector_To_v1alpha1_SourceObjectKeySelector is an autogenerated conversion function.
-func Convert_v1alpha2_SourceObjectKeySelector_To_v1alpha1_SourceObjectKeySelector(in *v1alpha2.SourceObjectKeySelector, out *SourceObjectKeySelector, s conversion.Scope) error {
-	return autoConvert_v1alpha2_SourceObjectKeySelector_To_v1alpha1_SourceObjectKeySelector(in, out, s)
 }
 
 func autoConvert_v1alpha1_TargetMetadata_To_v1alpha2_TargetMetadata(in *TargetMetadata, out *v1alpha2.TargetMetadata, s conversion.Scope) error {

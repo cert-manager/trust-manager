@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"math/rand"
 	"slices"
 	"testing"
 
@@ -38,9 +39,33 @@ func TestFuzzyConversion(t *testing.T) {
 
 func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
+		spokeBundleSpecFuzzer,
 		spokeBundleTargetFuzzer,
+		hubBundleSourceFuzzer,
 		hubBundleTargetFuzzer,
 	}
+}
+
+func spokeBundleSpecFuzzer(obj *BundleSpec, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	// We require exactly one source type for each item
+	obj.Sources = slices.DeleteFunc(obj.Sources, func(bs BundleSource) bool {
+		sourceCount := 0
+		if bs.ConfigMap != nil {
+			sourceCount++
+		}
+		if bs.Secret != nil {
+			sourceCount++
+		}
+		if bs.InLine != nil {
+			sourceCount++
+		}
+		if bs.UseDefaultCAs != nil {
+			sourceCount++
+		}
+		return sourceCount != 1
+	})
 }
 
 func spokeBundleTargetFuzzer(obj *BundleTarget, c randfill.Continue) {
@@ -68,6 +93,14 @@ func spokeBundleTargetFuzzer(obj *BundleTarget, c randfill.Continue) {
 			obj.AdditionalFormats = nil
 		}
 	}
+}
+
+func hubBundleSourceFuzzer(obj *trustv1alpha2.BundleSource, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	// We only allow known kinds, so must normalize the source kind
+	kindSet := []string{trustv1alpha2.ConfigMapKind, trustv1alpha2.SecretKind}
+	obj.Kind = kindSet[rand.Intn(len(kindSet))] //nolint:gosec
 }
 
 func hubBundleTargetFuzzer(obj *trustv1alpha2.BundleTarget, c randfill.Continue) {

@@ -64,29 +64,7 @@ type BundleSpec struct {
 	// +kubebuilder:validation:MaxItems=100
 	Sources []BundleSource `json:"sources"`
 
-	// Target is the target location in all namespaces to sync source data to.
-	Target BundleTarget `json:"target"`
-}
-
-// BundleSource is the set of sources whose data will be appended and synced to
-// the BundleTarget in all Namespaces.
-// +structType=atomic
-type BundleSource struct {
-	// ConfigMap is a reference (by name) to a ConfigMap's `data` key(s), or to a
-	// list of ConfigMap's `data` key(s) using label selector, in the trust Namespace.
-	// +optional
-	ConfigMap *SourceObjectKeySelector `json:"configMap,omitempty"`
-
-	// Secret is a reference (by name) to a Secret's `data` key(s), or to a
-	// list of Secret's `data` key(s) using label selector, in the trust Namespace.
-	// +optional
-	Secret *SourceObjectKeySelector `json:"secret,omitempty"`
-
-	// InLine is a simple string to append as the source data.
-	// +optional
-	InLine *string `json:"inLine,omitempty"`
-
-	// UseDefaultCAs, when true, requests the default CA bundle to be used as a source.
+	// IncludeDefaultCAs, when true, requests the default CA bundle to be used as a source.
 	// Default CAs are available if trust-manager was installed via Helm
 	// or was otherwise set up to include a package-injecting init container by using the
 	// "--default-package-location" flag when starting the trust-manager controller.
@@ -95,7 +73,31 @@ type BundleSource struct {
 	// The version of the default CA package which is used for a Bundle is stored in the
 	// defaultCAPackageVersion field of the Bundle's status field.
 	// +optional
-	UseDefaultCAs *bool `json:"useDefaultCAs,omitempty"`
+	IncludeDefaultCAs *bool `json:"includeDefaultCAs,omitempty"`
+
+	// InLine is a simple string to append as the source data.
+	// +optional
+	InLineCAs *string `json:"InLineCAs,omitempty"`
+
+	// Target is the target location in all namespaces to sync source data to.
+	Target BundleTarget `json:"target"`
+}
+
+// BundleSource is the set of sources whose data will be appended and synced to
+// the BundleTarget in all Namespaces.
+// +structType=atomic
+type BundleSource struct {
+	SourceReference `json:",inline"`
+
+	// Key of the entry in the object's `data` field to be used.
+	//+optional
+	// +kubebuilder:validation:MinLength=1
+	Key string `json:"key,omitempty"`
+
+	// IncludeAllKeys, if true, will include all keys in the source's `data` field when extracting certificates.
+	// Defaults to "false". This field must not be true when `Key` is set.
+	//+optional
+	IncludeAllKeys bool `json:"includeAllKeys,omitempty"`
 }
 
 // BundleTarget is the target resource that the Bundle will sync all source
@@ -150,12 +152,19 @@ const (
 
 	// see: https://pkg.go.dev/software.sslmate.com/src/go-pkcs12#Modern2023
 	Modern2023PKCS12Profile PKCS12Profile = "Modern2023"
+
+	ConfigMapKind string = "ConfigMap"
+
+	SecretKind string = "Secret"
 )
 
-// SourceObjectKeySelector is a reference to a source object and its `data` key(s)
-// in the trust Namespace.
+// SourceReference is a reference to a source object.
 // +structType=atomic
-type SourceObjectKeySelector struct {
+type SourceReference struct {
+	// Kind is the kind of the source object.
+	// +kubebuilder:validation:Enum=ConfigMap;Secret
+	Kind string `json:"kind"`
+
 	// Name is the name of the source object in the trust Namespace.
 	// This field must be left empty when `selector` is set
 	//+optional
@@ -166,16 +175,6 @@ type SourceObjectKeySelector struct {
 	// when `Name` is set.
 	//+optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
-
-	// Key of the entry in the object's `data` field to be used.
-	//+optional
-	// +kubebuilder:validation:MinLength=1
-	Key string `json:"key,omitempty"`
-
-	// IncludeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
-	// This field must not be true when `Key` is set.
-	//+optional
-	IncludeAllKeys bool `json:"includeAllKeys,omitempty"`
 }
 
 // KeyValueTarget is the specification of key value target resources as ConfigMaps and Secrets.
