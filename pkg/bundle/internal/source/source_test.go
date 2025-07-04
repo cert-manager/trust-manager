@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package bundle
+package source
 
 import (
 	"bytes"
@@ -33,6 +33,7 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/pkg/util"
 	"github.com/cert-manager/trust-manager/test/dummy"
@@ -44,7 +45,7 @@ const (
 	data      = dummy.TestCertificate1
 )
 
-func Test_buildSourceBundle(t *testing.T) {
+func Test_BuildBundle(t *testing.T) {
 	tests := map[string]struct {
 		sources                     []trustapi.BundleSource
 		filterExpired               bool
@@ -59,7 +60,7 @@ func Test_buildSourceBundle(t *testing.T) {
 		expPKCS12   bool
 		expPassword *string
 	}{
-		"if no sources defined, should return notFoundError": {
+		"if no sources defined, should return NotFoundError": {
 			expError:         true,
 			expNotFoundError: true,
 		},
@@ -73,14 +74,14 @@ func Test_buildSourceBundle(t *testing.T) {
 			sources: []trustapi.BundleSource{{UseDefaultCAs: ptr.To(true)}},
 			expData: dummy.JoinCerts(dummy.TestCertificate5),
 		},
-		"if single ConfigMap source which doesn't exist, return notFoundError": {
+		"if single ConfigMap source which doesn't exist, return NotFoundError": {
 			sources: []trustapi.BundleSource{
 				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
 			},
 			expError:         true,
 			expNotFoundError: true,
 		},
-		"if single ConfigMap source whose key doesn't exist, return notFoundError": {
+		"if single ConfigMap source whose key doesn't exist, return NotFoundError": {
 			sources: []trustapi.BundleSource{
 				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
 			},
@@ -119,7 +120,7 @@ func Test_buildSourceBundle(t *testing.T) {
 			}},
 			expData: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1),
 		},
-		"if selects no ConfigMap sources, should return notFoundError": {
+		"if selects no ConfigMap sources, should return NotFoundError": {
 			sources: []trustapi.BundleSource{
 				{ConfigMap: &trustapi.SourceObjectKeySelector{Key: "key", Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"selects-nothing": "true"}}}},
 			},
@@ -175,7 +176,7 @@ func Test_buildSourceBundle(t *testing.T) {
 			expError:         true,
 			expNotFoundError: true,
 		},
-		"if single Secret source whose key doesn't exist, return notFoundError": {
+		"if single Secret source whose key doesn't exist, return NotFoundError": {
 			sources: []trustapi.BundleSource{
 				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", Key: "key"}},
 			},
@@ -183,7 +184,7 @@ func Test_buildSourceBundle(t *testing.T) {
 			expError:         true,
 			expNotFoundError: true,
 		},
-		"if single Secret source of type TLS including all keys, return invalidSecretSourceError": {
+		"if single Secret source of type TLS including all keys, return InvalidSecretError": {
 			sources: []trustapi.BundleSource{
 				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", IncludeAllKeys: true}},
 			},
@@ -292,7 +293,7 @@ func Test_buildSourceBundle(t *testing.T) {
 				}},
 			expData: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3),
 		},
-		"if selects at least one Secret source of type TLS including all keys, return invalidSecretSourceError": {
+		"if selects at least one Secret source of type TLS including all keys, return InvalidSecretError": {
 			sources: []trustapi.BundleSource{
 				{Secret: &trustapi.SourceObjectKeySelector{IncludeAllKeys: true, Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"trust-bundle.certs": "includes"}}}},
 			},
@@ -421,14 +422,14 @@ func Test_buildSourceBundle(t *testing.T) {
 				WithScheme(trustapi.GlobalScheme).
 				Build()
 
-			b := &bundle{
-				client: fakeClient,
-				defaultPackage: &fspkg.Package{
+			b := &BundleBuilder{
+				Reader: fakeClient,
+				DefaultPackage: &fspkg.Package{
 					Name:    "testpkg",
 					Version: "123",
 					Bundle:  dummy.TestCertificate5,
 				},
-				Options: Options{FilterExpiredCerts: test.filterExpired},
+				Options: controller.Options{FilterExpiredCerts: test.filterExpired},
 			}
 
 			// for corresponding store if arbitrary password is expected then set it instead of default one
@@ -448,23 +449,23 @@ func Test_buildSourceBundle(t *testing.T) {
 				}
 			}
 
-			resolvedBundle, err := b.buildSourceBundle(t.Context(), test.sources, test.formats)
+			resolvedBundle, err := b.BuildBundle(t.Context(), test.sources, test.formats)
 
 			if (err != nil) != test.expError {
 				t.Errorf("unexpected error, exp=%t got=%v", test.expError, err)
 			}
-			if errors.As(err, &notFoundError{}) != test.expNotFoundError {
-				t.Errorf("unexpected notFoundError, exp=%t got=%v", test.expNotFoundError, err)
+			if errors.As(err, &NotFoundError{}) != test.expNotFoundError {
+				t.Errorf("unexpected NotFoundError, exp=%t got=%v", test.expNotFoundError, err)
 			}
-			if errors.As(err, &invalidSecretSourceError{}) != test.expInvalidSecretSourceError {
-				t.Errorf("unexpected invalidSecretSourceError, exp=%t got=%v", test.expInvalidSecretSourceError, err)
-			}
-
-			if resolvedBundle.Data.Data != test.expData {
-				t.Errorf("unexpected data, exp=%q got=%q", test.expData, resolvedBundle.Data.Data)
+			if errors.As(err, &InvalidSecretError{}) != test.expInvalidSecretSourceError {
+				t.Errorf("unexpected InvalidSecretError, exp=%t got=%v", test.expInvalidSecretSourceError, err)
 			}
 
-			binData, jksExists := resolvedBundle.Data.BinaryData[jksKey]
+			if resolvedBundle.Data != test.expData {
+				t.Errorf("unexpected data, exp=%q got=%q", test.expData, resolvedBundle.Data)
+			}
+
+			binData, jksExists := resolvedBundle.BinaryData[jksKey]
 			assert.Equal(t, test.expJKS, jksExists)
 
 			if test.expJKS {
@@ -488,7 +489,7 @@ func Test_buildSourceBundle(t *testing.T) {
 				assert.Equal(t, p.Bytes, cert.Certificate.Content)
 			}
 
-			binData, pkcs12Exists := resolvedBundle.Data.BinaryData[pkcs12Key]
+			binData, pkcs12Exists := resolvedBundle.BinaryData[pkcs12Key]
 			assert.Equal(t, test.expPKCS12, pkcs12Exists)
 
 			if test.expPKCS12 {
