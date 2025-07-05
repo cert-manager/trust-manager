@@ -20,8 +20,10 @@ package v1alpha2
 // BundleSpecApplyConfiguration represents a declarative configuration of the BundleSpec type for use
 // with apply.
 type BundleSpecApplyConfiguration struct {
-	Sources []BundleSourceApplyConfiguration `json:"sources,omitempty"`
-	Target  *BundleTargetApplyConfiguration  `json:"target,omitempty"`
+	Sources           []BundleSourceApplyConfiguration `json:"sources,omitempty"`
+	IncludeDefaultCAs *bool                            `json:"includeDefaultCAs,omitempty"`
+	InLineCAs         *string                          `json:"InLineCAs,omitempty"`
+	Target            *BundleTargetApplyConfiguration  `json:"target,omitempty"`
 }
 
 // BundleSpecApplyConfiguration constructs a declarative configuration of the BundleSpec type for use with
@@ -40,6 +42,22 @@ func (b *BundleSpecApplyConfiguration) WithSources(values ...*BundleSourceApplyC
 		}
 		b.Sources = append(b.Sources, *values[i])
 	}
+	return b
+}
+
+// WithIncludeDefaultCAs sets the IncludeDefaultCAs field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the IncludeDefaultCAs field is set to the value of the last call.
+func (b *BundleSpecApplyConfiguration) WithIncludeDefaultCAs(value bool) *BundleSpecApplyConfiguration {
+	b.IncludeDefaultCAs = &value
+	return b
+}
+
+// WithInLineCAs sets the InLineCAs field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the InLineCAs field is set to the value of the last call.
+func (b *BundleSpecApplyConfiguration) WithInLineCAs(value string) *BundleSpecApplyConfiguration {
+	b.InLineCAs = &value
 	return b
 }
 
