@@ -31,7 +31,7 @@ import (
 	"k8s.io/client-go/rest"
 	cliflag "k8s.io/component-base/cli/flag"
 
-	"github.com/cert-manager/trust-manager/pkg/bundle"
+	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
@@ -75,7 +75,7 @@ type Options struct {
 	Webhook
 
 	// Bundle are options specific to the Bundle controller.
-	Bundle bundle.Options
+	Bundle controller.Options
 
 	// log are options controlling logging
 	log logOptions
