@@ -39,9 +39,8 @@ import (
 	"sigs.k8s.io/structured-merge-diff/fieldpath"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle/internal/source"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
-	"github.com/cert-manager/trust-manager/pkg/bundle/internal/truststore"
-	"github.com/cert-manager/trust-manager/pkg/util"
 )
 
 type Reconciler struct {
@@ -64,7 +63,7 @@ func (r *Reconciler) Sync(
 	ctx context.Context,
 	target Resource,
 	bundle *trustapi.Bundle,
-	resolvedBundle Data,
+	resolvedBundle source.BundleData,
 	shouldExist bool,
 ) (bool, error) {
 	switch target.Kind {
@@ -81,7 +80,7 @@ func (r *Reconciler) syncConfigMap(
 	ctx context.Context,
 	target Resource,
 	bundle *trustapi.Bundle,
-	resolvedBundle Data,
+	resolvedBundle source.BundleData,
 	shouldExist bool,
 ) (bool, error) {
 	targetObj := &metav1.PartialObjectMetadata{
@@ -160,7 +159,7 @@ func (r *Reconciler) syncSecret(
 	ctx context.Context,
 	target Resource,
 	bundle *trustapi.Bundle,
-	resolvedBundle Data,
+	resolvedBundle source.BundleData,
 	shouldExist bool,
 ) (bool, error) {
 	targetObj := &metav1.PartialObjectMetadata{
@@ -402,36 +401,6 @@ func prepareTargetPatch[T targetApplyConfiguration[T]](target T, bundle trustapi
 type Resource struct {
 	Kind Kind
 	types.NamespacedName
-}
-
-type Data struct {
-	Data       string
-	BinaryData map[string][]byte
-}
-
-func (b *Data) Populate(pool *util.CertPool, formats *trustapi.AdditionalFormats) error {
-	b.Data = pool.PEM()
-
-	if formats != nil {
-		b.BinaryData = make(map[string][]byte)
-
-		if formats.JKS != nil {
-			encoded, err := truststore.NewJKSEncoder(*formats.JKS.Password).Encode(pool)
-			if err != nil {
-				return fmt.Errorf("failed to encode JKS: %w", err)
-			}
-			b.BinaryData[formats.JKS.Key] = encoded
-		}
-
-		if formats.PKCS12 != nil {
-			encoded, err := truststore.NewPKCS12Encoder(*formats.PKCS12.Password, formats.PKCS12.Profile).Encode(pool)
-			if err != nil {
-				return fmt.Errorf("failed to encode PKCS12: %w", err)
-			}
-			b.BinaryData[formats.PKCS12.Key] = encoded
-		}
-	}
-	return nil
 }
 
 func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats, target *trustapi.TargetTemplate) string {
