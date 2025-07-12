@@ -17,13 +17,16 @@ limitations under the License.
 
 package v1alpha2
 
+import (
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
+)
+
 // BundleSourceApplyConfiguration represents a declarative configuration of the BundleSource type for use
 // with apply.
 type BundleSourceApplyConfiguration struct {
-	ConfigMap     *SourceObjectKeySelectorApplyConfiguration `json:"configMap,omitempty"`
-	Secret        *SourceObjectKeySelectorApplyConfiguration `json:"secret,omitempty"`
-	InLine        *string                                    `json:"inLine,omitempty"`
-	UseDefaultCAs *bool                                      `json:"useDefaultCAs,omitempty"`
+	SourceReferenceApplyConfiguration `json:",inline"`
+	Key                               *string `json:"key,omitempty"`
+	IncludeAllKeys                    *bool   `json:"includeAllKeys,omitempty"`
 }
 
 // BundleSourceApplyConfiguration constructs a declarative configuration of the BundleSource type for use with
@@ -32,34 +35,42 @@ func BundleSource() *BundleSourceApplyConfiguration {
 	return &BundleSourceApplyConfiguration{}
 }
 
-// WithConfigMap sets the ConfigMap field in the declarative configuration to the given value
+// WithKind sets the Kind field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the ConfigMap field is set to the value of the last call.
-func (b *BundleSourceApplyConfiguration) WithConfigMap(value *SourceObjectKeySelectorApplyConfiguration) *BundleSourceApplyConfiguration {
-	b.ConfigMap = value
+// If called multiple times, the Kind field is set to the value of the last call.
+func (b *BundleSourceApplyConfiguration) WithKind(value string) *BundleSourceApplyConfiguration {
+	b.SourceReferenceApplyConfiguration.Kind = &value
 	return b
 }
 
-// WithSecret sets the Secret field in the declarative configuration to the given value
+// WithName sets the Name field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Secret field is set to the value of the last call.
-func (b *BundleSourceApplyConfiguration) WithSecret(value *SourceObjectKeySelectorApplyConfiguration) *BundleSourceApplyConfiguration {
-	b.Secret = value
+// If called multiple times, the Name field is set to the value of the last call.
+func (b *BundleSourceApplyConfiguration) WithName(value string) *BundleSourceApplyConfiguration {
+	b.SourceReferenceApplyConfiguration.Name = &value
 	return b
 }
 
-// WithInLine sets the InLine field in the declarative configuration to the given value
+// WithSelector sets the Selector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the InLine field is set to the value of the last call.
-func (b *BundleSourceApplyConfiguration) WithInLine(value string) *BundleSourceApplyConfiguration {
-	b.InLine = &value
+// If called multiple times, the Selector field is set to the value of the last call.
+func (b *BundleSourceApplyConfiguration) WithSelector(value *v1.LabelSelectorApplyConfiguration) *BundleSourceApplyConfiguration {
+	b.SourceReferenceApplyConfiguration.Selector = value
 	return b
 }
 
-// WithUseDefaultCAs sets the UseDefaultCAs field in the declarative configuration to the given value
+// WithKey sets the Key field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the UseDefaultCAs field is set to the value of the last call.
-func (b *BundleSourceApplyConfiguration) WithUseDefaultCAs(value bool) *BundleSourceApplyConfiguration {
-	b.UseDefaultCAs = &value
+// If called multiple times, the Key field is set to the value of the last call.
+func (b *BundleSourceApplyConfiguration) WithKey(value string) *BundleSourceApplyConfiguration {
+	b.Key = &value
+	return b
+}
+
+// WithIncludeAllKeys sets the IncludeAllKeys field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the IncludeAllKeys field is set to the value of the last call.
+func (b *BundleSourceApplyConfiguration) WithIncludeAllKeys(value bool) *BundleSourceApplyConfiguration {
+	b.IncludeAllKeys = &value
 	return b
 }

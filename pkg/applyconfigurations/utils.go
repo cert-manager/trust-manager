@@ -47,8 +47,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &trustmanagerv1alpha2.KeyValueTargetApplyConfiguration{}
 	case v1alpha2.SchemeGroupVersion.WithKind("PKCS12"):
 		return &trustmanagerv1alpha2.PKCS12ApplyConfiguration{}
-	case v1alpha2.SchemeGroupVersion.WithKind("SourceObjectKeySelector"):
-		return &trustmanagerv1alpha2.SourceObjectKeySelectorApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("SourceReference"):
+		return &trustmanagerv1alpha2.SourceReferenceApplyConfiguration{}
 	case v1alpha2.SchemeGroupVersion.WithKind("TargetKeyValue"):
 		return &trustmanagerv1alpha2.TargetKeyValueApplyConfiguration{}
 	case v1alpha2.SchemeGroupVersion.WithKind("TargetMetadata"):
