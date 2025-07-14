@@ -47,7 +47,8 @@ go_package_debian_bookworm_mod_dir := ./trust-packages/debian
 go_package_debian_bookworm_ldflags :=
 oci_package_debian_bookworm_base_image_flavor := static
 oci_package_debian_bookworm_image_name := quay.io/jetstack/trust-pkg-debian-bookworm
-oci_package_debian_bookworm_image_tag := $(DEBIAN_BUNDLE_BOOKWORM_VERSION)
+# '+' characters are not valid in docker image names. Transform it to a '.' for images
+oci_package_debian_bookworm_image_tag := $(shell echo $(DEBIAN_BUNDLE_BOOKWORM_VERSION) | tr '+' '-')
 oci_package_debian_bookworm_image_name_development := cert-manager.local/trust-pkg-debian-bookworm
 debian_bookworm_package_layer := $(bin_dir)/scratch/debian-trust-package-bookworm
 oci_package_debian_bookworm_additional_layers += $(debian_bookworm_package_layer)

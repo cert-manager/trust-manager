@@ -88,6 +88,7 @@ fi
 target_ca_certificates_version="${TARGET_DEBIAN_BUNDLE_VERSION%.*}"
 
 echo "+++ fetching latest version of ca-certificates package"
+echo "+++ target version of ca-certificates is '$target_ca_certificates_version'"
 
 TMP_DIR=$(mktemp -d)
 
