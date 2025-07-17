@@ -60,7 +60,6 @@ generate-crds: | $(NEEDS_CONTROLLER-GEN) $(NEEDS_YQ)
 	@for i in $$(ls $(crds_gen_temp)); do \
 		crd_name=$$($(YQ) eval '.metadata.name' $(crds_gen_temp)/$$i); \
 		cat $(crd_template_header) > $(helm_chart_source_dir)/templates/crd-$$i; \
-		echo "" >> $(helm_chart_source_dir)/templates/crd-$$i; \
 		$(sed_inplace) "s/REPLACE_CRD_EXPRESSION/$(crds_expression)/g" $(helm_chart_source_dir)/templates/crd-$$i; \
 		$(sed_inplace) "s/REPLACE_CRD_NAME/$$crd_name/g" $(helm_chart_source_dir)/templates/crd-$$i; \
 		$(sed_inplace) "s/REPLACE_LABELS_TEMPLATE/$(helm_labels_template_name)/g" $(helm_chart_source_dir)/templates/crd-$$i; \
