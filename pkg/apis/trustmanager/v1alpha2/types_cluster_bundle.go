@@ -209,6 +209,7 @@ func (t *KeyValueTarget) GetLabels() map[string]string {
 type TargetKeyValue struct {
 	// Key is the key of the entry in the object's `data`field to be used.
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.\-]+$`
 	Key string `json:"key"`
 
 	// Format defines the format of the target value.
