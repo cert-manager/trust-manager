@@ -120,7 +120,6 @@ func autoConvert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(in *BundleSource
 func autoConvert_v1alpha2_BundleSource_To_v1alpha1_BundleSource(in *v1alpha2.BundleSource, out *BundleSource, s conversion.Scope) error {
 	// WARNING: in.SourceReference requires manual conversion: does not exist in peer-type
 	// WARNING: in.Key requires manual conversion: does not exist in peer-type
-	// WARNING: in.IncludeAllKeys requires manual conversion: does not exist in peer-type
 	return nil
 }
 

@@ -90,15 +90,12 @@ type BundleSpec struct {
 type BundleSource struct {
 	SourceReference `json:",inline"`
 
-	// Key of the entry in the object's `data` field to be used.
-	//+optional
+	// Key(s) of the entry in the object's `data` field to be used.
+	// Wildcards "*" in Key matches any sequence characters.
+	// A Key containing only "*" will match all data fields.
 	// +kubebuilder:validation:MinLength=1
-	Key string `json:"key,omitempty"`
-
-	// IncludeAllKeys, if true, will include all keys in the source's `data` field when extracting certificates.
-	// Defaults to "false". This field must not be true when `Key` is set.
-	//+optional
-	IncludeAllKeys bool `json:"includeAllKeys,omitempty"`
+	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.\-*]+$`
+	Key string `json:"key"`
 }
 
 // BundleTarget is the target resource that the Bundle will sync all source
