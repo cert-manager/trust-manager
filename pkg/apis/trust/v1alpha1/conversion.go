@@ -57,6 +57,20 @@ func (src *Bundle) ConvertTo(dstRaw conversion.Hub) error {
 	return nil
 }
 
+func Convert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in *BundleSpec, out *trustv1alpha2.BundleSpec, scope apimachineryconversion.Scope) error {
+	if err := autoConvert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in, out, scope); err != nil {
+		return err
+	}
+
+	if in.Target != (BundleTarget{}) {
+		out.Target = &trustv1alpha2.BundleTarget{}
+		if err := Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(&in.Target, out.Target, scope); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(in *BundleSource, out *trustv1alpha2.BundleSource, scope apimachineryconversion.Scope) error {
 	var sourceObjectKeySelector *SourceObjectKeySelector
 	if in.ConfigMap != nil {
@@ -190,6 +204,11 @@ func Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *trustv1alpha2.Bundle
 	}
 	if in.IncludeDefaultCAs != nil {
 		out.Sources = append(out.Sources, BundleSource{UseDefaultCAs: in.IncludeDefaultCAs})
+	}
+	if in.Target != nil {
+		if err := Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in.Target, &out.Target, scope); err != nil {
+			return err
+		}
 	}
 
 	return nil
