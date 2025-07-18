@@ -45,7 +45,7 @@ type ClusterBundle struct {
 
 	// Status of the Bundle. This is set and managed automatically.
 	// +optional
-	Status BundleStatus `json:"status"`
+	Status BundleStatus `json:"status,omitzero"`
 }
 
 // +kubebuilder:object:root=true
