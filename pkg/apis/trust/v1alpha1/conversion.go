@@ -130,7 +130,7 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 		}
 	}
 
-	if out.NamespaceSelector == nil {
+	if in.NamespaceSelector == nil {
 		// NamespaceSelector is required in v1alpha2
 		out.NamespaceSelector = &metav1.LabelSelector{}
 	}
