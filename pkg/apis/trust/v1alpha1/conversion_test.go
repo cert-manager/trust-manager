@@ -40,6 +40,7 @@ func TestFuzzyConversion(t *testing.T) {
 func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeBundleSpecFuzzer,
+		spokeSourceObjectKeySelectorFuzzer,
 		spokeBundleTargetFuzzer,
 		hubBundleSourceFuzzer,
 		hubBundleTargetFuzzer,
@@ -66,6 +67,17 @@ func spokeBundleSpecFuzzer(obj *BundleSpec, c randfill.Continue) {
 		}
 		return sourceCount != 1
 	})
+}
+
+func spokeSourceObjectKeySelectorFuzzer(obj *SourceObjectKeySelector, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	// Key and IncludeAllKeys cannot be used at the same time
+	if obj.IncludeAllKeys {
+		obj.Key = ""
+	} else if obj.Key == "" {
+		obj.IncludeAllKeys = true
+	}
 }
 
 func spokeBundleTargetFuzzer(obj *BundleTarget, c randfill.Continue) {

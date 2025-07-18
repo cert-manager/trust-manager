@@ -57,6 +57,20 @@ func (src *Bundle) ConvertTo(dstRaw conversion.Hub) error {
 	return nil
 }
 
+func Convert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in *BundleSpec, out *trustv1alpha2.BundleSpec, scope apimachineryconversion.Scope) error {
+	if err := autoConvert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in, out, scope); err != nil {
+		return err
+	}
+
+	if in.Target != (BundleTarget{}) {
+		out.Target = &trustv1alpha2.BundleTarget{}
+		if err := Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(&in.Target, out.Target, scope); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(in *BundleSource, out *trustv1alpha2.BundleSource, scope apimachineryconversion.Scope) error {
 	var sourceObjectKeySelector *SourceObjectKeySelector
 	if in.ConfigMap != nil {
@@ -71,7 +85,9 @@ func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(in *BundleSource, ou
 		out.Name = sourceObjectKeySelector.Name
 		out.Selector = sourceObjectKeySelector.Selector
 		out.Key = sourceObjectKeySelector.Key
-		out.IncludeAllKeys = sourceObjectKeySelector.IncludeAllKeys
+		if sourceObjectKeySelector.IncludeAllKeys {
+			out.Key = "*"
+		}
 	}
 
 	if in.InLine != nil {
@@ -130,7 +146,7 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 		}
 	}
 
-	if out.NamespaceSelector == nil {
+	if in.NamespaceSelector == nil {
 		// NamespaceSelector is required in v1alpha2
 		out.NamespaceSelector = &metav1.LabelSelector{}
 	}
@@ -191,16 +207,27 @@ func Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *trustv1alpha2.Bundle
 	if in.IncludeDefaultCAs != nil {
 		out.Sources = append(out.Sources, BundleSource{UseDefaultCAs: in.IncludeDefaultCAs})
 	}
+	if in.Target != nil {
+		if err := Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in.Target, &out.Target, scope); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
 
 func Convert_v1alpha2_BundleSource_To_v1alpha1_BundleSource(in *trustv1alpha2.BundleSource, out *BundleSource, _ apimachineryconversion.Scope) error {
+	key := in.Key
+	includeAllKeys := false
+	if in.Key == "*" {
+		key = ""
+		includeAllKeys = true
+	}
 	sourceObjectKeySelector := &SourceObjectKeySelector{
 		Name:           in.Name,
 		Selector:       in.Selector,
-		Key:            in.Key,
-		IncludeAllKeys: in.IncludeAllKeys,
+		Key:            key,
+		IncludeAllKeys: includeAllKeys,
 	}
 	switch in.Kind {
 	case trustv1alpha2.ConfigMapKind:
