@@ -35,9 +35,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
+	ctrlsource "sigs.k8s.io/controller-runtime/pkg/source"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
+	"github.com/cert-manager/trust-manager/pkg/bundle/internal/source"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/target"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
@@ -50,7 +52,7 @@ import (
 func AddBundleController(
 	ctx context.Context,
 	mgr manager.Manager,
-	opts Options,
+	opts controller.Options,
 	targetCache cache.Cache,
 ) error {
 	b := &bundle{
@@ -58,6 +60,10 @@ func AddBundleController(
 		recorder: mgr.GetEventRecorderFor("bundles"),
 		clock:    clock.RealClock{},
 		Options:  opts,
+		bundleBuilder: &source.BundleBuilder{
+			Reader:  mgr.GetClient(),
+			Options: opts,
+		},
 		targetReconciler: &target.Reconciler{
 			Client: mgr.GetClient(),
 			Cache:  targetCache,
@@ -70,7 +76,7 @@ func AddBundleController(
 			return fmt.Errorf("must load default package successfully when default package location is set: %w", err)
 		}
 
-		b.defaultPackage = &pkg
+		b.bundleBuilder.DefaultPackage = &pkg
 
 		logf.FromContext(ctx).Info("successfully loaded default package from filesystem", "id", pkg.StringID(), "path", b.Options.DefaultPackageLocation)
 	}
@@ -84,7 +90,7 @@ func AddBundleController(
 		// Reconcile a Bundle on events against a ConfigMap that it
 		// owns. Only cache ConfigMap metadata.
 		WatchesRawSource(
-			source.Kind(
+			ctrlsource.Kind(
 				targetCache,
 				&metav1.PartialObjectMetadata{TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"}},
 				handler.TypedEnqueueRequestForOwner[*metav1.PartialObjectMetadata](
@@ -100,7 +106,7 @@ func AddBundleController(
 		// Reconcile a Bundle on events against a Secret that it
 		// owns. Only cache Secret metadata.
 		controller.WatchesRawSource(
-			source.Kind(
+			ctrlsource.Kind(
 				targetCache,
 				&metav1.PartialObjectMetadata{TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"}},
 				handler.TypedEnqueueRequestForOwner[*metav1.PartialObjectMetadata](
