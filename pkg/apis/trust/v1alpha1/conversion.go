@@ -71,7 +71,9 @@ func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(in *BundleSource, ou
 		out.Name = sourceObjectKeySelector.Name
 		out.Selector = sourceObjectKeySelector.Selector
 		out.Key = sourceObjectKeySelector.Key
-		out.IncludeAllKeys = sourceObjectKeySelector.IncludeAllKeys
+		if sourceObjectKeySelector.IncludeAllKeys {
+			out.Key = "*"
+		}
 	}
 
 	if in.InLine != nil {
@@ -196,11 +198,17 @@ func Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *trustv1alpha2.Bundle
 }
 
 func Convert_v1alpha2_BundleSource_To_v1alpha1_BundleSource(in *trustv1alpha2.BundleSource, out *BundleSource, _ apimachineryconversion.Scope) error {
+	key := in.Key
+	includeAllKeys := false
+	if in.Key == "*" {
+		key = ""
+		includeAllKeys = true
+	}
 	sourceObjectKeySelector := &SourceObjectKeySelector{
 		Name:           in.Name,
 		Selector:       in.Selector,
-		Key:            in.Key,
-		IncludeAllKeys: in.IncludeAllKeys,
+		Key:            key,
+		IncludeAllKeys: includeAllKeys,
 	}
 	switch in.Kind {
 	case trustv1alpha2.ConfigMapKind:
