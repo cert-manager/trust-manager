@@ -80,7 +80,8 @@ type BundleSpec struct {
 	InLineCAs *string `json:"InLineCAs,omitempty"`
 
 	// Target is the target location in all namespaces to sync source data to.
-	Target BundleTarget `json:"target"`
+	// +optional
+	Target BundleTarget `json:"target,omitzero"`
 }
 
 // BundleSource is the set of sources whose data will be appended and synced to
