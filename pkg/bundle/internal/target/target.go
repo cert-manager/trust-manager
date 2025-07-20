@@ -56,32 +56,68 @@ type Reconciler struct {
 	PatchResourceOverwrite func(ctx context.Context, obj interface{}) error
 }
 
-// Sync syncs the given data to the target resource.
-// Ensures the resource is owned by the given Bundle, and the data is up to date.
-// Returns true if the resource has been created, updated or deleted.
-func (r *Reconciler) Sync(
+// CleanupTarget ensures the obsolete bundle target is cleanup up.
+// It will delete the target resource if it contains no data after removing the bundle data.
+// Returns true if the resource has been deleted.
+func (r *Reconciler) CleanupTarget(
 	ctx context.Context,
 	target Resource,
 	bundle *trustapi.Bundle,
-	resolvedBundle source.BundleData,
-	shouldExist bool,
 ) (bool, error) {
 	switch target.Kind {
 	case KindConfigMap:
-		return r.syncConfigMap(ctx, target, bundle, resolvedBundle, shouldExist)
+		// Apply an empty patch to remove the key(s).
+		patch := prepareTargetPatch(coreapplyconfig.ConfigMap(target.Name, target.Namespace), *bundle)
+		configMap, err := r.patchConfigMap(ctx, patch)
+		if err != nil {
+			return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
+		}
+		// If the ConfigMap is empty, delete it.
+		if configMap != nil && len(configMap.Data) == 0 && len(configMap.BinaryData) == 0 {
+			return false, client.IgnoreNotFound(r.Client.Delete(ctx, configMap))
+		}
 	case KindSecret:
-		return r.syncSecret(ctx, target, bundle, resolvedBundle, shouldExist)
+		// Apply an empty patch to remove the key(s).
+		patch := prepareTargetPatch(coreapplyconfig.Secret(target.Name, target.Namespace), *bundle)
+		secret, err := r.patchSecret(ctx, patch)
+		if err != nil {
+			return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
+		}
+		// If the Secret is empty, delete it.
+		if secret != nil && len(secret.Data) == 0 {
+			return true, client.IgnoreNotFound(r.Client.Delete(ctx, secret))
+		}
 	default:
-		return false, fmt.Errorf("don't know how to sync target of kind: %s", target.Kind)
+		return false, fmt.Errorf("don't know how to clean target of kind: %s", target.Kind)
 	}
+
+	return false, nil
 }
 
-func (r *Reconciler) syncConfigMap(
+// ApplyTarget applies the bundle data to the target resource.
+// Ensures the resource is owned by the given Bundle, and the data is up to date.
+// Returns true if the resource has been created or updated.
+func (r *Reconciler) ApplyTarget(
 	ctx context.Context,
 	target Resource,
 	bundle *trustapi.Bundle,
 	resolvedBundle source.BundleData,
-	shouldExist bool,
+) (bool, error) {
+	switch target.Kind {
+	case KindConfigMap:
+		return r.applyConfigMap(ctx, target, bundle, resolvedBundle)
+	case KindSecret:
+		return r.applySecret(ctx, target, bundle, resolvedBundle)
+	default:
+		return false, fmt.Errorf("don't know how to apply target of kind: %s", target.Kind)
+	}
+}
+
+func (r *Reconciler) applyConfigMap(
+	ctx context.Context,
+	target Resource,
+	bundle *trustapi.Bundle,
+	resolvedBundle source.BundleData,
 ) (bool, error) {
 	targetObj := &metav1.PartialObjectMetadata{
 		TypeMeta: metav1.TypeMeta{
@@ -92,26 +128,6 @@ func (r *Reconciler) syncConfigMap(
 	err := r.Cache.Get(ctx, target.NamespacedName, targetObj)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return false, fmt.Errorf("failed to get %s %s: %w", target.Kind, target.NamespacedName, err)
-	}
-
-	// If the resource is not found, and should not exist, we are done.
-	if apierrors.IsNotFound(err) && !shouldExist {
-		return false, nil
-	}
-
-	// If the resource exists, but should not, delete it.
-	if !apierrors.IsNotFound(err) && !shouldExist {
-		// Apply empty patch to remove the key(s).
-		patch := prepareTargetPatch(coreapplyconfig.ConfigMap(target.Name, target.Namespace), *bundle)
-		configMap, err := r.patchConfigMap(ctx, patch)
-		if err != nil {
-			return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
-		}
-		// If the ConfigMap is empty, delete it.
-		if configMap != nil && len(configMap.Data) == 0 && len(configMap.BinaryData) == 0 {
-			return true, r.Client.Delete(ctx, configMap)
-		}
-		return true, nil
 	}
 
 	bundleTarget := bundle.Spec.Target
@@ -150,17 +166,16 @@ func (r *Reconciler) syncConfigMap(
 		return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
 	}
 
-	logf.FromContext(ctx).V(2).Info("synced bundle to namespace")
+	logf.FromContext(ctx).V(2).Info("applied bundle to namespace")
 
 	return true, nil
 }
 
-func (r *Reconciler) syncSecret(
+func (r *Reconciler) applySecret(
 	ctx context.Context,
 	target Resource,
 	bundle *trustapi.Bundle,
 	resolvedBundle source.BundleData,
-	shouldExist bool,
 ) (bool, error) {
 	targetObj := &metav1.PartialObjectMetadata{
 		TypeMeta: metav1.TypeMeta{
@@ -171,26 +186,6 @@ func (r *Reconciler) syncSecret(
 	err := r.Cache.Get(ctx, target.NamespacedName, targetObj)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return false, fmt.Errorf("failed to get %s %s: %w", target.Kind, target.NamespacedName, err)
-	}
-
-	// If the resource is not found, and should not exist, we are done.
-	if apierrors.IsNotFound(err) && !shouldExist {
-		return false, nil
-	}
-
-	// If the resource exists, but should not, delete it.
-	if !apierrors.IsNotFound(err) && !shouldExist {
-		// Apply empty patch to remove the key(s).
-		patch := prepareTargetPatch(coreapplyconfig.Secret(target.Name, target.Namespace), *bundle)
-		secret, err := r.patchSecret(ctx, patch)
-		if err != nil {
-			return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
-		}
-		// If the Secret is empty, delete it.
-		if secret != nil && len(secret.Data) == 0 {
-			return true, r.Client.Delete(ctx, secret)
-		}
-		return true, nil
 	}
 
 	bundleTarget := bundle.Spec.Target
@@ -231,7 +226,7 @@ func (r *Reconciler) syncSecret(
 		return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
 	}
 
-	logf.FromContext(ctx).V(2).Info("synced bundle to namespace")
+	logf.FromContext(ctx).V(2).Info("applied bundle to namespace")
 
 	return true, nil
 }

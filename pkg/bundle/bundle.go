@@ -169,7 +169,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		return ctrl.Result{}, statusPatch, nil
 	}
 
-	targetResources := map[target.Resource]bool{}
+	targetResources := map[target.Resource]struct{}{}
 
 	namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
 	if err != nil {
@@ -202,10 +202,10 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 			}
 
 			if bundle.Spec.Target.Secret != nil {
-				targetResources[target.Resource{Kind: target.KindSecret, NamespacedName: namespacedName}] = true
+				targetResources[target.Resource{Kind: target.KindSecret, NamespacedName: namespacedName}] = struct{}{}
 			}
 			if bundle.Spec.Target.ConfigMap != nil {
-				targetResources[target.Resource{Kind: target.KindConfigMap, NamespacedName: namespacedName}] = true
+				targetResources[target.Resource{Kind: target.KindConfigMap, NamespacedName: namespacedName}] = struct{}{}
 			}
 		}
 	}
@@ -260,15 +260,18 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 				continue
 			}
 
-			targetResources[key] = false
+			if _, err := b.targetReconciler.CleanupTarget(ctx, key, &bundle); err != nil {
+				// Failing target cleanup is not considered critical, log error and continue.
+				targetLog.Error(err, "failed to cleanup bundle target")
+			}
 		}
 	}
 
 	var needsUpdate bool
 
-	for t, shouldExist := range targetResources {
+	for t := range targetResources {
 		targetLog := log.WithValues("target", t)
-		synced, err := b.targetReconciler.Sync(logf.IntoContext(ctx, targetLog), t, &bundle, resolvedBundle, shouldExist)
+		synced, err := b.targetReconciler.ApplyTarget(logf.IntoContext(ctx, targetLog), t, &bundle, resolvedBundle)
 		if err != nil {
 			targetLog.Error(err, "failed sync bundle to target namespace")
 			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, fmt.Sprintf("Sync%sTargetFailed", t.Kind), "Failed to sync target %s in Namespace %q: %s", t.Kind, t.Namespace, err)
