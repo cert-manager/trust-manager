@@ -47,7 +47,6 @@ func Test_validate(t *testing.T) {
 			},
 			expErr: ptr.To(field.ErrorList{
 				field.Forbidden(field.NewPath("spec", "sources"), "must define at least one source"),
-				field.Invalid(field.NewPath("spec", "target"), trustapi.BundleTarget{}, "must define at least one target"),
 			}.ToAggregate().Error()),
 		},
 		"sources with multiple types defined in items": {
@@ -218,32 +217,6 @@ func Test_validate(t *testing.T) {
 			},
 			expErr: ptr.To(field.ErrorList{
 				field.Forbidden(field.NewPath("spec", "sources", "[1]", "secret", "test-bundle", "test"), "cannot define the same source as target"),
-			}.ToAggregate().Error()),
-		},
-		"target configMap key not defined": {
-			bundle: &trustapi.Bundle{
-				Spec: trustapi.BundleSpec{
-					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("test")},
-					},
-					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: ""}},
-				},
-			},
-			expErr: ptr.To(field.ErrorList{
-				field.Invalid(field.NewPath("spec", "target", "configMap", "key"), "", "target configMap key must be defined"),
-			}.ToAggregate().Error()),
-		},
-		"target secret key not defined": {
-			bundle: &trustapi.Bundle{
-				Spec: trustapi.BundleSpec{
-					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("test")},
-					},
-					Target: trustapi.BundleTarget{Secret: &trustapi.TargetTemplate{Key: ""}},
-				},
-			},
-			expErr: ptr.To(field.ErrorList{
-				field.Invalid(field.NewPath("spec", "target", "secret", "key"), "", "target secret key must be defined"),
 			}.ToAggregate().Error()),
 		},
 		"invalid namespace selector": {
@@ -534,6 +507,9 @@ func Test_validate_update(t *testing.T) {
 			oldBundle: &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: "testing"},
 				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{InLine: ptr.To("test")},
+					},
 					Target: trustapi.BundleTarget{
 						ConfigMap: &trustapi.TargetTemplate{
 							Key: "bar",
@@ -541,13 +517,20 @@ func Test_validate_update(t *testing.T) {
 					},
 				},
 			},
-			newBundle: &trustapi.Bundle{},
-			expErr:    ptr.To("spec.target.configmap: Invalid value: \"\": target configMap removal is not allowed"),
+			newBundle: &trustapi.Bundle{
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{InLine: ptr.To("test")},
+					}},
+			},
 		},
 		"if the target secret is removed during update": {
 			oldBundle: &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: "testing"},
 				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{InLine: ptr.To("test")},
+					},
 					Target: trustapi.BundleTarget{
 						Secret: &trustapi.TargetTemplate{
 							Key: "bar",
@@ -555,8 +538,12 @@ func Test_validate_update(t *testing.T) {
 					},
 				},
 			},
-			newBundle: &trustapi.Bundle{},
-			expErr:    ptr.To("spec.target.secret: Invalid value: \"\": target secret removal is not allowed"),
+			newBundle: &trustapi.Bundle{
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{InLine: ptr.To("test")},
+					}},
+			},
 		},
 	}
 

@@ -393,7 +393,6 @@ spec:
                   type: object
               required:
                 - sources
-                - target
               type: object
             status:
               description: Status of the Bundle. This is set and managed automatically.

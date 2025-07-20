@@ -41,34 +41,11 @@ func (v *validator) ValidateCreate(ctx context.Context, obj runtime.Object) (adm
 	return v.validate(ctx, obj)
 }
 
-func (v *validator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	oldBundle, ok := oldObj.(*trustapi.Bundle)
-	if !ok {
-		return nil, fmt.Errorf("expected a Bundle, but got a %T", oldBundle)
-	}
-	newBundle, ok := newObj.(*trustapi.Bundle)
-	if !ok {
-		return nil, fmt.Errorf("expected a Bundle, but got a %T", newBundle)
-	}
-
-	var (
-		el   field.ErrorList
-		path = field.NewPath("spec")
-	)
-	// Target removal are not allowed.
-	if oldBundle.Spec.Target.ConfigMap != nil && newBundle.Spec.Target.ConfigMap == nil {
-		el = append(el, field.Invalid(path.Child("target", "configmap"), "", "target configMap removal is not allowed"))
-		return nil, el.ToAggregate()
-	}
-	// Target removal are not allowed.
-	if oldBundle.Spec.Target.Secret != nil && newBundle.Spec.Target.Secret == nil {
-		el = append(el, field.Invalid(path.Child("target", "secret"), "", "target secret removal is not allowed"))
-		return nil, el.ToAggregate()
-	}
+func (v *validator) ValidateUpdate(ctx context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
 	return v.validate(ctx, newObj)
 }
 
-func (v *validator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *validator) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	// always allow deletes
 	return nil, nil
 }
@@ -188,22 +165,10 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 		}
 	}
 
-	configMap := bundle.Spec.Target.ConfigMap
-	secret := bundle.Spec.Target.Secret
-
-	if configMap == nil && secret == nil {
-		el = append(el, field.Invalid(path.Child("target"), bundle.Spec.Target, "must define at least one target"))
-	}
-
-	if configMap != nil && len(configMap.Key) == 0 {
-		el = append(el, field.Invalid(path.Child("target", "configMap", "key"), configMap.Key, "target configMap key must be defined"))
-	}
-
-	if secret != nil && len(secret.Key) == 0 {
-		el = append(el, field.Invalid(path.Child("target", "secret", "key"), secret.Key, "target secret key must be defined"))
-	}
-
 	if bundle.Spec.Target.AdditionalFormats != nil {
+		configMap := bundle.Spec.Target.ConfigMap
+		secret := bundle.Spec.Target.Secret
+
 		var formats = make(map[string]*trustapi.KeySelector)
 		targetKeys := map[string]struct{}{}
 		if configMap != nil {

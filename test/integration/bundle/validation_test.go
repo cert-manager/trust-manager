@@ -164,21 +164,9 @@ var _ = Describe("Bundle Validation", func() {
 			field            string
 		)
 
-		DescribeTable("should require at least one target configMap/secret",
-			func(target trustapi.BundleTarget, wantErr bool) {
-				bundle.Spec.Target = target
-				if wantErr {
-					expectedErr := "spec.target: Invalid value: v1alpha1.BundleTarget{ConfigMap:(*v1alpha1.TargetTemplate)(nil), Secret:(*v1alpha1.TargetTemplate)(nil), AdditionalFormats:(*v1alpha1.AdditionalFormats)(nil), NamespaceSelector:(*v1.LabelSelector)(nil)}: must define at least one target"
-					Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
-				} else {
-					Expect(cl.Create(ctx, bundle)).To(Succeed())
-				}
-			},
-			Entry("when none set", trustapi.BundleTarget{}, true),
-			Entry("when configMap set", trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt"}}, false),
-			Entry("when secret set", trustapi.BundleTarget{Secret: &trustapi.TargetTemplate{Key: "ca-bundle.crt"}}, false),
-			Entry("when both set", trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt"}, Secret: &trustapi.TargetTemplate{Key: "ca-bundle.crt"}}, false),
-		)
+		It("should allow no targets", func() {
+			Expect(cl.Create(ctx, bundle)).To(Succeed())
+		})
 
 		DescribeTable("should prevent annotations and labels with the trust manager prefixes",
 			func(target trustapi.BundleTarget, wantErr bool) {
@@ -208,6 +196,24 @@ var _ = Describe("Bundle Validation", func() {
 				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"not-trust-manager.io/hash": "test"}}}}, false),
 			Entry("when non-reserved labels are used", trustapi.BundleTarget{
 				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"not-trust-manager.io/bundle": "bundle"}}}}, false),
+		)
+
+		DescribeTable("should require target key",
+			func(target trustapi.BundleTarget, wantErr bool) {
+				bundle.Spec.Target = target
+				if wantErr {
+					Expect(cl.Create(ctx, bundle)).Should(MatchError(
+						SatisfyAny(
+							ContainSubstring("Invalid value: \"\": spec.target.configMap.key in body should be at least 1 chars long"),
+							ContainSubstring("Invalid value: \"\": spec.target.secret.key in body should be at least 1 chars long"),
+						),
+					))
+				} else {
+					Expect(cl.Create(ctx, bundle)).To(Succeed())
+				}
+			},
+			Entry("for configmap", trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: ""}}, true),
+			Entry("for secret", trustapi.BundleTarget{Secret: &trustapi.TargetTemplate{Key: ""}}, true),
 		)
 
 		type TargetKeySpec struct {
