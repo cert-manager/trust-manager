@@ -1239,6 +1239,79 @@ func Test_Reconcile(t *testing.T) {
 			},
 			expEvent: `Normal Synced Successfully synced Bundle to all namespaces`,
 		},
+		"if Bundle switches from ConfigMap target no targets, remove ConfigMaps": {
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap,
+				targetConfigMap(
+					trustNamespace,
+					map[string]string{
+						targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5),
+					},
+					nil,
+					ptr.To(targetKey),
+					true, nil,
+				),
+				targetConfigMap(
+					"ns-1",
+					map[string]string{
+						targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5),
+					},
+					nil,
+					ptr.To(targetKey),
+					true, nil,
+				),
+				targetConfigMap(
+					"ns-2",
+					map[string]string{
+						targetKey: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificate5),
+					},
+					nil,
+					ptr.To(targetKey),
+					true, nil,
+				),
+			},
+			existingSecrets: []client.Object{sourceSecret},
+			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
+				func(b *trustapi.Bundle) {
+					b.Spec.Target = trustapi.BundleTarget{}
+				},
+				gen.SetBundleStatus(trustapi.BundleStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:               trustapi.BundleConditionSynced,
+							Status:             metav1.ConditionTrue,
+							LastTransitionTime: fixedmetatime,
+							Reason:             "Synced",
+							Message:            "Successfully synced Bundle to all namespaces",
+							ObservedGeneration: bundleGeneration,
+						},
+					},
+					DefaultCAPackageVersion: ptr.To(testDefaultPackage.StringID()),
+				}),
+			)},
+			configureDefaultPackage: true,
+			expResult:               ctrl.Result{},
+			expError:                false,
+			expPatches: []interface{}{
+				configMapPatch(baseBundle.Name, trustNamespace, nil, nil, nil, nil),
+				configMapPatch(baseBundle.Name, "ns-1", nil, nil, nil, nil),
+				configMapPatch(baseBundle.Name, "ns-2", nil, nil, nil, nil),
+			},
+			expBundlePatch: &trustapi.BundleStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:               trustapi.BundleConditionSynced,
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: fixedmetatime,
+						Reason:             "Synced",
+						Message:            "Successfully synced Bundle to all namespaces",
+						ObservedGeneration: bundleGeneration,
+					},
+				},
+				DefaultCAPackageVersion: nil,
+			},
+			expEvent: `Normal Synced Successfully synced Bundle to all namespaces`,
+		},
 		"if Bundle switches from ConfigMap target to Secret target, remove ConfigMaps and create Secrets": {
 			existingNamespaces: namespaces,
 			existingConfigMaps: []client.Object{sourceConfigMap,
