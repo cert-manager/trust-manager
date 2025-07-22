@@ -15,6 +15,5 @@ limitations under the License.
 */
 
 // +kubebuilder:object:generate=true
-// +kubebuilder:skip
 // +groupName=trust-manager.io
 package v1alpha2
