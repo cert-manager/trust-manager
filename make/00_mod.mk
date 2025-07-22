@@ -57,6 +57,8 @@ oci_package_debian_bookworm_additional_layers += $(debian_bookworm_package_layer
 deploy_name := trust-manager
 deploy_namespace := cert-manager
 
+# Exclude new ClusterBundle API from Helm chart for now.
+crds_template_exclude_pattern := trust-manager.io_clusterbundles.yaml
 helm_chart_source_dir := deploy/charts/trust-manager
 helm_chart_image_name := quay.io/jetstack/charts/trust-manager
 helm_chart_version := $(VERSION)
