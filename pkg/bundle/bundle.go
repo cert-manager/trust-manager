@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
@@ -169,9 +168,9 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		return ctrl.Result{}, statusPatch, nil
 	}
 
-	targetResources := map[target.Resource]struct{}{}
+	var targetResources []target.Resource
 
-	namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
+	namespaceSelector, err := target.NamespaceSelector(&bundle)
 	if err != nil {
 		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceSelectorError", "Failed to build namespace match labels selector: %s", err)
 		return ctrl.Result{}, nil, fmt.Errorf("failed to build NamespaceSelector: %w", err)
@@ -202,79 +201,22 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 			}
 
 			if bundle.Spec.Target.Secret != nil {
-				targetResources[target.Resource{Kind: target.KindSecret, NamespacedName: namespacedName}] = struct{}{}
+				targetResources = append(targetResources, target.Resource{Kind: target.KindSecret, NamespacedName: namespacedName})
 			}
 			if bundle.Spec.Target.ConfigMap != nil {
-				targetResources[target.Resource{Kind: target.KindConfigMap, NamespacedName: namespacedName}] = struct{}{}
-			}
-		}
-	}
-
-	// Find all old existing target resources.
-	targetKinds := []target.Kind{target.KindConfigMap}
-	if b.Options.SecretTargetsEnabled {
-		targetKinds = append(targetKinds, target.KindSecret)
-	}
-	for _, kind := range targetKinds {
-		targetList := &metav1.PartialObjectMetadataList{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "v1",
-				Kind:       string(kind),
-			},
-		}
-		err := b.targetReconciler.Cache.List(ctx, targetList, &client.ListOptions{
-			LabelSelector: labels.SelectorFromSet(map[string]string{
-				trustapi.BundleLabelKey: bundle.Name,
-			}),
-		})
-		if err != nil {
-			log.Error(err, "failed to list targets", "kind", kind)
-			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, fmt.Sprintf("%sListError", kind), "Failed to list %ss: %s", strings.ToLower(string(kind)), err)
-			return ctrl.Result{}, nil, fmt.Errorf("failed to list %ss: %w", kind, err)
-		}
-
-		for _, t := range targetList.Items {
-			key := target.Resource{
-				Kind: kind,
-				NamespacedName: types.NamespacedName{
-					Name:      t.Name,
-					Namespace: t.Namespace,
-				},
-			}
-
-			targetLog := log.WithValues("target", key)
-
-			if _, ok := targetResources[key]; ok {
-				// This target is still a target, so we don't need to remove it.
-				continue
-			}
-
-			// Don't reconcile target for targets that are being deleted.
-			if t.GetDeletionTimestamp() != nil {
-				targetLog.V(2).WithValues("deletionTimestamp", t.GetDeletionTimestamp()).Info("skipping sync for target as it is being deleted")
-				continue
-			}
-
-			if !metav1.IsControlledBy(&t, &bundle) /* #nosec G601 -- False positive. See https://github.com/golang/go/discussions/56010 */ {
-				targetLog.V(2).Info("skipping sync for target as it is not controlled by bundle")
-				continue
-			}
-
-			if _, err := b.targetReconciler.CleanupTarget(ctx, key, &bundle); err != nil {
-				// Failing target cleanup is not considered critical, log error and continue.
-				targetLog.Error(err, "failed to cleanup bundle target")
+				targetResources = append(targetResources, target.Resource{Kind: target.KindConfigMap, NamespacedName: namespacedName})
 			}
 		}
 	}
 
 	var needsUpdate bool
 
-	for t := range targetResources {
+	for _, t := range targetResources {
 		targetLog := log.WithValues("target", t)
 		synced, err := b.targetReconciler.ApplyTarget(logf.IntoContext(ctx, targetLog), t, &bundle, resolvedBundle)
 		if err != nil {
 			targetLog.Error(err, "failed sync bundle to target namespace")
-			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, fmt.Sprintf("Sync%sTargetFailed", t.Kind), "Failed to sync target %s in Namespace %q: %s", t.Kind, t.Namespace, err)
+			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, fmt.Sprintf("ApplyTarget%sTargetFailed", t.Kind), "Failed to sync target %s in Namespace %q: %s", t.Kind, t.Namespace, err)
 
 			b.setBundleCondition(
 				bundle.Status.Conditions,
@@ -282,7 +224,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 				metav1.Condition{
 					Type:               trustapi.BundleConditionSynced,
 					Status:             metav1.ConditionFalse,
-					Reason:             fmt.Sprintf("Sync%sTargetFailed", t.Kind),
+					Reason:             fmt.Sprintf("ApplyTarget%sTargetFailed", t.Kind),
 					Message:            fmt.Sprintf("Failed to sync bundle %s to namespace %q: %s", t.Kind, t.Namespace, err),
 					ObservedGeneration: bundle.Generation,
 				},
@@ -329,17 +271,4 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", message)
 
 	return ctrl.Result{}, statusPatch, nil
-}
-
-func (b *bundle) bundleTargetNamespaceSelector(bundleObj *trustapi.Bundle) (labels.Selector, error) {
-	nsSelector := bundleObj.Spec.Target.NamespaceSelector
-
-	// LabelSelectorAsSelector returns a Selector selecting nothing if LabelSelector is nil,
-	// while our current default is to select everything. But this is subject to change.
-	// See https://github.com/cert-manager/trust-manager/issues/39
-	if nsSelector == nil {
-		return labels.Everything(), nil
-	}
-
-	return metav1.LabelSelectorAsSelector(nsSelector)
 }
