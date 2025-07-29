@@ -82,6 +82,7 @@ var _ = BeforeSuite(func() {
 	Expect(webhook.Register(mgr)).Should(Succeed())
 
 	go func() {
+		defer GinkgoRecover()
 		err = mgr.Start(context.TODO())
 		Expect(err).NotTo(HaveOccurred())
 	}()

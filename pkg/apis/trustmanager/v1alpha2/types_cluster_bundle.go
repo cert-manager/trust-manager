@@ -60,9 +60,10 @@ type ClusterBundleList struct {
 type BundleSpec struct {
 	// Sources is a set of references to data whose data will sync to the target.
 	// +listType=atomic
-	// +kubebuilder:validation:MinItems=1
+	// +optional
+	// +kubebuilder:validation:MinItems=0
 	// +kubebuilder:validation:MaxItems=100
-	Sources []BundleSource `json:"sources"`
+	Sources []BundleSource `json:"sources,omitempty"`
 
 	// IncludeDefaultCAs, when true, requests the default CA bundle to be used as a source.
 	// Default CAs are available if trust-manager was installed via Helm
@@ -77,7 +78,7 @@ type BundleSpec struct {
 
 	// InLine is a simple string to append as the source data.
 	// +optional
-	InLineCAs *string `json:"InLineCAs,omitempty"`
+	InLineCAs *string `json:"inLineCAs,omitempty"`
 
 	// Target is the target location in all namespaces to sync source data to.
 	// +optional
@@ -100,6 +101,7 @@ type BundleSource struct {
 
 // BundleTarget is the target resource that the Bundle will sync all source
 // data to.
+// +kubebuilder:validation:XValidation:rule="[has(self.configMap), has(self.secret)].exists(x,x)", message="any of the following fields must be provided: [configMap, secret]"
 type BundleTarget struct {
 	// ConfigMap is the target ConfigMap in Namespaces that all Bundle source data will be synced to.
 	// +optional
@@ -122,7 +124,6 @@ type PKCS12 struct {
 	// By default, no password is used (password-less PKCS#12).
 	//+optional
 	//+kubebuilder:validation:MaxLength=128
-	//+kubebuilder:default=""
 	Password *string `json:"password,omitempty"`
 
 	// Profile specifies the certificate encryption algorithms and the HMAC algorithm
@@ -158,6 +159,7 @@ const (
 
 // SourceReference is a reference to a source object.
 // +structType=atomic
+// +kubebuilder:validation:XValidation:rule="[has(self.name), has(self.selector)].exists_one(x,x)", message="exactly one of the following fields must be provided: [name, selector]"
 type SourceReference struct {
 	// Kind is the kind of the source object.
 	// +kubebuilder:validation:Enum=ConfigMap;Secret
@@ -167,6 +169,7 @@ type SourceReference struct {
 	// This field must be left empty when `selector` is set
 	//+optional
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	Name string `json:"name,omitempty"`
 
 	// Selector is the label selector to use to fetch a list of objects. Must not be set
@@ -181,6 +184,7 @@ type KeyValueTarget struct {
 	// +listType=map
 	// +listMapKey=key
 	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
 	Data []TargetKeyValue `json:"data"`
 
 	// Metadata is an optional set of labels and annotations to be copied to the target.
@@ -206,8 +210,10 @@ func (t *KeyValueTarget) GetLabels() map[string]string {
 
 // TargetKeyValue is the specification of a key with value in a key-value target resource.
 // +structType=atomic
+// +kubebuilder:validation:XValidation:rule="!has(self.password) || (has(self.format) && self.format == 'PKCS12')", reason=FieldValueForbidden, fieldPath=".password", message="may only be set when format is 'PKCS12'"
+// +kubebuilder:validation:XValidation:rule="!has(self.profile) || (has(self.format) && self.format == 'PKCS12')", reason=FieldValueForbidden, fieldPath=".profile", message="may only be set when format is 'PKCS12'"
 type TargetKeyValue struct {
-	// Key is the key of the entry in the object's `data`field to be used.
+	// Key is the key of the entry in the object's `data` field to be used.
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.\-]+$`
 	Key string `json:"key"`
@@ -238,10 +244,12 @@ const (
 type TargetMetadata struct {
 	// Annotations is a key value map to be copied to the target.
 	// +optional
+	// +kubebuilder:validation:XValidation:rule="self.all(k, !k.startsWith('trust-manager.io/'))", reason=FieldValueForbidden, message="must not use forbidden domains as prefixes (e.g., trust-manager.io)"
 	Annotations map[string]string `json:"annotations,omitempty"`
 
 	// Labels is a key value map to be copied to the target.
 	// +optional
+	// +kubebuilder:validation:XValidation:rule="self.all(k, !k.startsWith('trust-manager.io/'))", reason=FieldValueForbidden, message="must not use forbidden domains as prefixes (e.g., trust-manager.io)"
 	Labels map[string]string `json:"labels,omitempty"`
 }
 

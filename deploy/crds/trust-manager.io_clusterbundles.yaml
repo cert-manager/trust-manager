@@ -59,7 +59,7 @@ spec:
           spec:
             description: Desired state of the Bundle resource.
             properties:
-              InLineCAs:
+              inLineCAs:
                 description: InLine is a simple string to append as the source data.
                 type: string
               includeDefaultCAs:
@@ -99,6 +99,7 @@ spec:
                       description: |-
                         Name is the name of the source object in the trust Namespace.
                         This field must be left empty when `selector` is set
+                      maxLength: 253
                       minLength: 1
                       type: string
                     selector:
@@ -154,8 +155,12 @@ spec:
                   - kind
                   type: object
                   x-kubernetes-map-type: atomic
+                  x-kubernetes-validations:
+                  - message: 'exactly one of the following fields must be provided:
+                      [name, selector]'
+                    rule: '[has(self.name), has(self.selector)].exists_one(x,x)'
                 maxItems: 100
-                minItems: 1
+                minItems: 0
                 type: array
                 x-kubernetes-list-type: atomic
               target:
@@ -183,12 +188,11 @@ spec:
                               type: string
                             key:
                               description: Key is the key of the entry in the object's
-                                `data`field to be used.
+                                `data` field to be used.
                               minLength: 1
                               pattern: ^[0-9A-Za-z_.\-]+$
                               type: string
                             password:
-                              default: ""
                               description: |-
                                 Password for PKCS12 trust store.
                                 By default, no password is used (password-less PKCS#12).
@@ -214,6 +218,18 @@ spec:
                           - key
                           type: object
                           x-kubernetes-map-type: atomic
+                          x-kubernetes-validations:
+                          - fieldPath: .password
+                            message: may only be set when format is 'PKCS12'
+                            reason: FieldValueForbidden
+                            rule: '!has(self.password) || (has(self.format) && self.format
+                              == ''PKCS12'')'
+                          - fieldPath: .profile
+                            message: may only be set when format is 'PKCS12'
+                            reason: FieldValueForbidden
+                            rule: '!has(self.profile) || (has(self.format) && self.format
+                              == ''PKCS12'')'
+                        maxItems: 10
                         minItems: 1
                         type: array
                         x-kubernetes-list-map-keys:
@@ -229,12 +245,22 @@ spec:
                             description: Annotations is a key value map to be copied
                               to the target.
                             type: object
+                            x-kubernetes-validations:
+                            - message: must not use forbidden domains as prefixes
+                                (e.g., trust-manager.io)
+                              reason: FieldValueForbidden
+                              rule: self.all(k, !k.startsWith('trust-manager.io/'))
                           labels:
                             additionalProperties:
                               type: string
                             description: Labels is a key value map to be copied to
                               the target.
                             type: object
+                            x-kubernetes-validations:
+                            - message: must not use forbidden domains as prefixes
+                                (e.g., trust-manager.io)
+                              reason: FieldValueForbidden
+                              rule: self.all(k, !k.startsWith('trust-manager.io/'))
                         type: object
                     required:
                     - data
@@ -309,12 +335,11 @@ spec:
                               type: string
                             key:
                               description: Key is the key of the entry in the object's
-                                `data`field to be used.
+                                `data` field to be used.
                               minLength: 1
                               pattern: ^[0-9A-Za-z_.\-]+$
                               type: string
                             password:
-                              default: ""
                               description: |-
                                 Password for PKCS12 trust store.
                                 By default, no password is used (password-less PKCS#12).
@@ -340,6 +365,18 @@ spec:
                           - key
                           type: object
                           x-kubernetes-map-type: atomic
+                          x-kubernetes-validations:
+                          - fieldPath: .password
+                            message: may only be set when format is 'PKCS12'
+                            reason: FieldValueForbidden
+                            rule: '!has(self.password) || (has(self.format) && self.format
+                              == ''PKCS12'')'
+                          - fieldPath: .profile
+                            message: may only be set when format is 'PKCS12'
+                            reason: FieldValueForbidden
+                            rule: '!has(self.profile) || (has(self.format) && self.format
+                              == ''PKCS12'')'
+                        maxItems: 10
                         minItems: 1
                         type: array
                         x-kubernetes-list-map-keys:
@@ -355,12 +392,22 @@ spec:
                             description: Annotations is a key value map to be copied
                               to the target.
                             type: object
+                            x-kubernetes-validations:
+                            - message: must not use forbidden domains as prefixes
+                                (e.g., trust-manager.io)
+                              reason: FieldValueForbidden
+                              rule: self.all(k, !k.startsWith('trust-manager.io/'))
                           labels:
                             additionalProperties:
                               type: string
                             description: Labels is a key value map to be copied to
                               the target.
                             type: object
+                            x-kubernetes-validations:
+                            - message: must not use forbidden domains as prefixes
+                                (e.g., trust-manager.io)
+                              reason: FieldValueForbidden
+                              rule: self.all(k, !k.startsWith('trust-manager.io/'))
                         type: object
                     required:
                     - data
@@ -368,8 +415,10 @@ spec:
                 required:
                 - namespaceSelector
                 type: object
-            required:
-            - sources
+                x-kubernetes-validations:
+                - message: 'any of the following fields must be provided: [configMap,
+                    secret]'
+                  rule: '[has(self.configMap), has(self.secret)].exists(x,x)'
             type: object
           status:
             description: Status of the Bundle. This is set and managed automatically.
