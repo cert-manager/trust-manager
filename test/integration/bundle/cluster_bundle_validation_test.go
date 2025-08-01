@@ -18,6 +18,7 @@ package test
 
 import (
 	"context"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2/ktesting"
@@ -92,14 +93,15 @@ var _ = Describe("ClusterBundle Validation", func() {
 			Entry("when no name nor selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind}, "spec.sources[0]: Invalid value: \"object\": exactly one of the following fields must be provided: [name, selector]"),
 			Entry("when name set", trustmanagerapi.SourceReference{Name: "ca", Kind: trustmanagerapi.ConfigMapKind}, ""),
 			Entry("when selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind, Selector: &metav1.LabelSelector{}}, ""),
+			Entry("when invalid selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind, Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"@@@@": "test"}}}, "spec.sources[0].selector.matchLabels: Invalid value: \"@@@@\": name part must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')"),
 			Entry("when name and selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind, Name: "ca", Selector: &metav1.LabelSelector{}}, "spec.sources[0]: Invalid value: \"object\": exactly one of the following fields must be provided: [name, selector]"),
 		)
 	})
 
 	Context("Target", func() {
 		var (
-			selectorAccessor func(*trustmanagerapi.KeyValueTarget)
-			field            string
+			targetField string
+			setTarget   func(*trustmanagerapi.KeyValueTarget)
 		)
 
 		BeforeEach(func() {
@@ -108,17 +110,25 @@ var _ = Describe("ClusterBundle Validation", func() {
 			}
 		})
 
-		It("should require namespace selector", func() {
-			bundle.Spec.Target.NamespaceSelector = nil
-			bundle.Spec.Target.ConfigMap = &trustmanagerapi.KeyValueTarget{
-				Data: []trustmanagerapi.TargetKeyValue{{
-					Key: "ca-bundle.crt",
-				}},
-			}
+		DescribeTable("should validate namespace selector",
+			func(selector *metav1.LabelSelector, matchErr string) {
+				bundle.Spec.Target.NamespaceSelector = selector
+				bundle.Spec.Target.ConfigMap = &trustmanagerapi.KeyValueTarget{
+					Data: []trustmanagerapi.TargetKeyValue{{
+						Key: "ca-bundle.crt",
+					}},
+				}
 
-			expectedErr := "spec.target.namespaceSelector: Required value"
-			Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
-		})
+				if matchErr != "" {
+					Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr)))
+				} else {
+					Expect(cl.Create(ctx, bundle)).To(Succeed())
+				}
+			},
+			Entry("reject if unset", nil, "spec.target.namespaceSelector: Required value"),
+			Entry("reject invalid", &metav1.LabelSelector{MatchLabels: map[string]string{"@@@@": "test"}}, "spec.target.namespaceSelector.matchLabels: Invalid value: \"@@@@\": name part must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')"),
+			Entry("accept valid", &metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}, ""),
+		)
 
 		It("should require a target if namespace selector set", func() {
 			expectedErr := "spec.target: Invalid value: \"object\": any of the following fields must be provided: [configMap, secret]"
@@ -142,13 +152,13 @@ var _ = Describe("ClusterBundle Validation", func() {
 		targetObjectAsserts := func() {
 			DescribeTable("should validate key",
 				func(key string, matchErr string) {
-					selectorAccessor(&trustmanagerapi.KeyValueTarget{
+					setTarget(&trustmanagerapi.KeyValueTarget{
 						Data: []trustmanagerapi.TargetKeyValue{{
 							Key: key,
 						}},
 					})
 					if matchErr != "" {
-						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, field, field)))
+						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, targetField, targetField)))
 					} else {
 						Expect(cl.Create(ctx, bundle)).To(Succeed())
 					}
@@ -159,7 +169,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 			)
 
 			It("should require unique keys", func() {
-				selectorAccessor(&trustmanagerapi.KeyValueTarget{
+				setTarget(&trustmanagerapi.KeyValueTarget{
 					Data: []trustmanagerapi.TargetKeyValue{{
 						Key: "foo",
 					}, {
@@ -167,9 +177,9 @@ var _ = Describe("ClusterBundle Validation", func() {
 					}},
 				})
 				matchErr := "spec.target.%s.data[1]: Duplicate value: map[string]interface {}{\"key\":\"foo\"}"
-				Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, field)))
+				Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, targetField)))
 
-				selectorAccessor(&trustmanagerapi.KeyValueTarget{
+				setTarget(&trustmanagerapi.KeyValueTarget{
 					Data: []trustmanagerapi.TargetKeyValue{{
 						Key: "foo",
 					}, {
@@ -179,41 +189,92 @@ var _ = Describe("ClusterBundle Validation", func() {
 				Expect(cl.Create(ctx, bundle)).To(Succeed())
 			})
 
-			DescribeTable("should prevent metadata with forbidden prefixes",
-				func(metadata *trustmanagerapi.TargetMetadata, wantErr bool) {
-					selectorAccessor(&trustmanagerapi.KeyValueTarget{
+			Context("Metadata", func() {
+				var (
+					metadataField      string
+					metadata           *trustmanagerapi.TargetMetadata
+					setMetadata        func(map[string]string)
+					expValueValidation bool
+				)
+
+				BeforeEach(func() {
+					metadata = &trustmanagerapi.TargetMetadata{}
+					setTarget(&trustmanagerapi.KeyValueTarget{
 						Metadata: metadata,
 						Data: []trustmanagerapi.TargetKeyValue{{
 							Key: "ca-bundle.crt",
 						}},
 					})
-					if wantErr {
-						var metadataField = "annotations"
-						if metadata.Labels != nil {
-							metadataField = "labels"
+				})
+
+				metadataAsserts := func() {
+					DescribeTable("should validate keys",
+						func(m map[string]string, matchErr string) {
+							setMetadata(m)
+
+							if matchErr != "" {
+								Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, targetField, metadataField)))
+							} else {
+								Expect(cl.Create(ctx, bundle)).To(Succeed())
+							}
+						},
+						Entry("reject trust-manager.io prefix", map[string]string{"trust-manager.io/hash": "test"}, "spec.target.%s.metadata.%s: Forbidden: must not use forbidden domains as prefixes (e.g., trust-manager.io)"),
+						Entry("accept non-reserved prefix", map[string]string{"not-trust-manager.io/hash": "test"}, ""),
+						Entry("reject invalid characters", map[string]string{"@@@@": "test"}, "spec.target.%s.metadata.%s: Invalid value: \"@@@@\": name part must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]"),
+						Entry("reject too long name", map[string]string{strings.Repeat("a", 64): "test"}, "spec.target.%s.metadata.%s: Invalid value: \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": name part must be no more than 63 characters"),
+						Entry("accept long prefixes", map[string]string{strings.Repeat("a", 64) + "/foo": "test"}, ""),
+					)
+
+					DescribeTable("should validate values",
+						func(m map[string]string, matchErr string) {
+							setMetadata(m)
+
+							if expValueValidation && matchErr != "" {
+								Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, targetField, metadataField)))
+							} else {
+								Expect(cl.Create(ctx, bundle)).To(Succeed())
+							}
+						},
+						Entry("reject invalid characters", map[string]string{"foo": "@@@@@"}, "spec.target.%s.metadata.%s: Invalid value: \"@@@@@\": a valid label must be an empty string or consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyValue',  or 'my_value',  or '12345', regex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?"),
+						Entry("reject too long", map[string]string{"foo": strings.Repeat("a", 64)}, "spec.target.%s.metadata.%s: Invalid value: \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": must be no more than 63 characters"),
+					)
+				}
+
+				Context("Annotations", func() {
+					BeforeEach(func() {
+						metadataField = "annotations"
+						setMetadata = func(m map[string]string) {
+							metadata.Annotations = m
 						}
-						matchErr := "spec.target.%s.metadata.%s: Forbidden: must not use forbidden domains as prefixes (e.g., trust-manager.io)"
-						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, field, metadataField)))
-					} else {
-						Expect(cl.Create(ctx, bundle)).To(Succeed())
-					}
-				},
-				Entry("when trust-manager.io annotations are used", &trustmanagerapi.TargetMetadata{Annotations: map[string]string{"trust-manager.io/hash": "test"}}, true),
-				Entry("when trust-manager.io labels are used", &trustmanagerapi.TargetMetadata{Labels: map[string]string{"trust-manager.io/bundle": "bundle"}}, true),
-				Entry("when non-reserved annotations are used", &trustmanagerapi.TargetMetadata{Annotations: map[string]string{"not-trust-manager.io/hash": "test"}}, false),
-				Entry("when non-reserved labels are used", &trustmanagerapi.TargetMetadata{Labels: map[string]string{"not-trust-manager.io/bundle": "bundle"}}, false),
-			)
+						expValueValidation = false
+					})
+
+					metadataAsserts()
+				})
+
+				Context("Labels", func() {
+					BeforeEach(func() {
+						metadataField = "labels"
+						setMetadata = func(m map[string]string) {
+							metadata.Labels = m
+						}
+						expValueValidation = true
+					})
+
+					metadataAsserts()
+				})
+			})
 
 			DescribeTable("should validate format",
 				func(format trustmanagerapi.BundleFormat, matchErr string) {
-					selectorAccessor(&trustmanagerapi.KeyValueTarget{
+					setTarget(&trustmanagerapi.KeyValueTarget{
 						Data: []trustmanagerapi.TargetKeyValue{{
 							Key:    "ca-bundle",
 							Format: format,
 						}},
 					})
 					if matchErr != "" {
-						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, field)))
+						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, targetField)))
 					} else {
 						Expect(cl.Create(ctx, bundle)).To(Succeed())
 					}
@@ -226,8 +287,10 @@ var _ = Describe("ClusterBundle Validation", func() {
 				Entry("when unknown", trustmanagerapi.BundleFormat("JKS"), "spec.target.%s.data[0].format: Unsupported value: \"JKS\": supported values: \"PEM\", \"PKCS12\""),
 			)
 
-			var pkcs12Field string
-			var pkcs12 trustmanagerapi.PKCS12
+			var (
+				pkcs12Field string
+				pkcs12      trustmanagerapi.PKCS12
+			)
 
 			pkcs12Asserts := func() {
 				DescribeTable("should validate fields reserved for PCKS12 format",
@@ -237,13 +300,13 @@ var _ = Describe("ClusterBundle Validation", func() {
 							Format: format,
 							PKCS12: pkcs12,
 						}
-						selectorAccessor(&trustmanagerapi.KeyValueTarget{
+						setTarget(&trustmanagerapi.KeyValueTarget{
 							Data: []trustmanagerapi.TargetKeyValue{targetKeyValue},
 						})
 
 						if wantErr {
 							matchErr := "spec.target.%s.data[0].%s: Forbidden: may only be set when format is 'PKCS12'"
-							Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, field, pkcs12Field)))
+							Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, targetField, pkcs12Field)))
 						} else {
 							Expect(cl.Create(ctx, bundle)).To(Succeed())
 						}
@@ -275,10 +338,10 @@ var _ = Describe("ClusterBundle Validation", func() {
 
 		Context("ConfigMap", func() {
 			BeforeEach(func() {
-				selectorAccessor = func(selector *trustmanagerapi.KeyValueTarget) {
+				targetField = "configMap"
+				setTarget = func(selector *trustmanagerapi.KeyValueTarget) {
 					bundle.Spec.Target.ConfigMap = selector
 				}
-				field = "configMap"
 			})
 
 			targetObjectAsserts()
@@ -286,10 +349,10 @@ var _ = Describe("ClusterBundle Validation", func() {
 
 		Context("Secret", func() {
 			BeforeEach(func() {
-				selectorAccessor = func(selector *trustmanagerapi.KeyValueTarget) {
+				targetField = "secret"
+				setTarget = func(selector *trustmanagerapi.KeyValueTarget) {
 					bundle.Spec.Target.Secret = selector
 				}
-				field = "secret"
 			})
 
 			targetObjectAsserts()
