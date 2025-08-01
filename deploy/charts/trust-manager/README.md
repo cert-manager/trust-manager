@@ -158,7 +158,7 @@ The repository for the default package image. This image enables the 'useDefault
 #### **defaultPackageImage.tag** ~ `string`
 > Default value:
 > ```yaml
-> "20230311.0"
+> 20230311-deb12u1.0
 > ```
 
 Override the image tag of the default package image. If no value is set, the chart's appVersion is used.
