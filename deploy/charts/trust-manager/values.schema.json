@@ -599,7 +599,7 @@
       "type": "string"
     },
     "helm-values.defaultPackageImage.tag": {
-      "default": "20230311.0",
+      "default": "20230311-deb12u1.0",
       "description": "Override the image tag of the default package image. If no value is set, the chart's appVersion is used.",
       "type": "string"
     },

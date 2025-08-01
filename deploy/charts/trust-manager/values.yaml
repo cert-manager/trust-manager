@@ -93,7 +93,7 @@ defaultPackageImage:
   # Override the image tag of the default package image.
   # If no value is set, the chart's appVersion is used.
   # +docs:property
-  tag: "20230311.0"
+  tag: "20230311-deb12u1.0"
 
   # Target image digest. Override any tag, if set.
   # For example:
