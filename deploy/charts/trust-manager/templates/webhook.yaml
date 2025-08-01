@@ -106,12 +106,12 @@ webhooks:
       - apiGroups:
           - "trust.cert-manager.io"
         apiVersions:
-          - "*"
+          - v1alpha1
         operations:
           - CREATE
           - UPDATE
         resources:
-          - "*/*"
+          - bundles
     admissionReviewVersions: ["v1"]
     timeoutSeconds: {{ .Values.app.webhook.timeoutSeconds }}
     failurePolicy: Fail

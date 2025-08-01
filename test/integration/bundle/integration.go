@@ -25,6 +25,7 @@ import (
 	"time"
 
 	admissionv1 "k8s.io/api/admissionregistration/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/internalversion/scheme"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -34,6 +35,7 @@ import (
 	ctrlwebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	"github.com/cert-manager/trust-manager/pkg/webhook"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -47,6 +49,9 @@ var (
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
+	Expect(trustapi.SchemeBuilder.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+	Expect(trustmanagerapi.SchemeBuilder.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+
 	env = &envtest.Environment{
 		UseExistingCluster: ptr.To(false),
 		CRDDirectoryPaths: []string{
@@ -56,7 +61,6 @@ var _ = BeforeSuite(func() {
 			ValidatingWebhooks: []*admissionv1.ValidatingWebhookConfiguration{validatingWebhookConfiguration()},
 		},
 		ErrorIfCRDPathMissing: true,
-		Scheme:                trustapi.GlobalScheme,
 	}
 
 	cfg, err := env.Start()
@@ -68,7 +72,7 @@ var _ = BeforeSuite(func() {
 	// start webhook server using Manager
 	webhookInstallOptions := &env.WebhookInstallOptions
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme: trustapi.GlobalScheme,
+		Scheme: scheme.Scheme,
 		WebhookServer: ctrlwebhook.NewServer(ctrlwebhook.Options{
 			Host:    webhookInstallOptions.LocalServingHost,
 			Port:    webhookInstallOptions.LocalServingPort,
@@ -80,6 +84,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	Expect(webhook.Register(mgr)).Should(Succeed())
+	Expect((&webhook.ClusterBundle{}).SetupWebhookWithManager(mgr)).Should(Succeed())
 
 	go func() {
 		defer GinkgoRecover()
@@ -105,13 +110,21 @@ var _ = BeforeSuite(func() {
 func validatingWebhookConfiguration() *admissionv1.ValidatingWebhookConfiguration {
 	v := &admissionv1.ValidatingWebhookConfiguration{}
 	v.Name = "trust-manager"
-	v.Webhooks = []admissionv1.ValidatingWebhook{{
+	v.Webhooks = []admissionv1.ValidatingWebhook{
+		bundleValidatingWebhook(),
+		clusterBundleValidatingWebhook(),
+	}
+	return v
+}
+
+func bundleValidatingWebhook() admissionv1.ValidatingWebhook {
+	return admissionv1.ValidatingWebhook{
 		Name: "trust.cert-manager.io",
 		Rules: []admissionv1.RuleWithOperations{{
 			Rule: admissionv1.Rule{
 				APIGroups:   []string{trustapi.SchemeGroupVersion.Group},
-				APIVersions: []string{"*"},
-				Resources:   []string{"*/*"},
+				APIVersions: []string{"v1alpha1"},
+				Resources:   []string{"bundles"},
 			},
 			Operations: []admissionv1.OperationType{admissionv1.Create, admissionv1.Update},
 		}},
@@ -124,8 +137,30 @@ func validatingWebhookConfiguration() *admissionv1.ValidatingWebhookConfiguratio
 				Path:      ptr.To("/validate-trust-cert-manager-io-v1alpha1-bundle"),
 			},
 		},
-	}}
-	return v
+	}
+}
+
+func clusterBundleValidatingWebhook() admissionv1.ValidatingWebhook {
+	return admissionv1.ValidatingWebhook{
+		Name: "v1alpha2-clusterbundles-validator.trust-manager.io",
+		Rules: []admissionv1.RuleWithOperations{{
+			Rule: admissionv1.Rule{
+				APIGroups:   []string{trustmanagerapi.SchemeGroupVersion.Group},
+				APIVersions: []string{"v1alpha2"},
+				Resources:   []string{"clusterbundles"},
+			},
+			Operations: []admissionv1.OperationType{admissionv1.Create, admissionv1.Update},
+		}},
+		SideEffects:             ptr.To(admissionv1.SideEffectClassNone),
+		AdmissionReviewVersions: []string{"v1"},
+		ClientConfig: admissionv1.WebhookClientConfig{
+			Service: &admissionv1.ServiceReference{
+				Namespace: "cert-manager",
+				Name:      "trust-manager",
+				Path:      ptr.To("/validate-trust-manager-io-v1alpha2-clusterbundle"),
+			},
+		},
+	}
 }
 
 var _ = AfterSuite(func() {
