@@ -28,6 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -422,4 +423,17 @@ func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats,
 	hash.Sum(hashValue[:0])
 
 	return hex.EncodeToString(hashValue[:])
+}
+
+func NamespaceSelector(bundleObj *trustapi.Bundle) (labels.Selector, error) {
+	nsSelector := bundleObj.Spec.Target.NamespaceSelector
+
+	// LabelSelectorAsSelector returns a Selector selecting nothing if LabelSelector is nil,
+	// while our current default is to select everything. But this is subject to change.
+	// See https://github.com/cert-manager/trust-manager/issues/39
+	if nsSelector == nil {
+		return labels.Everything(), nil
+	}
+
+	return metav1.LabelSelectorAsSelector(nsSelector)
 }
