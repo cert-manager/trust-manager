@@ -110,8 +110,8 @@ func validatingWebhookConfiguration() *admissionv1.ValidatingWebhookConfiguratio
 		Rules: []admissionv1.RuleWithOperations{{
 			Rule: admissionv1.Rule{
 				APIGroups:   []string{trustapi.SchemeGroupVersion.Group},
-				APIVersions: []string{"*"},
-				Resources:   []string{"*/*"},
+				APIVersions: []string{"v1alpha1"},
+				Resources:   []string{"bundles"},
 			},
 			Operations: []admissionv1.OperationType{admissionv1.Create, admissionv1.Update},
 		}},
