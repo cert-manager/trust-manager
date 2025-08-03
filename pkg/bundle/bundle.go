@@ -66,7 +66,7 @@ type bundle struct {
 // Reconcile will be called whenever a Bundle event happens, or whenever any
 // related resource event to that bundle occurs.
 func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	result, statusPatch, resultErr := b.reconcileBundle(ctx, req)
+	statusPatch, resultErr := b.reconcileBundle(ctx, req)
 	if statusPatch != nil {
 		con, patch, err := ssa_client.GenerateBundleStatusPatch(req.Name, statusPatch)
 		if err != nil {
@@ -80,10 +80,10 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 		}
 	}
 
-	return result, resultErr
+	return ctrl.Result{}, resultErr
 }
 
-func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result ctrl.Result, statusPatch *trustapi.BundleStatus, returnedErr error) {
+func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusPatch *trustapi.BundleStatus, returnedErr error) {
 	log := logf.FromContext(ctx).WithValues("bundle", req.NamespacedName.Name)
 	ctx = logf.IntoContext(ctx, log)
 	log.V(2).Info("syncing bundle")
@@ -92,19 +92,19 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 	err := b.client.Get(ctx, req.NamespacedName, &bundle)
 	if apierrors.IsNotFound(err) {
 		log.V(2).Info("bundle no longer exists, ignoring")
-		return ctrl.Result{}, nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	if err != nil {
 		log.Error(err, "failed to get bundle")
-		return ctrl.Result{}, nil, fmt.Errorf("failed to get %q: %s", req.NamespacedName, err)
+		return nil, fmt.Errorf("failed to get %q: %s", req.NamespacedName, err)
 	}
 
 	// MIGRATION: If we are upgrading from a version of trust-manager that did use Update to set
 	// the Bundle status, we need to ensure that we do remove the old status fields in case we apply.
 	if didMigrate, err := ssa_client.MigrateToApply(ctx, b.client, &bundle, csaupgrade.Subresource("status")); err != nil {
 		log.Error(err, "failed to migrate bundle status")
-		return ctrl.Result{}, nil, fmt.Errorf("failed to migrate bundle status: %w", err)
+		return nil, fmt.Errorf("failed to migrate bundle status: %w", err)
 	} else if didMigrate {
 		log.V(2).Info("migrated bundle status from CSA to SSA")
 	}
@@ -145,7 +145,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		)
 		b.recorder.Event(&bundle, corev1.EventTypeWarning, reason, errMsg)
 
-		return ctrl.Result{}, statusPatch, returnedErr
+		return statusPatch, returnedErr
 	}
 
 	// Detect if we have a bundle with Secret targets but the feature is disabled.
@@ -166,7 +166,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 			},
 		)
 
-		return ctrl.Result{}, statusPatch, nil
+		return statusPatch, nil
 	}
 
 	targetResources := map[target.Resource]struct{}{}
@@ -174,7 +174,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 	namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
 	if err != nil {
 		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceSelectorError", "Failed to build namespace match labels selector: %s", err)
-		return ctrl.Result{}, nil, fmt.Errorf("failed to build NamespaceSelector: %w", err)
+		return nil, fmt.Errorf("failed to build NamespaceSelector: %w", err)
 	}
 
 	// Find all desired targetResources.
@@ -185,7 +185,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		}); err != nil {
 			log.Error(err, "failed to list namespaces")
 			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceListError", "Failed to list namespaces: %s", err)
-			return ctrl.Result{}, nil, fmt.Errorf("failed to list Namespaces: %w", err)
+			return nil, fmt.Errorf("failed to list Namespaces: %w", err)
 		}
 		for _, namespace := range namespaceList.Items {
 			namespaceLog := log.WithValues("namespace", namespace.Name)
@@ -230,7 +230,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 		if err != nil {
 			log.Error(err, "failed to list targets", "kind", kind)
 			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, fmt.Sprintf("%sListError", kind), "Failed to list %ss: %s", strings.ToLower(string(kind)), err)
-			return ctrl.Result{}, nil, fmt.Errorf("failed to list %ss: %w", kind, err)
+			return nil, fmt.Errorf("failed to list %ss: %w", kind, err)
 		}
 
 		for _, t := range targetList.Items {
@@ -288,7 +288,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 				},
 			)
 
-			return ctrl.Result{Requeue: true}, statusPatch, nil
+			return statusPatch, err
 		}
 
 		if synced {
@@ -315,7 +315,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 	}
 
 	if !needsUpdate && bundleHasCondition(bundle.Status.Conditions, syncedCondition) {
-		return ctrl.Result{}, nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	log.V(2).Info("successfully synced bundle")
@@ -328,7 +328,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (result 
 
 	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", message)
 
-	return ctrl.Result{}, statusPatch, nil
+	return statusPatch, nil
 }
 
 func (b *bundle) bundleTargetNamespaceSelector(bundleObj *trustapi.Bundle) (labels.Selector, error) {
