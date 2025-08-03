@@ -28,10 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/tools/record"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -72,18 +69,9 @@ func NewCommand() *cobra.Command {
 				return fmt.Errorf("invalid flags: %s", err.Error())
 			}
 
-			cl, err := kubernetes.NewForConfig(opts.RestConfig)
-			if err != nil {
-				return fmt.Errorf("error creating kubernetes client: %s", err.Error())
-			}
-
 			log := opts.NewLogger()
 			klog.SetLogger(log)
 			ctrl.SetLogger(log)
-
-			eventBroadcaster := record.NewBroadcaster()
-			eventBroadcaster.StartLogging(func(format string, args ...any) { log.V(3).Info(fmt.Sprintf(format, args...)) })
-			eventBroadcaster.StartRecordingToSink(&clientv1.EventSinkImpl{Interface: cl.CoreV1().Events("")})
 
 			scheme := runtime.NewScheme()
 			utilruntime.Must(clientgoscheme.AddToScheme(scheme))
@@ -91,7 +79,6 @@ func NewCommand() *cobra.Command {
 
 			mgr, err := ctrl.NewManager(opts.RestConfig, ctrl.Options{
 				Scheme:                        scheme,
-				EventBroadcaster:              eventBroadcaster,
 				LeaderElection:                opts.LeaderElectionConfig.Enabled,
 				LeaderElectionID:              "trust-manager-leader-election",
 				LeaderElectionReleaseOnCancel: true,
