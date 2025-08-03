@@ -18,9 +18,7 @@ package app
 
 import (
 	"crypto/tls"
-	"errors"
 	"fmt"
-	"net/http"
 
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -156,14 +154,11 @@ func NewCommand() *cobra.Command {
 				return fmt.Errorf("failed to add target cache to manager: %w", err)
 			}
 
-			// Add readiness check that the manager's informers have been synced.
-			if err := mgr.AddReadyzCheck("informers_synced", func(req *http.Request) error {
-				if mgr.GetCache().WaitForCacheSync(req.Context()) {
-					return nil
-				}
-				return errors.New("informers not synced")
-			}); err != nil {
-				return fmt.Errorf("failed to add readiness check: %w", err)
+			if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
+				return fmt.Errorf("failed to add webhook ready check: %v", err)
+			}
+			if err := mgr.AddHealthzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
+				return fmt.Errorf("failed to add webhook health check: %v", err)
 			}
 
 			ctx := ctrl.SetupSignalHandler()
@@ -175,7 +170,7 @@ func NewCommand() *cobra.Command {
 
 			// Register webhook handlers with manager.
 			log.Info("registering webhook endpoints")
-			if err := webhook.Register(mgr); err != nil {
+			if err := webhook.SetupWebhookWithManager(mgr); err != nil {
 				return fmt.Errorf("failed to register webhook: %w", err)
 			}
 
