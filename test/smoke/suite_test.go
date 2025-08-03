@@ -28,6 +28,7 @@ import (
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
+	"github.com/cert-manager/trust-manager/test"
 	"github.com/cert-manager/trust-manager/test/dummy"
 	"github.com/cert-manager/trust-manager/test/env"
 
@@ -57,7 +58,7 @@ var _ = Describe("Smoke", func() {
 
 	It("should create a bundle, sync to ConfigMap target, and then remove all configmap targets when deleted", func() {
 		cl, err := client.New(cnf.RestConfig, client.Options{
-			Scheme: trustapi.GlobalScheme,
+			Scheme: test.Scheme,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -76,7 +77,7 @@ var _ = Describe("Smoke", func() {
 
 	It("should create a bundle, sync to Secret target, and then remove all secret targets when deleted", func() {
 		cl, err := client.New(cnf.RestConfig, client.Options{
-			Scheme: trustapi.GlobalScheme,
+			Scheme: test.Scheme,
 		})
 		Expect(err).NotTo(HaveOccurred())
 

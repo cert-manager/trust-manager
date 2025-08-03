@@ -35,6 +35,7 @@ import (
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/webhook"
+	"github.com/cert-manager/trust-manager/test"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -56,7 +57,6 @@ var _ = BeforeSuite(func() {
 			ValidatingWebhooks: []*admissionv1.ValidatingWebhookConfiguration{validatingWebhookConfiguration()},
 		},
 		ErrorIfCRDPathMissing: true,
-		Scheme:                trustapi.GlobalScheme,
 	}
 
 	cfg, err := env.Start()
@@ -68,7 +68,7 @@ var _ = BeforeSuite(func() {
 	// start webhook server using Manager
 	webhookInstallOptions := &env.WebhookInstallOptions
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme: trustapi.GlobalScheme,
+		Scheme: test.Scheme,
 		WebhookServer: ctrlwebhook.NewServer(ctrlwebhook.Options{
 			Host:    webhookInstallOptions.LocalServingHost,
 			Port:    webhookInstallOptions.LocalServingPort,

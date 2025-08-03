@@ -35,6 +35,7 @@ import (
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/source"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
+	"github.com/cert-manager/trust-manager/test"
 	"github.com/cert-manager/trust-manager/test/dummy"
 )
 
@@ -437,14 +438,14 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 		},
 	}
 
-	for name, test := range tests {
+	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
 			clientBuilder := fake.NewClientBuilder().
-				WithScheme(trustapi.GlobalScheme)
-			if test.object != nil {
-				clientBuilder.WithRuntimeObjects(test.object)
+				WithScheme(test.Scheme)
+			if tt.object != nil {
+				clientBuilder.WithRuntimeObjects(tt.object)
 			}
 
 			fakeClient := clientBuilder.Build()
@@ -473,7 +474,7 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				},
 			}
 			resolvedBundle := source.BundleData{Data: data, BinaryData: make(map[string][]byte)}
-			if test.withJKS {
+			if tt.withJKS {
 				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
 					KeySelector: trustapi.KeySelector{
 						Key: jksKey,
@@ -481,7 +482,7 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				}
 				resolvedBundle.BinaryData[jksKey] = jksData
 			}
-			if test.withPKCS12 {
+			if tt.withPKCS12 {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{
 					KeySelector: trustapi.KeySelector{
 						Key: pkcs12Key,
@@ -489,13 +490,13 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				}
 				resolvedBundle.BinaryData[pkcs12Key] = pkcs12Data
 			}
-			if test.withTargetAnnotation {
+			if tt.withTargetAnnotation {
 				if spec.Target.ConfigMap.Metadata == nil {
 					spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{}
 				}
 				spec.Target.ConfigMap.Metadata.Annotations = map[string]string{targetAnnotation: "true"}
 			}
-			if test.withTargetLabel {
+			if tt.withTargetLabel {
 				if spec.Target.ConfigMap.Metadata == nil {
 					spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{}
 				}
@@ -512,7 +513,7 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 			}, resolvedBundle)
 			assert.NoError(t, err)
 
-			assert.Equalf(t, test.expNeedsUpdate, needsUpdate, "unexpected needsUpdate, exp=%t got=%t", test.expNeedsUpdate, needsUpdate)
+			assert.Equalf(t, tt.expNeedsUpdate, needsUpdate, "unexpected needsUpdate, exp=%t got=%t", tt.expNeedsUpdate, needsUpdate)
 
 			if len(resourcePatches) > 1 {
 				t.Fatalf("expected only one patch, got %d", len(resourcePatches))
@@ -534,23 +535,23 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				assert.Equal(t, expectedOwnerReference, &configmap.OwnerReferences[0])
 
 				binData, jksExists := configmap.BinaryData[jksKey]
-				assert.Equal(t, test.expJKS, jksExists)
+				assert.Equal(t, tt.expJKS, jksExists)
 
-				if test.expJKS {
+				if tt.expJKS {
 					assert.Equal(t, jksData, binData)
 				}
 
 				binData, pkcs12Exists := configmap.BinaryData[pkcs12Key]
-				assert.Equal(t, test.expPKCS12, pkcs12Exists)
+				assert.Equal(t, tt.expPKCS12, pkcs12Exists)
 
-				if test.expPKCS12 {
+				if tt.expPKCS12 {
 					assert.Equal(t, pkcs12Data, binData)
 				}
 
-				if test.expTargetLabel {
+				if tt.expTargetLabel {
 					assert.Contains(t, configmap.Labels, targetLabel)
 				}
-				if test.expTargetAnnotation {
+				if tt.expTargetAnnotation {
 					assert.Contains(t, configmap.Annotations, targetAnnotation)
 				}
 			}
@@ -884,14 +885,14 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 		},
 	}
 
-	for name, test := range tests {
+	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
 			clientBuilder := fake.NewClientBuilder().
-				WithScheme(trustapi.GlobalScheme)
-			if test.object != nil {
-				clientBuilder.WithRuntimeObjects(test.object)
+				WithScheme(test.Scheme)
+			if tt.object != nil {
+				clientBuilder.WithRuntimeObjects(tt.object)
 			}
 
 			fakeClient := clientBuilder.Build()
@@ -920,7 +921,7 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				},
 			}
 			resolvedBundle := source.BundleData{Data: data, BinaryData: make(map[string][]byte)}
-			if test.withJKS {
+			if tt.withJKS {
 				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
 					KeySelector: trustapi.KeySelector{
 						Key: jksKey,
@@ -928,7 +929,7 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				}
 				resolvedBundle.BinaryData[jksKey] = jksData
 			}
-			if test.withPKCS12 {
+			if tt.withPKCS12 {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{
 					KeySelector: trustapi.KeySelector{
 						Key: pkcs12Key,
@@ -947,7 +948,7 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 			}, resolvedBundle)
 			assert.NoError(t, err)
 
-			assert.Equalf(t, test.expNeedsUpdate, needsUpdate, "unexpected needsUpdate, exp=%t got=%t", test.expNeedsUpdate, needsUpdate)
+			assert.Equalf(t, tt.expNeedsUpdate, needsUpdate, "unexpected needsUpdate, exp=%t got=%t", tt.expNeedsUpdate, needsUpdate)
 
 			if len(resourcePatches) > 1 {
 				t.Fatalf("expected only one patch, got %d", len(resourcePatches))
@@ -969,16 +970,16 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				assert.Equal(t, expectedOwnerReference, &secret.OwnerReferences[0])
 
 				binData, jksExists := secret.Data[jksKey]
-				assert.Equal(t, test.expJKS, jksExists)
+				assert.Equal(t, tt.expJKS, jksExists)
 
-				if test.expJKS {
+				if tt.expJKS {
 					assert.Equal(t, jksData, binData)
 				}
 
 				binData, pkcs12Exists := secret.Data[pkcs12Key]
-				assert.Equal(t, test.expPKCS12, pkcs12Exists)
+				assert.Equal(t, tt.expPKCS12, pkcs12Exists)
 
-				if test.expPKCS12 {
+				if tt.expPKCS12 {
 					assert.Equal(t, pkcs12Data, binData)
 				}
 			}

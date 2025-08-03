@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
+	"github.com/cert-manager/trust-manager/test"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -41,7 +42,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 
 		var err error
 		cl, err = client.New(env.Config, client.Options{
-			Scheme: trustmanagerapi.GlobalScheme,
+			Scheme: test.Scheme,
 		})
 		Expect(err).NotTo(HaveOccurred())
 

@@ -40,6 +40,7 @@ import (
 	"github.com/cert-manager/trust-manager/pkg/bundle"
 	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
+	"github.com/cert-manager/trust-manager/test"
 	"github.com/cert-manager/trust-manager/test/dummy"
 	testenv "github.com/cert-manager/trust-manager/test/env"
 
@@ -82,7 +83,7 @@ var _ = Describe("Integration", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		cl, err = client.New(env.Config, client.Options{
-			Scheme: trustapi.GlobalScheme,
+			Scheme: test.Scheme,
 		})
 		Expect(err).NotTo(HaveOccurred())
 		komega.SetClient(cl)
@@ -105,7 +106,7 @@ var _ = Describe("Integration", func() {
 
 		ctrl.SetLogger(log)
 		mgr, err = ctrl.NewManager(env.Config, ctrl.Options{
-			Scheme: trustapi.GlobalScheme,
+			Scheme: test.Scheme,
 			// we don't need leader election for this test,
 			// there should only be one test running at a time
 			LeaderElection: false,

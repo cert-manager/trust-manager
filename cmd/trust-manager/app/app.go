@@ -25,8 +25,11 @@ import (
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -82,8 +85,12 @@ func NewCommand() *cobra.Command {
 			eventBroadcaster.StartLogging(func(format string, args ...any) { log.V(3).Info(fmt.Sprintf(format, args...)) })
 			eventBroadcaster.StartRecordingToSink(&clientv1.EventSinkImpl{Interface: cl.CoreV1().Events("")})
 
+			scheme := runtime.NewScheme()
+			utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+			utilruntime.Must(trustapi.AddToScheme(scheme))
+
 			mgr, err := ctrl.NewManager(opts.RestConfig, ctrl.Options{
-				Scheme:                        trustapi.GlobalScheme,
+				Scheme:                        scheme,
 				EventBroadcaster:              eventBroadcaster,
 				LeaderElection:                opts.LeaderElectionConfig.Enabled,
 				LeaderElectionID:              "trust-manager-leader-election",
