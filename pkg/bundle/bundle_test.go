@@ -45,6 +45,7 @@ import (
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/truststore"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/pkg/util"
+	"github.com/cert-manager/trust-manager/test"
 	"github.com/cert-manager/trust-manager/test/dummy"
 	"github.com/cert-manager/trust-manager/test/gen"
 )
@@ -1497,17 +1498,17 @@ func Test_Reconcile(t *testing.T) {
 		return newArr
 	}
 
-	for name, test := range tests {
+	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			fakeClient := fake.NewClientBuilder().
-				WithScheme(trustapi.GlobalScheme).
-				WithObjects(deepCopyArray(test.existingConfigMaps)...).
-				WithObjects(deepCopyArray(test.existingBundles)...).
-				WithObjects(deepCopyArray(test.existingNamespaces)...).
-				WithObjects(deepCopyArray(test.existingSecrets)...).
-				WithStatusSubresource(deepCopyArray(test.existingNamespaces)...).
-				WithStatusSubresource(deepCopyArray(test.existingBundles)...).
+				WithScheme(test.Scheme).
+				WithObjects(deepCopyArray(tt.existingConfigMaps)...).
+				WithObjects(deepCopyArray(tt.existingBundles)...).
+				WithObjects(deepCopyArray(tt.existingNamespaces)...).
+				WithObjects(deepCopyArray(tt.existingSecrets)...).
+				WithStatusSubresource(deepCopyArray(tt.existingNamespaces)...).
+				WithStatusSubresource(deepCopyArray(tt.existingBundles)...).
 				Build()
 
 			fakeRecorder := record.NewFakeRecorder(1)
@@ -1520,7 +1521,7 @@ func Test_Reconcile(t *testing.T) {
 			_, ctx := ktesting.NewTestContext(t)
 			opts := controller.Options{
 				Namespace:            trustNamespace,
-				SecretTargetsEnabled: !test.disableSecretTargets,
+				SecretTargetsEnabled: !tt.disableSecretTargets,
 				FilterExpiredCerts:   true,
 			}
 			b := &bundle{
@@ -1545,28 +1546,28 @@ func Test_Reconcile(t *testing.T) {
 				},
 			}
 
-			if test.configureDefaultPackage {
+			if tt.configureDefaultPackage {
 				b.bundleBuilder.DefaultPackage = testDefaultPackage.Clone()
 			}
 			resp, result, err := b.reconcileBundle(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: bundleName}})
-			if (err != nil) != test.expError {
-				t.Errorf("unexpected error, exp=%t got=%v", test.expError, err)
+			if (err != nil) != tt.expError {
+				t.Errorf("unexpected error, exp=%t got=%v", tt.expError, err)
 			}
 
-			if !apiequality.Semantic.DeepEqual(resp, test.expResult) {
-				t.Errorf("unexpected Reconcile response, exp=%v got=%v", test.expResult, resp)
+			if !apiequality.Semantic.DeepEqual(resp, tt.expResult) {
+				t.Errorf("unexpected Reconcile response, exp=%v got=%v", tt.expResult, resp)
 			}
 
-			assert.Equal(t, test.expBundlePatch, result)
+			assert.Equal(t, tt.expBundlePatch, result)
 
 			var event string
 			select {
 			case event = <-fakeRecorder.Events:
 			default:
 			}
-			assert.Equal(t, test.expEvent, event)
+			assert.Equal(t, tt.expEvent, event)
 
-			assert.ElementsMatch(t, test.expPatches, resourcePatches, "unexpected objects patched")
+			assert.ElementsMatch(t, tt.expPatches, resourcePatches, "unexpected objects patched")
 		})
 	}
 }

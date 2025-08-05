@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/test"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -41,7 +42,7 @@ var _ = Describe("Bundle Validation", func() {
 
 		var err error
 		cl, err = client.New(env.Config, client.Options{
-			Scheme: trustapi.GlobalScheme,
+			Scheme: test.Scheme,
 		})
 		Expect(err).NotTo(HaveOccurred())
 

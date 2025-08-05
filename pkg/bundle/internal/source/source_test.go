@@ -36,6 +36,7 @@ import (
 	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/pkg/util"
+	"github.com/cert-manager/trust-manager/test"
 	"github.com/cert-manager/trust-manager/test/dummy"
 )
 
@@ -413,13 +414,13 @@ func Test_BuildBundle(t *testing.T) {
 		},
 	}
 
-	for name, test := range tests {
+	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
 			fakeClient := fake.NewClientBuilder().
-				WithRuntimeObjects(test.objects...).
-				WithScheme(trustapi.GlobalScheme).
+				WithRuntimeObjects(tt.objects...).
+				WithScheme(test.Scheme).
 				Build()
 
 			b := &BundleBuilder{
@@ -429,46 +430,46 @@ func Test_BuildBundle(t *testing.T) {
 					Version: "123",
 					Bundle:  dummy.TestCertificate5,
 				},
-				Options: controller.Options{FilterExpiredCerts: test.filterExpired},
+				Options: controller.Options{FilterExpiredCerts: tt.filterExpired},
 			}
 
 			// for corresponding store if arbitrary password is expected then set it instead of default one
 			var password string
-			if test.expJKS {
-				if test.expPassword != nil {
-					password = *test.expPassword
+			if tt.expJKS {
+				if tt.expPassword != nil {
+					password = *tt.expPassword
 				} else {
 					password = trustapi.DefaultJKSPassword
 				}
 			}
-			if test.expPKCS12 {
-				if test.expPassword != nil {
-					password = *test.expPassword
+			if tt.expPKCS12 {
+				if tt.expPassword != nil {
+					password = *tt.expPassword
 				} else {
 					password = trustapi.DefaultPKCS12Password
 				}
 			}
 
-			resolvedBundle, err := b.BuildBundle(t.Context(), test.sources, test.formats)
+			resolvedBundle, err := b.BuildBundle(t.Context(), tt.sources, tt.formats)
 
-			if (err != nil) != test.expError {
-				t.Errorf("unexpected error, exp=%t got=%v", test.expError, err)
+			if (err != nil) != tt.expError {
+				t.Errorf("unexpected error, exp=%t got=%v", tt.expError, err)
 			}
-			if errors.As(err, &NotFoundError{}) != test.expNotFoundError {
-				t.Errorf("unexpected NotFoundError, exp=%t got=%v", test.expNotFoundError, err)
+			if errors.As(err, &NotFoundError{}) != tt.expNotFoundError {
+				t.Errorf("unexpected NotFoundError, exp=%t got=%v", tt.expNotFoundError, err)
 			}
-			if errors.As(err, &InvalidSecretError{}) != test.expInvalidSecretSourceError {
-				t.Errorf("unexpected InvalidSecretError, exp=%t got=%v", test.expInvalidSecretSourceError, err)
+			if errors.As(err, &InvalidSecretError{}) != tt.expInvalidSecretSourceError {
+				t.Errorf("unexpected InvalidSecretError, exp=%t got=%v", tt.expInvalidSecretSourceError, err)
 			}
 
-			if resolvedBundle.Data != test.expData {
-				t.Errorf("unexpected data, exp=%q got=%q", test.expData, resolvedBundle.Data)
+			if resolvedBundle.Data != tt.expData {
+				t.Errorf("unexpected data, exp=%q got=%q", tt.expData, resolvedBundle.Data)
 			}
 
 			binData, jksExists := resolvedBundle.BinaryData[jksKey]
-			assert.Equal(t, test.expJKS, jksExists)
+			assert.Equal(t, tt.expJKS, jksExists)
 
-			if test.expJKS {
+			if tt.expJKS {
 				reader := bytes.NewReader(binData)
 
 				ks := jks.New()
@@ -490,9 +491,9 @@ func Test_BuildBundle(t *testing.T) {
 			}
 
 			binData, pkcs12Exists := resolvedBundle.BinaryData[pkcs12Key]
-			assert.Equal(t, test.expPKCS12, pkcs12Exists)
+			assert.Equal(t, tt.expPKCS12, pkcs12Exists)
 
-			if test.expPKCS12 {
+			if tt.expPKCS12 {
 				cas, err := pkcs12.DecodeTrustStore(binData, password)
 				assert.Nil(t, err)
 				assert.Len(t, cas, 1)
