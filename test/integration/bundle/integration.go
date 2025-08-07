@@ -34,6 +34,7 @@ import (
 	ctrlwebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	"github.com/cert-manager/trust-manager/pkg/webhook"
 	"github.com/cert-manager/trust-manager/test"
 
@@ -80,6 +81,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	Expect(webhook.Register(mgr)).Should(Succeed())
+	Expect((&webhook.ClusterBundle{}).SetupWebhookWithManager(mgr)).Should(Succeed())
 
 	go func() {
 		defer GinkgoRecover()
@@ -105,7 +107,15 @@ var _ = BeforeSuite(func() {
 func validatingWebhookConfiguration() *admissionv1.ValidatingWebhookConfiguration {
 	v := &admissionv1.ValidatingWebhookConfiguration{}
 	v.Name = "trust-manager"
-	v.Webhooks = []admissionv1.ValidatingWebhook{{
+	v.Webhooks = []admissionv1.ValidatingWebhook{
+		bundleValidatingWebhook(),
+		clusterBundleValidatingWebhook(),
+	}
+	return v
+}
+
+func bundleValidatingWebhook() admissionv1.ValidatingWebhook {
+	return admissionv1.ValidatingWebhook{
 		Name: "trust.cert-manager.io",
 		Rules: []admissionv1.RuleWithOperations{{
 			Rule: admissionv1.Rule{
@@ -124,8 +134,30 @@ func validatingWebhookConfiguration() *admissionv1.ValidatingWebhookConfiguratio
 				Path:      ptr.To("/validate-trust-cert-manager-io-v1alpha1-bundle"),
 			},
 		},
-	}}
-	return v
+	}
+}
+
+func clusterBundleValidatingWebhook() admissionv1.ValidatingWebhook {
+	return admissionv1.ValidatingWebhook{
+		Name: "v1alpha2-clusterbundles-validator.trust-manager.io",
+		Rules: []admissionv1.RuleWithOperations{{
+			Rule: admissionv1.Rule{
+				APIGroups:   []string{trustmanagerapi.SchemeGroupVersion.Group},
+				APIVersions: []string{"v1alpha2"},
+				Resources:   []string{"clusterbundles"},
+			},
+			Operations: []admissionv1.OperationType{admissionv1.Create, admissionv1.Update},
+		}},
+		SideEffects:             ptr.To(admissionv1.SideEffectClassNone),
+		AdmissionReviewVersions: []string{"v1"},
+		ClientConfig: admissionv1.WebhookClientConfig{
+			Service: &admissionv1.ServiceReference{
+				Namespace: "cert-manager",
+				Name:      "trust-manager",
+				Path:      ptr.To("/validate-trust-manager-io-v1alpha2-clusterbundle"),
+			},
+		},
+	}
 }
 
 var _ = AfterSuite(func() {
