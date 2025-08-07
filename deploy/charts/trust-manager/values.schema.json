@@ -63,6 +63,9 @@
         "resources": {
           "$ref": "#/$defs/helm-values.resources"
         },
+        "revisionHistoryLimit": {
+          "$ref": "#/$defs/helm-values.revisionHistoryLimit"
+        },
         "secretTargets": {
           "$ref": "#/$defs/helm-values.secretTargets"
         },
@@ -730,6 +733,10 @@
       "default": {},
       "description": "Kubernetes pod resource limits for trust.\n\nFor example:\nresources:\n  limits:\n    cpu: 100m\n    memory: 128Mi\n  requests:\n    cpu: 100m\n    memory: 128Mi",
       "type": "object"
+    },
+    "helm-values.revisionHistoryLimit": {
+      "default": 10,
+      "description": "The number of old ReplicaSets to retain to allow rollback. This is used to control the number of old ReplicaSets that are retained to allow rollback.\nIf set to 0, no old ReplicaSets are retained."
     },
     "helm-values.secretTargets": {
       "additionalProperties": false,

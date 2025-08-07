@@ -54,6 +54,15 @@ replicaCount: ${REPLICAS_OVERRIDE:=3}
 
 
 
+#### **revisionHistoryLimit** ~ `number,null`
+> Default value:
+> ```yaml
+> 10
+> ```
+
+The number of old ReplicaSets to retain to allow rollback. This is used to control the number of old ReplicaSets that are retained to allow rollback.  
+If set to 0, no old ReplicaSets are retained.
+
 #### **nameOverride** ~ `string`
 > Default value:
 > ```yaml

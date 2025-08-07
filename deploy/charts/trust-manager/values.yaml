@@ -29,6 +29,12 @@ crds:
 # +docs:type=number,string,null
 replicaCount: 1
 
+# The number of old ReplicaSets to retain to allow rollback.
+# This is used to control the number of old ReplicaSets that are retained to allow rollback.
+# If set to 0, no old ReplicaSets are retained.
+# +docs:type=number,null
+revisionHistoryLimit: 10
+
 nameOverride: ""
 
 # The namespace to install trust-manager into.
