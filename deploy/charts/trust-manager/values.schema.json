@@ -27,6 +27,9 @@
         "defaultPackageImage": {
           "$ref": "#/$defs/helm-values.defaultPackageImage"
         },
+        "enabled": {
+          "$ref": "#/$defs/helm-values.enabled"
+        },
         "extraObjects": {
           "$ref": "#/$defs/helm-values.extraObjects"
         },
@@ -605,6 +608,11 @@
       "default": "20230311-deb12u1.0",
       "description": "Override the image tag of the default package image. If no value is set, the chart's appVersion is used.",
       "type": "string"
+    },
+    "helm-values.enabled": {
+      "default": true,
+      "description": "Field to optionally disable installation of the chart when wrapping it as a dependency in another chart.\nThis matched the helm best practices:\nhttps://helm.sh/docs/chart_best_practices/dependencies/#conditions-and-tags",
+      "type": "boolean"
     },
     "helm-values.extraObjects": {
       "default": [],

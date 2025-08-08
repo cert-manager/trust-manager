@@ -1,5 +1,4 @@
 # +docs:section=CRDs
-
 crds:
   # This option decides if the CRDs should be installed
   # as part of the Helm installation.
@@ -377,3 +376,10 @@ commonAnnotations: {}
 #        - toEntities:
 #            - kube-apiserver
 extraObjects: []
+
+# Field to optionally disable installation of the chart when wrapping it as a
+# dependency in another chart.
+# This matched the helm best practices:
+# https://helm.sh/docs/chart_best_practices/dependencies/#conditions-and-tags
+# +docs:hidden
+enabled: true
