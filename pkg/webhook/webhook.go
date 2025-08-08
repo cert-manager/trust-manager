@@ -17,25 +17,16 @@ limitations under the License.
 package webhook
 
 import (
-	"fmt"
-
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 )
 
-// Register the webhook endpoints against the Manager.
-func Register(mgr manager.Manager) error {
-	validator := &validator{}
-	if err := builder.WebhookManagedBy(mgr).
+// SetupWebhookWithManager the webhook endpoints against the Manager.
+func SetupWebhookWithManager(mgr manager.Manager) error {
+	return builder.WebhookManagedBy(mgr).
 		For(&trustapi.Bundle{}).
-		WithValidator(validator).
-		Complete(); err != nil {
-		return fmt.Errorf("error registering webhook: %v", err)
-	}
-	if err := mgr.AddReadyzCheck("validator", mgr.GetWebhookServer().StartedChecker()); err != nil {
-		return fmt.Errorf("error adding ready check: %v", err)
-	}
-	return nil
+		WithValidator(&validator{}).
+		Complete()
 }
