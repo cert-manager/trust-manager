@@ -279,4 +279,6 @@ const (
 	// BundleConditionSynced indicates that the Bundle has successfully synced
 	// all source bundle data to the Bundle target in all Namespaces.
 	BundleConditionSynced string = "Synced"
+
+	BundleMigratedAnnotation string = "trust-manager.io/migrated"
 )
