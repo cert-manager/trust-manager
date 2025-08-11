@@ -68,7 +68,7 @@ func Test_Java_keytool_can_read_JKS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cmd := exec.Command(keytool, "-list", "-keystore", f.Name(), "-storepass", v1alpha1.DefaultJKSPassword) // #nosec G204
+	cmd := exec.CommandContext(t.Context(), keytool, "-list", "-keystore", f.Name(), "-storepass", v1alpha1.DefaultJKSPassword) // #nosec G204
 	out, err := cmd.CombinedOutput()
 	t.Logf("combined out:\n%s", string(out))
 	if err != nil {
@@ -128,7 +128,7 @@ func Test_Java_can_use_JKS(t *testing.T) {
 
 	workDir := t.TempDir()
 
-	cmd := exec.Command(javac,
+	cmd := exec.CommandContext(t.Context(), javac,
 		"-d", workDir,
 		"-Xlint:-options", "-source", "8", "-target", "8",
 		"TestHTTPConnection.java") // #nosec G204
@@ -158,7 +158,7 @@ func Test_Java_can_use_JKS(t *testing.T) {
 	}
 
 	javaDir, _ := path.Split(javac)
-	cmd = exec.Command(path.Join(javaDir, "java"),
+	cmd = exec.CommandContext(t.Context(), path.Join(javaDir, "java"),
 		"-cp", workDir,
 		"-Djavax.net.ssl.trustStoreType=JKS",
 		"-Djavax.net.ssl.trustStore="+jksPath,
