@@ -206,7 +206,7 @@ filterExpiredCertificates:
 app:
   # Minimum TLS version supported. If omitted, the default Go minimum version will be used.
   minTLSVersion: ""
-  
+
   # Comma-separated list of cipher suites for the server. If omitted, the default Go cipher suites will be used.
   cipherSuites: ""
 
