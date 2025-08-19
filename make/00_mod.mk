@@ -16,6 +16,7 @@ oci_platforms := linux/amd64,linux/arm/v7,linux/arm64,linux/ppc64le,linux/s390x
 
 include make/00_debian_version.mk
 include make/00_debian_bookworm_version.mk
+include make/00_debian_trixie_version.mk
 
 repo_name := github.com/cert-manager/trust-manager
 
@@ -52,6 +53,17 @@ oci_package_debian_bookworm_image_tag := $(shell echo $(DEBIAN_BUNDLE_BOOKWORM_V
 oci_package_debian_bookworm_image_name_development := cert-manager.local/trust-pkg-debian-bookworm
 debian_bookworm_package_layer := $(bin_dir)/scratch/debian-trust-package-bookworm
 oci_package_debian_bookworm_additional_layers += $(debian_bookworm_package_layer)
+
+go_package_debian_trixie_main_dir := .
+go_package_debian_trixie_mod_dir := ./trust-packages/debian
+go_package_debian_trixie_ldflags :=
+oci_package_debian_trixie_base_image_flavor := static
+oci_package_debian_trixie_image_name := quay.io/jetstack/trust-pkg-debian-trixie
+# '+' characters are not valid in docker image names. Transform it to a '.' for images
+oci_package_debian_trixie_image_tag := $(shell echo $(DEBIAN_BUNDLE_TRIXIE_VERSION) | tr '+' '-')
+oci_package_debian_trixie_image_name_development := cert-manager.local/trust-pkg-debian-trixie
+debian_trixie_package_layer := $(bin_dir)/scratch/debian-trust-package-trixie
+oci_package_debian_trixie_additional_layers += $(debian_trixie_package_layer)
 
 
 deploy_name := trust-manager

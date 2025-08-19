@@ -29,10 +29,12 @@ The release process for this repo is documented below:
 
 ## Trust package
 
-As well as the trust-manager container images, we also publish a trust package image. For more information on what a trust package is, see the [trust-packages readme](trust-packages/README.md). This process is fully automated through GitHub Actions:
+As well as the trust-manager container images, we also publish trust package images. For more information on what a trust package is, see the [trust-packages readme](trust-packages/README.md). This process is fully automated through GitHub Actions:
 
-1. A cron [GitHub Action](https://venafi.slack.com/archives/D06C21X5L13/p1717075543900969) checks for a new ca-certificates package and creates a PR updating `make/00_debian_version.mk` if one is found
-2. Once merged a [GitHub Action](https://github.com/cert-manager/trust-manager/blob/main/.github/workflows/debian-trust-package-release.yaml) will build and release the container image.
+1. A cron [GitHub Action](https://venafi.slack.com/archives/D06C21X5L13/p1717075543900969) checks for a new ca-certificates package for a given Debian version, and creates a PR updating `make/00_debian_*version.mk` if a new version is found
+2. Once merged, a [GitHub Action](https://github.com/cert-manager/trust-manager/blob/main/.github/workflows/debian-trust-package-release.yaml) will build and release the container image.
+
+This automated process is in place for Debian Bullseye (11), Bookworm (12), and Trixie (13).
 
 ## Artifacts
 
