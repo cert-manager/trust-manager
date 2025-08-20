@@ -16,4 +16,6 @@ limitations under the License.
 
 // +kubebuilder:object:generate=true
 // +groupName=trust-manager.io
+// +kubebuilder:ac:generate=true
+// +kubebuilder:ac:output:package=../../../applyconfigurations
 package v1alpha2
