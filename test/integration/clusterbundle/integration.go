@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	ctrlwebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	"github.com/cert-manager/trust-manager/pkg/webhook"
 	"github.com/cert-manager/trust-manager/test"
 
@@ -79,7 +79,7 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	Expect(webhook.SetupWebhookWithManager(mgr)).Should(Succeed())
+	Expect((&webhook.ClusterBundle{}).SetupWebhookWithManager(mgr)).Should(Succeed())
 
 	go func() {
 		defer GinkgoRecover()
@@ -106,19 +106,19 @@ func validatingWebhookConfiguration() *admissionv1.ValidatingWebhookConfiguratio
 	v := &admissionv1.ValidatingWebhookConfiguration{}
 	v.Name = "trust-manager"
 	v.Webhooks = []admissionv1.ValidatingWebhook{
-		bundleValidatingWebhook(),
+		clusterBundleValidatingWebhook(),
 	}
 	return v
 }
 
-func bundleValidatingWebhook() admissionv1.ValidatingWebhook {
+func clusterBundleValidatingWebhook() admissionv1.ValidatingWebhook {
 	return admissionv1.ValidatingWebhook{
-		Name: "trust.cert-manager.io",
+		Name: "v1alpha2-clusterbundles-validator.trust-manager.io",
 		Rules: []admissionv1.RuleWithOperations{{
 			Rule: admissionv1.Rule{
-				APIGroups:   []string{trustapi.SchemeGroupVersion.Group},
-				APIVersions: []string{"v1alpha1"},
-				Resources:   []string{"bundles"},
+				APIGroups:   []string{trustmanagerapi.SchemeGroupVersion.Group},
+				APIVersions: []string{"v1alpha2"},
+				Resources:   []string{"clusterbundles"},
 			},
 			Operations: []admissionv1.OperationType{admissionv1.Create, admissionv1.Update},
 		}},
@@ -128,7 +128,7 @@ func bundleValidatingWebhook() admissionv1.ValidatingWebhook {
 			Service: &admissionv1.ServiceReference{
 				Namespace: "cert-manager",
 				Name:      "trust-manager",
-				Path:      ptr.To("/validate-trust-cert-manager-io-v1alpha1-bundle"),
+				Path:      ptr.To("/validate-trust-manager-io-v1alpha2-clusterbundle"),
 			},
 		},
 	}
