@@ -28,7 +28,6 @@ import (
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
-	"github.com/cert-manager/trust-manager/pkg/bundle/internal/truststore"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/pkg/util"
 )
@@ -50,31 +49,6 @@ type BundleData struct {
 	DefaultCAPackageStringID string
 }
 
-func (b *BundleData) populate(pool *util.CertPool, formats *trustapi.AdditionalFormats) error {
-	b.Data = pool.PEM()
-
-	if formats != nil {
-		b.BinaryData = make(map[string][]byte)
-
-		if formats.JKS != nil {
-			encoded, err := truststore.NewJKSEncoder(*formats.JKS.Password).Encode(pool)
-			if err != nil {
-				return fmt.Errorf("failed to encode JKS: %w", err)
-			}
-			b.BinaryData[formats.JKS.Key] = encoded
-		}
-
-		if formats.PKCS12 != nil {
-			encoded, err := truststore.NewPKCS12Encoder(*formats.PKCS12.Password, formats.PKCS12.Profile).Encode(pool)
-			if err != nil {
-				return fmt.Errorf("failed to encode PKCS12: %w", err)
-			}
-			b.BinaryData[formats.PKCS12.Key] = encoded
-		}
-	}
-	return nil
-}
-
 type BundleBuilder struct {
 	client.Reader
 
@@ -87,7 +61,7 @@ type BundleBuilder struct {
 
 // BuildBundle retrieves and concatenates all source bundle data for this Bundle object.
 // Each source data is validated and pruned to ensure that all certificates within are valid.
-func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.BundleSource, formats *trustapi.AdditionalFormats) (BundleData, error) {
+func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.BundleSource) (BundleData, error) {
 	var resolvedBundle BundleData
 	certPool := util.NewCertPool(
 		util.WithFilteredExpiredCerts(b.FilterExpiredCerts),
@@ -130,9 +104,7 @@ func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.Bund
 		return BundleData{}, NotFoundError{fmt.Errorf("couldn't find any valid certificates in bundle")}
 	}
 
-	if err := resolvedBundle.populate(certPool, formats); err != nil {
-		return BundleData{}, err
-	}
+	resolvedBundle.Data = certPool.PEM()
 
 	return resolvedBundle, nil
 }
