@@ -41,7 +41,7 @@ type BundleReconciler struct {
 // SetupWithManager sets up the controller with the Manager.
 func (r *BundleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&trustapi.Bundle{}).
+		For(&trustapi.Bundle{}). //lint:ignore SA1019
 		Owns(&trustmanagerapi.ClusterBundle{}).
 		Complete(r)
 }
