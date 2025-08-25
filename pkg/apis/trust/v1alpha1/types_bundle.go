@@ -293,4 +293,10 @@ const (
 	// BundleConditionSynced indicates that the Bundle has successfully synced
 	// all source bundle data to the Bundle target in all Namespaces.
 	BundleConditionSynced string = "Synced"
+	// BundleConditionDeprecated is a condition type used in migration from Bundle to ClusterBundle.
+	BundleConditionDeprecated string = "Deprecated"
+	// BundleConditionMigrated indicates that the Bundle has been successfully migrated
+	// to ClusterBundle by user. The user has taken ownership of the migrated ClusterBundle,
+	// and the obsolete Bundle can now be safely deleted by user.
+	BundleConditionMigrated string = "Migrated"
 )

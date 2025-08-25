@@ -34,6 +34,7 @@ import (
 	ctrlwebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
+	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
 	"github.com/cert-manager/trust-manager/pkg/webhook"
 	"github.com/cert-manager/trust-manager/test"
 
@@ -80,6 +81,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	Expect((&webhook.ClusterBundle{}).SetupWebhookWithManager(mgr)).Should(Succeed())
+	Expect((&controller.BundleReconciler{Client: mgr.GetClient()}).SetupWithManager(mgr)).Should(Succeed())
 
 	go func() {
 		defer GinkgoRecover()
