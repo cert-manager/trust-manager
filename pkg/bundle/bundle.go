@@ -23,6 +23,7 @@ import (
 	"slices"
 	"strings"
 
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -88,7 +89,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 	ctx = logf.IntoContext(ctx, log)
 	log.V(2).Info("syncing bundle")
 
-	var bundle trustapi.Bundle
+	var bundle trustmanagerapi.ClusterBundle
 	err := b.client.Get(ctx, req.NamespacedName, &bundle)
 	if apierrors.IsNotFound(err) {
 		log.V(2).Info("bundle no longer exists, ignoring")
@@ -162,7 +163,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 
 	targetResources := map[target.Resource]struct{}{}
 
-	namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
+	namespaceSelector, err := metav1.LabelSelectorAsSelector((&bundle).Spec.Target.NamespaceSelector)
 	if err != nil {
 		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceSelectorError", "Failed to build namespace match labels selector: %s", err)
 		return nil, fmt.Errorf("failed to build NamespaceSelector: %w", err)
@@ -335,17 +336,4 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", message)
 
 	return statusPatch, nil
-}
-
-func (b *bundle) bundleTargetNamespaceSelector(bundleObj *trustapi.Bundle) (labels.Selector, error) {
-	nsSelector := bundleObj.Spec.Target.NamespaceSelector
-
-	// LabelSelectorAsSelector returns a Selector selecting nothing if LabelSelector is nil,
-	// while our current default is to select everything. But this is subject to change.
-	// See https://github.com/cert-manager/trust-manager/issues/39
-	if nsSelector == nil {
-		return labels.Everything(), nil
-	}
-
-	return metav1.LabelSelectorAsSelector(nsSelector)
 }
