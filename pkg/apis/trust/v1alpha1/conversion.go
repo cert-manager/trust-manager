@@ -93,6 +93,11 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 		return err
 	}
 
+	// No targets defined; we are done
+	if *out == (trustv1alpha2.BundleTarget{}) {
+		return nil
+	}
+
 	if in.AdditionalFormats != nil {
 		appendTargetKV := func(tkv trustv1alpha2.TargetKeyValue) {
 			if in.ConfigMap != nil {
