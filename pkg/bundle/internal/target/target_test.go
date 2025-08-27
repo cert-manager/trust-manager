@@ -540,37 +540,14 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				assert.Equal(t, tt.expJKS, jksExists)
 
 				if tt.expJKS {
-					reader := bytes.NewReader(binData)
-
-					ks := jks.New()
-
-					err := ks.Load(reader, []byte(trustapi.DefaultJKSPassword))
-					assert.Nil(t, err)
-
-					entryNames := ks.Aliases()
-
-					assert.Len(t, entryNames, 1)
-					assert.True(t, ks.IsTrustedCertificateEntry(entryNames[0]))
-
-					// Safe to ignore errors here, we've tested that it's present and a TrustedCertificateEntry
-					cert, _ := ks.GetTrustedCertificateEntry(entryNames[0])
-
-					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
-					p, _ := pem.Decode([]byte(data))
-					assert.Equal(t, p.Bytes, cert.Certificate.Content)
+					assertJKSData(t, binData, trustapi.DefaultJKSPassword)
 				}
 
 				binData, pkcs12Exists := configmap.BinaryData[pkcs12Key]
 				assert.Equal(t, tt.expPKCS12, pkcs12Exists)
 
 				if tt.expPKCS12 {
-					cas, err := pkcs12.DecodeTrustStore(binData, trustapi.DefaultPKCS12Password)
-					assert.NoError(t, err)
-					assert.Len(t, cas, 1)
-
-					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
-					p, _ := pem.Decode([]byte(data))
-					assert.Equal(t, p.Bytes, cas[0].Raw)
+					assertPKCS12Data(t, binData, trustapi.DefaultPKCS12Password)
 				}
 
 				if tt.expTargetLabel {
@@ -1002,37 +979,14 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				assert.Equal(t, tt.expJKS, jksExists)
 
 				if tt.expJKS {
-					reader := bytes.NewReader(binData)
-
-					ks := jks.New()
-
-					err := ks.Load(reader, []byte(trustapi.DefaultJKSPassword))
-					assert.Nil(t, err)
-
-					entryNames := ks.Aliases()
-
-					assert.Len(t, entryNames, 1)
-					assert.True(t, ks.IsTrustedCertificateEntry(entryNames[0]))
-
-					// Safe to ignore errors here, we've tested that it's present and a TrustedCertificateEntry
-					cert, _ := ks.GetTrustedCertificateEntry(entryNames[0])
-
-					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
-					p, _ := pem.Decode([]byte(data))
-					assert.Equal(t, p.Bytes, cert.Certificate.Content)
+					assertJKSData(t, binData, trustapi.DefaultJKSPassword)
 				}
 
 				binData, pkcs12Exists := secret.Data[pkcs12Key]
 				assert.Equal(t, tt.expPKCS12, pkcs12Exists)
 
 				if tt.expPKCS12 {
-					cas, err := pkcs12.DecodeTrustStore(binData, trustapi.DefaultPKCS12Password)
-					assert.NoError(t, err)
-					assert.Len(t, cas, 1)
-
-					// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
-					p, _ := pem.Decode([]byte(data))
-					assert.Equal(t, p.Bytes, cas[0].Raw)
+					assertPKCS12Data(t, binData, trustapi.DefaultPKCS12Password)
 				}
 			}
 		})
@@ -1176,4 +1130,39 @@ func Test_TrustBundleHash(t *testing.T) {
 			}
 		})
 	}
+}
+
+func assertJKSData(t *testing.T, binData []byte, password string) {
+	t.Helper()
+
+	reader := bytes.NewReader(binData)
+
+	ks := jks.New()
+
+	err := ks.Load(reader, []byte(password))
+	assert.Nil(t, err)
+
+	entryNames := ks.Aliases()
+
+	assert.Len(t, entryNames, 1)
+	assert.True(t, ks.IsTrustedCertificateEntry(entryNames[0]))
+
+	// Safe to ignore errors here, we've tested that it's present and a TrustedCertificateEntry
+	cert, _ := ks.GetTrustedCertificateEntry(entryNames[0])
+
+	// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
+	p, _ := pem.Decode([]byte(data))
+	assert.Equal(t, p.Bytes, cert.Certificate.Content)
+}
+
+func assertPKCS12Data(t *testing.T, binData []byte, password string) {
+	t.Helper()
+
+	cas, err := pkcs12.DecodeTrustStore(binData, password)
+	assert.NoError(t, err)
+	assert.Len(t, cas, 1)
+
+	// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
+	p, _ := pem.Decode([]byte(data))
+	assert.Equal(t, p.Bytes, cas[0].Raw)
 }
