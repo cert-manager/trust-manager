@@ -36,10 +36,6 @@ import (
 	"github.com/cert-manager/trust-manager/test/dummy"
 )
 
-const (
-	data = dummy.TestCertificate1
-)
-
 func Test_BuildBundle(t *testing.T) {
 	tests := map[string]struct {
 		sources                     []trustapi.BundleSource
@@ -355,8 +351,9 @@ func Test_BuildBundle(t *testing.T) {
 				t.Errorf("unexpected InvalidSecretError, exp=%t got=%v", tt.expInvalidSecretSourceError, err)
 			}
 
-			if resolvedBundle.Data != tt.expData {
-				t.Errorf("unexpected data, exp=%q got=%q", tt.expData, resolvedBundle.Data)
+			data := resolvedBundle.CertPool.PEM()
+			if data != tt.expData {
+				t.Errorf("unexpected data, exp=%q got=%q", tt.expData, data)
 			}
 		})
 	}

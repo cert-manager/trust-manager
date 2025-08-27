@@ -42,9 +42,7 @@ type InvalidSecretError struct{ error }
 // certificate data from concatenating all the sources together, binary data for any additional formats and
 // any metadata from the sources which needs to be exposed on the Bundle resource's status field.
 type BundleData struct {
-	Data string
-
-	BinaryData map[string][]byte
+	CertPool *util.CertPool
 
 	DefaultCAPackageStringID string
 }
@@ -63,7 +61,7 @@ type BundleBuilder struct {
 // Each source data is validated and pruned to ensure that all certificates within are valid.
 func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.BundleSource) (BundleData, error) {
 	var resolvedBundle BundleData
-	certPool := util.NewCertPool(
+	resolvedBundle.CertPool = util.NewCertPool(
 		util.WithFilteredExpiredCerts(b.FilterExpiredCerts),
 		util.WithLogger(logf.FromContext(ctx).WithName("cert-pool")),
 	)
@@ -94,17 +92,15 @@ func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.Bund
 			panic(fmt.Sprintf("don't know how to process source: %+v", source))
 		}
 
-		if err := certSource.addToCertPool(ctx, certPool); err != nil {
+		if err := certSource.addToCertPool(ctx, resolvedBundle.CertPool); err != nil {
 			return BundleData{}, err
 		}
 	}
 
 	// NB: empty bundles are not valid, so check and return an error if one somehow snuck through.
-	if certPool.Size() == 0 {
+	if resolvedBundle.CertPool.Size() == 0 {
 		return BundleData{}, NotFoundError{fmt.Errorf("couldn't find any valid certificates in bundle")}
 	}
-
-	resolvedBundle.Data = certPool.PEM()
 
 	return resolvedBundle, nil
 }
