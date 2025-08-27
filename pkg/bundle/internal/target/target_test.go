@@ -466,15 +466,16 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				},
 			}
 
+			certPool := util.NewCertPool()
+			err := certPool.AddCertsFromPEM([]byte(data))
+			assert.NoError(t, err)
+
 			spec := trustapi.BundleSpec{
 				Target: trustapi.BundleTarget{
 					ConfigMap:         &trustapi.TargetTemplate{Key: key},
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
-			certPool := util.NewCertPool()
-			err := certPool.AddCertsFromPEM([]byte(data))
-			assert.NoError(t, err)
 			resolvedBundle := source.BundleData{CertPool: certPool}
 			if tt.withJKS {
 				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
@@ -916,16 +917,16 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				},
 			}
 
+			certPool := util.NewCertPool()
+			err := certPool.AddCertsFromPEM([]byte(data))
+			assert.NoError(t, err)
+
 			spec := trustapi.BundleSpec{
 				Target: trustapi.BundleTarget{
 					Secret:            &trustapi.TargetTemplate{Key: key},
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
-			certPool := util.NewCertPool()
-			err := certPool.AddCertsFromPEM([]byte(data))
-			assert.NoError(t, err)
-
 			resolvedBundle := source.BundleData{CertPool: certPool}
 			if tt.withJKS {
 				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
