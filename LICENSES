@@ -98,7 +98,6 @@ gomodules.xyz/jsonpatch/v2,Apache-2.0
 google.golang.org/protobuf,BSD-3-Clause
 gopkg.in/evanphx/json-patch.v4,BSD-3-Clause
 gopkg.in/inf.v0,BSD-3-Clause
-gopkg.in/yaml.v2,Apache-2.0
 gopkg.in/yaml.v3,MIT
 k8s.io/api,Apache-2.0
 k8s.io/apiextensions-apiserver/pkg,Apache-2.0
@@ -120,7 +119,6 @@ sigs.k8s.io/json,BSD-3-Clause
 sigs.k8s.io/kustomize/api,Apache-2.0
 sigs.k8s.io/kustomize/kyaml,Apache-2.0
 sigs.k8s.io/randfill,Apache-2.0
-sigs.k8s.io/structured-merge-diff,Apache-2.0
 sigs.k8s.io/structured-merge-diff/v6,Apache-2.0
 sigs.k8s.io/yaml,MIT
 sigs.k8s.io/yaml,Apache-2.0
