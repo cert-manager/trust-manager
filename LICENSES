@@ -56,7 +56,6 @@ github.com/gogo/protobuf,BSD-3-Clause
 github.com/google/btree,Apache-2.0
 github.com/google/gnostic-models,Apache-2.0
 github.com/google/go-cmp/cmp,BSD-3-Clause
-github.com/google/shlex,Apache-2.0
 github.com/google/uuid,BSD-3-Clause
 github.com/gregjones/httpcache,MIT
 github.com/josharian/intern,MIT
@@ -73,6 +72,7 @@ github.com/onsi/gomega,MIT
 github.com/pavlo-v-chernykh/keystore-go/v4,MIT
 github.com/peterbourgon/diskv,MIT
 github.com/pkg/errors,BSD-2-Clause
+github.com/pmezard/go-difflib/difflib,BSD-3-Clause
 github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil,BSD-3-Clause
 github.com/prometheus/client_golang/prometheus,Apache-2.0
 github.com/prometheus/client_model/go,Apache-2.0
@@ -84,6 +84,7 @@ github.com/x448/float16,MIT
 github.com/xlab/treeprint,MIT
 go.uber.org/multierr,MIT
 go.uber.org/zap,MIT
+go.yaml.in/yaml/v2,Apache-2.0
 go.yaml.in/yaml/v3,MIT
 golang.org/x/crypto/pbkdf2,BSD-3-Clause
 golang.org/x/net,BSD-3-Clause
@@ -120,10 +121,8 @@ sigs.k8s.io/kustomize/api,Apache-2.0
 sigs.k8s.io/kustomize/kyaml,Apache-2.0
 sigs.k8s.io/randfill,Apache-2.0
 sigs.k8s.io/structured-merge-diff,Apache-2.0
-sigs.k8s.io/structured-merge-diff/v4,Apache-2.0
+sigs.k8s.io/structured-merge-diff/v6,Apache-2.0
 sigs.k8s.io/yaml,MIT
 sigs.k8s.io/yaml,Apache-2.0
 sigs.k8s.io/yaml,BSD-3-Clause
-sigs.k8s.io/yaml/goyaml.v2,Apache-2.0
-sigs.k8s.io/yaml/goyaml.v3,MIT
 software.sslmate.com/src/go-pkcs12,BSD-3-Clause
