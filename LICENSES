@@ -84,6 +84,7 @@ github.com/x448/float16,MIT
 github.com/xlab/treeprint,MIT
 go.uber.org/multierr,MIT
 go.uber.org/zap,MIT
+go.yaml.in/yaml/v2,Apache-2.0
 go.yaml.in/yaml/v3,MIT
 golang.org/x/crypto/pbkdf2,BSD-3-Clause
 golang.org/x/net,BSD-3-Clause
@@ -121,6 +122,7 @@ sigs.k8s.io/kustomize/kyaml,Apache-2.0
 sigs.k8s.io/randfill,Apache-2.0
 sigs.k8s.io/structured-merge-diff,Apache-2.0
 sigs.k8s.io/structured-merge-diff/v4,Apache-2.0
+sigs.k8s.io/structured-merge-diff/v6,Apache-2.0
 sigs.k8s.io/yaml,MIT
 sigs.k8s.io/yaml,Apache-2.0
 sigs.k8s.io/yaml,BSD-3-Clause
