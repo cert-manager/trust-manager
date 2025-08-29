@@ -170,9 +170,10 @@ tools += yamlfmt=v0.17.2
 # renovate: datasource=github-releases packageName=yannh/kubeconform
 tools += kubeconform=v0.7.0
 
+# FIXME(erikgb): cert-manager needs the ability to override the version set here
 # https://pkg.go.dev/k8s.io/code-generator/cmd?tab=versions
 # renovate: datasource=go packageName=k8s.io/code-generator
-K8S_CODEGEN_VERSION := v0.34.0
+K8S_CODEGEN_VERSION ?= v0.34.0
 tools += client-gen=$(K8S_CODEGEN_VERSION)
 tools += deepcopy-gen=$(K8S_CODEGEN_VERSION)
 tools += informer-gen=$(K8S_CODEGEN_VERSION)
