@@ -82,7 +82,7 @@ func Test_Reconcile(t *testing.T) {
 
 	var (
 		sourceConfigMap client.Object = &corev1.ConfigMap{
-			TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+			// TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      sourceConfigMapName,
 				Namespace: trustNamespace,
@@ -93,7 +93,7 @@ func Test_Reconcile(t *testing.T) {
 		}
 
 		sourceSecret client.Object = &corev1.Secret{
-			TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
+			// TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      sourceSecretName,
 				Namespace: trustNamespace,
@@ -104,7 +104,7 @@ func Test_Reconcile(t *testing.T) {
 		}
 
 		baseBundle = &trustapi.Bundle{
-			TypeMeta: metav1.TypeMeta{Kind: "Bundle", APIVersion: "trust.cert-manager.io/v1alpha1"},
+			// TypeMeta: metav1.TypeMeta{Kind: "Bundle", APIVersion: "trust.cert-manager.io/v1alpha1"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            bundleName,
 				Generation:      bundleGeneration,
@@ -126,9 +126,9 @@ func Test_Reconcile(t *testing.T) {
 		baseBundleOwnerRef = []metav1.OwnerReference{*metav1.NewControllerRef(baseBundle, trustapi.SchemeGroupVersion.WithKind(trustapi.BundleKind))}
 
 		namespaces = []client.Object{
-			&corev1.Namespace{TypeMeta: metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"}, ObjectMeta: metav1.ObjectMeta{Name: trustNamespace}},
-			&corev1.Namespace{TypeMeta: metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"}, ObjectMeta: metav1.ObjectMeta{Name: "ns-1"}},
-			&corev1.Namespace{TypeMeta: metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"}, ObjectMeta: metav1.ObjectMeta{Name: "ns-2"}},
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: trustNamespace}},
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "ns-1"}},
+			&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "ns-2"}},
 		}
 
 		fixedTime     = time.Date(2021, 01, 01, 01, 0, 0, 0, time.Local) // nolint: gosmopolitan // metav1.Time when unmarshalled returns a local time
@@ -229,7 +229,7 @@ func Test_Reconcile(t *testing.T) {
 			}
 
 			configmap := &corev1.ConfigMap{
-				TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+				// TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace:       namespace,
 					Name:            baseBundle.Name,
@@ -266,7 +266,7 @@ func Test_Reconcile(t *testing.T) {
 			}
 
 			secret := &corev1.Secret{
-				TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
+				// TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace:       namespace,
 					Name:            baseBundle.Name,
@@ -772,7 +772,7 @@ func Test_Reconcile(t *testing.T) {
 		"if Bundle not synced everywhere, sync except Namespaces that are terminating and update Synced": {
 			existingNamespaces: append(namespaces,
 				&corev1.Namespace{
-					TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					// TypeMeta:   metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{Name: "random-namespace"},
 					Status:     corev1.NamespaceStatus{Phase: corev1.NamespaceTerminating},
 				},
@@ -801,14 +801,14 @@ func Test_Reconcile(t *testing.T) {
 		"if Bundle not synced everywhere, sync except Namespaces that don't match labels and update Synced": {
 			existingNamespaces: append(namespaces,
 				&corev1.Namespace{
-					TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					// TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   "random-namespace",
 						Labels: map[string]string{"foo": "bar"},
 					},
 				},
 				&corev1.Namespace{
-					TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
+					// TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   "another-random-namespace",
 						Labels: map[string]string{"foo": "bar"},
@@ -1414,7 +1414,6 @@ func Test_Reconcile(t *testing.T) {
 			existingNamespaces:      namespaces,
 			existingConfigMaps: []client.Object{
 				&corev1.ConfigMap{
-					TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      sourceConfigMapName,
 						Namespace: trustNamespace,
