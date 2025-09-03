@@ -21,17 +21,13 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/selection"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	ctrlwebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -93,52 +89,10 @@ func NewCommand() *cobra.Command {
 				Metrics: server.Options{
 					BindAddress: fmt.Sprintf("0.0.0.0:%d", opts.MetricsPort),
 				},
-				Cache: cache.Options{
-					ReaderFailOnMissingInformer: true,
-					ByObject: map[client.Object]cache.ByObject{
-						&trustapi.Bundle{}:  {},
-						&corev1.Namespace{}: {},
-						&corev1.ConfigMap{}: {
-							// Only cache full ConfigMaps in the "watched" namespace.
-							// Target ConfigMaps have a dedicated cache
-							Namespaces: map[string]cache.Config{
-								opts.Bundle.Namespace: {},
-							},
-						},
-						&corev1.Secret{}: {
-							// Only cache full Secrets in the "watched" namespace.
-							// Target Secrets have a dedicated cache
-							Namespaces: map[string]cache.Config{
-								opts.Bundle.Namespace: {},
-							},
-						},
-					},
-				},
+				Cache: bundle.CacheOpts(opts.Bundle),
 			})
 			if err != nil {
 				return fmt.Errorf("failed to create manager: %w", err)
-			}
-
-			targetCache, err := cache.New(mgr.GetConfig(), cache.Options{
-				HTTPClient:                  mgr.GetHTTPClient(),
-				Scheme:                      mgr.GetScheme(),
-				Mapper:                      mgr.GetRESTMapper(),
-				ReaderFailOnMissingInformer: true,
-				DefaultLabelSelector: func() labels.Selector {
-					targetRequirement, err := labels.NewRequirement(trustapi.BundleLabelKey, selection.Exists, nil)
-					if err != nil {
-						panic(fmt.Errorf("failed to create target label requirement: %w", err))
-					}
-
-					return labels.NewSelector().Add(*targetRequirement)
-				}(),
-			})
-			if err != nil {
-				return fmt.Errorf("failed to create target cache: %w", err)
-			}
-
-			if err := mgr.Add(targetCache); err != nil {
-				return fmt.Errorf("failed to add target cache to manager: %w", err)
 			}
 
 			if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
@@ -149,9 +103,10 @@ func NewCommand() *cobra.Command {
 			}
 
 			ctx := ctrl.SetupSignalHandler()
+			logf.IntoContext(ctx, log)
 
 			// Add Bundle controller to manager.
-			if err := bundle.AddBundleController(ctx, mgr, opts.Bundle, targetCache); err != nil {
+			if err := bundle.SetupWithManager(ctx, mgr, opts.Bundle); err != nil {
 				return fmt.Errorf("failed to register Bundle controller: %w", err)
 			}
 

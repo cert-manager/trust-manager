@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -44,12 +45,69 @@ import (
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
 
-// AddBundleController will register the Bundle controller with the
+func CacheOpts(opts controller.Options) cache.Options {
+	return cache.Options{
+		ReaderFailOnMissingInformer: true,
+		ByObject: map[client.Object]cache.ByObject{
+			&trustapi.Bundle{}:  {},
+			&corev1.Namespace{}: {},
+			&corev1.ConfigMap{}: {
+				// Only cache full ConfigMaps in the "watched" namespace.
+				// Target ConfigMaps have a dedicated cache
+				Namespaces: map[string]cache.Config{
+					opts.Namespace: {},
+				},
+			},
+			&corev1.Secret{}: {
+				// Only cache full Secrets in the "watched" namespace.
+				// Target Secrets have a dedicated cache
+				Namespaces: map[string]cache.Config{
+					opts.Namespace: {},
+				},
+			},
+		},
+	}
+}
+
+func SetupWithManager(
+	ctx context.Context,
+	mgr ctrl.Manager,
+	opts controller.Options,
+) error {
+	targetRequirement, err := labels.NewRequirement(trustapi.BundleLabelKey, selection.Exists, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create target label requirement: %w", err)
+	}
+
+	targetCache, err := cache.New(mgr.GetConfig(), cache.Options{
+		HTTPClient:                  mgr.GetHTTPClient(),
+		Scheme:                      mgr.GetScheme(),
+		Mapper:                      mgr.GetRESTMapper(),
+		ReaderFailOnMissingInformer: true,
+		DefaultLabelSelector:        labels.NewSelector().Add(*targetRequirement),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create target cache: %w", err)
+	}
+
+	if err := mgr.Add(targetCache); err != nil {
+		return fmt.Errorf("failed to add target cache to manager: %w", err)
+	}
+
+	// Add Bundle controller to manager.
+	if err := addBundleController(ctx, mgr, opts, targetCache); err != nil {
+		return fmt.Errorf("failed to register Bundle controller: %w", err)
+	}
+
+	return nil
+}
+
+// addBundleController will register the Bundle controller with the
 // controller-runtime Manager.
 // The Bundle controller will reconcile Bundles on Bundle events, as well as
 // when any related resource event in the Bundle source and target.
 // The controller will only cache metadata for ConfigMaps and Secrets.
-func AddBundleController(
+func addBundleController(
 	ctx context.Context,
 	mgr manager.Manager,
 	opts controller.Options,
