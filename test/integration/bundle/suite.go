@@ -115,12 +115,13 @@ var _ = Describe("Integration", func() {
 				// since all tests need a dedicated controller
 				SkipNameValidation: ptr.To(true),
 			},
+			Cache: bundle.CacheOpts(controller.Options{}),
 		})
 		Expect(err).NotTo(HaveOccurred())
 
 		mgrStopped = make(chan struct{})
 
-		Expect(bundle.AddBundleController(ctx, mgr, opts, mgr.GetCache())).NotTo(HaveOccurred())
+		Expect(bundle.SetupWithManager(ctx, mgr, opts)).NotTo(HaveOccurred())
 
 		By("Running Bundle controller")
 		go func() {
