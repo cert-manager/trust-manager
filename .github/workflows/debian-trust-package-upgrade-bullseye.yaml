@@ -64,7 +64,7 @@ jobs:
           git push -f origin "$SELF_UPGRADE_BRANCH"
 
       - if: ${{ steps.is-up-to-date.outputs.result != 'true' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const { repo, owner } = context.repo;
