@@ -17,10 +17,13 @@ limitations under the License.
 package target
 
 import (
+	"bytes"
 	"context"
+	"encoding/pem"
 	"sync"
 	"testing"
 
+	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,10 +34,12 @@ import (
 	"k8s.io/klog/v2/ktesting"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"software.sslmate.com/src/go-pkcs12"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/source"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
+	"github.com/cert-manager/trust-manager/pkg/util"
 	"github.com/cert-manager/trust-manager/test"
 	"github.com/cert-manager/trust-manager/test/dummy"
 )
@@ -48,12 +53,6 @@ const (
 	data             = dummy.TestCertificate1
 	targetAnnotation = "dummyannotation"
 	targetLabel      = "dummylabel"
-)
-
-var (
-	// The actual encoded data is not relevant for this test. So to avoid additional complexity, we just set dummy values.
-	jksData    = []byte("JKS")
-	pkcs12Data = []byte("PKCS12")
 )
 
 func Test_ApplyTarget_ConfigMap(t *testing.T) {
@@ -467,28 +466,32 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				},
 			}
 
+			certPool := util.NewCertPool()
+			err := certPool.AddCertsFromPEM([]byte(data))
+			assert.NoError(t, err)
+
 			spec := trustapi.BundleSpec{
 				Target: trustapi.BundleTarget{
 					ConfigMap:         &trustapi.TargetTemplate{Key: key},
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
-			resolvedBundle := source.BundleData{Data: data, BinaryData: make(map[string][]byte)}
+			resolvedBundle := source.BundleData{CertPool: certPool}
 			if tt.withJKS {
 				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
 					KeySelector: trustapi.KeySelector{
 						Key: jksKey,
 					},
+					Password: ptr.To(trustapi.DefaultJKSPassword),
 				}
-				resolvedBundle.BinaryData[jksKey] = jksData
 			}
 			if tt.withPKCS12 {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{
 					KeySelector: trustapi.KeySelector{
 						Key: pkcs12Key,
 					},
+					Password: ptr.To(trustapi.DefaultPKCS12Password),
 				}
-				resolvedBundle.BinaryData[pkcs12Key] = pkcs12Data
 			}
 			if tt.withTargetAnnotation {
 				if spec.Target.ConfigMap.Metadata == nil {
@@ -538,14 +541,14 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				assert.Equal(t, tt.expJKS, jksExists)
 
 				if tt.expJKS {
-					assert.Equal(t, jksData, binData)
+					assertJKSData(t, binData, trustapi.DefaultJKSPassword)
 				}
 
 				binData, pkcs12Exists := configmap.BinaryData[pkcs12Key]
 				assert.Equal(t, tt.expPKCS12, pkcs12Exists)
 
 				if tt.expPKCS12 {
-					assert.Equal(t, pkcs12Data, binData)
+					assertPKCS12Data(t, binData, trustapi.DefaultPKCS12Password)
 				}
 
 				if tt.expTargetLabel {
@@ -914,28 +917,32 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				},
 			}
 
+			certPool := util.NewCertPool()
+			err := certPool.AddCertsFromPEM([]byte(data))
+			assert.NoError(t, err)
+
 			spec := trustapi.BundleSpec{
 				Target: trustapi.BundleTarget{
 					Secret:            &trustapi.TargetTemplate{Key: key},
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
-			resolvedBundle := source.BundleData{Data: data, BinaryData: make(map[string][]byte)}
+			resolvedBundle := source.BundleData{CertPool: certPool}
 			if tt.withJKS {
 				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
 					KeySelector: trustapi.KeySelector{
 						Key: jksKey,
 					},
+					Password: ptr.To(trustapi.DefaultJKSPassword),
 				}
-				resolvedBundle.BinaryData[jksKey] = jksData
 			}
 			if tt.withPKCS12 {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{
 					KeySelector: trustapi.KeySelector{
 						Key: pkcs12Key,
 					},
+					Password: ptr.To(trustapi.DefaultPKCS12Password),
 				}
-				resolvedBundle.BinaryData[pkcs12Key] = pkcs12Data
 			}
 
 			_, ctx := ktesting.NewTestContext(t)
@@ -973,14 +980,14 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				assert.Equal(t, tt.expJKS, jksExists)
 
 				if tt.expJKS {
-					assert.Equal(t, jksData, binData)
+					assertJKSData(t, binData, trustapi.DefaultJKSPassword)
 				}
 
 				binData, pkcs12Exists := secret.Data[pkcs12Key]
 				assert.Equal(t, tt.expPKCS12, pkcs12Exists)
 
 				if tt.expPKCS12 {
-					assert.Equal(t, pkcs12Data, binData)
+					assertPKCS12Data(t, binData, trustapi.DefaultPKCS12Password)
 				}
 			}
 		})
@@ -1124,4 +1131,39 @@ func Test_TrustBundleHash(t *testing.T) {
 			}
 		})
 	}
+}
+
+func assertJKSData(t *testing.T, binData []byte, password string) {
+	t.Helper()
+
+	reader := bytes.NewReader(binData)
+
+	ks := jks.New()
+
+	err := ks.Load(reader, []byte(password))
+	assert.Nil(t, err)
+
+	entryNames := ks.Aliases()
+
+	assert.Len(t, entryNames, 1)
+	assert.True(t, ks.IsTrustedCertificateEntry(entryNames[0]))
+
+	// Safe to ignore errors here, we've tested that it's present and a TrustedCertificateEntry
+	cert, _ := ks.GetTrustedCertificateEntry(entryNames[0])
+
+	// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
+	p, _ := pem.Decode([]byte(data))
+	assert.Equal(t, p.Bytes, cert.Certificate.Content)
+}
+
+func assertPKCS12Data(t *testing.T, binData []byte, password string) {
+	t.Helper()
+
+	cas, err := pkcs12.DecodeTrustStore(binData, password)
+	assert.NoError(t, err)
+	assert.Len(t, cas, 1)
+
+	// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
+	p, _ := pem.Decode([]byte(data))
+	assert.Equal(t, p.Bytes, cas[0].Raw)
 }
