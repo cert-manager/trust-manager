@@ -176,7 +176,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 						Key: "foo",
 					}},
 				})
-				matchErr := "spec.target.%s.data[1]: Duplicate value: map[string]interface {}{\"key\":\"foo\"}"
+				matchErr := "spec.target.%s.data[1]: Duplicate value: {\"key\":\"foo\"}"
 				Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, targetField)))
 
 				setTarget(&trustmanagerapi.KeyValueTarget{
