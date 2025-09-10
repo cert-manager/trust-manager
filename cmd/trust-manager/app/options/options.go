@@ -83,6 +83,9 @@ type Options struct {
 	LeaderElectionConfig LeaderElectionConfig
 
 	TLSConfig TLSConfig
+
+	// Limit both the manager and the target caches to the provided list of namespaces
+	TargetNamespaces []string
 }
 
 type TLSConfig struct {
@@ -234,6 +237,10 @@ func (o *Options) addAppFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&o.MetricsPort,
 		"metrics-port", 9402,
 		"Port to expose Prometheus metrics on 0.0.0.0 on path '/metrics'.")
+
+	fs.StringSliceVar(&o.TargetNamespaces,
+		"target-namespaces", nil,
+		"Comma-seperated list of namespaces to limit both the manager and target caches")
 }
 
 func (o *Options) addBundleFlags(fs *pflag.FlagSet) {
