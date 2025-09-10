@@ -112,6 +112,10 @@ spec:
           {{- if .Values.filterExpiredCertificates.enabled }}
           - "--filter-expired-certificates=true"
           {{- end }}
+            # target-namespaces
+          {{- if .Values.app.restricted.targetNamespaces }}
+          - '--target-namespaces={{ join "," .Values.app.restricted.targetNamespaces }}'
+          {{- end }}
         volumeMounts:
         - mountPath: /tls
           name: tls
