@@ -89,7 +89,7 @@ func NewCommand() *cobra.Command {
 				Metrics: server.Options{
 					BindAddress: fmt.Sprintf("0.0.0.0:%d", opts.MetricsPort),
 				},
-				Cache: bundle.CacheOpts(opts.Bundle),
+				Cache: bundle.CacheOpts(opts.Bundle, opts.TargetNamespaces),
 			})
 			if err != nil {
 				return fmt.Errorf("failed to create manager: %w", err)
@@ -106,7 +106,7 @@ func NewCommand() *cobra.Command {
 			logf.IntoContext(ctx, log)
 
 			// Add Bundle controller to manager.
-			if err := bundle.SetupWithManager(ctx, mgr, opts.Bundle); err != nil {
+			if err := bundle.SetupWithManager(ctx, mgr, opts.Bundle, opts.TargetNamespaces); err != nil {
 				return fmt.Errorf("failed to register Bundle controller: %w", err)
 			}
 
