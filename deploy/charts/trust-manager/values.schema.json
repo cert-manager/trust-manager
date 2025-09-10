@@ -133,6 +133,9 @@
         },
         "webhook": {
           "$ref": "#/$defs/helm-values.app.webhook"
+        },
+        "restricted": {
+          "$ref": "#/$defs/helm-values.app.restricted"
         }
       },
       "type": "object"
@@ -504,6 +507,39 @@
     "helm-values.app.webhook.tls.helmCert.enabled": {
       "default": false,
       "description": "Whether to issue a webhook cert using Helm, which removes the need to install cert-manager. Helm-issued certificates can be challenging to rotate and maintain, and the issued cert will have a duration of 10 years and be modified when trust-manager is updated. It's safer and easier to rely on cert-manager for issuing the webhook cert - avoid using Helm-generated certs in production.",
+      "type": "boolean"
+    },
+    "helm-values.app.restricted": {
+      "additionalProperties": false,
+      "properties": {
+        "targetNamespaces": {
+          "$ref": "#/$defs/helm-values.app.restricted.targetNamespaces"
+        },
+        "rbacPerNamespace": {
+          "$ref": "#/$defs/helm-values.app.restricted.rbacPerNamespace"
+        }
+      }
+    },
+    "helm-values.app.restricted.targetNamespaces": {
+      "default": [],
+      "description": "List of namespaces that will be managed by trust manager",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "helm-values.app.restricted.rbacPerNamespace": {
+      "additionalProperties": false,
+      "properties": {
+        "create": {
+          "$ref": "#/$defs/helm-values.app.restricted.rbacPerNamespace.create"
+        }
+      }
+    },
+    "helm-values.app.restricted.rbacPerNamespace.create": {
+      "default": false,
+      "description": "Enable or not the deployment of namespaced permission",
       "type": "boolean"
     },
     "helm-values.automountServiceAccountToken": {

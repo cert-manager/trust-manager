@@ -331,6 +331,12 @@ app:
         # Additional labels to add to the ServiceMonitor.
         labels: {}
 
+  # Restricted mode to limit namespaces managed by the trust-manager
+  restricted:
+    targetNamespaces: []
+    rbacPerNamespace:
+      create: false
+
 podDisruptionBudget:
   # Enable or disable the PodDisruptionBudget resource.
   #
