@@ -298,6 +298,7 @@ func Test_Reconcile(t *testing.T) {
 		expPatches              []interface{}
 		expBundlePatch          *trustapi.BundleStatus
 		expEvent                string
+		targetNamespaces        []string
 	}{
 		"if no bundle exists, should return nothing": {
 			existingSecrets:    []client.Object{sourceSecret},
@@ -1462,6 +1463,109 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3)}, nil, ptr.To(targetKey), nil),
 			},
 		},
+		"if Bundle is configured to write to only a specific target namespaces and namespaceSelector is empty, then only write to these namespaces": {
+			existingNamespaces: []client.Object{
+				&corev1.Namespace{
+					TypeMeta:   metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{Name: "ns-1"},
+				},
+				&corev1.Namespace{
+					TypeMeta:   metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{Name: "ns-2"},
+				},
+				&corev1.Namespace{
+					TypeMeta:   metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{Name: "outside-ns"},
+				},
+			},
+			existingConfigMaps: []client.Object{sourceConfigMap},
+			existingSecrets:    []client.Object{sourceSecret},
+			existingBundles: []client.Object{
+				gen.BundleFrom(baseBundle, func(b *trustapi.Bundle) {
+					b.Spec.Target.Secret = nil
+					b.Spec.Target.NamespaceSelector = nil
+				}),
+			},
+			targetNamespaces: []string{"ns-1", "ns-2"},
+			expError:         false,
+			expPatches: []interface{}{
+				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
+				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
+			},
+			expBundlePatch: &trustapi.BundleStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:               trustapi.BundleConditionSynced,
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: fixedmetatime,
+						Reason:             "Synced",
+						Message:            "Successfully synced Bundle to all allowed namespaces",
+						ObservedGeneration: bundleGeneration,
+					},
+				},
+			},
+			expEvent: "Normal Synced Successfully synced Bundle to all allowed namespaces",
+		},
+		"if Bundle is configured to write to only a specific target namespaces and namespaceSelector is not empty, then write only to selected target namespaces": {
+			existingNamespaces: []client.Object{
+				&corev1.Namespace{
+					TypeMeta: metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   "ns-1",
+						Labels: map[string]string{"trust-manager.io/namespace": "ns-1"},
+					},
+				},
+				&corev1.Namespace{
+					TypeMeta: metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   "ns-2",
+						Labels: map[string]string{"trust-manager.io/namespace": "ns-2"},
+					},
+				},
+				&corev1.Namespace{
+					TypeMeta: metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   "outside-ns",
+						Labels: map[string]string{"trust-manager.io/namespace": "outside-ns"},
+					},
+				},
+			},
+			existingConfigMaps: []client.Object{sourceConfigMap},
+			existingSecrets:    []client.Object{sourceSecret},
+			existingBundles: []client.Object{
+				gen.BundleFrom(baseBundle, func(b *trustapi.Bundle) {
+					b.Spec.Target.Secret = nil
+					b.Spec.Target.NamespaceSelector = &metav1.LabelSelector{
+						MatchExpressions: []metav1.LabelSelectorRequirement{
+							{
+								Key:      "trust-manager.io/namespace",
+								Operator: metav1.LabelSelectorOpIn,
+								Values:   []string{"ns-1", "ns-2", "outside-ns"},
+							},
+						},
+					}
+				}),
+			},
+			targetNamespaces: []string{"ns-1", "ns-2"},
+			expError:         false,
+			expPatches: []interface{}{
+				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
+				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
+			},
+			expBundlePatch: &trustapi.BundleStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:               trustapi.BundleConditionSynced,
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: fixedmetatime,
+						Reason:             "Synced",
+						Message:            "Successfully synced Bundle to namespaces: ns-1,ns-2",
+						ObservedGeneration: bundleGeneration,
+					},
+				},
+			},
+			expEvent: "Normal Synced Successfully synced Bundle to namespaces: ns-1,ns-2",
+		},
 	}
 
 	deepCopyArray := func(arr []client.Object) []client.Object {
@@ -1522,6 +1626,16 @@ func Test_Reconcile(t *testing.T) {
 
 			if tt.configureDefaultPackage {
 				b.bundleBuilder.DefaultPackage = testDefaultPackage.Clone()
+			}
+
+			if len(tt.targetNamespaces) > 0 {
+				b.targetNamespaces = make(map[string]struct{}, len(tt.targetNamespaces))
+				for _, ns := range tt.targetNamespaces {
+					if ns == "" {
+						continue
+					}
+					b.targetNamespaces[ns] = struct{}{}
+				}
 			}
 			statusPatch, err := b.reconcileBundle(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: bundleName}})
 			if (err != nil) != tt.expError {
