@@ -1,0 +1,51 @@
+{{- if and .Values.app.restricted.targetNamespaces .Values.app.restricted.rbacPerNamespace.create }}
+{{- $targetNamespaces := .Values.app.restricted.targetNamespaces -}}
+{{- $allNamespaces := append (append $targetNamespaces .Values.app.trust.namespace) (include "trust-manager.namespace" . | trim) -}}
+{{- range $ns := uniq $allNamespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: trust-manager-role
+  namespace: {{ $ns }}
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get","list","create","patch","watch","delete"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+
+  {{- if $.Values.secretTargets.enabled }}
+    {{- if $.Values.secretTargets.authorizedSecretsAll }}
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get","list","create","patch","watch","delete"]
+    {{- else if $.Values.secretTargets.authorizedSecrets }}
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get","list","watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create","patch","delete"]
+    resourceNames:
+{{ toYaml $.Values.secretTargets.authorizedSecrets | nindent 6 }}
+    {{- end }}
+  {{- end }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: trust-manager-role-binding
+  namespace: {{ $ns }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: trust-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "trust-manager.name" $ }}
+    namespace: {{ include "trust-manager.namespace" $ }}
+{{- end }}
+{{- end }}
