@@ -33,13 +33,15 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - "configmaps"
-  verbs: ["get", "list", "create", "patch", "watch", "delete"]
+  - "namespaces"
+  verbs: ["get", "list", "watch"]
+
+{{- if not .Values.app.restricted.targetNamespaces }}
 - apiGroups:
   - ""
   resources:
-  - "namespaces"
-  verbs: ["get", "list", "watch"]
+  - "configmaps"
+  verbs: ["get", "list", "create", "patch", "watch", "delete"]
 
 - apiGroups:
   - ""
@@ -66,5 +68,6 @@ rules:
   - "secrets"
   verbs: ["create", "patch", "delete"]
   resourceNames: {{ .Values.secretTargets.authorizedSecrets | toYaml | nindent 2 }}
+{{- end -}}
 {{- end -}}
 {{- end -}}
