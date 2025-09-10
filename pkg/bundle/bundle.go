@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -60,6 +61,9 @@ type bundle struct {
 	bundleBuilder *source.BundleBuilder
 
 	targetReconciler *target.Reconciler
+
+	// target namespaces where to write bundles
+	targetNamespaces map[string]struct{}
 }
 
 // Reconcile is the top level function for reconciling over synced Bundles.
@@ -177,6 +181,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 		return nil, fmt.Errorf("failed to build NamespaceSelector: %w", err)
 	}
 
+	writtenNamespaces := make(map[string]struct{})
 	// Find all desired targetResources.
 	{
 		var namespaceList corev1.NamespaceList
@@ -196,6 +201,14 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 				continue
 			}
 
+			// If targetNamespaces is not empty, don't reconcile target for Namespaces that are out of this list
+			if len(b.targetNamespaces) > 0 {
+				if _, ok := b.targetNamespaces[namespace.Name]; !ok {
+					continue
+				}
+			}
+
+			writtenNamespaces[namespace.Name] = struct{}{}
 			namespacedName := types.NamespacedName{
 				Name:      bundle.Name,
 				Namespace: namespace.Name,
@@ -301,9 +314,23 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 		needsUpdate = true
 	}
 
-	message := "Successfully synced Bundle to all namespaces"
-	if !namespaceSelector.Empty() {
-		message = fmt.Sprintf("Successfully synced Bundle to namespaces that match this label selector: %s", namespaceSelector)
+	message := ""
+	if len(b.targetNamespaces) > 0 {
+		message = "Successfully synced Bundle to all allowed namespaces"
+		if !namespaceSelector.Empty() {
+			namespaces := make([]string, 0, len(writtenNamespaces))
+			for ns := range writtenNamespaces {
+				namespaces = append(namespaces, ns)
+			}
+			sort.Strings(namespaces)
+			message = fmt.Sprintf("Successfully synced Bundle to namespaces: %s", strings.Join(namespaces, ","))
+
+		}
+	} else {
+		message = "Successfully synced Bundle to all namespaces"
+		if !namespaceSelector.Empty() {
+			message = fmt.Sprintf("Successfully synced Bundle to namespaces that match this label selector: %s", namespaceSelector)
+		}
 	}
 
 	syncedCondition := metav1.Condition{
