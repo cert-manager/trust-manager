@@ -103,12 +103,8 @@ func SetupWithManager(
 			nsMap[ns] = cache.Config{}
 		}
 		targetCacheOpts.DefaultNamespaces = nsMap
-		namespacesInCache := []string{}
-		for ns := range targetCacheOpts.DefaultNamespaces {
-			namespacesInCache = append(namespacesInCache, ns)
-		}
 		logf.FromContext(ctx).Info("restricting target cache to namespaces",
-			"namespaces", namespacesInCache)
+			"namespaces", targetNamespaces)
 	}
 
 	targetCache, err := cache.New(mgr.GetConfig(), targetCacheOpts)
