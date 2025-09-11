@@ -314,7 +314,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 		needsUpdate = true
 	}
 
-	message := ""
+	var message string
 	if len(b.targetNamespaces) > 0 {
 		message = "Successfully synced Bundle to all allowed namespaces"
 		if !namespaceSelector.Empty() {

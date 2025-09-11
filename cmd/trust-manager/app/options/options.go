@@ -240,7 +240,7 @@ func (o *Options) addAppFlags(fs *pflag.FlagSet) {
 
 	fs.StringSliceVar(&o.TargetNamespaces,
 		"target-namespaces", nil,
-		"Comma-seperated list of namespaces to limit both the manager and target caches")
+		"Comma-separated list of namespaces to limit both the manager and target caches")
 }
 
 func (o *Options) addBundleFlags(fs *pflag.FlagSet) {
