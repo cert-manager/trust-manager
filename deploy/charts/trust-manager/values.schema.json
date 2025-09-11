@@ -125,6 +125,9 @@
         "readinessProbe": {
           "$ref": "#/$defs/helm-values.app.readinessProbe"
         },
+        "restricted": {
+          "$ref": "#/$defs/helm-values.app.restricted"
+        },
         "securityContext": {
           "$ref": "#/$defs/helm-values.app.securityContext"
         },
@@ -133,9 +136,6 @@
         },
         "webhook": {
           "$ref": "#/$defs/helm-values.app.webhook"
-        },
-        "restricted": {
-          "$ref": "#/$defs/helm-values.app.restricted"
         }
       },
       "type": "object"
@@ -327,6 +327,38 @@
       "description": "The container port on which to expose the trust-manager HTTP readiness probe using the default network interface.",
       "type": "number"
     },
+    "helm-values.app.restricted": {
+      "additionalProperties": false,
+      "properties": {
+        "rbacPerNamespace": {
+          "$ref": "#/$defs/helm-values.app.restricted.rbacPerNamespace"
+        },
+        "targetNamespaces": {
+          "$ref": "#/$defs/helm-values.app.restricted.targetNamespaces"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.app.restricted.rbacPerNamespace": {
+      "additionalProperties": false,
+      "properties": {
+        "create": {
+          "$ref": "#/$defs/helm-values.app.restricted.rbacPerNamespace.create"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.app.restricted.rbacPerNamespace.create": {
+      "default": false,
+      "description": "If true, the chart creates a Role and RoleBinding in each target namespace.",
+      "type": "boolean"
+    },
+    "helm-values.app.restricted.targetNamespaces": {
+      "default": [],
+      "description": "list of namespaces that trust-manager can write to.\nEmpty list = cluster-wide (default behavior).",
+      "items": {},
+      "type": "array"
+    },
     "helm-values.app.securityContext": {
       "additionalProperties": false,
       "properties": {
@@ -507,39 +539,6 @@
     "helm-values.app.webhook.tls.helmCert.enabled": {
       "default": false,
       "description": "Whether to issue a webhook cert using Helm, which removes the need to install cert-manager. Helm-issued certificates can be challenging to rotate and maintain, and the issued cert will have a duration of 10 years and be modified when trust-manager is updated. It's safer and easier to rely on cert-manager for issuing the webhook cert - avoid using Helm-generated certs in production.",
-      "type": "boolean"
-    },
-    "helm-values.app.restricted": {
-      "additionalProperties": false,
-      "properties": {
-        "targetNamespaces": {
-          "$ref": "#/$defs/helm-values.app.restricted.targetNamespaces"
-        },
-        "rbacPerNamespace": {
-          "$ref": "#/$defs/helm-values.app.restricted.rbacPerNamespace"
-        }
-      }
-    },
-    "helm-values.app.restricted.targetNamespaces": {
-      "default": [],
-      "description": "List of namespaces that will be managed by trust manager",
-      "type": "array",
-      "uniqueItems": true,
-      "items": {
-        "type": "string"
-      }
-    },
-    "helm-values.app.restricted.rbacPerNamespace": {
-      "additionalProperties": false,
-      "properties": {
-        "create": {
-          "$ref": "#/$defs/helm-values.app.restricted.rbacPerNamespace.create"
-        }
-      }
-    },
-    "helm-values.app.restricted.rbacPerNamespace.create": {
-      "default": false,
-      "description": "Enable or not the deployment of namespaced permission",
       "type": "boolean"
     },
     "helm-values.automountServiceAccountToken": {
