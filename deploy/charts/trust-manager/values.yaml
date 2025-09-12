@@ -331,14 +331,9 @@ app:
         # Additional labels to add to the ServiceMonitor.
         labels: {}
 
-  # +docs:section=Restricted mode
-  restricted:
-    # list of namespaces that trust-manager can write to.
-    # Empty list = cluster-wide (default behavior).
-    targetNamespaces: []
-    rbacPerNamespace:
-      # If true, the chart creates a Role and RoleBinding in each target namespace.
-      create: false
+  # List of target namespaces that trust-manager can write to.
+  # Empty list = cluster-wide (default behavior).
+  targetNamespaces: []
 
 podDisruptionBudget:
   # Enable or disable the PodDisruptionBudget resource.

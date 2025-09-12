@@ -598,23 +598,14 @@ The timeout for a metrics scrape.
 > ```
 
 Additional labels to add to the ServiceMonitor.
-### Restricted mode
-
-#### **app.restricted.targetNamespaces** ~ `array`
+#### **app.targetNamespaces** ~ `array`
 > Default value:
 > ```yaml
 > []
 > ```
 
-list of namespaces that trust-manager can write to.  
+List of target namespaces that trust-manager can write to.  
 Empty list = cluster-wide (default behavior).
-#### **app.restricted.rbacPerNamespace.create** ~ `bool`
-> Default value:
-> ```yaml
-> false
-> ```
-
-If true, the chart creates a Role and RoleBinding in each target namespace.
 #### **podDisruptionBudget.enabled** ~ `bool`
 > Default value:
 > ```yaml

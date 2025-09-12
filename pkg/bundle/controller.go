@@ -45,9 +45,12 @@ import (
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 )
 
-func CacheOpts(opts controller.Options, targetNamespaces []string) cache.Options {
-	ctrCacheOptions := cache.Options{
+func CacheOpts(opts controller.Options) cache.Options {
+	ctrCacheNamespaces := setupCacheNamespaces(opts.TargetNamespaces, opts.Namespace)
+
+	return cache.Options{
 		ReaderFailOnMissingInformer: true,
+		DefaultNamespaces:           ctrCacheNamespaces,
 		ByObject: map[client.Object]cache.ByObject{
 			&trustapi.Bundle{}:  {},
 			&corev1.Namespace{}: {},
@@ -67,47 +70,33 @@ func CacheOpts(opts controller.Options, targetNamespaces []string) cache.Options
 			},
 		},
 	}
-	if len(targetNamespaces) > 0 {
-		nsMap := make(map[string]cache.Config)
-		for _, ns := range targetNamespaces {
-			nsMap[ns] = cache.Config{}
-		}
-		nsMap[opts.Namespace] = cache.Config{}
-		ctrCacheOptions.DefaultNamespaces = nsMap
-	}
-	return ctrCacheOptions
+
 }
 
 func SetupWithManager(
 	ctx context.Context,
 	mgr ctrl.Manager,
 	opts controller.Options,
-	targetNamespaces []string,
 ) error {
 	targetRequirement, err := labels.NewRequirement(trustapi.BundleLabelKey, selection.Exists, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create target label requirement: %w", err)
 	}
 
-	targetCacheOpts := cache.Options{
+	targetCacheNamespaces := setupCacheNamespaces(opts.TargetNamespaces, "")
+	if targetCacheNamespaces != nil {
+		logf.FromContext(ctx).Info("restricting target cache to namespaces",
+			"namespaces", opts.TargetNamespaces)
+	}
+
+	targetCache, err := cache.New(mgr.GetConfig(), cache.Options{
 		HTTPClient:                  mgr.GetHTTPClient(),
 		Scheme:                      mgr.GetScheme(),
 		Mapper:                      mgr.GetRESTMapper(),
 		ReaderFailOnMissingInformer: true,
 		DefaultLabelSelector:        labels.NewSelector().Add(*targetRequirement),
-	}
-
-	if len(targetNamespaces) > 0 {
-		nsMap := make(map[string]cache.Config)
-		for _, ns := range targetNamespaces {
-			nsMap[ns] = cache.Config{}
-		}
-		targetCacheOpts.DefaultNamespaces = nsMap
-		logf.FromContext(ctx).Info("restricting target cache to namespaces",
-			"namespaces", targetNamespaces)
-	}
-
-	targetCache, err := cache.New(mgr.GetConfig(), targetCacheOpts)
+		DefaultNamespaces:           targetCacheNamespaces,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to create target cache: %w", err)
 	}
@@ -117,7 +106,7 @@ func SetupWithManager(
 	}
 
 	// Add Bundle controller to manager.
-	if err := addBundleController(ctx, mgr, opts, targetCache, targetNamespaces); err != nil {
+	if err := addBundleController(ctx, mgr, opts, targetCache); err != nil {
 		return fmt.Errorf("failed to register Bundle controller: %w", err)
 	}
 
@@ -134,7 +123,6 @@ func addBundleController(
 	mgr manager.Manager,
 	opts controller.Options,
 	targetCache cache.Cache,
-	targetNamespaces []string,
 ) error {
 	b := &bundle{
 		client:   mgr.GetClient(),
@@ -151,13 +139,9 @@ func addBundleController(
 		},
 	}
 
-	if len(targetNamespaces) > 0 {
-		b.targetNamespaces = make(map[string]struct{}, len(targetNamespaces))
-		for _, ns := range targetNamespaces {
-			b.targetNamespaces[ns] = struct{}{}
-		}
+	if len(b.Options.TargetNamespaces) > 0 {
 		logf.FromContext(ctx).Info("reconciler will skip namespaces outside targetlist",
-			"target-namespaces", targetNamespaces)
+			"target-namespaces", b.Options.TargetNamespaces)
 	}
 
 	if b.Options.DefaultPackageLocation != "" {
@@ -327,4 +311,19 @@ func labelsMatchSelector(objLabels map[string]string, labelSelector *metav1.Labe
 		return false
 	}
 	return selector.Matches(labels.Set(objLabels))
+}
+
+// setupCacheNamespaces configure cache namespaces
+func setupCacheNamespaces(targetNamespaces []string, trustNamespace string) map[string]cache.Config {
+	if len(targetNamespaces) == 0 {
+		return nil
+	}
+	defaultNamespaces := make(map[string]cache.Config)
+	if trustNamespace != "" {
+		defaultNamespaces[trustNamespace] = cache.Config{}
+	}
+	for _, ns := range targetNamespaces {
+		defaultNamespaces[ns] = cache.Config{}
+	}
+	return defaultNamespaces
 }

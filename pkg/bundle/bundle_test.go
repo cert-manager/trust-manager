@@ -1629,12 +1629,12 @@ func Test_Reconcile(t *testing.T) {
 			}
 
 			if len(tt.targetNamespaces) > 0 {
-				b.targetNamespaces = make(map[string]struct{}, len(tt.targetNamespaces))
+				b.Options.TargetNamespaces = make([]string, len(tt.targetNamespaces))
 				for _, ns := range tt.targetNamespaces {
 					if ns == "" {
 						continue
 					}
-					b.targetNamespaces[ns] = struct{}{}
+					b.Options.TargetNamespaces = append(b.Options.TargetNamespaces, ns)
 				}
 			}
 			statusPatch, err := b.reconcileBundle(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: bundleName}})

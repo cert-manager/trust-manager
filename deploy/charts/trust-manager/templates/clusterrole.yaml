@@ -36,7 +36,7 @@ rules:
   - "namespaces"
   verbs: ["get", "list", "watch"]
 
-{{- if not .Values.app.restricted.targetNamespaces }}
+{{- if not .Values.app.targetNamespaces }}
 - apiGroups:
   - ""
   resources:

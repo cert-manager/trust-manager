@@ -1,5 +1,5 @@
-{{- if and .Values.app.restricted.targetNamespaces .Values.app.restricted.rbacPerNamespace.create }}
-{{- $targetNamespaces := .Values.app.restricted.targetNamespaces -}}
+{{- if .Values.app.targetNamespaces }}
+{{- $targetNamespaces := .Values.app.targetNamespaces -}}
 {{- $allNamespaces := append (append $targetNamespaces .Values.app.trust.namespace) (include "trust-manager.namespace" . | trim) -}}
 {{- range $ns := uniq $allNamespaces }}
 ---

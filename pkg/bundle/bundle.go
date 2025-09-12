@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -61,9 +62,6 @@ type bundle struct {
 	bundleBuilder *source.BundleBuilder
 
 	targetReconciler *target.Reconciler
-
-	// target namespaces where to write bundles
-	targetNamespaces map[string]struct{}
 }
 
 // Reconcile is the top level function for reconciling over synced Bundles.
@@ -181,7 +179,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 		return nil, fmt.Errorf("failed to build NamespaceSelector: %w", err)
 	}
 
-	writtenNamespaces := make(map[string]struct{})
+	writtenNamespaces := []string{}
 	// Find all desired targetResources.
 	{
 		var namespaceList corev1.NamespaceList
@@ -201,14 +199,14 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 				continue
 			}
 
-			// If targetNamespaces is not empty, don't reconcile target for Namespaces that are out of this list
-			if len(b.targetNamespaces) > 0 {
-				if _, ok := b.targetNamespaces[namespace.Name]; !ok {
+			// If TargetNamespaces is not empty, don't reconcile target for Namespaces that are out of this list
+			if len(b.Options.TargetNamespaces) > 0 {
+				if !slices.Contains(b.Options.TargetNamespaces, namespace.Name) {
 					continue
 				}
 			}
 
-			writtenNamespaces[namespace.Name] = struct{}{}
+			writtenNamespaces = append(writtenNamespaces, namespace.Name)
 			namespacedName := types.NamespacedName{
 				Name:      bundle.Name,
 				Namespace: namespace.Name,
@@ -315,15 +313,11 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 	}
 
 	var message string
-	if len(b.targetNamespaces) > 0 {
+	if len(b.Options.TargetNamespaces) > 0 {
 		message = "Successfully synced Bundle to all allowed namespaces"
 		if !namespaceSelector.Empty() {
-			namespaces := make([]string, 0, len(writtenNamespaces))
-			for ns := range writtenNamespaces {
-				namespaces = append(namespaces, ns)
-			}
-			sort.Strings(namespaces)
-			message = fmt.Sprintf("Successfully synced Bundle to namespaces: %s", strings.Join(namespaces, ","))
+			sort.Strings(writtenNamespaces)
+			message = fmt.Sprintf("Successfully synced Bundle to namespaces: %s", strings.Join(writtenNamespaces, ","))
 
 		}
 	} else {
