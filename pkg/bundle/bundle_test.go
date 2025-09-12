@@ -1559,12 +1559,12 @@ func Test_Reconcile(t *testing.T) {
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
-						Message:            "Successfully synced Bundle to namespaces: ns-1,ns-2",
+						Message:            "Successfully synced Bundle to allowed namespaces that match this label selector: trust-manager.io/namespace in (ns-1,ns-2,outside-ns)",
 						ObservedGeneration: bundleGeneration,
 					},
 				},
 			},
-			expEvent: "Normal Synced Successfully synced Bundle to namespaces: ns-1,ns-2",
+			expEvent: "Normal Synced Successfully synced Bundle to allowed namespaces that match this label selector: trust-manager.io/namespace in (ns-1,ns-2,outside-ns)",
 		},
 	}
 
