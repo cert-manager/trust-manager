@@ -598,6 +598,14 @@ The timeout for a metrics scrape.
 > ```
 
 Additional labels to add to the ServiceMonitor.
+#### **app.targetNamespaces** ~ `array`
+> Default value:
+> ```yaml
+> []
+> ```
+
+List of target namespaces that trust-manager can write to.  
+Empty list = cluster-wide (default behavior).
 #### **podDisruptionBudget.enabled** ~ `bool`
 > Default value:
 > ```yaml
