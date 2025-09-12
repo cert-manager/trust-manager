@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"sort"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -179,7 +178,6 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 		return nil, fmt.Errorf("failed to build NamespaceSelector: %w", err)
 	}
 
-	writtenNamespaces := []string{}
 	// Find all desired targetResources.
 	{
 		var namespaceList corev1.NamespaceList
@@ -206,7 +204,6 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 				}
 			}
 
-			writtenNamespaces = append(writtenNamespaces, namespace.Name)
 			namespacedName := types.NamespacedName{
 				Name:      bundle.Name,
 				Namespace: namespace.Name,
@@ -316,9 +313,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 	if len(b.Options.TargetNamespaces) > 0 {
 		message = "Successfully synced Bundle to all allowed namespaces"
 		if !namespaceSelector.Empty() {
-			sort.Strings(writtenNamespaces)
-			message = fmt.Sprintf("Successfully synced Bundle to namespaces: %s", strings.Join(writtenNamespaces, ","))
-
+			message = fmt.Sprintf("Successfully synced Bundle to allowed namespaces that match this label selector: %s", namespaceSelector)
 		}
 	} else {
 		message = "Successfully synced Bundle to all namespaces"
