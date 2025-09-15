@@ -65,3 +65,43 @@ Create the name of the service account to use
     {{ default "default" .Values.serviceAccount.name }}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Namespaced resources rules
+*/}}
+{{- define "trust-manager.rbac.namespacedResourcesRules" -}}
+- apiGroups:
+  - ""
+  resources:
+  - "configmaps"
+  verbs: ["get","list","create","patch","watch","delete"]
+
+- apiGroups:
+  - ""
+  resources:
+  - "events"
+  verbs: ["create","patch"]
+
+{{- if .Values.secretTargets.enabled }}
+  {{- if .Values.secretTargets.authorizedSecretsAll }}
+- apiGroups:
+  - ""
+  resources:
+  - "secrets"
+  verbs: ["get","list","create","patch","watch","delete"]
+  {{- else if $.Values.secretTargets.authorizedSecrets }}
+- apiGroups:
+  - ""
+  resources:
+  - "secrets"
+  verbs: ["get","list","watch"]
+- apiGroups:
+  - ""
+  resources:
+  - "secrets"
+  verbs: ["create","patch","delete"]
+  resourceNames:
+{{ toYaml .Values.secretTargets.authorizedSecrets | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end -}}

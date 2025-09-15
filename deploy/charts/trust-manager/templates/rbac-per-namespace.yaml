@@ -1,7 +1,6 @@
 {{- if .Values.app.targetNamespaces }}
-{{- $targetNamespaces := .Values.app.targetNamespaces -}}
-{{- $allNamespaces := append (append $targetNamespaces .Values.app.trust.namespace) (include "trust-manager.namespace" . | trim) -}}
-{{- range $ns := uniq $allNamespaces }}
+{{- $namespaces := append (append .Values.app.targetNamespaces .Values.app.trust.namespace) (include "trust-manager.namespace" . ) -}}
+{{- range $ns := uniq $namespaces }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -9,29 +8,7 @@ metadata:
   name: trust-manager-role
   namespace: {{ $ns }}
 rules:
-  - apiGroups: [""]
-    resources: ["configmaps"]
-    verbs: ["get","list","create","patch","watch","delete"]
-  - apiGroups: [""]
-    resources: ["events"]
-    verbs: ["create", "patch"]
-
-  {{- if $.Values.secretTargets.enabled }}
-    {{- if $.Values.secretTargets.authorizedSecretsAll }}
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get","list","create","patch","watch","delete"]
-    {{- else if $.Values.secretTargets.authorizedSecrets }}
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get","list","watch"]
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["create","patch","delete"]
-    resourceNames:
-{{ toYaml $.Values.secretTargets.authorizedSecrets | nindent 6 }}
-    {{- end }}
-  {{- end }}
+{{ include "trust-manager.rbac.namespacedResourcesRules" $ | nindent 2 }}
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
