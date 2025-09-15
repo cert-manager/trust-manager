@@ -46,7 +46,7 @@ import (
 )
 
 func CacheOpts(opts controller.Options) cache.Options {
-	ctrCacheNamespaces := setupCacheNamespaces(append([]string{opts.Namespace}, opts.TargetNamespaces...)...)
+	ctrCacheNamespaces := setupCacheNamespaces(append(opts.TargetNamespaces, opts.Namespace)...)
 
 	return cache.Options{
 		ReaderFailOnMissingInformer: true,
@@ -84,7 +84,7 @@ func SetupWithManager(
 	}
 
 	targetCacheNamespaces := setupCacheNamespaces(opts.TargetNamespaces...)
-	if targetCacheNamespaces != nil {
+	if len(targetCacheNamespaces) > 0 {
 		logf.FromContext(ctx).Info("restricting target cache to namespaces",
 			"namespaces", opts.TargetNamespaces)
 	}
