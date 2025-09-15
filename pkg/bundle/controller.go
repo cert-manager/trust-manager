@@ -46,7 +46,7 @@ import (
 )
 
 func CacheOpts(opts controller.Options) cache.Options {
-	ctrCacheNamespaces := setupCacheNamespaces(opts.TargetNamespaces, opts.Namespace)
+	ctrCacheNamespaces := setupCacheNamespaces(append([]string{opts.Namespace}, opts.TargetNamespaces...)...)
 
 	return cache.Options{
 		ReaderFailOnMissingInformer: true,
@@ -83,7 +83,7 @@ func SetupWithManager(
 		return fmt.Errorf("failed to create target label requirement: %w", err)
 	}
 
-	targetCacheNamespaces := setupCacheNamespaces(opts.TargetNamespaces, "")
+	targetCacheNamespaces := setupCacheNamespaces(opts.TargetNamespaces...)
 	if targetCacheNamespaces != nil {
 		logf.FromContext(ctx).Info("restricting target cache to namespaces",
 			"namespaces", opts.TargetNamespaces)
@@ -314,15 +314,15 @@ func labelsMatchSelector(objLabels map[string]string, labelSelector *metav1.Labe
 }
 
 // setupCacheNamespaces configure cache namespaces
-func setupCacheNamespaces(targetNamespaces []string, trustNamespace string) map[string]cache.Config {
-	if len(targetNamespaces) == 0 {
+func setupCacheNamespaces(namespaces ...string) map[string]cache.Config {
+	if len(namespaces) == 0 {
 		return nil
 	}
 	defaultNamespaces := make(map[string]cache.Config)
-	if trustNamespace != "" {
-		defaultNamespaces[trustNamespace] = cache.Config{}
-	}
-	for _, ns := range targetNamespaces {
+	for _, ns := range namespaces {
+		if ns == "" {
+			continue
+		}
 		defaultNamespaces[ns] = cache.Config{}
 	}
 	return defaultNamespaces

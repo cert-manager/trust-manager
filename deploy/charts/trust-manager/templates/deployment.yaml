@@ -112,7 +112,6 @@ spec:
           {{- if .Values.filterExpiredCertificates.enabled }}
           - "--filter-expired-certificates=true"
           {{- end }}
-            # target-namespaces
           {{- if .Values.app.targetNamespaces }}
           - '--target-namespaces={{ join "," .Values.app.targetNamespaces }}'
           {{- end }}

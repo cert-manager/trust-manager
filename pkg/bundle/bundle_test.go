@@ -1628,15 +1628,7 @@ func Test_Reconcile(t *testing.T) {
 				b.bundleBuilder.DefaultPackage = testDefaultPackage.Clone()
 			}
 
-			if len(tt.targetNamespaces) > 0 {
-				b.Options.TargetNamespaces = make([]string, len(tt.targetNamespaces))
-				for _, ns := range tt.targetNamespaces {
-					if ns == "" {
-						continue
-					}
-					b.Options.TargetNamespaces = append(b.Options.TargetNamespaces, ns)
-				}
-			}
+			b.Options.TargetNamespaces = tt.targetNamespaces
 			statusPatch, err := b.reconcileBundle(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: bundleName}})
 			if (err != nil) != tt.expError {
 				t.Errorf("unexpected error, exp=%t got=%v", tt.expError, err)
