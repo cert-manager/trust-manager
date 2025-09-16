@@ -343,7 +343,7 @@
     },
     "helm-values.app.targetNamespaces": {
       "default": [],
-      "description": "List of target namespaces that trust-manager can write to.\nEmpty list = cluster-wide (default behavior).",
+      "description": "List of target namespaces that trust-manager can write to. By default, trust-manager can write targets in any namespace.\ntargetNamespaces: [\"ns-1\", \"ns-2\"]",
       "items": {},
       "type": "array"
     },

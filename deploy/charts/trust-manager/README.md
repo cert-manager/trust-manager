@@ -417,6 +417,18 @@ The path on which to expose the trust-manager HTTP readiness probe using the def
 > ```
 
 The namespace used as the trust source. Note that the namespace _must_ exist before installing trust-manager.
+#### **app.targetNamespaces** ~ `array`
+> Default value:
+> ```yaml
+> []
+> ```
+
+List of target namespaces that trust-manager can write to. By default, trust-manager can write targets in any namespace.
+
+
+```yaml
+targetNamespaces: ["ns-1", "ns-2"]
+```
 #### **app.securityContext.seccompProfileEnabled** ~ `bool`
 > Default value:
 > ```yaml
@@ -598,14 +610,6 @@ The timeout for a metrics scrape.
 > ```
 
 Additional labels to add to the ServiceMonitor.
-#### **app.targetNamespaces** ~ `array`
-> Default value:
-> ```yaml
-> []
-> ```
-
-List of target namespaces that trust-manager can write to.  
-Empty list = cluster-wide (default behavior).
 #### **podDisruptionBudget.enabled** ~ `bool`
 > Default value:
 > ```yaml

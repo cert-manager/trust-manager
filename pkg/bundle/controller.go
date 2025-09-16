@@ -46,6 +46,8 @@ import (
 )
 
 func CacheOpts(opts controller.Options) cache.Options {
+	// controller cache: watch target namespaces + trust namespace
+	// for reading sources from trust namespace and writing targets into target namespaces
 	ctrCacheNamespaces := setupCacheNamespaces(append(opts.TargetNamespaces, opts.Namespace)...)
 
 	return cache.Options{
@@ -83,6 +85,8 @@ func SetupWithManager(
 		return fmt.Errorf("failed to create target label requirement: %w", err)
 	}
 
+	// target cache: watch only the target namespaces were configmaps and secrets are created
+	// No need to include the trust namespace
 	targetCacheNamespaces := setupCacheNamespaces(opts.TargetNamespaces...)
 	if len(targetCacheNamespaces) > 0 {
 		logf.FromContext(ctx).Info("restricting target cache to namespaces",

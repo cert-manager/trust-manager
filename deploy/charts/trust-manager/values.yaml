@@ -239,6 +239,11 @@ app:
     # before installing trust-manager.
     namespace: cert-manager
 
+  # List of target namespaces that trust-manager can write to. By default, trust-manager can write targets in any namespace.
+  # +docs:property
+  # targetNamespaces: ["ns-1", "ns-2"]
+  targetNamespaces: []
+
   securityContext:
     # If false, disables the default seccomp profile, which might be required to run on certain platforms.
     seccompProfileEnabled: true
@@ -330,10 +335,6 @@ app:
         scrapeTimeout: 5s
         # Additional labels to add to the ServiceMonitor.
         labels: {}
-
-  # List of target namespaces that trust-manager can write to.
-  # Empty list = cluster-wide (default behavior).
-  targetNamespaces: []
 
 podDisruptionBudget:
   # Enable or disable the PodDisruptionBudget resource.
