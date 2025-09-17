@@ -1,3 +1,9 @@
+# +docs:section=Global
+global:
+  rbac:
+    # Create required ClusterRoles, Roles, ClusterRoleBindings and RoleBindings for trust-manager.
+    create: true
+
 # +docs:section=CRDs
 crds:
   # This option decides if the CRDs should be installed

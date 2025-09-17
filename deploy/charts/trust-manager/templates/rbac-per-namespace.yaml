@@ -1,4 +1,4 @@
-{{- if .Values.app.targetNamespaces }}
+{{- if and .Values.global.rbac.create .Values.app.targetNamespaces }}
 {{- $namespaces := append (append .Values.app.targetNamespaces .Values.app.trust.namespace) (include "trust-manager.namespace" . ) -}}
 {{- range $ns := uniq $namespaces }}
 ---

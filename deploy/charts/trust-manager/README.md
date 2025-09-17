@@ -6,6 +6,15 @@
 
 <!-- AUTO-GENERATED -->
 
+### Global
+
+#### **global.rbac.create** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
+
+Create required ClusterRoles, Roles, ClusterRoleBindings and RoleBindings for trust-manager.
 ### CRDs
 
 #### **crds.enabled** ~ `bool`
