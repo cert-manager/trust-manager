@@ -128,6 +128,9 @@
         "securityContext": {
           "$ref": "#/$defs/helm-values.app.securityContext"
         },
+        "targetNamespaces": {
+          "$ref": "#/$defs/helm-values.app.targetNamespaces"
+        },
         "trust": {
           "$ref": "#/$defs/helm-values.app.trust"
         },
@@ -337,6 +340,11 @@
       "default": true,
       "description": "If false, disables the default seccomp profile, which might be required to run on certain platforms.",
       "type": "boolean"
+    },
+    "helm-values.app.targetNamespaces": {
+      "description": "List of target namespaces that trust-manager can write to. By default, trust-manager can write targets in any namespace.",
+      "items": {},
+      "type": "array"
     },
     "helm-values.app.trust": {
       "additionalProperties": false,

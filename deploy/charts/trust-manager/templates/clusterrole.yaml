@@ -33,38 +33,9 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - "configmaps"
-  verbs: ["get", "list", "create", "patch", "watch", "delete"]
-- apiGroups:
-  - ""
-  resources:
   - "namespaces"
   verbs: ["get", "list", "watch"]
 
-- apiGroups:
-  - ""
-  resources:
-  - "events"
-  verbs: ["create", "patch"]
-
-{{- if .Values.secretTargets.enabled }}
-{{- if .Values.secretTargets.authorizedSecretsAll }}
-- apiGroups:
-  - ""
-  resources:
-  - "secrets"
-  verbs: ["get", "list", "create", "patch", "watch", "delete"]
-{{- else if .Values.secretTargets.authorizedSecrets }}
-- apiGroups:
-  - ""
-  resources:
-  - "secrets"
-  verbs: ["get", "list", "watch"]
-- apiGroups:
-  - ""
-  resources:
-  - "secrets"
-  verbs: ["create", "patch", "delete"]
-  resourceNames: {{ .Values.secretTargets.authorizedSecrets | toYaml | nindent 2 }}
-{{- end -}}
+{{- if not .Values.app.targetNamespaces }}
+{{ include "trust-manager.rbac.namespacedResourcesRules" . }}
 {{- end -}}

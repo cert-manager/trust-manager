@@ -46,8 +46,13 @@ import (
 )
 
 func CacheOpts(opts controller.Options) cache.Options {
+	// controller cache: watch target namespaces + trust namespace
+	// for reading sources from trust namespace and writing targets into target namespaces
+	ctrCacheNamespaces := setupCacheNamespaces(append(opts.TargetNamespaces, opts.Namespace)...)
+
 	return cache.Options{
 		ReaderFailOnMissingInformer: true,
+		DefaultNamespaces:           ctrCacheNamespaces,
 		ByObject: map[client.Object]cache.ByObject{
 			&trustapi.Bundle{}:  {},
 			&corev1.Namespace{}: {},
@@ -67,6 +72,7 @@ func CacheOpts(opts controller.Options) cache.Options {
 			},
 		},
 	}
+
 }
 
 func SetupWithManager(
@@ -79,12 +85,21 @@ func SetupWithManager(
 		return fmt.Errorf("failed to create target label requirement: %w", err)
 	}
 
+	// target cache: watch only the target namespaces were configmaps and secrets are created
+	// No need to include the trust namespace
+	targetCacheNamespaces := setupCacheNamespaces(opts.TargetNamespaces...)
+	if len(targetCacheNamespaces) > 0 {
+		logf.FromContext(ctx).Info("restricting target cache to namespaces",
+			"namespaces", opts.TargetNamespaces)
+	}
+
 	targetCache, err := cache.New(mgr.GetConfig(), cache.Options{
 		HTTPClient:                  mgr.GetHTTPClient(),
 		Scheme:                      mgr.GetScheme(),
 		Mapper:                      mgr.GetRESTMapper(),
 		ReaderFailOnMissingInformer: true,
 		DefaultLabelSelector:        labels.NewSelector().Add(*targetRequirement),
+		DefaultNamespaces:           targetCacheNamespaces,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create target cache: %w", err)
@@ -126,6 +141,11 @@ func addBundleController(
 			Client: mgr.GetClient(),
 			Cache:  targetCache,
 		},
+	}
+
+	if len(b.Options.TargetNamespaces) > 0 {
+		logf.FromContext(ctx).Info("reconciler will skip namespaces outside targetlist",
+			"target-namespaces", b.Options.TargetNamespaces)
 	}
 
 	if b.Options.DefaultPackageLocation != "" {
@@ -295,4 +315,19 @@ func labelsMatchSelector(objLabels map[string]string, labelSelector *metav1.Labe
 		return false
 	}
 	return selector.Matches(labels.Set(objLabels))
+}
+
+// setupCacheNamespaces configure cache namespaces
+func setupCacheNamespaces(namespaces ...string) map[string]cache.Config {
+	if len(namespaces) == 0 {
+		return nil
+	}
+	defaultNamespaces := make(map[string]cache.Config)
+	for _, ns := range namespaces {
+		if ns == "" {
+			continue
+		}
+		defaultNamespaces[ns] = cache.Config{}
+	}
+	return defaultNamespaces
 }

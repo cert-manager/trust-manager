@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -196,6 +197,13 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 				continue
 			}
 
+			// If TargetNamespaces is not empty, don't reconcile target for Namespaces that are out of this list
+			if len(b.Options.TargetNamespaces) > 0 {
+				if !slices.Contains(b.Options.TargetNamespaces, namespace.Name) {
+					continue
+				}
+			}
+
 			namespacedName := types.NamespacedName{
 				Name:      bundle.Name,
 				Namespace: namespace.Name,
@@ -301,9 +309,17 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 		needsUpdate = true
 	}
 
-	message := "Successfully synced Bundle to all namespaces"
-	if !namespaceSelector.Empty() {
-		message = fmt.Sprintf("Successfully synced Bundle to namespaces that match this label selector: %s", namespaceSelector)
+	var message string
+	if len(b.Options.TargetNamespaces) > 0 {
+		message = "Successfully synced Bundle to all allowed namespaces"
+		if !namespaceSelector.Empty() {
+			message = fmt.Sprintf("Successfully synced Bundle to allowed namespaces that match this label selector: %s", namespaceSelector)
+		}
+	} else {
+		message = "Successfully synced Bundle to all namespaces"
+		if !namespaceSelector.Empty() {
+			message = fmt.Sprintf("Successfully synced Bundle to namespaces that match this label selector: %s", namespaceSelector)
+		}
 	}
 
 	syncedCondition := metav1.Condition{
