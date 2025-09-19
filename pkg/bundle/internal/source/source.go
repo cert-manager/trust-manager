@@ -28,7 +28,6 @@ import (
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
-	"github.com/cert-manager/trust-manager/pkg/bundle/internal/truststore"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/pkg/util"
 )
@@ -43,36 +42,9 @@ type InvalidSecretError struct{ error }
 // certificate data from concatenating all the sources together, binary data for any additional formats and
 // any metadata from the sources which needs to be exposed on the Bundle resource's status field.
 type BundleData struct {
-	Data string
-
-	BinaryData map[string][]byte
+	CertPool *util.CertPool
 
 	DefaultCAPackageStringID string
-}
-
-func (b *BundleData) populate(pool *util.CertPool, formats *trustapi.AdditionalFormats) error {
-	b.Data = pool.PEM()
-
-	if formats != nil {
-		b.BinaryData = make(map[string][]byte)
-
-		if formats.JKS != nil {
-			encoded, err := truststore.NewJKSEncoder(*formats.JKS.Password).Encode(pool)
-			if err != nil {
-				return fmt.Errorf("failed to encode JKS: %w", err)
-			}
-			b.BinaryData[formats.JKS.Key] = encoded
-		}
-
-		if formats.PKCS12 != nil {
-			encoded, err := truststore.NewPKCS12Encoder(*formats.PKCS12.Password, formats.PKCS12.Profile).Encode(pool)
-			if err != nil {
-				return fmt.Errorf("failed to encode PKCS12: %w", err)
-			}
-			b.BinaryData[formats.PKCS12.Key] = encoded
-		}
-	}
-	return nil
 }
 
 type BundleBuilder struct {
@@ -87,9 +59,9 @@ type BundleBuilder struct {
 
 // BuildBundle retrieves and concatenates all source bundle data for this Bundle object.
 // Each source data is validated and pruned to ensure that all certificates within are valid.
-func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.BundleSource, formats *trustapi.AdditionalFormats) (BundleData, error) {
+func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.BundleSource) (BundleData, error) {
 	var resolvedBundle BundleData
-	certPool := util.NewCertPool(
+	resolvedBundle.CertPool = util.NewCertPool(
 		util.WithFilteredExpiredCerts(b.FilterExpiredCerts),
 		util.WithLogger(logf.FromContext(ctx).WithName("cert-pool")),
 	)
@@ -120,18 +92,14 @@ func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.Bund
 			panic(fmt.Sprintf("don't know how to process source: %+v", source))
 		}
 
-		if err := certSource.addToCertPool(ctx, certPool); err != nil {
+		if err := certSource.addToCertPool(ctx, resolvedBundle.CertPool); err != nil {
 			return BundleData{}, err
 		}
 	}
 
 	// NB: empty bundles are not valid, so check and return an error if one somehow snuck through.
-	if certPool.Size() == 0 {
+	if resolvedBundle.CertPool.Size() == 0 {
 		return BundleData{}, NotFoundError{fmt.Errorf("couldn't find any valid certificates in bundle")}
-	}
-
-	if err := resolvedBundle.populate(certPool, formats); err != nil {
-		return BundleData{}, err
 	}
 
 	return resolvedBundle, nil
