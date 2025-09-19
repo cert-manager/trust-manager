@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/util/csaupgrade"
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -99,15 +98,6 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 	if err != nil {
 		log.Error(err, "failed to get bundle")
 		return nil, fmt.Errorf("failed to get %q: %s", req.NamespacedName, err)
-	}
-
-	// MIGRATION: If we are upgrading from a version of trust-manager that did use Update to set
-	// the Bundle status, we need to ensure that we do remove the old status fields in case we apply.
-	if didMigrate, err := ssa_client.MigrateToApply(ctx, b.client, &bundle, csaupgrade.Subresource("status")); err != nil {
-		log.Error(err, "failed to migrate bundle status")
-		return nil, fmt.Errorf("failed to migrate bundle status: %w", err)
-	} else if didMigrate {
-		log.V(2).Info("migrated bundle status from CSA to SSA")
 	}
 
 	// Initialize patch with current status field values, except conditions.

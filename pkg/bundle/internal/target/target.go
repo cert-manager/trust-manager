@@ -144,7 +144,7 @@ func (r *Reconciler) applyConfigMap(
 	// If the resource exists, check if it is up-to-date.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
-		if exit, err := r.needsUpdate(ctx, target.Kind, targetObj, bundle, bundleHash); err != nil {
+		if exit, err := r.needsUpdate(target.Kind, targetObj, bundle, bundleHash); err != nil {
 			return false, err
 		} else if !exit {
 			return false, nil
@@ -207,7 +207,7 @@ func (r *Reconciler) applySecret(
 	// If the resource exists, check if it is up-to-date.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
-		if exit, err := r.needsUpdate(ctx, target.Kind, targetObj, bundle, bundleHash); err != nil {
+		if exit, err := r.needsUpdate(target.Kind, targetObj, bundle, bundleHash); err != nil {
 			return false, err
 		} else if !exit {
 			return false, nil
@@ -250,7 +250,7 @@ const (
 	KindSecret    Kind = "Secret"
 )
 
-func (r *Reconciler) needsUpdate(ctx context.Context, kind Kind, obj *metav1.PartialObjectMetadata, bundle *trustapi.Bundle, bundleHash string) (bool, error) {
+func (r *Reconciler) needsUpdate(kind Kind, obj *metav1.PartialObjectMetadata, bundle *trustapi.Bundle, bundleHash string) (bool, error) {
 	needsUpdate := false ||
 		!metav1.IsControlledBy(obj, bundle) ||
 		obj.GetLabels()[trustapi.BundleLabelKey] != bundle.Name ||
@@ -283,18 +283,6 @@ func (r *Reconciler) needsUpdate(ctx context.Context, kind Kind, obj *metav1.Par
 		}
 		if !properties.Equal(expectedProperties) {
 			needsUpdate = true
-		}
-
-		if kind == KindConfigMap {
-			if bundle.Spec.Target.ConfigMap != nil {
-				// Check if we need to migrate the ConfigMap managed fields to the Apply field operation
-				if didMigrate, err := ssa_client.MigrateToApply(ctx, r.Client, obj); err != nil {
-					return false, fmt.Errorf("failed to migrate ConfigMap %s/%s to Apply: %w", obj.Namespace, obj.Name, err)
-				} else if didMigrate {
-					logf.FromContext(ctx).V(2).Info("migrated configmap from CSA to SSA")
-					needsUpdate = true
-				}
-			}
 		}
 	}
 	return needsUpdate, nil
