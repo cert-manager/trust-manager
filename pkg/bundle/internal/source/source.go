@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/pkg/util"
@@ -61,7 +60,7 @@ type BundleBuilder struct {
 
 // BuildBundle retrieves and concatenates all source bundle data for this Bundle object.
 // Each source data is validated and pruned to ensure that all certificates within are valid.
-func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.BundleSource) (BundleData, error) {
+func (b *BundleBuilder) BuildBundle(ctx context.Context, spec trustmanagerapi.BundleSpec) (BundleData, error) {
 	var resolvedBundle BundleData
 	resolvedBundle.CertPool = util.NewCertPool(
 		util.WithFilteredExpiredCerts(b.FilterExpiredCerts),
@@ -82,14 +81,14 @@ func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.Bund
 			panic(fmt.Sprintf("don't know how to process source of kind: %q", source.Kind))
 		}
 
-		if err := certSource.addToCertPool(ctx, certPool); err != nil {
+		if err := certSource.addToCertPool(ctx, resolvedBundle.CertPool); err != nil {
 			return BundleData{}, err
 		}
 	}
 
 	if spec.InLineCAs != nil {
 		certSource := &inlineBundleSource{*spec.InLineCAs}
-		if err := certSource.addToCertPool(ctx, certPool); err != nil {
+		if err := certSource.addToCertPool(ctx, resolvedBundle.CertPool); err != nil {
 			return BundleData{}, err
 		}
 	}
@@ -183,20 +182,13 @@ func (b configMapBundleSource) addToCertPool(ctx context.Context, pool *util.Cer
 	}
 
 	for _, cm := range configMaps {
-		if len(b.ref.Key) > 0 {
-			data, ok := cm.Data[b.ref.Key]
-			if !ok {
-				return NotFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, b.ref.Key)}
-			}
-			if err := pool.AddCertsFromPEM([]byte(data)); err != nil {
-				return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, b.ref.Key, err)}
-			}
-		} else if b.ref.IncludeAllKeys {
-			for key, data := range cm.Data {
-				if err := pool.AddCertsFromPEM([]byte(data)); err != nil {
-					return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, key, err)}
-				}
-			}
+		// TODO: Find matching keys
+		data, ok := cm.Data[b.ref.Key]
+		if !ok {
+			return NotFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, b.ref.Key)}
+		}
+		if err := pool.AddCertsFromPEM([]byte(data)); err != nil {
+			return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, b.ref.Key, err)}
 		}
 	}
 	return nil
@@ -246,25 +238,17 @@ func (b secretBundleSource) addToCertPool(ctx context.Context, pool *util.CertPo
 	}
 
 	for _, secret := range secrets {
-		if len(b.ref.Key) > 0 {
-			data, ok := secret.Data[b.ref.Key]
-			if !ok {
-				return NotFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, b.ref.Key)}
-			}
-			if err := pool.AddCertsFromPEM(data); err != nil {
-				return InvalidPEMError{fmt.Errorf("invalid PEM data in Secret %s/%s at key %q: %w", secret.Namespace, secret.Name, b.ref.Key, err)}
-			}
-		} else if b.ref.IncludeAllKeys {
-			// This is done to prevent mistakes. All keys should never be included for a TLS secret, since that would include the private key.
-			if secret.Type == corev1.SecretTypeTLS {
-				return InvalidSecretError{fmt.Errorf("includeAllKeys is not supported for TLS Secrets such as %s/%s", secret.Namespace, secret.Name)}
-			}
-
-			for key, data := range secret.Data {
-				if err := pool.AddCertsFromPEM(data); err != nil {
-					return InvalidPEMError{fmt.Errorf("invalid PEM data in Secret %s/%s at key %q: %w", secret.Namespace, secret.Name, key, err)}
-				}
-			}
+		// This is done to prevent mistakes. All keys should never be included for a TLS secret, since that would include the private key.
+		if secret.Type == corev1.SecretTypeTLS && b.ref.Key == "*" {
+			return InvalidSecretError{fmt.Errorf("including all keys is not supported for TLS Secrets such as %s/%s", secret.Namespace, secret.Name)}
+		}
+		// TODO: Find matching keys
+		data, ok := secret.Data[b.ref.Key]
+		if !ok {
+			return NotFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, b.ref.Key)}
+		}
+		if err := pool.AddCertsFromPEM(data); err != nil {
+			return InvalidPEMError{fmt.Errorf("invalid PEM data in Secret %s/%s at key %q: %w", secret.Namespace, secret.Name, b.ref.Key, err)}
 		}
 	}
 	return nil
