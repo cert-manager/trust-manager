@@ -1581,6 +1581,7 @@ func Test_Reconcile(t *testing.T) {
 			t.Parallel()
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(test.Scheme).
+				WithReturnManagedFields().
 				WithObjects(deepCopyArray(tt.existingConfigMaps)...).
 				WithObjects(deepCopyArray(tt.existingBundles)...).
 				WithObjects(deepCopyArray(tt.existingNamespaces)...).

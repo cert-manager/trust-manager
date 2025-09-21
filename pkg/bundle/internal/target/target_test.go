@@ -442,6 +442,7 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 			t.Parallel()
 
 			clientBuilder := fake.NewClientBuilder().
+				WithReturnManagedFields().
 				WithScheme(test.Scheme)
 			if tt.object != nil {
 				clientBuilder.WithRuntimeObjects(tt.object)
@@ -893,6 +894,7 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 			t.Parallel()
 
 			clientBuilder := fake.NewClientBuilder().
+				WithReturnManagedFields().
 				WithScheme(test.Scheme)
 			if tt.object != nil {
 				clientBuilder.WithRuntimeObjects(tt.object)
