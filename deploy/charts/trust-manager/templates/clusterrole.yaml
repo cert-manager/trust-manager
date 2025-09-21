@@ -13,8 +13,7 @@ rules:
   - "trust.cert-manager.io"
   resources:
   - "bundles"
-  # We also need patch here so we can perform migrations from old CSA to SSA.
-  verbs: ["get", "list", "watch", "patch"]
+  verbs: ["get", "list", "watch"]
 
 # Permissions to update finalizers are required for trust-manager to work correctly
 # on OpenShift, even though we don't directly use finalizers at the time of writing

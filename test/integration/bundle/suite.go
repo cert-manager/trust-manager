@@ -19,9 +19,7 @@ package test
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
-	"time"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -703,93 +701,6 @@ var _ = Describe("Integration", func() {
 			resourceVersion := configMap.ResourceVersion
 			Consistently(komega.Object(configMap)).Should(HaveField("ObjectMeta.ResourceVersion", Equal(resourceVersion)))
 		})
-	})
-
-	It("should migrate bundle from CSA to SSA", func() {
-		Expect(komega.UpdateStatus(testBundle, func() {
-			testBundle.Status = trustapi.BundleStatus{
-				DefaultCAPackageVersion: ptr.To("OLD_VERSION"),
-				Conditions: []metav1.Condition{
-					{
-						Type:               "OLD_CONDITION",
-						Status:             metav1.ConditionTrue,
-						Reason:             "OldReason",
-						LastTransitionTime: metav1.Time{Time: time.Unix(0, 0)},
-					},
-				},
-			}
-
-		}, &client.SubResourceUpdateOptions{
-			UpdateOptions: client.UpdateOptions{
-				FieldManager: "Go-http-client",
-			},
-		})()).To(Succeed())
-
-		Eventually(func() error {
-			err := cl.Get(ctx, client.ObjectKeyFromObject(testBundle), testBundle)
-
-			if err != nil {
-				return err
-			}
-
-			if testBundle.Status.DefaultCAPackageVersion != nil && *testBundle.Status.DefaultCAPackageVersion == "OLD_VERSION" {
-				return fmt.Errorf("old package version still present")
-			}
-
-			for _, condition := range testBundle.Status.Conditions {
-				if condition.Type == "OLD_CONDITION" {
-					return fmt.Errorf("old condition still present")
-				}
-			}
-
-			return nil
-		}, eventuallyTimeout, eventuallyPollInterval).Should(Succeed(), "checking that bundle was re-added to newly labelled namespace")
-	})
-
-	It("should migrate configmap from CSA to SSA", func() {
-		oldKey := testBundle.Spec.Target.ConfigMap.Key
-		newKey := "NEW_KEY"
-
-		// Create a new namespace for this test; GenerateName will populate the name after creation
-		// We use GenerateName to create a new uniquely-named namespace that shouldn't clash with any of
-		// the existing ones.
-		testNamespace := corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "trust-bundle-integration-ns-",
-			},
-		}
-		Expect(cl.Create(ctx, &testNamespace)).NotTo(HaveOccurred())
-
-		expectedData := dummy.DefaultJoinedCerts()
-
-		// confirm all namespaces - including the new one - have the expected data
-		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
-
-		var cm corev1.ConfigMap
-		Expect(cl.Get(ctx, client.ObjectKey{Namespace: testNamespace.Name, Name: testBundle.Name}, &cm)).NotTo(HaveOccurred())
-
-		// Simulate a CSA configmap by setting the managed fields to the "CSA" values
-		for i, mf := range cm.ManagedFields {
-			if mf.Manager != "trust-manager" || mf.Operation != "Apply" || mf.Subresource != "" {
-				continue
-			}
-
-			cm.ManagedFields[i].Manager = "Go-http-client"
-			cm.ManagedFields[i].Operation = "Update"
-		}
-
-		Expect(cl.Update(ctx, &cm)).NotTo(HaveOccurred())
-
-		Expect(komega.Update(testBundle, func() {
-			testBundle.Spec.Target.ConfigMap.Key = newKey
-		})()).To(Succeed())
-
-		// confirm all namespaces - including the new one - have the expected data
-		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
-
-		Expect(cl.Get(ctx, client.ObjectKey{Namespace: testNamespace.Name, Name: testBundle.Name}, &cm)).NotTo(HaveOccurred())
-
-		Expect(cm.Data).To(Not(HaveKey(oldKey)))
 	})
 
 	It("should add target annotations when added to a bundle", func() {
