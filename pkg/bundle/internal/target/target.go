@@ -158,8 +158,12 @@ func (r *Reconciler) applyConfigMap(
 	maps.Copy(labels, bundleTarget.ConfigMap.GetLabels())
 	patch.SetLabels(labels)
 
-	patch.Object["data"] = data
-	patch.Object["binaryData"] = binData
+	if len(data) > 0 {
+		patch.Object["data"] = data
+	}
+	if len(binData) > 0 {
+		patch.Object["binaryData"] = binData
+	}
 
 	if err = r.patchObj(ctx, patch); err != nil {
 		return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
@@ -235,7 +239,9 @@ func (r *Reconciler) applySecret(
 	maps.Copy(labels, bundleTarget.ConfigMap.GetLabels())
 	patch.SetLabels(labels)
 
-	patch.Object["data"] = data
+	if len(data) > 0 {
+		patch.Object["data"] = data
+	}
 
 	if err = r.patchObj(ctx, patch); err != nil {
 		return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)

@@ -171,7 +171,9 @@ func Test_Reconcile(t *testing.T) {
 			patch.SetLabels(map[string]string{
 				trustapi.BundleLabelKey: baseBundle.GetName(),
 			})
-			patch.SetAnnotations(annotations)
+			if len(annotations) > 0 {
+				patch.SetAnnotations(annotations)
+			}
 			patch.SetOwnerReferences([]metav1.OwnerReference{{
 				APIVersion:         trustapi.SchemeGroupVersion.String(),
 				Kind:               trustapi.BundleKind,
@@ -180,8 +182,12 @@ func Test_Reconcile(t *testing.T) {
 				Controller:         ptr.To(true),
 				BlockOwnerDeletion: ptr.To(true),
 			}})
-			patch.Object["data"] = data
-			patch.Object["binaryData"] = binData
+			if len(data) > 0 {
+				patch.Object["data"] = data
+			}
+			if len(binData) > 0 {
+				patch.Object["binaryData"] = binData
+			}
 
 			return patch
 		}
@@ -205,7 +211,9 @@ func Test_Reconcile(t *testing.T) {
 			patch.SetLabels(map[string]string{
 				trustapi.BundleLabelKey: baseBundle.GetName(),
 			})
-			patch.SetAnnotations(annotations)
+			if len(annotations) > 0 {
+				patch.SetAnnotations(annotations)
+			}
 			patch.SetOwnerReferences([]metav1.OwnerReference{{
 				APIVersion:         trustapi.SchemeGroupVersion.String(),
 				Kind:               trustapi.BundleKind,
@@ -214,7 +222,9 @@ func Test_Reconcile(t *testing.T) {
 				Controller:         ptr.To(true),
 				BlockOwnerDeletion: ptr.To(true),
 			}})
-			patch.Object["data"] = binaryData
+			if len(binaryData) > 0 {
+				patch.Object["data"] = binaryData
+			}
 
 			return patch
 		}
