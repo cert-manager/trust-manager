@@ -53,7 +53,7 @@ type Reconciler struct {
 
 	// PatchResourceOverwrite allows use to override the patchResource function
 	// it is used for testing purposes
-	PatchResourceOverwrite func(ctx context.Context, obj interface{}) error
+	PatchResourceOverwrite func(ctx context.Context, obj *unstructured.Unstructured) error
 }
 
 // CleanupTarget ensures the obsolete bundle target is cleanup up.
@@ -142,15 +142,22 @@ func (r *Reconciler) applyConfigMap(
 	}
 
 	patch := prepareTargetPatch(target, *bundle)
-	if patch.GetAnnotations() == nil {
-		patch.SetAnnotations(map[string]string{})
+
+	annotations := patch.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
 	}
-	maps.Copy(patch.GetAnnotations(), bundleTarget.ConfigMap.GetAnnotations())
-	patch.GetAnnotations()[trustapi.BundleHashAnnotationKey] = bundleHash
-	if patch.GetLabels() == nil {
-		patch.SetLabels(map[string]string{})
+	maps.Copy(annotations, bundleTarget.ConfigMap.GetAnnotations())
+	annotations[trustapi.BundleHashAnnotationKey] = bundleHash
+	patch.SetAnnotations(annotations)
+
+	labels := patch.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
 	}
-	maps.Copy(patch.GetLabels(), bundleTarget.ConfigMap.GetLabels())
+	maps.Copy(labels, bundleTarget.ConfigMap.GetLabels())
+	patch.SetLabels(labels)
+
 	patch.Object["data"] = data
 	patch.Object["binaryData"] = binData
 
@@ -212,15 +219,22 @@ func (r *Reconciler) applySecret(
 	}
 
 	patch := prepareTargetPatch(target, *bundle)
-	if patch.GetAnnotations() == nil {
-		patch.SetAnnotations(map[string]string{})
+
+	annotations := patch.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
 	}
-	maps.Copy(patch.GetAnnotations(), bundleTarget.ConfigMap.GetAnnotations())
-	patch.GetAnnotations()[trustapi.BundleHashAnnotationKey] = bundleHash
-	if patch.GetLabels() == nil {
-		patch.SetLabels(map[string]string{})
+	maps.Copy(annotations, bundleTarget.ConfigMap.GetAnnotations())
+	annotations[trustapi.BundleHashAnnotationKey] = bundleHash
+	patch.SetAnnotations(annotations)
+
+	labels := patch.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
 	}
-	maps.Copy(patch.GetLabels(), bundleTarget.ConfigMap.GetLabels())
+	maps.Copy(labels, bundleTarget.ConfigMap.GetLabels())
+	patch.SetLabels(labels)
+
 	patch.Object["data"] = data
 
 	if err = r.patchObj(ctx, patch); err != nil {

@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
@@ -451,13 +452,13 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 
 			var (
 				logMutex        sync.Mutex
-				resourcePatches []interface{}
+				resourcePatches []*unstructured.Unstructured
 			)
 
 			r := &Reconciler{
 				Client: fakeClient,
 				Cache:  fakeClient,
-				PatchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
+				PatchResourceOverwrite: func(ctx context.Context, obj *unstructured.Unstructured) error {
 					logMutex.Lock()
 					defer logMutex.Unlock()
 
@@ -523,7 +524,9 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 			}
 
 			if len(resourcePatches) == 1 {
-				configmap := resourcePatches[0].(*coreapplyconfig.ConfigMapApplyConfiguration)
+				var configmap coreapplyconfig.ConfigMapApplyConfiguration
+				err = runtime.DefaultUnstructuredConverter.FromUnstructured(resourcePatches[0].Object, &configmap)
+				assert.NoError(t, err)
 
 				assert.Equal(t, data, configmap.Data[key])
 
@@ -902,13 +905,13 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 
 			var (
 				logMutex        sync.Mutex
-				resourcePatches []interface{}
+				resourcePatches []*unstructured.Unstructured
 			)
 
 			r := &Reconciler{
 				Client: fakeClient,
 				Cache:  fakeClient,
-				PatchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
+				PatchResourceOverwrite: func(ctx context.Context, obj *unstructured.Unstructured) error {
 					logMutex.Lock()
 					defer logMutex.Unlock()
 
@@ -962,7 +965,9 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 			}
 
 			if len(resourcePatches) == 1 {
-				secret := resourcePatches[0].(*coreapplyconfig.SecretApplyConfiguration)
+				var secret coreapplyconfig.SecretApplyConfiguration
+				err = runtime.DefaultUnstructuredConverter.FromUnstructured(resourcePatches[0].Object, &secret)
+				assert.NoError(t, err)
 
 				assert.Equal(t, data, string(secret.Data[key]))
 

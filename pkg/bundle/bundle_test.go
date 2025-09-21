@@ -25,9 +25,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
-	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2/ktesting"
 	fakeclock "k8s.io/utils/clock/testing"
@@ -158,35 +157,39 @@ func Test_Reconcile(t *testing.T) {
 			},
 		}
 
-		configMapPatch = func(name, namespace string, data map[string]string, binData map[string][]byte, key *string, additionalFormats *trustapi.AdditionalFormats) *coreapplyconfig.ConfigMapApplyConfiguration {
+		configMapPatch = func(name, namespace string, data map[string]string, binData map[string][]byte, key *string, additionalFormats *trustapi.AdditionalFormats) *unstructured.Unstructured {
 			annotations := map[string]string{}
 			if key != nil {
 				annotations[trustapi.BundleHashAnnotationKey] = target.TrustBundleHash([]byte(data[*key]), additionalFormats, nil)
 			}
 
-			return coreapplyconfig.
-				ConfigMap(name, namespace).
-				WithLabels(map[string]string{
-					trustapi.BundleLabelKey: baseBundle.GetName(),
-				}).
-				WithAnnotations(annotations).
-				WithOwnerReferences(
-					v1.OwnerReference().
-						WithAPIVersion(trustapi.SchemeGroupVersion.String()).
-						WithKind(trustapi.BundleKind).
-						WithName(baseBundle.GetName()).
-						WithUID(baseBundle.GetUID()).
-						WithBlockOwnerDeletion(true).
-						WithController(true),
-				).
-				WithData(data).
-				WithBinaryData(binData)
+			patch := &unstructured.Unstructured{}
+			patch.SetAPIVersion("v1")
+			patch.SetKind("ConfigMap")
+			patch.SetNamespace(namespace)
+			patch.SetName(name)
+			patch.SetLabels(map[string]string{
+				trustapi.BundleLabelKey: baseBundle.GetName(),
+			})
+			patch.SetAnnotations(annotations)
+			patch.SetOwnerReferences([]metav1.OwnerReference{{
+				APIVersion:         trustapi.SchemeGroupVersion.String(),
+				Kind:               trustapi.BundleKind,
+				Name:               baseBundle.GetName(),
+				UID:                baseBundle.GetUID(),
+				Controller:         ptr.To(true),
+				BlockOwnerDeletion: ptr.To(true),
+			}})
+			patch.Object["data"] = data
+			patch.Object["binaryData"] = binData
+
+			return patch
 		}
 
-		secretPatch = func(name, namespace string, data map[string]string, key *string, additionaFormats *trustapi.AdditionalFormats) *coreapplyconfig.SecretApplyConfiguration {
+		secretPatch = func(name, namespace string, data map[string]string, key *string, additionalFormats *trustapi.AdditionalFormats) *unstructured.Unstructured {
 			annotations := map[string]string{}
 			if key != nil {
-				annotations[trustapi.BundleHashAnnotationKey] = target.TrustBundleHash([]byte(data[*key]), additionaFormats, nil)
+				annotations[trustapi.BundleHashAnnotationKey] = target.TrustBundleHash([]byte(data[*key]), additionalFormats, nil)
 			}
 
 			binaryData := map[string][]byte{}
@@ -194,22 +197,26 @@ func Test_Reconcile(t *testing.T) {
 				binaryData[k] = []byte(v)
 			}
 
-			return coreapplyconfig.
-				Secret(name, namespace).
-				WithLabels(map[string]string{
-					trustapi.BundleLabelKey: baseBundle.GetName(),
-				}).
-				WithAnnotations(annotations).
-				WithOwnerReferences(
-					v1.OwnerReference().
-						WithAPIVersion(trustapi.SchemeGroupVersion.String()).
-						WithKind(trustapi.BundleKind).
-						WithName(baseBundle.GetName()).
-						WithUID(baseBundle.GetUID()).
-						WithBlockOwnerDeletion(true).
-						WithController(true),
-				).
-				WithData(binaryData)
+			patch := &unstructured.Unstructured{}
+			patch.SetAPIVersion("v1")
+			patch.SetKind("Secret")
+			patch.SetNamespace(namespace)
+			patch.SetName(name)
+			patch.SetLabels(map[string]string{
+				trustapi.BundleLabelKey: baseBundle.GetName(),
+			})
+			patch.SetAnnotations(annotations)
+			patch.SetOwnerReferences([]metav1.OwnerReference{{
+				APIVersion:         trustapi.SchemeGroupVersion.String(),
+				Kind:               trustapi.BundleKind,
+				Name:               baseBundle.GetName(),
+				UID:                baseBundle.GetUID(),
+				Controller:         ptr.To(true),
+				BlockOwnerDeletion: ptr.To(true),
+			}})
+			patch.Object["data"] = binaryData
+
+			return patch
 		}
 
 		targetConfigMap = func(namespace string, data map[string]string, binData map[string][]byte, key *string, withOwnerRef bool, additionaFormats *trustapi.AdditionalFormats) *corev1.ConfigMap {
@@ -1593,7 +1600,7 @@ func Test_Reconcile(t *testing.T) {
 
 			var (
 				logMutex        sync.Mutex
-				resourcePatches []interface{}
+				resourcePatches []*unstructured.Unstructured
 			)
 
 			_, ctx := ktesting.NewTestContext(t)
@@ -1614,7 +1621,7 @@ func Test_Reconcile(t *testing.T) {
 				targetReconciler: &target.Reconciler{
 					Client: fakeClient,
 					Cache:  fakeClient,
-					PatchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
+					PatchResourceOverwrite: func(ctx context.Context, obj *unstructured.Unstructured) error {
 						logMutex.Lock()
 						defer logMutex.Unlock()
 
