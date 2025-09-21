@@ -19,6 +19,7 @@ package source
 import (
 	"context"
 	"fmt"
+	"path"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -182,13 +183,22 @@ func (b configMapBundleSource) addToCertPool(ctx context.Context, pool *util.Cer
 	}
 
 	for _, cm := range configMaps {
-		// TODO: Find matching keys
-		data, ok := cm.Data[b.ref.Key]
-		if !ok {
-			return NotFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, b.ref.Key)}
+		found := false
+		for k, v := range cm.Data {
+			ok, err := path.Match(b.ref.Key, k)
+			if err != nil {
+				return fmt.Errorf("failed to match key %q in ConfigMap %s/%s: %w", b.ref.Key, cm.Namespace, cm.Name, err)
+			}
+			if ok {
+				found = true
+				if err := pool.AddCertsFromPEM([]byte(v)); err != nil {
+					return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, k, err)}
+				}
+			}
 		}
-		if err := pool.AddCertsFromPEM([]byte(data)); err != nil {
-			return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, b.ref.Key, err)}
+
+		if !found {
+			return NotFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, b.ref.Key)}
 		}
 	}
 	return nil
@@ -242,13 +252,22 @@ func (b secretBundleSource) addToCertPool(ctx context.Context, pool *util.CertPo
 		if secret.Type == corev1.SecretTypeTLS && b.ref.Key == "*" {
 			return InvalidSecretError{fmt.Errorf("including all keys is not supported for TLS Secrets such as %s/%s", secret.Namespace, secret.Name)}
 		}
-		// TODO: Find matching keys
-		data, ok := secret.Data[b.ref.Key]
-		if !ok {
-			return NotFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, b.ref.Key)}
+		found := false
+		for k, v := range secret.Data {
+			ok, err := path.Match(b.ref.Key, k)
+			if err != nil {
+				return fmt.Errorf("failed to match key %q in Secret %s/%s: %w", b.ref.Key, secret.Namespace, secret.Name, err)
+			}
+			if ok {
+				found = true
+				if err := pool.AddCertsFromPEM(v); err != nil {
+					return InvalidPEMError{fmt.Errorf("invalid PEM data in Secret %s/%s at key %q: %w", secret.Namespace, secret.Name, k, err)}
+				}
+			}
 		}
-		if err := pool.AddCertsFromPEM(data); err != nil {
-			return InvalidPEMError{fmt.Errorf("invalid PEM data in Secret %s/%s at key %q: %w", secret.Namespace, secret.Name, b.ref.Key, err)}
+
+		if !found {
+			return NotFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, b.ref.Key)}
 		}
 	}
 	return nil
