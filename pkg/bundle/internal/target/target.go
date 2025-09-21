@@ -23,16 +23,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/sets"
-	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
-	metav1applyconfig "k8s.io/client-go/applyconfigurations/meta/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -66,31 +64,14 @@ func (r *Reconciler) CleanupTarget(
 	target Resource,
 	bundle *trustapi.Bundle,
 ) (bool, error) {
-	switch target.Kind {
-	case KindConfigMap:
-		// Apply an empty patch to remove the key(s).
-		patch := prepareTargetPatch(coreapplyconfig.ConfigMap(target.Name, target.Namespace), *bundle)
-		configMap, err := r.patchConfigMap(ctx, patch)
-		if err != nil {
-			return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
-		}
-		// If the ConfigMap is empty, delete it.
-		if configMap != nil && len(configMap.Data) == 0 && len(configMap.BinaryData) == 0 {
-			return false, client.IgnoreNotFound(r.Client.Delete(ctx, configMap))
-		}
-	case KindSecret:
-		// Apply an empty patch to remove the key(s).
-		patch := prepareTargetPatch(coreapplyconfig.Secret(target.Name, target.Namespace), *bundle)
-		secret, err := r.patchSecret(ctx, patch)
-		if err != nil {
-			return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
-		}
-		// If the Secret is empty, delete it.
-		if secret != nil && len(secret.Data) == 0 {
-			return true, client.IgnoreNotFound(r.Client.Delete(ctx, secret))
-		}
-	default:
-		return false, fmt.Errorf("don't know how to clean target of kind: %s", target.Kind)
+	// Apply an empty obj to remove the key(s).
+	obj := prepareTargetPatch(target, *bundle)
+	if err := r.patchObj(ctx, obj); err != nil {
+		return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
+	}
+	// If the target is empty, delete it.
+	if obj.Object["data"] == nil && obj.Object["binaryData"] == nil {
+		return true, client.IgnoreNotFound(r.Client.Delete(ctx, obj))
 	}
 
 	return false, nil
@@ -160,16 +141,20 @@ func (r *Reconciler) applyConfigMap(
 		return false, err
 	}
 
-	patch := prepareTargetPatch(coreapplyconfig.ConfigMap(target.Name, target.Namespace), *bundle).
-		WithAnnotations(bundleTarget.ConfigMap.GetAnnotations()).
-		WithAnnotations(map[string]string{
-			trustapi.BundleHashAnnotationKey: bundleHash,
-		}).
-		WithLabels(bundleTarget.ConfigMap.GetLabels()).
-		WithData(data).
-		WithBinaryData(binData)
+	patch := prepareTargetPatch(target, *bundle)
+	if patch.GetAnnotations() == nil {
+		patch.SetAnnotations(map[string]string{})
+	}
+	maps.Copy(patch.GetAnnotations(), bundleTarget.ConfigMap.GetAnnotations())
+	patch.GetAnnotations()[trustapi.BundleHashAnnotationKey] = bundleHash
+	if patch.GetLabels() == nil {
+		patch.SetLabels(map[string]string{})
+	}
+	maps.Copy(patch.GetLabels(), bundleTarget.ConfigMap.GetLabels())
+	patch.Object["data"] = data
+	patch.Object["binaryData"] = binData
 
-	if _, err = r.patchConfigMap(ctx, patch); err != nil {
+	if err = r.patchObj(ctx, patch); err != nil {
 		return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
 	}
 
@@ -226,15 +211,19 @@ func (r *Reconciler) applySecret(
 		data[k] = v
 	}
 
-	patch := prepareTargetPatch(coreapplyconfig.Secret(target.Name, target.Namespace), *bundle).
-		WithAnnotations(bundleTarget.Secret.GetAnnotations()).
-		WithAnnotations(map[string]string{
-			trustapi.BundleHashAnnotationKey: bundleHash,
-		}).
-		WithLabels(bundleTarget.Secret.GetLabels()).
-		WithData(data)
+	patch := prepareTargetPatch(target, *bundle)
+	if patch.GetAnnotations() == nil {
+		patch.SetAnnotations(map[string]string{})
+	}
+	maps.Copy(patch.GetAnnotations(), bundleTarget.ConfigMap.GetAnnotations())
+	patch.GetAnnotations()[trustapi.BundleHashAnnotationKey] = bundleHash
+	if patch.GetLabels() == nil {
+		patch.SetLabels(map[string]string{})
+	}
+	maps.Copy(patch.GetLabels(), bundleTarget.ConfigMap.GetLabels())
+	patch.Object["data"] = data
 
-	if _, err = r.patchSecret(ctx, patch); err != nil {
+	if err = r.patchObj(ctx, patch); err != nil {
 		return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
 	}
 
@@ -332,77 +321,37 @@ func listManagedProperties(configmap *metav1.PartialObjectMetadata, fieldManager
 	return properties, nil
 }
 
-func (r *Reconciler) patchConfigMap(ctx context.Context, applyConfig *coreapplyconfig.ConfigMapApplyConfiguration) (*corev1.ConfigMap, error) {
+func (r *Reconciler) patchObj(ctx context.Context, obj *unstructured.Unstructured) error {
 	if r.PatchResourceOverwrite != nil {
-		return nil, r.PatchResourceOverwrite(ctx, applyConfig)
+		return r.PatchResourceOverwrite(ctx, obj)
 	}
 
-	if applyConfig == nil || applyConfig.Name == nil || applyConfig.Namespace == nil {
+	if obj == nil || obj.GetName() == "" || obj.GetNamespace() == "" {
 		panic("target patch must be non-nil and have a name and namespace")
 	}
 
-	// This object is used to deduce the name & namespace + unmarshall the return value in
-	obj := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      *applyConfig.Name,
-			Namespace: *applyConfig.Namespace,
-		},
-	}
-
-	encodedPatch, err := json.Marshal(applyConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return obj, r.Client.Patch(ctx, obj, ssa_client.ApplyPatch{Patch: encodedPatch}, ssa_client.FieldManager, client.ForceOwnership)
+	return r.Client.Patch(ctx, obj, client.Apply, ssa_client.FieldManager, client.ForceOwnership)
 }
 
-func (r *Reconciler) patchSecret(ctx context.Context, applyConfig *coreapplyconfig.SecretApplyConfiguration) (*corev1.Secret, error) {
-	if r.PatchResourceOverwrite != nil {
-		return nil, r.PatchResourceOverwrite(ctx, applyConfig)
-	}
+func prepareTargetPatch(resource Resource, bundle trustapi.Bundle) *unstructured.Unstructured {
+	patch := &unstructured.Unstructured{}
+	patch.SetAPIVersion("v1")
+	patch.SetKind(string(resource.Kind))
+	patch.SetNamespace(resource.Namespace)
+	patch.SetName(resource.Name)
+	patch.SetLabels(map[string]string{
+		trustapi.BundleLabelKey: bundle.Name,
+	})
+	patch.SetOwnerReferences([]metav1.OwnerReference{{
+		APIVersion:         trustapi.SchemeGroupVersion.String(),
+		Kind:               trustapi.BundleKind,
+		Name:               bundle.GetName(),
+		UID:                bundle.GetUID(),
+		Controller:         ptr.To(true),
+		BlockOwnerDeletion: ptr.To(true),
+	}})
+	return patch
 
-	if applyConfig == nil || applyConfig.Name == nil || applyConfig.Namespace == nil {
-		panic("target patch must be non-nil and have a name and namespace")
-	}
-
-	// This object is used to deduce the name & namespace + unmarshall the return value in
-	obj := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      *applyConfig.Name,
-			Namespace: *applyConfig.Namespace,
-		},
-	}
-
-	encodedPatch, err := json.Marshal(applyConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return obj, r.Client.Patch(ctx, obj, ssa_client.ApplyPatch{Patch: encodedPatch}, ssa_client.FieldManager, client.ForceOwnership)
-}
-
-type targetApplyConfiguration[T any] interface {
-	*coreapplyconfig.ConfigMapApplyConfiguration | *coreapplyconfig.SecretApplyConfiguration
-
-	WithLabels(entries map[string]string) T
-	WithOwnerReferences(values ...*metav1applyconfig.OwnerReferenceApplyConfiguration) T
-}
-
-func prepareTargetPatch[T targetApplyConfiguration[T]](target T, bundle trustapi.Bundle) T {
-	return target.
-		WithLabels(map[string]string{
-			trustapi.BundleLabelKey: bundle.Name,
-		}).
-		WithOwnerReferences(
-			metav1applyconfig.OwnerReference().
-				WithAPIVersion(trustapi.SchemeGroupVersion.String()).
-				WithKind(trustapi.BundleKind).
-				WithName(bundle.GetName()).
-				WithUID(bundle.GetUID()).
-				WithBlockOwnerDeletion(true).
-				WithController(true),
-		)
 }
 
 type Resource struct {
