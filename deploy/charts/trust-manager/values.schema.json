@@ -643,7 +643,26 @@
       "type": "boolean"
     },
     "helm-values.global": {
-      "description": "Global values shared across all (sub)charts"
+      "description": "Global values shared across all (sub)charts",
+      "properties": {
+        "rbac": {
+          "$ref": "#/$defs/helm-values.global.rbac"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.global.rbac": {
+      "properties": {
+        "create": {
+          "$ref": "#/$defs/helm-values.global.rbac.create"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.global.rbac.create": {
+      "default": true,
+      "description": "Create required ClusterRoles, Roles, ClusterRoleBindings and RoleBindings for trust-manager.",
+      "type": "boolean"
     },
     "helm-values.image": {
       "additionalProperties": false,
