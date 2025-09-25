@@ -406,9 +406,11 @@ func TrustBundleHash(data []byte, target *trustmanagerapi.KeyValueTarget) string
 
 	_, _ = hash.Write(data)
 
-	for _, keyValue := range target.Data {
-		if keyValue.PKCS12.Password != nil {
-			_, _ = hash.Write([]byte(*keyValue.PKCS12.Password))
+	if target != nil {
+		for _, keyValue := range target.Data {
+			if keyValue.PKCS12.Password != nil {
+				_, _ = hash.Write([]byte(*keyValue.PKCS12.Password))
+			}
 		}
 	}
 
