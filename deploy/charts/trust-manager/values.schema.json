@@ -453,6 +453,9 @@
         },
         "helmCert": {
           "$ref": "#/$defs/helm-values.app.webhook.tls.helmCert"
+        },
+        "injectCaFrom": {
+          "$ref": "#/$defs/helm-values.app.webhook.tls.injectCaFrom"
         }
       },
       "type": "object"
@@ -513,6 +516,11 @@
       "default": false,
       "description": "Whether to issue a webhook cert using Helm, which removes the need to install cert-manager. Helm-issued certificates can be challenging to rotate and maintain, and the issued cert will have a duration of 10 years and be modified when trust-manager is updated. It's safer and easier to rely on cert-manager for issuing the webhook cert - avoid using Helm-generated certs in production.",
       "type": "boolean"
+    },
+    "helm-values.app.webhook.tls.injectCaFrom": {
+      "default": "certificate",
+      "description": "This allows running cainjector with --enable-certificates-data-source=false, which follows cert-manager best practices by disabling unused data sources. Valid values are certificate or secret",
+      "type": "string"
     },
     "helm-values.automountServiceAccountToken": {
       "default": true,
