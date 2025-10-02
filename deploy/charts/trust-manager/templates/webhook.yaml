@@ -94,7 +94,13 @@ metadata:
   {{- if or (not .Values.app.webhook.tls.helmCert.enabled) .Values.commonAnnotations }}
   annotations:
     {{- if not .Values.app.webhook.tls.helmCert.enabled }}
+      {{- if eq .Values.app.webhook.injectCaFrom "certificate" }}
     cert-manager.io/inject-ca-from: "{{ include "trust-manager.namespace" . }}/{{ include "trust-manager.name" . }}"
+      {{- else if eq .Values.app.webhook.injectCaFrom "secret" }}
+    cert-manager.io/inject-ca-from-secret: "{{ include "trust-manager.namespace" . }}/{{ include "trust-manager.name" . }}-tls"
+      {{- else }}
+    {{- fail "Invalid value for .app.webhook.injectCaFrom (must be 'certificate' or 'secret')" }}
+      {{- end }}
     {{- end }}
     {{- with .Values.commonAnnotations }}
     {{- toYaml . | nindent 4 }}
