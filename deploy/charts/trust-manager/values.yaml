@@ -301,7 +301,7 @@ app:
 
       # Added option to inject CA from Secret instead of Certificate.
       # This allows running cainjector with --enable-certificates-data-source=false, which follows cert-manager best practices by disabling unused data sources.
-      injectCaFrom: "certificate
+      injectCaFrom: "certificate"
 
       # Add labels/annotations to secrets created by Certificate resources when using cert-manager provisioned TLS certificate.
       certificate:
