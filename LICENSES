@@ -87,6 +87,7 @@ go.uber.org/zap,MIT
 go.yaml.in/yaml/v2,Apache-2.0
 go.yaml.in/yaml/v3,MIT
 golang.org/x/crypto/pbkdf2,BSD-3-Clause
+golang.org/x/mod/semver,BSD-3-Clause
 golang.org/x/net,BSD-3-Clause
 golang.org/x/oauth2,BSD-3-Clause
 golang.org/x/sync/errgroup,BSD-3-Clause
@@ -94,6 +95,7 @@ golang.org/x/sys/unix,BSD-3-Clause
 golang.org/x/term,BSD-3-Clause
 golang.org/x/text,BSD-3-Clause
 golang.org/x/time/rate,BSD-3-Clause
+golang.org/x/tools,BSD-3-Clause
 gomodules.xyz/jsonpatch/v2,Apache-2.0
 google.golang.org/protobuf,BSD-3-Clause
 gopkg.in/evanphx/json-patch.v4,BSD-3-Clause
