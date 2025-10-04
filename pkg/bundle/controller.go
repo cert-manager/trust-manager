@@ -39,6 +39,7 @@ import (
 	ctrlsource "sigs.k8s.io/controller-runtime/pkg/source"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/source"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/target"
@@ -205,8 +206,9 @@ func addBundleController(
 		// Watch all Namespaces. Cache whole Namespaces to include Phase Status.
 		// Reconcile all Bundles on a Namespace change.
 		Watches(&corev1.Namespace{}, b.enqueueRequestsFromBundleFunc(
-			func(obj client.Object, bundle trustapi.Bundle) bool {
-				namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
+			func(obj client.Object, bundle trustmanagerapi.ClusterBundle) bool {
+				var r labels.Selector = metav1.LabelSelectorAsSelector((&bundle).Spec.Target.NamespaceSelector)
+				namespaceSelector, err := r
 				if err != nil {
 					// We have an invalid selector, so we can skip this Bundle.
 					return false
@@ -250,7 +252,7 @@ func addBundleController(
 // enqueueRequestsFromBundleFunc returns an event handler for watching Bundle dependants.
 // It will invoke the provided function for all Bundles and trigger a Bundle reconcile if the
 // functions returns true.
-func (b *bundle) enqueueRequestsFromBundleFunc(fn func(obj client.Object, bundle trustapi.Bundle) bool) handler.EventHandler {
+func (b *bundle) enqueueRequestsFromBundleFunc(fn func(obj client.Object, bundle trustmanagerapi.ClusterBundle) bool) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
 		func(ctx context.Context, obj client.Object) []reconcile.Request {
 			// If an error happens here, and we do nothing, we run the risk of
@@ -273,8 +275,8 @@ func (b *bundle) enqueueRequestsFromBundleFunc(fn func(obj client.Object, bundle
 
 // mustBundleList will return a BundleList of all Bundles in the cluster. If an
 // error occurs, will exit error the program.
-func (b *bundle) mustBundleList(ctx context.Context) *trustapi.BundleList {
-	var bundleList trustapi.BundleList
+func (b *bundle) mustBundleList(ctx context.Context) *trustmanagerapi.ClusterBundleList {
+	var bundleList trustmanagerapi.ClusterBundleList
 	if err := b.client.List(ctx, &bundleList); err != nil {
 		logf.FromContext(ctx).Error(err, "failed to list all Bundles, exiting error")
 		os.Exit(-1)
