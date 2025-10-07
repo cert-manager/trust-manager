@@ -207,8 +207,7 @@ func addBundleController(
 		// Reconcile all Bundles on a Namespace change.
 		Watches(&corev1.Namespace{}, b.enqueueRequestsFromBundleFunc(
 			func(obj client.Object, bundle trustmanagerapi.ClusterBundle) bool {
-				var r labels.Selector = metav1.LabelSelectorAsSelector((&bundle).Spec.Target.NamespaceSelector)
-				namespaceSelector, err := r
+				namespaceSelector, err := metav1.LabelSelectorAsSelector((&bundle).Spec.Target.NamespaceSelector)
 				if err != nil {
 					// We have an invalid selector, so we can skip this Bundle.
 					return false
@@ -220,9 +219,9 @@ func addBundleController(
 		// Watch ConfigMaps in trust Namespace.
 		// Reconcile Bundles who reference a modified source ConfigMap.
 		Watches(&corev1.ConfigMap{}, b.enqueueRequestsFromBundleFunc(
-			func(obj client.Object, bundle trustapi.Bundle) bool {
+			func(obj client.Object, bundle trustmanagerapi.ClusterBundle) bool {
 				for _, s := range bundle.Spec.Sources {
-					if sourceSelectsObject(s.ConfigMap, obj) {
+					if sourceSelectsObject(s, obj) {
 						return true
 					}
 				}
@@ -232,9 +231,9 @@ func addBundleController(
 		// Watch Secrets in trust Namespace.
 		// Reconcile Bundles who reference a modified source Secret.
 		Watches(&corev1.Secret{}, b.enqueueRequestsFromBundleFunc(
-			func(obj client.Object, bundle trustapi.Bundle) bool {
+			func(obj client.Object, bundle trustmanagerapi.ClusterBundle) bool {
 				for _, s := range bundle.Spec.Sources {
-					if sourceSelectsObject(s.Secret, obj) {
+					if sourceSelectsObject(s, obj) {
 						return true
 					}
 				}
@@ -293,16 +292,16 @@ func inNamespacePredicate(namespace string) predicate.Predicate {
 }
 
 // sourceSelectsObject returns true if source selector selects obj and false otherwise
-func sourceSelectsObject(selector *trustapi.SourceObjectKeySelector, obj client.Object) bool {
-	if selector == nil {
+func sourceSelectsObject(source trustmanagerapi.BundleSource, obj client.Object) bool {
+	if source.Kind != obj.GetObjectKind().GroupVersionKind().Kind {
 		return false
 	}
 
-	if labelsMatchSelector(obj.GetLabels(), selector.Selector) {
+	if labelsMatchSelector(obj.GetLabels(), source.Selector) {
 		return true
 	}
 
-	if selector.Name == obj.GetName() {
+	if source.Name == obj.GetName() {
 		return true
 	}
 
