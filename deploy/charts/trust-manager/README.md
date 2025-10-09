@@ -174,12 +174,8 @@ repository: jetstack/cert-manager-package-debian
 
 The repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles.
 #### **defaultPackageImage.tag** ~ `string`
-> Default value:
-> ```yaml
-> 20230311-deb12u1.0@sha256:4e46f31af8ab4aedb861b997be37e2004ba5313a187d0f0a3cdb4680937a98a3
-> ```
 
-Override the image tag of the default package image. If no value is set, the chart's appVersion is used.
+Override the image tag of the default package image. Is set at chart build time to the version specified in ./make/00_debian_bookworm_version.mk.
 
 #### **defaultPackageImage.digest** ~ `string`
 
