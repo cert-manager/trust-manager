@@ -61,7 +61,7 @@ release-debian-trust-package:
 	@echo "RELEASE_OCI_PACKAGE_DEBIAN_IMAGE=$(oci_package_debian_image_name)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_OCI_PACKAGE_DEBIAN_TAG=$(oci_package_debian_image_tag)" >> "$(GITHUB_OUTPUT)"
 
-	@echo "Release complete!
+	@echo "Release complete!"
 
 .PHONY: release-debian-bookworm-trust-package
 release-debian-bookworm-trust-package: | $(NEEDS_CRANE)
