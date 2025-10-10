@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/source"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
@@ -57,7 +57,7 @@ func testEncodePKCS12(t *testing.T, data string) []byte {
 		t.Fatal(err)
 	}
 
-	encoded, err := truststore.NewPKCS12Encoder(trustapi.DefaultPKCS12Password, trustapi.Modern2023PKCS12Profile).Encode(certPool)
+	encoded, err := truststore.NewPKCS12Encoder(trustmanagerapi.DefaultPKCS12Password, trustmanagerapi.Modern2023PKCS12Profile).Encode(certPool)
 	if err != nil {
 		t.Error(err)
 	}
@@ -103,7 +103,7 @@ func Test_Reconcile(t *testing.T) {
 			},
 		}
 
-		baseBundle = &trustapi.Bundle{
+		baseBundle = &trustmanagerapi.ClusterBundle{
 			TypeMeta: metav1.TypeMeta{Kind: "Bundle", APIVersion: "trust.cert-manager.io/v1alpha1"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            bundleName,
@@ -111,19 +111,25 @@ func Test_Reconcile(t *testing.T) {
 				UID:             "123",
 				ResourceVersion: "1000",
 			},
-			Spec: trustapi.BundleSpec{
-				Sources: []trustapi.BundleSource{
-					{ConfigMap: &trustapi.SourceObjectKeySelector{Name: sourceConfigMapName, Key: sourceConfigMapKey}},
-					{Secret: &trustapi.SourceObjectKeySelector{Name: sourceSecretName, Key: sourceSecretKey}},
-					{InLine: ptr.To(dummy.TestCertificate3)},
+			Spec: trustmanagerapi.BundleSpec{
+				Sources: []trustmanagerapi.BundleSource{
+					{
+						SourceReference: trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind, Name: sourceConfigMapName},
+						Key:             sourceConfigMapKey,
+					},
+					{
+						SourceReference: trustmanagerapi.SourceReference{Kind: trustmanagerapi.SecretKind, Name: sourceSecretName},
+						Key:             sourceSecretKey,
+					},
 				},
-				Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: targetKey}},
+				InLineCAs: ptr.To(dummy.TestCertificate3),
+				Target:    trustmanagerapi.BundleTarget{ConfigMap: &trustmanagerapi.KeyValueTarget{Data: []trustmanagerapi.TargetKeyValue{{Key: targetKey}}}},
 			},
 		}
 
-		baseBundleLabels = map[string]string{trustapi.BundleLabelKey: bundleName}
+		baseBundleLabels = map[string]string{trustmanagerapi.BundleLabelKey: bundleName}
 
-		baseBundleOwnerRef = []metav1.OwnerReference{*metav1.NewControllerRef(baseBundle, trustapi.SchemeGroupVersion.WithKind(trustapi.BundleKind))}
+		baseBundleOwnerRef = []metav1.OwnerReference{*metav1.NewControllerRef(baseBundle, trustmanagerapi.SchemeGroupVersion.WithKind(trustmanagerapi.ClusterBundleKind))}
 
 		namespaces = []client.Object{
 			&corev1.Namespace{TypeMeta: metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"}, ObjectMeta: metav1.ObjectMeta{Name: trustNamespace}},
@@ -141,39 +147,37 @@ func Test_Reconcile(t *testing.T) {
 			Bundle:  dummy.TestCertificate5,
 		}
 
-		pkcs12DefaultAdditionalFormats = trustapi.AdditionalFormats{
-			PKCS12: &trustapi.PKCS12{
-				KeySelector: trustapi.KeySelector{
-					Key: "target.p12",
-				},
-				Password: ptr.To(trustapi.DefaultPKCS12Password),
-			},
+		pkcs12DefaultKeyValue = trustmanagerapi.KeyValueTarget{
+			Data: []trustmanagerapi.TargetKeyValue{{
+				Key:    "target.p12",
+				Format: trustmanagerapi.BundleFormatPKCS12,
+				PKCS12: trustmanagerapi.PKCS12{Password: ptr.To(trustmanagerapi.DefaultPKCS12Password)},
+			}},
 		}
-		pkcs12DefaultAdditionalFormatsOldPassword = trustapi.AdditionalFormats{
-			PKCS12: &trustapi.PKCS12{
-				KeySelector: trustapi.KeySelector{
-					Key: "target.p12",
-				},
-				Password: ptr.To("OLD PASSWORD"),
-			},
+		pkcs12DefaultKeyValueOldPassword = trustmanagerapi.KeyValueTarget{
+			Data: []trustmanagerapi.TargetKeyValue{{
+				Key:    "target.p12",
+				Format: trustmanagerapi.BundleFormatPKCS12,
+				PKCS12: trustmanagerapi.PKCS12{Password: ptr.To("OLD PASSWORD")},
+			}},
 		}
 
-		configMapPatch = func(name, namespace string, data map[string]string, binData map[string][]byte, key *string, additionalFormats *trustapi.AdditionalFormats) *coreapplyconfig.ConfigMapApplyConfiguration {
+		configMapPatch = func(name, namespace string, data map[string]string, binData map[string][]byte, key *string, keyValue *trustmanagerapi.KeyValueTarget) *coreapplyconfig.ConfigMapApplyConfiguration {
 			annotations := map[string]string{}
 			if key != nil {
-				annotations[trustapi.BundleHashAnnotationKey] = target.TrustBundleHash([]byte(data[*key]), additionalFormats, nil)
+				annotations[trustmanagerapi.BundleHashAnnotationKey] = target.TrustBundleHash([]byte(data[*key]), keyValue)
 			}
 
 			return coreapplyconfig.
 				ConfigMap(name, namespace).
 				WithLabels(map[string]string{
-					trustapi.BundleLabelKey: baseBundle.GetName(),
+					trustmanagerapi.BundleLabelKey: baseBundle.GetName(),
 				}).
 				WithAnnotations(annotations).
 				WithOwnerReferences(
 					v1.OwnerReference().
-						WithAPIVersion(trustapi.SchemeGroupVersion.String()).
-						WithKind(trustapi.BundleKind).
+						WithAPIVersion(trustmanagerapi.SchemeGroupVersion.String()).
+						WithKind(trustmanagerapi.ClusterBundleKind).
 						WithName(baseBundle.GetName()).
 						WithUID(baseBundle.GetUID()).
 						WithBlockOwnerDeletion(true).
@@ -183,10 +187,10 @@ func Test_Reconcile(t *testing.T) {
 				WithBinaryData(binData)
 		}
 
-		secretPatch = func(name, namespace string, data map[string]string, key *string, additionaFormats *trustapi.AdditionalFormats) *coreapplyconfig.SecretApplyConfiguration {
+		secretPatch = func(name, namespace string, data map[string]string, key *string, keyValue *trustmanagerapi.KeyValueTarget) *coreapplyconfig.SecretApplyConfiguration {
 			annotations := map[string]string{}
 			if key != nil {
-				annotations[trustapi.BundleHashAnnotationKey] = target.TrustBundleHash([]byte(data[*key]), additionaFormats, nil)
+				annotations[trustmanagerapi.BundleHashAnnotationKey] = target.TrustBundleHash([]byte(data[*key]), keyValue)
 			}
 
 			binaryData := map[string][]byte{}
@@ -197,13 +201,13 @@ func Test_Reconcile(t *testing.T) {
 			return coreapplyconfig.
 				Secret(name, namespace).
 				WithLabels(map[string]string{
-					trustapi.BundleLabelKey: baseBundle.GetName(),
+					trustmanagerapi.BundleLabelKey: baseBundle.GetName(),
 				}).
 				WithAnnotations(annotations).
 				WithOwnerReferences(
 					v1.OwnerReference().
-						WithAPIVersion(trustapi.SchemeGroupVersion.String()).
-						WithKind(trustapi.BundleKind).
+						WithAPIVersion(trustmanagerapi.SchemeGroupVersion.String()).
+						WithKind(trustmanagerapi.ClusterBundleKind).
 						WithName(baseBundle.GetName()).
 						WithUID(baseBundle.GetUID()).
 						WithBlockOwnerDeletion(true).
@@ -212,10 +216,10 @@ func Test_Reconcile(t *testing.T) {
 				WithData(binaryData)
 		}
 
-		targetConfigMap = func(namespace string, data map[string]string, binData map[string][]byte, key *string, withOwnerRef bool, additionaFormats *trustapi.AdditionalFormats) *corev1.ConfigMap {
+		targetConfigMap = func(namespace string, data map[string]string, binData map[string][]byte, key *string, withOwnerRef bool, keyValue *trustmanagerapi.KeyValueTarget) *corev1.ConfigMap {
 			annotations := map[string]string{}
 			if key != nil {
-				annotations[trustapi.BundleHashAnnotationKey] = target.TrustBundleHash([]byte(data[*key]), additionaFormats, nil)
+				annotations[trustmanagerapi.BundleHashAnnotationKey] = target.TrustBundleHash([]byte(data[*key]), keyValue)
 			}
 
 			dataEntries := make([]string, 0, len(data))
@@ -249,10 +253,10 @@ func Test_Reconcile(t *testing.T) {
 			return configmap
 		}
 
-		targetSecret = func(namespace string, data map[string]string, key *string, withOwnerRef bool, additionaFormats *trustapi.AdditionalFormats) *corev1.Secret {
+		targetSecret = func(namespace string, data map[string]string, key *string, withOwnerRef bool, keyValue *trustmanagerapi.KeyValueTarget) *corev1.Secret {
 			annotations := map[string]string{}
 			if key != nil {
-				annotations[trustapi.BundleHashAnnotationKey] = target.TrustBundleHash([]byte(data[*key]), additionaFormats, nil)
+				annotations[trustmanagerapi.BundleHashAnnotationKey] = target.TrustBundleHash([]byte(data[*key]), keyValue)
 			}
 
 			dataEntries := make([]string, 0, len(data))
@@ -296,7 +300,7 @@ func Test_Reconcile(t *testing.T) {
 		expResult               ctrl.Result
 		expError                bool
 		expPatches              []interface{}
-		expBundlePatch          *trustapi.BundleStatus
+		expBundlePatch          *trustmanagerapi.BundleStatus
 		expEvent                string
 		targetNamespaces        []string
 	}{
@@ -311,9 +315,9 @@ func Test_Reconcile(t *testing.T) {
 			existingNamespaces: namespaces,
 			existingBundles:    []client.Object{gen.BundleFrom(baseBundle)},
 			expError:           false,
-			expBundlePatch: &trustapi.BundleStatus{Conditions: []metav1.Condition{
+			expBundlePatch: &trustmanagerapi.BundleStatus{Conditions: []metav1.Condition{
 				{
-					Type:               trustapi.BundleConditionSynced,
+					Type:               trustmanagerapi.BundleConditionSynced,
 					Status:             metav1.ConditionFalse,
 					Reason:             "SourceNotFound",
 					Message:            `Bundle source was not found: failed to get ConfigMap trust-namespace/source-configmap: configmaps "source-configmap" not found`,
@@ -329,9 +333,9 @@ func Test_Reconcile(t *testing.T) {
 			existingConfigMaps: []client.Object{&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: sourceConfigMapName}}},
 			existingBundles:    []client.Object{gen.BundleFrom(baseBundle)},
 			expError:           false,
-			expBundlePatch: &trustapi.BundleStatus{Conditions: []metav1.Condition{
+			expBundlePatch: &trustmanagerapi.BundleStatus{Conditions: []metav1.Condition{
 				{
-					Type:               trustapi.BundleConditionSynced,
+					Type:               trustmanagerapi.BundleConditionSynced,
 					Status:             metav1.ConditionFalse,
 					Reason:             "SourceNotFound",
 					Message:            `Bundle source was not found: no data found in ConfigMap trust-namespace/source-configmap at key "configmap-key"`,
@@ -346,9 +350,9 @@ func Test_Reconcile(t *testing.T) {
 			existingConfigMaps: []client.Object{sourceConfigMap},
 			existingBundles:    []client.Object{gen.BundleFrom(baseBundle)},
 			expError:           false,
-			expBundlePatch: &trustapi.BundleStatus{Conditions: []metav1.Condition{
+			expBundlePatch: &trustmanagerapi.BundleStatus{Conditions: []metav1.Condition{
 				{
-					Type:               trustapi.BundleConditionSynced,
+					Type:               trustmanagerapi.BundleConditionSynced,
 					Status:             metav1.ConditionFalse,
 					Reason:             "SourceNotFound",
 					Message:            `Bundle source was not found: failed to get Secret trust-namespace/source-secret: secrets "source-secret" not found`,
@@ -364,9 +368,9 @@ func Test_Reconcile(t *testing.T) {
 			existingSecrets:    []client.Object{&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: trustNamespace, Name: sourceSecretName}}},
 			existingBundles:    []client.Object{gen.BundleFrom(baseBundle)},
 			expError:           false,
-			expBundlePatch: &trustapi.BundleStatus{Conditions: []metav1.Condition{
+			expBundlePatch: &trustmanagerapi.BundleStatus{Conditions: []metav1.Condition{
 				{
-					Type:               trustapi.BundleConditionSynced,
+					Type:               trustmanagerapi.BundleConditionSynced,
 					Status:             metav1.ConditionFalse,
 					Reason:             "SourceNotFound",
 					Message:            `Bundle source was not found: no data found in Secret trust-namespace/source-secret at key "secret-key"`,
@@ -410,10 +414,10 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
@@ -449,7 +453,7 @@ func Test_Reconcile(t *testing.T) {
 			},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					func(b *trustapi.Bundle) {
+					func(b *trustmanagerapi.ClusterBundle) {
 						// swap target configmap for secret
 						keySelector := b.Spec.Target.ConfigMap
 						b.Spec.Target.ConfigMap = nil
@@ -463,10 +467,10 @@ func Test_Reconcile(t *testing.T) {
 				secretPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
 				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
@@ -490,7 +494,7 @@ func Test_Reconcile(t *testing.T) {
 						"target.p12": []byte("foo"),
 					},
 					ptr.To("old-target"),
-					true, &pkcs12DefaultAdditionalFormats,
+					true, &pkcs12DefaultKeyValue,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -502,13 +506,13 @@ func Test_Reconcile(t *testing.T) {
 						"target.p12": []byte("foo"),
 					},
 					ptr.To("old-target"),
-					true, &pkcs12DefaultAdditionalFormats,
+					true, &pkcs12DefaultKeyValue,
 				),
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(pkcs12DefaultAdditionalFormats),
+					gen.SetBundleKeyValueTarget(pkcs12DefaultKeyValue),
 				)},
 			expError: false,
 			expPatches: []interface{}{
@@ -516,22 +520,22 @@ func Test_Reconcile(t *testing.T) {
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
+				}, ptr.To(targetKey), &pkcs12DefaultKeyValue),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
+				}, ptr.To(targetKey), &pkcs12DefaultKeyValue),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
+				}, ptr.To(targetKey), &pkcs12DefaultKeyValue),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
@@ -555,7 +559,7 @@ func Test_Reconcile(t *testing.T) {
 						"old-target.p12": []byte("foo"),
 					},
 					ptr.To(targetKey),
-					true, &pkcs12DefaultAdditionalFormats,
+					true, &pkcs12DefaultKeyValue,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -567,13 +571,13 @@ func Test_Reconcile(t *testing.T) {
 						"old-target.p12": []byte("foo"),
 					},
 					ptr.To(targetKey),
-					true, &pkcs12DefaultAdditionalFormats,
+					true, &pkcs12DefaultKeyValue,
 				),
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(pkcs12DefaultAdditionalFormats),
+					gen.SetBundleKeyValueTarget(pkcs12DefaultKeyValue),
 				),
 			},
 			expError: false,
@@ -582,22 +586,22 @@ func Test_Reconcile(t *testing.T) {
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
+				}, ptr.To(targetKey), &pkcs12DefaultKeyValue),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
+				}, ptr.To(targetKey), &pkcs12DefaultKeyValue),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
+				}, ptr.To(targetKey), &pkcs12DefaultKeyValue),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
@@ -620,7 +624,7 @@ func Test_Reconcile(t *testing.T) {
 						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
 					},
 					ptr.To(targetKey),
-					true, &pkcs12DefaultAdditionalFormats,
+					true, &pkcs12DefaultKeyValue,
 				),
 				targetConfigMap(
 					"ns-1",
@@ -631,7 +635,7 @@ func Test_Reconcile(t *testing.T) {
 						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
 					},
 					ptr.To(targetKey),
-					true, &pkcs12DefaultAdditionalFormats,
+					true, &pkcs12DefaultKeyValue,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -642,21 +646,21 @@ func Test_Reconcile(t *testing.T) {
 						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
 					},
 					ptr.To(targetKey),
-					true, &pkcs12DefaultAdditionalFormats,
+					true, &pkcs12DefaultKeyValue,
 				),
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(pkcs12DefaultAdditionalFormats),
+					gen.SetBundleKeyValueTarget(pkcs12DefaultKeyValue),
 				),
 			},
 			expError:   false,
 			expPatches: []interface{}{},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
@@ -679,7 +683,7 @@ func Test_Reconcile(t *testing.T) {
 						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
 					},
 					ptr.To(targetKey),
-					true, &pkcs12DefaultAdditionalFormatsOldPassword,
+					true, &pkcs12DefaultKeyValueOldPassword,
 				),
 				targetConfigMap(
 					"ns-1",
@@ -690,7 +694,7 @@ func Test_Reconcile(t *testing.T) {
 						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
 					},
 					ptr.To(targetKey),
-					true, &pkcs12DefaultAdditionalFormatsOldPassword,
+					true, &pkcs12DefaultKeyValueOldPassword,
 				),
 				targetConfigMap(
 					"ns-2",
@@ -701,13 +705,13 @@ func Test_Reconcile(t *testing.T) {
 						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
 					},
 					ptr.To(targetKey),
-					true, &pkcs12DefaultAdditionalFormats,
+					true, &pkcs12DefaultKeyValue,
 				),
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleTargetAdditionalFormats(pkcs12DefaultAdditionalFormats),
+					gen.SetBundleKeyValueTarget(pkcs12DefaultKeyValue),
 				),
 			},
 			expError: false,
@@ -716,17 +720,17 @@ func Test_Reconcile(t *testing.T) {
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
+				}, ptr.To(targetKey), &pkcs12DefaultKeyValue),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
 					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
-				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
+				}, ptr.To(targetKey), &pkcs12DefaultKeyValue),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
@@ -742,7 +746,7 @@ func Test_Reconcile(t *testing.T) {
 			existingConfigMaps: []client.Object{sourceConfigMap},
 			existingSecrets:    []client.Object{sourceSecret},
 			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
-				func(b *trustapi.Bundle) {
+				func(b *trustmanagerapi.ClusterBundle) {
 					// copy configmap target to secret target
 					b.Spec.Target.Secret = b.Spec.Target.ConfigMap
 				},
@@ -756,10 +760,10 @@ func Test_Reconcile(t *testing.T) {
 				secretPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
 				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
@@ -787,9 +791,9 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{{
-					Type:               trustapi.BundleConditionSynced,
+					Type:               trustmanagerapi.BundleConditionSynced,
 					Status:             metav1.ConditionTrue,
 					LastTransitionTime: fixedmetatime,
 					Reason:             "Synced",
@@ -825,9 +829,9 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "random-namespace", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "another-random-namespace", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{{
-					Type:               trustapi.BundleConditionSynced,
+					Type:               trustmanagerapi.BundleConditionSynced,
 					Status:             metav1.ConditionTrue,
 					LastTransitionTime: fixedmetatime,
 					Reason:             "Synced",
@@ -878,9 +882,9 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{}, nil, nil, nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{}, nil, nil, nil),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{{
-					Type:               trustapi.BundleConditionSynced,
+					Type:               trustmanagerapi.BundleConditionSynced,
 					Status:             metav1.ConditionTrue,
 					LastTransitionTime: fixedmetatime,
 					Reason:             "Synced",
@@ -924,10 +928,10 @@ func Test_Reconcile(t *testing.T) {
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleStatus(trustapi.BundleStatus{
+					gen.SetBundleStatus(trustmanagerapi.BundleStatus{
 						Conditions: []metav1.Condition{
 							{
-								Type:               trustapi.BundleConditionSynced,
+								Type:               trustmanagerapi.BundleConditionSynced,
 								Status:             metav1.ConditionTrue,
 								LastTransitionTime: fixedmetatime,
 								Reason:             "Synced",
@@ -943,10 +947,10 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
@@ -992,10 +996,10 @@ func Test_Reconcile(t *testing.T) {
 			existingBundles: []client.Object{gen.BundleFrom(baseBundle)},
 			expError:        false,
 			expPatches:      nil,
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
@@ -1040,10 +1044,10 @@ func Test_Reconcile(t *testing.T) {
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.SetBundleStatus(trustapi.BundleStatus{
+					gen.SetBundleStatus(trustmanagerapi.BundleStatus{
 						Conditions: []metav1.Condition{
 							{
-								Type:               trustapi.BundleConditionSynced,
+								Type:               trustmanagerapi.BundleConditionSynced,
 								Status:             metav1.ConditionTrue,
 								LastTransitionTime: fixedmetatime,
 								Reason:             "Synced",
@@ -1064,12 +1068,12 @@ func Test_Reconcile(t *testing.T) {
 			existingNamespaces: namespaces,
 			existingConfigMaps: []client.Object{sourceConfigMap},
 			existingSecrets:    []client.Object{sourceSecret},
-			existingBundles:    []client.Object{gen.BundleFrom(baseBundle, gen.AppendBundleUsesDefaultPackage())},
+			existingBundles:    []client.Object{gen.BundleFrom(baseBundle, gen.IncludeDefaultCAs())},
 			expError:           false,
 			expPatches:         nil,
-			expBundlePatch: &trustapi.BundleStatus{Conditions: []metav1.Condition{
+			expBundlePatch: &trustmanagerapi.BundleStatus{Conditions: []metav1.Condition{
 				{
-					Type:               trustapi.BundleConditionSynced,
+					Type:               trustmanagerapi.BundleConditionSynced,
 					Status:             metav1.ConditionFalse,
 					Reason:             "SourceNotFound",
 					Message:            `Bundle source was not found: no default package was specified when trust-manager was started; default CAs not available`,
@@ -1113,11 +1117,11 @@ func Test_Reconcile(t *testing.T) {
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle,
-					gen.AppendBundleUsesDefaultPackage(),
-					gen.SetBundleStatus(trustapi.BundleStatus{
+					gen.IncludeDefaultCAs(),
+					gen.SetBundleStatus(trustmanagerapi.BundleStatus{
 						Conditions: []metav1.Condition{
 							{
-								Type:               trustapi.BundleConditionSynced,
+								Type:               trustmanagerapi.BundleConditionSynced,
 								Status:             metav1.ConditionTrue,
 								LastTransitionTime: fixedmetatime,
 								Reason:             "Synced",
@@ -1135,10 +1139,10 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3, dummy.TestCertificate5)}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3, dummy.TestCertificate5)}, nil, ptr.To(targetKey), nil),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
@@ -1183,10 +1187,10 @@ func Test_Reconcile(t *testing.T) {
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
-				gen.SetBundleStatus(trustapi.BundleStatus{
+				gen.SetBundleStatus(trustmanagerapi.BundleStatus{
 					Conditions: []metav1.Condition{
 						{
-							Type:               trustapi.BundleConditionSynced,
+							Type:               trustmanagerapi.BundleConditionSynced,
 							Status:             metav1.ConditionTrue,
 							LastTransitionTime: fixedmetatime,
 							Reason:             "Synced",
@@ -1204,10 +1208,10 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
@@ -1252,13 +1256,13 @@ func Test_Reconcile(t *testing.T) {
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
-				func(b *trustapi.Bundle) {
-					b.Spec.Target = trustapi.BundleTarget{}
+				func(b *trustmanagerapi.ClusterBundle) {
+					b.Spec.Target = trustmanagerapi.BundleTarget{}
 				},
-				gen.SetBundleStatus(trustapi.BundleStatus{
+				gen.SetBundleStatus(trustmanagerapi.BundleStatus{
 					Conditions: []metav1.Condition{
 						{
-							Type:               trustapi.BundleConditionSynced,
+							Type:               trustmanagerapi.BundleConditionSynced,
 							Status:             metav1.ConditionTrue,
 							LastTransitionTime: fixedmetatime,
 							Reason:             "Synced",
@@ -1276,10 +1280,10 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", nil, nil, nil, nil),
 				configMapPatch(baseBundle.Name, "ns-2", nil, nil, nil, nil),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
@@ -1324,16 +1328,16 @@ func Test_Reconcile(t *testing.T) {
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
-				func(b *trustapi.Bundle) {
+				func(b *trustmanagerapi.ClusterBundle) {
 					// swap target configmap for secret
 					keySelector := b.Spec.Target.ConfigMap
 					b.Spec.Target.ConfigMap = nil
 					b.Spec.Target.Secret = keySelector
 				},
-				gen.SetBundleStatus(trustapi.BundleStatus{
+				gen.SetBundleStatus(trustmanagerapi.BundleStatus{
 					Conditions: []metav1.Condition{
 						{
-							Type:               trustapi.BundleConditionSynced,
+							Type:               trustmanagerapi.BundleConditionSynced,
 							Status:             metav1.ConditionTrue,
 							LastTransitionTime: fixedmetatime,
 							Reason:             "Synced",
@@ -1354,10 +1358,10 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", nil, nil, nil, nil),
 				configMapPatch(baseBundle.Name, "ns-2", nil, nil, nil, nil),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
@@ -1375,14 +1379,14 @@ func Test_Reconcile(t *testing.T) {
 			existingConfigMaps:   []client.Object{sourceConfigMap},
 			existingSecrets:      []client.Object{sourceSecret},
 			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
-				func(b *trustapi.Bundle) {
+				func(b *trustmanagerapi.ClusterBundle) {
 					// copy configmap target to secret target
 					b.Spec.Target.Secret = b.Spec.Target.ConfigMap
 				},
-				gen.SetBundleStatus(trustapi.BundleStatus{
+				gen.SetBundleStatus(trustmanagerapi.BundleStatus{
 					Conditions: []metav1.Condition{
 						{
-							Type:               trustapi.BundleConditionSynced,
+							Type:               trustmanagerapi.BundleConditionSynced,
 							Status:             metav1.ConditionTrue,
 							LastTransitionTime: fixedmetatime,
 							Reason:             "Synced",
@@ -1395,10 +1399,10 @@ func Test_Reconcile(t *testing.T) {
 			configureDefaultPackage: true,
 			expError:                false,
 			expPatches:              []interface{}{},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionFalse,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "SecretTargetsDisabled",
@@ -1426,10 +1430,10 @@ func Test_Reconcile(t *testing.T) {
 				},
 			},
 			existingSecrets: []client.Object{sourceSecret},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
@@ -1440,12 +1444,12 @@ func Test_Reconcile(t *testing.T) {
 			},
 			expEvent: `Normal Synced Successfully synced Bundle to all namespaces`,
 			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
-				func(b *trustapi.Bundle) {
+				func(b *trustmanagerapi.ClusterBundle) {
 				},
-				gen.SetBundleStatus(trustapi.BundleStatus{
+				gen.SetBundleStatus(trustmanagerapi.BundleStatus{
 					Conditions: []metav1.Condition{
 						{
-							Type:               trustapi.BundleConditionSynced,
+							Type:               trustmanagerapi.BundleConditionSynced,
 							Status:             metav1.ConditionTrue,
 							LastTransitionTime: fixedmetatime,
 							Reason:             "Synced",
@@ -1481,7 +1485,7 @@ func Test_Reconcile(t *testing.T) {
 			existingConfigMaps: []client.Object{sourceConfigMap},
 			existingSecrets:    []client.Object{sourceSecret},
 			existingBundles: []client.Object{
-				gen.BundleFrom(baseBundle, func(b *trustapi.Bundle) {
+				gen.BundleFrom(baseBundle, func(b *trustmanagerapi.ClusterBundle) {
 					b.Spec.Target.Secret = nil
 					b.Spec.Target.NamespaceSelector = nil
 				}),
@@ -1492,10 +1496,10 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
@@ -1533,7 +1537,7 @@ func Test_Reconcile(t *testing.T) {
 			existingConfigMaps: []client.Object{sourceConfigMap},
 			existingSecrets:    []client.Object{sourceSecret},
 			existingBundles: []client.Object{
-				gen.BundleFrom(baseBundle, func(b *trustapi.Bundle) {
+				gen.BundleFrom(baseBundle, func(b *trustmanagerapi.ClusterBundle) {
 					b.Spec.Target.Secret = nil
 					b.Spec.Target.NamespaceSelector = &metav1.LabelSelector{
 						MatchExpressions: []metav1.LabelSelectorRequirement{
@@ -1552,10 +1556,10 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 			},
-			expBundlePatch: &trustapi.BundleStatus{
+			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
-						Type:               trustapi.BundleConditionSynced,
+						Type:               trustmanagerapi.BundleConditionSynced,
 						Status:             metav1.ConditionTrue,
 						LastTransitionTime: fixedmetatime,
 						Reason:             "Synced",
