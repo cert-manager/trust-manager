@@ -110,7 +110,7 @@ func (r *BundleReconciler) applyClusterBundle(ctx context.Context, bundle *trust
 func (r *BundleReconciler) applyBundleCondition(ctx context.Context, bundle *trustapi.Bundle, condition metav1.Condition) error {
 	meta.SetStatusCondition(&bundle.Status.Conditions, condition)
 
-	bundleStatus := &trustapi.BundleStatus{
+	bundleStatus := &trustmanagerapi.BundleStatus{
 		Conditions: []metav1.Condition{*meta.FindStatusCondition(bundle.Status.Conditions, condition.Type)},
 	}
 	b, patch, err := ssa_client.GenerateBundleStatusPatch(bundle.Name, bundleStatus)
