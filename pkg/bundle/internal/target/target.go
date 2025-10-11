@@ -387,8 +387,8 @@ func prepareTargetPatch[T targetApplyConfiguration[T]](target T, bundle trustman
 		}).
 		WithOwnerReferences(
 			metav1applyconfig.OwnerReference().
-				WithAPIVersion(trustapi.SchemeGroupVersion.String()).
-				WithKind(trustapi.BundleKind).
+				WithAPIVersion(trustmanagerapi.SchemeGroupVersion.String()).
+				WithKind(trustmanagerapi.ClusterBundleKind).
 				WithName(bundle.GetName()).
 				WithUID(bundle.GetUID()).
 				WithBlockOwnerDeletion(true).

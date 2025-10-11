@@ -435,8 +435,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 
 				expectedOwnerReference := metav1applyconfig.
 					OwnerReference().
-					WithAPIVersion(trustapi.SchemeGroupVersion.String()).
-					WithKind(trustapi.BundleKind).
+					WithAPIVersion(trustmanagerapi.SchemeGroupVersion.String()).
+					WithKind(trustmanagerapi.ClusterBundleKind).
 					WithName(bundleName).
 					WithUID("").
 					WithBlockOwnerDeletion(true).
@@ -775,8 +775,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 
 				expectedOwnerReference := metav1applyconfig.
 					OwnerReference().
-					WithAPIVersion(trustapi.SchemeGroupVersion.String()).
-					WithKind(trustapi.BundleKind).
+					WithAPIVersion(trustmanagerapi.SchemeGroupVersion.String()).
+					WithKind(trustmanagerapi.ClusterBundleKind).
 					WithName(bundleName).
 					WithUID("").
 					WithBlockOwnerDeletion(true).

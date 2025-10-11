@@ -55,8 +55,8 @@ func CacheOpts(opts controller.Options) cache.Options {
 		ReaderFailOnMissingInformer: true,
 		DefaultNamespaces:           ctrCacheNamespaces,
 		ByObject: map[client.Object]cache.ByObject{
-			&trustapi.Bundle{}:  {},
-			&corev1.Namespace{}: {},
+			&trustmanagerapi.ClusterBundle{}: {},
+			&corev1.Namespace{}:              {},
 			&corev1.ConfigMap{}: {
 				// Only cache full ConfigMaps in the "watched" namespace.
 				// Target ConfigMaps have a dedicated cache
@@ -175,7 +175,7 @@ func addBundleController(
 				handler.TypedEnqueueRequestForOwner[*metav1.PartialObjectMetadata](
 					mgr.GetScheme(),
 					mgr.GetRESTMapper(),
-					&trustapi.Bundle{},
+					&trustmanagerapi.ClusterBundle{},
 					handler.OnlyControllerOwner(),
 				),
 			),
@@ -191,7 +191,7 @@ func addBundleController(
 				handler.TypedEnqueueRequestForOwner[*metav1.PartialObjectMetadata](
 					mgr.GetScheme(),
 					mgr.GetRESTMapper(),
-					&trustapi.Bundle{},
+					&trustmanagerapi.ClusterBundle{},
 					handler.OnlyControllerOwner(),
 				),
 			),
@@ -201,7 +201,7 @@ func addBundleController(
 	////// Sources //////
 
 	// Reconcile trust.cert-manager.io Bundles
-	controller.Watches(&trustapi.Bundle{}, &handler.EnqueueRequestForObject{}).
+	controller.Watches(&trustmanagerapi.ClusterBundle{}, &handler.EnqueueRequestForObject{}).
 
 		// Watch all Namespaces. Cache whole Namespaces to include Phase Status.
 		// Reconcile all Bundles on a Namespace change.
