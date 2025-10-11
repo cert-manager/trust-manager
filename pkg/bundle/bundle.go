@@ -84,7 +84,7 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	return ctrl.Result{}, resultErr
 }
 
-func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusPatch *trustapi.BundleStatus, returnedErr error) {
+func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusPatch *trustmanagerapi.BundleStatus, returnedErr error) {
 	log := logf.FromContext(ctx).WithValues("bundle", req.NamespacedName.Name)
 	ctx = logf.IntoContext(ctx, log)
 	log.V(2).Info("syncing bundle")
@@ -103,7 +103,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 
 	// Initialize patch with current status field values, except conditions.
 	// This is done to ensure information is not lost in patch if exiting early.
-	statusPatch = &trustapi.BundleStatus{
+	statusPatch = &trustmanagerapi.BundleStatus{
 		DefaultCAPackageVersion: bundle.Status.DefaultCAPackageVersion,
 	}
 	resolvedBundle, err := b.bundleBuilder.BuildBundle(ctx, bundle.Spec)
