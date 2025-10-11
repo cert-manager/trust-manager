@@ -207,7 +207,7 @@ func addBundleController(
 		// Reconcile all Bundles on a Namespace change.
 		Watches(&corev1.Namespace{}, b.enqueueRequestsFromBundleFunc(
 			func(obj client.Object, bundle trustmanagerapi.ClusterBundle) bool {
-				namespaceSelector, err := metav1.LabelSelectorAsSelector((&bundle).Spec.Target.NamespaceSelector)
+				namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
 				if err != nil {
 					// We have an invalid selector, so we can skip this Bundle.
 					return false
