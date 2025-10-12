@@ -22,10 +22,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
 	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 	"k8s.io/client-go/tools/record"
@@ -1648,7 +1651,14 @@ func Test_Reconcile(t *testing.T) {
 			}
 			assert.Equal(t, tt.expEvent, event)
 
-			assert.ElementsMatch(t, tt.expPatches, resourcePatches, "unexpected objects patched")
+			diff := cmp.Diff(tt.expPatches, resourcePatches, cmpopts.SortSlices(func(x, y any) bool {
+				xj, _ := json.Marshal(x)
+				yj, _ := json.Marshal(y)
+				return string(xj) < string(yj)
+			}))
+			if diff != "" {
+				t.Fatalf("unexpected objects patched (-want +got):\n%s", diff)
+			}
 		})
 	}
 }
