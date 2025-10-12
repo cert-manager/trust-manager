@@ -223,7 +223,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 		}
 		err := b.targetReconciler.Cache.List(ctx, targetList, &client.ListOptions{
 			LabelSelector: labels.SelectorFromSet(map[string]string{
-				trustapi.BundleLabelKey: bundle.Name,
+				trustmanagerapi.BundleLabelKey: bundle.Name,
 			}),
 		})
 		if err != nil {
