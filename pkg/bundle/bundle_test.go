@@ -151,18 +151,24 @@ func Test_Reconcile(t *testing.T) {
 		}
 
 		pkcs12DefaultKeyValue = trustmanagerapi.KeyValueTarget{
-			Data: []trustmanagerapi.TargetKeyValue{{
-				Key:    "target.p12",
-				Format: trustmanagerapi.BundleFormatPKCS12,
-				PKCS12: trustmanagerapi.PKCS12{Password: ptr.To(trustmanagerapi.DefaultPKCS12Password)},
-			}},
+			Data: []trustmanagerapi.TargetKeyValue{
+				{Key: targetKey},
+				{
+					Key:    "target.p12",
+					Format: trustmanagerapi.BundleFormatPKCS12,
+					PKCS12: trustmanagerapi.PKCS12{Password: ptr.To(trustmanagerapi.DefaultPKCS12Password)},
+				},
+			},
 		}
 		pkcs12DefaultKeyValueOldPassword = trustmanagerapi.KeyValueTarget{
-			Data: []trustmanagerapi.TargetKeyValue{{
-				Key:    "target.p12",
-				Format: trustmanagerapi.BundleFormatPKCS12,
-				PKCS12: trustmanagerapi.PKCS12{Password: ptr.To("OLD PASSWORD")},
-			}},
+			Data: []trustmanagerapi.TargetKeyValue{
+				{Key: targetKey},
+				{
+					Key:    "target.p12",
+					Format: trustmanagerapi.BundleFormatPKCS12,
+					PKCS12: trustmanagerapi.PKCS12{Password: ptr.To("OLD PASSWORD")},
+				},
+			},
 		}
 
 		configMapPatch = func(name, namespace string, data map[string]string, binData map[string][]byte, key *string, keyValue *trustmanagerapi.KeyValueTarget) *coreapplyconfig.ConfigMapApplyConfiguration {
@@ -659,7 +665,7 @@ func Test_Reconcile(t *testing.T) {
 				),
 			},
 			expError:   false,
-			expPatches: []interface{}{},
+			expPatches: nil,
 			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
@@ -1401,7 +1407,7 @@ func Test_Reconcile(t *testing.T) {
 			)},
 			configureDefaultPackage: true,
 			expError:                false,
-			expPatches:              []interface{}{},
+			expPatches:              nil,
 			expBundlePatch: &trustmanagerapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
