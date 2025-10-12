@@ -39,7 +39,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/structured-merge-diff/v6/fieldpath"
 
-	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/source"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
@@ -168,7 +167,7 @@ func (r *Reconciler) applyConfigMap(
 	patch := prepareTargetPatch(coreapplyconfig.ConfigMap(target.Name, target.Namespace), *bundle).
 		WithAnnotations(bundleTarget.ConfigMap.GetAnnotations()).
 		WithAnnotations(map[string]string{
-			trustapi.BundleHashAnnotationKey: bundleHash,
+			trustmanagerapi.BundleHashAnnotationKey: bundleHash,
 		}).
 		WithLabels(bundleTarget.ConfigMap.GetLabels()).
 		WithData(data).
@@ -235,7 +234,7 @@ func (r *Reconciler) applySecret(
 	patch := prepareTargetPatch(coreapplyconfig.Secret(target.Name, target.Namespace), *bundle).
 		WithAnnotations(bundleTarget.Secret.GetAnnotations()).
 		WithAnnotations(map[string]string{
-			trustapi.BundleHashAnnotationKey: bundleHash,
+			trustmanagerapi.BundleHashAnnotationKey: bundleHash,
 		}).
 		WithLabels(bundleTarget.Secret.GetLabels()).
 		WithData(data)
@@ -259,8 +258,8 @@ const (
 func (r *Reconciler) needsUpdate(kind Kind, obj *metav1.PartialObjectMetadata, bundle *trustmanagerapi.ClusterBundle, bundleHash string) (bool, error) {
 	needsUpdate := false ||
 		!metav1.IsControlledBy(obj, bundle) ||
-		obj.GetLabels()[trustapi.BundleLabelKey] != bundle.Name ||
-		obj.GetAnnotations()[trustapi.BundleHashAnnotationKey] != bundleHash
+		obj.GetLabels()[trustmanagerapi.BundleLabelKey] != bundle.Name ||
+		obj.GetAnnotations()[trustmanagerapi.BundleHashAnnotationKey] != bundleHash
 
 	{
 		var target *trustmanagerapi.KeyValueTarget
@@ -383,7 +382,7 @@ type targetApplyConfiguration[T any] interface {
 func prepareTargetPatch[T targetApplyConfiguration[T]](target T, bundle trustmanagerapi.ClusterBundle) T {
 	return target.
 		WithLabels(map[string]string{
-			trustapi.BundleLabelKey: bundle.Name,
+			trustmanagerapi.BundleLabelKey: bundle.Name,
 		}).
 		WithOwnerReferences(
 			metav1applyconfig.OwnerReference().

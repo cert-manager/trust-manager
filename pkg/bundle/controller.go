@@ -38,7 +38,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	ctrlsource "sigs.k8s.io/controller-runtime/pkg/source"
 
-	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/source"
@@ -81,7 +80,7 @@ func SetupWithManager(
 	mgr ctrl.Manager,
 	opts controller.Options,
 ) error {
-	targetRequirement, err := labels.NewRequirement(trustapi.BundleLabelKey, selection.Exists, nil)
+	targetRequirement, err := labels.NewRequirement(trustmanagerapi.BundleLabelKey, selection.Exists, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create target label requirement: %w", err)
 	}
