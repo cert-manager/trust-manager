@@ -114,6 +114,10 @@ func SetupWithManager(
 		return fmt.Errorf("failed to register Bundle controller: %w", err)
 	}
 
+	if err := (&controller.BundleReconciler{Client: mgr.GetClient()}).SetupWithManager(mgr); err != nil {
+		return fmt.Errorf("failed to register Bundle migration controller: %w", err)
+	}
+
 	return nil
 }
 
