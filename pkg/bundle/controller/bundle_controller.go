@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//nolint:staticcheck // SA1019
 package controller
 
 import (
@@ -41,7 +42,7 @@ type BundleReconciler struct {
 // SetupWithManager sets up the controller with the Manager.
 func (r *BundleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&trustapi.Bundle{}). //lint:ignore SA1019
+		For(&trustapi.Bundle{}).
 		Owns(&trustmanagerapi.ClusterBundle{}).
 		Complete(r)
 }
