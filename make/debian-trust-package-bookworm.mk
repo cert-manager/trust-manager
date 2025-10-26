@@ -24,7 +24,11 @@ $(debian_package_bookworm_json): | $(bin_dir)/bin/validate-trust-package $(debia
 	BIN_VALIDATE_TRUST_PACKAGE=$(bin_dir)/bin/validate-trust-package \
 		./make/debian-trust-package-fetch.sh exact $(DEBIAN_BUNDLE_BOOKWORM_SOURCE_IMAGE) $@ $(DEBIAN_BUNDLE_BOOKWORM_VERSION) $(package_name_bookworm)
 
+# Make sure the build the package json file when building
+# the OCI image. This will ensure that the $(debian_package_bookworm_layer)
+# folder has the desired contents.
 oci-build-package_debian_bookworm: $(debian_package_bookworm_json)
+oci-build-package_debian_bookworm__local: $(debian_package_bookworm_json)
 oci_additional_layers_package_debian_bookworm += $(debian_package_bookworm_layer)
 
 # see https://stackoverflow.com/a/53408233
