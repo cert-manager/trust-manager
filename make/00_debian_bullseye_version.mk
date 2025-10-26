@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# WARNING: Changing this file triggers a build and release of the debian trust package
-# This file is used to store the latest version of the debian trust package and the DEBIAN_BUNDLE_VERSION
-# variable is automatically updated by the `upgrade-debian-trust-package-version` target and cron GH action.
+# WARNING: Changing this file triggers a build and release of the Debian trust package for Bullseye (Debian 11)
+#
+# This file is used to store the latest version of the debian trust package and the DEBIAN_BULLSEYE_BUNDLE_VERSION
+# variable is automatically updated by the `upgrade-debian-bullseye-trust-package-version` target and cron GH action.
 
-DEBIAN_BUNDLE_VERSION := 20210119.2
-DEBIAN_BUNDLE_SOURCE_IMAGE=docker.io/library/debian:11-slim
+DEBIAN_BULLSEYE_BUNDLE_VERSION := 20210119.2
+DEBIAN_BULLSEYE_BUNDLE_SOURCE_IMAGE=docker.io/library/debian:11-slim

@@ -14,7 +14,7 @@
 
 oci_platforms := linux/amd64,linux/arm/v7,linux/arm64,linux/ppc64le,linux/s390x
 
-include make/00_debian_version.mk
+include make/00_debian_bullseye_version.mk
 include make/00_debian_bookworm_version.mk
 
 repo_name := github.com/cert-manager/trust-manager
@@ -22,7 +22,7 @@ repo_name := github.com/cert-manager/trust-manager
 kind_cluster_name := trust-manager
 kind_cluster_config := $(bin_dir)/scratch/kind_cluster.yaml
 
-build_names := manager package_debian package_debian_bookworm
+build_names := manager package_debian_bullseye package_debian_bookworm
 
 go_manager_main_dir := ./cmd/trust-manager
 go_manager_mod_dir := .
@@ -32,15 +32,15 @@ oci_manager_image_name := quay.io/jetstack/trust-manager
 oci_manager_image_tag := $(VERSION)
 oci_manager_image_name_development := cert-manager.local/trust-manager
 
-go_package_debian_main_dir := .
-go_package_debian_mod_dir := ./trust-packages/debian
-go_package_debian_ldflags :=
-oci_package_debian_base_image_flavor := static
-oci_package_debian_image_name := quay.io/jetstack/cert-manager-package-debian
-oci_package_debian_image_tag := $(DEBIAN_BUNDLE_VERSION)
-oci_package_debian_image_name_development := cert-manager.local/cert-manager-package-debian
-debian_package_layer := $(bin_dir)/scratch/debian-trust-package
-oci_package_debian_additional_layers += $(debian_package_layer)
+go_package_debian_bullseye_main_dir := .
+go_package_debian_bullseye_mod_dir := ./trust-packages/debian
+go_package_debian_bullseye_ldflags :=
+oci_package_debian_bullseye_base_image_flavor := static
+oci_package_debian_bullseye_image_name := quay.io/jetstack/cert-manager-package-debian
+oci_package_debian_bullseye_image_tag := $(shell echo $(DEBIAN_BULLSEYE_BUNDLE_VERSION) | tr '+' '-')
+oci_package_debian_bullseye_image_name_development := cert-manager.local/trust-pkg-debian-bullseye
+debian_bullseye_package_layer := $(bin_dir)/scratch/debian-bullseye-trust-package
+oci_package_debian_bullseye_additional_layers += $(debian_bullseye_package_layer)
 
 go_package_debian_bookworm_main_dir := .
 go_package_debian_bookworm_mod_dir := ./trust-packages/debian
@@ -48,9 +48,9 @@ go_package_debian_bookworm_ldflags :=
 oci_package_debian_bookworm_base_image_flavor := static
 oci_package_debian_bookworm_image_name := quay.io/jetstack/trust-pkg-debian-bookworm
 # '+' characters are not valid in docker image names. Transform it to a '.' for images
-oci_package_debian_bookworm_image_tag := $(shell echo $(DEBIAN_BUNDLE_BOOKWORM_VERSION) | tr '+' '-')
+oci_package_debian_bookworm_image_tag := $(shell echo $(DEBIAN_BOOKWORM_BUNDLE_VERSION) | tr '+' '-')
 oci_package_debian_bookworm_image_name_development := cert-manager.local/trust-pkg-debian-bookworm
-debian_bookworm_package_layer := $(bin_dir)/scratch/debian-trust-package-bookworm
+debian_bookworm_package_layer := $(bin_dir)/scratch/debian-bookworm-trust-package
 oci_package_debian_bookworm_additional_layers += $(debian_bookworm_package_layer)
 
 
