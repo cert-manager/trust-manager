@@ -1,12 +1,12 @@
-name: debian-trust-package-upgrade-bookworm
-concurrency: debian-trust-package-upgrade-bookworm
+name: trust-package-upgrade-debian-bullseye
+concurrency: trust-package-upgrade-debian-bullseye
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: '1 1 * * *'
+    - cron: '0 0 * * *'
 
 jobs:
-  debian-trust-package-upgrade-bookworm:
+  debian-bullseye-trust-package-upgrade:
     runs-on: ubuntu-latest
 
     permissions:
@@ -15,7 +15,7 @@ jobs:
 
     env:
       SOURCE_BRANCH: "${{ github.ref_name }}"
-      SELF_UPGRADE_BRANCH: "debian-trust-package-upgrade-bookworm-${{ github.ref_name }}"
+      SELF_UPGRADE_BRANCH: "trust-package-upgrade-debian-bullseye-${{ github.ref_name }}"
 
     steps:
       - name: Fail if branch is not head of branch.
@@ -42,7 +42,7 @@ jobs:
           git checkout -B "$SELF_UPGRADE_BRANCH"
 
       - run: |
-          make -j upgrade-debian-trust-package-bookworm-version
+          make -j upgrade-debian-bullseye-trust-package-version
 
       - id: is-up-to-date
         shell: bash
@@ -60,7 +60,7 @@ jobs:
         run: |
           git config --global user.name "cert-manager-bot"
           git config --global user.email "cert-manager-bot@users.noreply.github.com"
-          git add -A && git commit -m "BOT: run 'make upgrade-debian-trust-package-bookworm-version'" --signoff
+          git add -A && git commit -m "BOT: run 'make upgrade-debian-bullseye-trust-package-version'" --signoff
           git push -f origin "$SELF_UPGRADE_BRANCH"
 
       - if: ${{ steps.is-up-to-date.outputs.result != 'true' }}
@@ -84,7 +84,7 @@ jobs:
                 head: process.env.SELF_UPGRADE_BRANCH,
                 base: process.env.SOURCE_BRANCH,
                 body: [
-                  'This PR is auto-generated to bump the Debian Bookworm package version',
+                  'This PR is auto-generated to bump the Debian Bullseye package version',
                 ].join('\n'),
               });
             }
