@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-oci_platforms ?= linux/amd64,linux/arm/v7,linux/arm64,linux/ppc64le
-
 # Use distroless as minimal base image to package the manager binary
 # To get latest SHA run "crane digest quay.io/jetstack/base-static:latest"
 base_image_static := quay.io/jetstack/base-static@sha256:1da2e7de36c9d7a1931d765e8054a3c9fe7ed5126bacf728bb7429e923386146
@@ -32,6 +30,7 @@ $(call fatal_if_undefined,build_names)
 # Set default config values
 CGO_ENABLED ?= 0
 GOEXPERIMENT ?=  # empty by default
+oci_platforms ?= linux/amd64,linux/arm/v7,linux/arm64,linux/ppc64le
 
 # Default variables per build_names entry
 #
@@ -40,6 +39,7 @@ define default_per_build_variables
 go_$1_cgo_enabled ?= $(CGO_ENABLED)
 go_$1_goexperiment ?= $(GOEXPERIMENT)
 go_$1_flags ?= -tags=
+oci_$1_platforms ?= $(oci_platforms)
 oci_$1_additional_layers ?= 
 oci_$1_linux_capabilities ?= 
 oci_$1_build_args ?= 
@@ -105,6 +105,10 @@ ifneq ($(words $(oci_$1_image_name_development)),1)
 $$(error oci_$1_image_name_development "$(oci_$1_image_name_development)" should be a single image name)
 endif
 
+# Validate that the build name does not end in __local
+ifeq ($(1:%__local=__local),__local)
+$$(error build_name "$1" SHOULD NOT end in __local)
+endif
 endef
 
 $(foreach build_name,$(build_names),$(eval $(call check_per_build_variables,$(build_name))))
@@ -112,10 +116,12 @@ $(foreach build_name,$(build_names),$(eval $(call check_per_build_variables,$(bu
 # Create variables holding targets
 #
 # We create the following targets for each $(build_names)
-# - oci-build-$(build_name) = build the oci directory
+# - oci-build-$(build_name) = build the oci directory (multi-arch)
+# - oci-build-$(build_name)__local = build the oci directory (local arch: linux/$(HOST_ARCH))
 # - oci-load-$(build_name) = load the image into docker using the oci_$(build_name)_image_name_development variable
 # - docker-tarball-$(build_name) = build a "docker load" compatible tarball of the image
 oci_build_targets := $(build_names:%=oci-build-%)
+oci_build_targets += $(build_names:%=oci-build-%__local)
 oci_load_targets := $(build_names:%=oci-load-%)
 docker_tarball_targets := $(build_names:%=docker-tarball-%)
 

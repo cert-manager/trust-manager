@@ -28,6 +28,7 @@ $(debian_package_json): | $(bin_dir)/bin/validate-trust-package $(debian_package
 # the OCI image. This will ensure that the $(debian_package_layer)
 # folder has the desired contents.
 oci-build-package_debian: $(debian_package_json)
+oci-build-package_debian__local: $(debian_package_json)
 
 # see https://stackoverflow.com/a/53408233
 sed_inplace := sed -i''
