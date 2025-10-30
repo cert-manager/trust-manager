@@ -15,38 +15,30 @@
 $(bin_dir)/scratch/image:
 	@mkdir -p $@
 
-define ko_config_target
-.PHONY: $(ko_config_path_$1:$(CURDIR)/%=%)
-$(ko_config_path_$1:$(CURDIR)/%=%): | $(NEEDS_YQ) $(bin_dir)/scratch/image
-	echo '{}' | \
-		$(YQ) '.defaultBaseImage = "$(oci_$1_base_image)"' | \
-		$(YQ) '.builds[0].id = "$1"' | \
-		$(YQ) '.builds[0].dir = "$(go_$1_mod_dir)"' | \
-		$(YQ) '.builds[0].main = "$(go_$1_main_dir)"' | \
-		$(YQ) '.builds[0].env[0] = "CGO_ENABLED=$(go_$1_cgo_enabled)"' | \
-		$(YQ) '.builds[0].env[1] = "GOEXPERIMENT=$(go_$1_goexperiment)"' | \
-		$(YQ) '.builds[0].ldflags[0] = "-s"' | \
-		$(YQ) '.builds[0].ldflags[1] = "-w"' | \
-		$(YQ) '.builds[0].ldflags[2] = "{{.Env.LDFLAGS}}"' | \
-		$(YQ) '.builds[0].flags[0] = "$(go_$1_flags)"' | \
-		$(YQ) '.builds[0].linux_capabilities = "$(oci_$1_linux_capabilities)"' \
-		> $(CURDIR)/$(oci_layout_path_$1).ko_config.yaml
-
-ko-config-$1: $(ko_config_path_$1:$(CURDIR)/%=%)
-endef
-
-.PHONY: $(ko_config_targets)
-$(foreach build_name,$(build_names),$(eval $(call ko_config_target,$(build_name))))
-
 .PHONY: $(oci_build_targets)
 ## Build the OCI image.
 ## @category [shared] Build
-$(oci_build_targets): oci-build-%: ko-config-% | $(NEEDS_KO) $(NEEDS_GO) $(NEEDS_YQ) $(NEEDS_IMAGE-TOOL) $(bin_dir)/scratch/image
+$(oci_build_targets): oci-build-%: | $(NEEDS_KO) $(NEEDS_GO) $(NEEDS_YQ) $(NEEDS_IMAGE-TOOL) $(bin_dir)/scratch/image
 	rm -rf $(CURDIR)/$(oci_layout_path_$*)
+
+	echo '{}' | \
+		$(YQ) '.defaultBaseImage = "$(oci_$*_base_image)"' | \
+		$(YQ) '.builds[0].id = "$*"' | \
+		$(YQ) '.builds[0].dir = "$(go_$*_mod_dir)"' | \
+		$(YQ) '.builds[0].main = "$(go_$*_main_dir)"' | \
+		$(YQ) '.builds[0].env[0] = "CGO_ENABLED=$(go_$*_cgo_enabled)"' | \
+		$(YQ) '.builds[0].env[1] = "GOEXPERIMENT=$(go_$*_goexperiment)"' | \
+		$(YQ) '.builds[0].ldflags[0] = "-s"' | \
+		$(YQ) '.builds[0].ldflags[1] = "-w"' | \
+		$(YQ) '.builds[0].ldflags[2] = "{{.Env.LDFLAGS}}"' | \
+		$(YQ) '.builds[0].flags[0] = "$(go_$*_flags)"' | \
+		$(YQ) '.builds[0].linux_capabilities = "$(oci_$*_linux_capabilities)"' \
+		> $(CURDIR)/$(oci_layout_path_$*).ko_config.yaml
+
 	GOWORK=off \
 	KO_DOCKER_REPO=$(oci_$*_image_name_development) \
 	KOCACHE=$(CURDIR)/$(bin_dir)/scratch/image/ko_cache \
-	KO_CONFIG_PATH=$(ko_config_path_$*) \
+	KO_CONFIG_PATH=$(CURDIR)/$(oci_layout_path_$*).ko_config.yaml \
 	SOURCE_DATE_EPOCH=$(GITEPOCH) \
 	KO_GO_PATH=$(GO) \
 	LDFLAGS="$(go_$*_ldflags)" \

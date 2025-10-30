@@ -27,7 +27,6 @@ fatal_if_undefined = $(if $(findstring undefined,$(origin $1)),$(error $1 is not
 fatal_if_deprecated_defined = $(if $(findstring undefined,$(origin $1)),,$(error $1 is deprecated, use $2 instead))
 
 # Validate globals that are required
-$(call fatal_if_undefined,bin_dir)
 $(call fatal_if_undefined,build_names)
 
 # Set default config values
@@ -98,7 +97,7 @@ ifeq ($(wildcard $(go_$1_mod_dir)/go.mod),)
 $$(error go_$1_mod_dir "$(go_$1_mod_dir)" does not contain a go.mod file)
 endif
 ifeq ($(wildcard $(go_$1_mod_dir)/$(go_$1_main_dir)/main.go),)
-$$(error go_$1_main_dir "$(go_$1_mod_dir)" does not contain a main.go file)
+$$(error go_$1_main_dir "$(go_$1_mod_dir)/$(go_$1_main_dir)" does not contain a main.go file)
 endif
 
 # Validate the config required to build OCI images
@@ -116,19 +115,15 @@ $(foreach build_name,$(build_names),$(eval $(call check_per_build_variables,$(bu
 # - oci-build-$(build_name) = build the oci directory
 # - oci-load-$(build_name) = load the image into docker using the oci_$(build_name)_image_name_development variable
 # - docker-tarball-$(build_name) = build a "docker load" compatible tarball of the image
-# - ko-config-$(build_name) = generate "ko" config for a given build
 oci_build_targets := $(build_names:%=oci-build-%)
 oci_load_targets := $(build_names:%=oci-load-%)
 docker_tarball_targets := $(build_names:%=docker-tarball-%)
-ko_config_targets := $(build_names:%=ko-config-%)
 
 # Derive config based on user config
 # 
 # - oci_layout_path_$(build_name) = path that the OCI image will be saved in OCI layout directory format
 # - oci_digest_path_$(build_name) = path to the file that will contain the digests
-# - ko_config_path_$(build_name) = path to the ko config file
 # - docker_tarball_path_$(build_name) = path that the docker tarball that the docker-tarball-$(build_name) will produce
 $(foreach build_name,$(build_names),$(eval oci_layout_path_$(build_name) := $(bin_dir)/scratch/image/oci-layout-$(build_name)))
 $(foreach build_name,$(build_names),$(eval oci_digest_path_$(build_name) := $(CURDIR)/$(oci_layout_path_$(build_name)).digests))
-$(foreach build_name,$(build_names),$(eval ko_config_path_$(build_name) := $(CURDIR)/$(oci_layout_path_$(build_name)).ko_config.yaml))
 $(foreach build_name,$(build_names),$(eval docker_tarball_path_$(build_name) := $(CURDIR)/$(oci_layout_path_$(build_name)).docker.tar))
