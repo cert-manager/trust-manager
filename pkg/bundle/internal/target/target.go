@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +39,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/structured-merge-diff/v6/fieldpath"
 
-	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/source"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/truststore"
@@ -64,7 +65,7 @@ type Reconciler struct {
 func (r *Reconciler) CleanupTarget(
 	ctx context.Context,
 	target Resource,
-	bundle *trustapi.Bundle,
+	bundle *trustmanagerapi.ClusterBundle,
 ) (bool, error) {
 	switch target.Kind {
 	case KindConfigMap:
@@ -102,7 +103,7 @@ func (r *Reconciler) CleanupTarget(
 func (r *Reconciler) ApplyTarget(
 	ctx context.Context,
 	target Resource,
-	bundle *trustapi.Bundle,
+	bundle *trustmanagerapi.ClusterBundle,
 	resolvedBundle source.BundleData,
 ) (bool, error) {
 	switch target.Kind {
@@ -118,7 +119,7 @@ func (r *Reconciler) ApplyTarget(
 func (r *Reconciler) applyConfigMap(
 	ctx context.Context,
 	target Resource,
-	bundle *trustapi.Bundle,
+	bundle *trustmanagerapi.ClusterBundle,
 	resolvedBundle source.BundleData,
 ) (bool, error) {
 	targetObj := &metav1.PartialObjectMetadata{
@@ -140,7 +141,7 @@ func (r *Reconciler) applyConfigMap(
 	bundlePEM := resolvedBundle.CertPool.PEM()
 	// Generated PKCS #12 is not deterministic - best we can do here is update if the pem cert has
 	// changed (hence not checking if PKCS #12 matches)
-	bundleHash := TrustBundleHash([]byte(bundlePEM), bundleTarget.AdditionalFormats, bundleTarget.ConfigMap)
+	bundleHash := TrustBundleHash([]byte(bundlePEM), bundleTarget.ConfigMap)
 	// If the resource exists, check if it is up-to-date.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
@@ -151,11 +152,14 @@ func (r *Reconciler) applyConfigMap(
 		}
 	}
 
-	data := map[string]string{
-		bundleTarget.ConfigMap.Key: bundlePEM,
+	data := map[string]string{}
+	for _, keyValue := range bundleTarget.ConfigMap.Data {
+		if keyValue.Format == "" || keyValue.Format == trustmanagerapi.BundleFormatPEM {
+			data[keyValue.Key] = bundlePEM
+		}
 	}
 
-	binData, err := binaryData(resolvedBundle.CertPool, bundleTarget.AdditionalFormats)
+	binData, err := binaryData(resolvedBundle.CertPool, bundleTarget.ConfigMap.Data)
 	if err != nil {
 		return false, err
 	}
@@ -163,7 +167,7 @@ func (r *Reconciler) applyConfigMap(
 	patch := prepareTargetPatch(coreapplyconfig.ConfigMap(target.Name, target.Namespace), *bundle).
 		WithAnnotations(bundleTarget.ConfigMap.GetAnnotations()).
 		WithAnnotations(map[string]string{
-			trustapi.BundleHashAnnotationKey: bundleHash,
+			trustmanagerapi.BundleHashAnnotationKey: bundleHash,
 		}).
 		WithLabels(bundleTarget.ConfigMap.GetLabels()).
 		WithData(data).
@@ -181,7 +185,7 @@ func (r *Reconciler) applyConfigMap(
 func (r *Reconciler) applySecret(
 	ctx context.Context,
 	target Resource,
-	bundle *trustapi.Bundle,
+	bundle *trustmanagerapi.ClusterBundle,
 	resolvedBundle source.BundleData,
 ) (bool, error) {
 	targetObj := &metav1.PartialObjectMetadata{
@@ -203,7 +207,7 @@ func (r *Reconciler) applySecret(
 	bundlePEM := resolvedBundle.CertPool.PEM()
 	// Generated PKCS #12 is not deterministic - best we can do here is update if the pem cert has
 	// changed (hence not checking if PKCS #12 matches)
-	bundleHash := TrustBundleHash([]byte(bundlePEM), bundleTarget.AdditionalFormats, bundleTarget.Secret)
+	bundleHash := TrustBundleHash([]byte(bundlePEM), bundleTarget.Secret)
 	// If the resource exists, check if it is up-to-date.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
@@ -214,22 +218,23 @@ func (r *Reconciler) applySecret(
 		}
 	}
 
-	data := map[string][]byte{
-		bundleTarget.Secret.Key: []byte(bundlePEM),
+	data := map[string][]byte{}
+	for _, keyValue := range bundleTarget.Secret.Data {
+		if keyValue.Format == "" || keyValue.Format == trustmanagerapi.BundleFormatPEM {
+			data[keyValue.Key] = []byte(bundlePEM)
+		}
 	}
 
-	binData, err := binaryData(resolvedBundle.CertPool, bundleTarget.AdditionalFormats)
+	binData, err := binaryData(resolvedBundle.CertPool, bundleTarget.Secret.Data)
 	if err != nil {
 		return false, err
 	}
-	for k, v := range binData {
-		data[k] = v
-	}
+	maps.Copy(data, binData)
 
 	patch := prepareTargetPatch(coreapplyconfig.Secret(target.Name, target.Namespace), *bundle).
 		WithAnnotations(bundleTarget.Secret.GetAnnotations()).
 		WithAnnotations(map[string]string{
-			trustapi.BundleHashAnnotationKey: bundleHash,
+			trustmanagerapi.BundleHashAnnotationKey: bundleHash,
 		}).
 		WithLabels(bundleTarget.Secret.GetLabels()).
 		WithData(data)
@@ -250,21 +255,21 @@ const (
 	KindSecret    Kind = "Secret"
 )
 
-func (r *Reconciler) needsUpdate(kind Kind, obj *metav1.PartialObjectMetadata, bundle *trustapi.Bundle, bundleHash string) (bool, error) {
+func (r *Reconciler) needsUpdate(kind Kind, obj *metav1.PartialObjectMetadata, bundle *trustmanagerapi.ClusterBundle, bundleHash string) (bool, error) {
 	needsUpdate := false ||
 		!metav1.IsControlledBy(obj, bundle) ||
-		obj.GetLabels()[trustapi.BundleLabelKey] != bundle.Name ||
-		obj.GetAnnotations()[trustapi.BundleHashAnnotationKey] != bundleHash
+		obj.GetLabels()[trustmanagerapi.BundleLabelKey] != bundle.Name ||
+		obj.GetAnnotations()[trustmanagerapi.BundleHashAnnotationKey] != bundleHash
 
 	{
-		var key string
+		var target *trustmanagerapi.KeyValueTarget
 		var targetFieldNames []string
 		switch kind {
 		case KindConfigMap:
-			key = bundle.Spec.Target.ConfigMap.Key
+			target = bundle.Spec.Target.ConfigMap
 			targetFieldNames = []string{"data", "binaryData"}
 		case KindSecret:
-			key = bundle.Spec.Target.Secret.Key
+			target = bundle.Spec.Target.Secret
 			targetFieldNames = []string{"data"}
 		default:
 			return false, fmt.Errorf("unknown targetType: %s", kind)
@@ -274,12 +279,9 @@ func (r *Reconciler) needsUpdate(kind Kind, obj *metav1.PartialObjectMetadata, b
 		if err != nil {
 			return false, fmt.Errorf("failed to list managed properties: %w", err)
 		}
-		expectedProperties := sets.New(key)
-		if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.JKS != nil {
-			expectedProperties.Insert(bundle.Spec.Target.AdditionalFormats.JKS.Key)
-		}
-		if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.PKCS12 != nil {
-			expectedProperties.Insert(bundle.Spec.Target.AdditionalFormats.PKCS12.Key)
+		expectedProperties := sets.New[string]()
+		for _, keyValue := range target.Data {
+			expectedProperties.Insert(keyValue.Key)
 		}
 		if !properties.Equal(expectedProperties) {
 			needsUpdate = true
@@ -377,15 +379,15 @@ type targetApplyConfiguration[T any] interface {
 	WithOwnerReferences(values ...*metav1applyconfig.OwnerReferenceApplyConfiguration) T
 }
 
-func prepareTargetPatch[T targetApplyConfiguration[T]](target T, bundle trustapi.Bundle) T {
+func prepareTargetPatch[T targetApplyConfiguration[T]](target T, bundle trustmanagerapi.ClusterBundle) T {
 	return target.
 		WithLabels(map[string]string{
-			trustapi.BundleLabelKey: bundle.Name,
+			trustmanagerapi.BundleLabelKey: bundle.Name,
 		}).
 		WithOwnerReferences(
 			metav1applyconfig.OwnerReference().
-				WithAPIVersion(trustapi.SchemeGroupVersion.String()).
-				WithKind(trustapi.BundleKind).
+				WithAPIVersion(trustmanagerapi.SchemeGroupVersion.String()).
+				WithKind(trustmanagerapi.ClusterBundleKind).
 				WithName(bundle.GetName()).
 				WithUID(bundle.GetUID()).
 				WithBlockOwnerDeletion(true).
@@ -398,16 +400,17 @@ type Resource struct {
 	types.NamespacedName
 }
 
-func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats, target *trustapi.TargetTemplate) string {
+func TrustBundleHash(data []byte, target *trustmanagerapi.KeyValueTarget) string {
 	hash := sha256.New()
 
 	_, _ = hash.Write(data)
 
-	if additionalFormats != nil && additionalFormats.JKS != nil && additionalFormats.JKS.Password != nil {
-		_, _ = hash.Write([]byte(*additionalFormats.JKS.Password))
-	}
-	if additionalFormats != nil && additionalFormats.PKCS12 != nil && additionalFormats.PKCS12.Password != nil {
-		_, _ = hash.Write([]byte(*additionalFormats.PKCS12.Password))
+	if target != nil {
+		for _, keyValue := range target.Data {
+			if keyValue.PKCS12.Password != nil {
+				_, _ = hash.Write([]byte(*keyValue.PKCS12.Password))
+			}
+		}
 	}
 
 	// Add Target annotations and labels to the hash so it becomes aware of changes and triggers an update.
@@ -424,24 +427,20 @@ func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats,
 	return hex.EncodeToString(hashValue[:])
 }
 
-func binaryData(pool *util.CertPool, formats *trustapi.AdditionalFormats) (binData map[string][]byte, err error) {
-	if formats != nil {
-		binData = make(map[string][]byte)
-
-		if formats.JKS != nil {
-			encoded, err := truststore.NewJKSEncoder(*formats.JKS.Password).Encode(pool)
-			if err != nil {
-				return nil, fmt.Errorf("failed to encode JKS: %w", err)
+func binaryData(pool *util.CertPool, targetKeys []trustmanagerapi.TargetKeyValue) (binData map[string][]byte, err error) {
+	var pkcs12Encoded []byte
+	for _, targetKey := range targetKeys {
+		if targetKey.Format == trustmanagerapi.BundleFormatPKCS12 {
+			if pkcs12Encoded == nil {
+				pkcs12Encoded, err = truststore.NewPKCS12Encoder(*targetKey.PKCS12.Password, targetKey.PKCS12.Profile).Encode(pool)
+				if err != nil {
+					return nil, fmt.Errorf("failed to encode PKCS12: %w", err)
+				}
 			}
-			binData[formats.JKS.Key] = encoded
-		}
-
-		if formats.PKCS12 != nil {
-			encoded, err := truststore.NewPKCS12Encoder(*formats.PKCS12.Password, formats.PKCS12.Profile).Encode(pool)
-			if err != nil {
-				return nil, fmt.Errorf("failed to encode PKCS12: %w", err)
+			if binData == nil {
+				binData = make(map[string][]byte)
 			}
-			binData[formats.PKCS12.Key] = encoded
+			binData[targetKey.Key] = pkcs12Encoded
 		}
 	}
 	return binData, nil
