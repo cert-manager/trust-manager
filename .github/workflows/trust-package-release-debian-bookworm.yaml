@@ -1,4 +1,4 @@
-name: debian-trust-package-release-bookworm
+name: trust-package-release-debian-bookworm
 on:
   push:
     branches: ['main']
@@ -6,7 +6,7 @@ on:
       - make/00_debian_bookworm_version.mk
 
 jobs:
-  build_images:
+  build_and_push:
     runs-on: ubuntu-latest
 
     permissions:

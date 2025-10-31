@@ -33,8 +33,8 @@ smoke:
 	$(MAKE) test-smoke
 
 include make/validate-trust-package.mk
-include make/debian-trust-package.mk
-include make/debian-trust-package-bookworm.mk
+include make/debian-bullseye-trust-package.mk
+include make/debian-bookworm-trust-package.mk
 
 .PHONY: release
 ## Publish all release artifacts (image + helm chart)
@@ -42,24 +42,26 @@ include make/debian-trust-package-bookworm.mk
 release:
 	$(MAKE) oci-push-manager
 	$(MAKE) helm-chart-oci-push
-	$(MAKE) oci-maybe-push-package_debian
+	$(MAKE) oci-maybe-push-package_debian_bullseye
 	$(MAKE) oci-maybe-push-package_debian_bookworm
 
 	@echo "RELEASE_OCI_MANAGER_IMAGE=$(oci_manager_image_name)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_OCI_MANAGER_TAG=$(oci_manager_image_tag)" >> "$(GITHUB_OUTPUT)"
-	@echo "RELEASE_OCI_PACKAGE_DEBIAN_IMAGE=$(oci_package_debian_image_name)" >> "$(GITHUB_OUTPUT)"
-	@echo "RELEASE_OCI_PACKAGE_DEBIAN_TAG=$(oci_package_debian_image_tag)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BULLSEYE_IMAGE=$(oci_package_debian_bullseye_image_name)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BULLSEYE_TAG=$(oci_package_debian_bullseye_image_tag)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_IMAGE=$(oci_package_debian_bookworm_image_name)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_TAG=$(oci_package_debian_bookworm_image_tag)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_HELM_CHART_IMAGE=$(helm_chart_image_name)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_HELM_CHART_VERSION=$(helm_chart_version)" >> "$(GITHUB_OUTPUT)"
 
 	@echo "Release complete!"
 
-.PHONY: release-debian-trust-package
-release-debian-trust-package:
-	$(MAKE) oci-maybe-push-package_debian
+.PHONY: release-debian-bullseye-trust-package
+release-debian-bullseye-trust-package:
+	$(MAKE) oci-maybe-push-package_debian_bullseye
 
-	@echo "RELEASE_OCI_PACKAGE_DEBIAN_IMAGE=$(oci_package_debian_image_name)" >> "$(GITHUB_OUTPUT)"
-	@echo "RELEASE_OCI_PACKAGE_DEBIAN_TAG=$(oci_package_debian_image_tag)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BULLSEYE_IMAGE=$(oci_package_debian_bullseye_image_name)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BULLSEYE_TAG=$(oci_package_debian_bullseye_image_tag)" >> "$(GITHUB_OUTPUT)"
 
 	@echo "Release complete!"
 

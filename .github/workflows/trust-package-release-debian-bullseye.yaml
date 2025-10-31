@@ -1,9 +1,9 @@
-name: debian-trust-package-release-bullseye
+name: trust-package-release-debian-bullseye
 on:
   push:
     branches: ['main']
     paths:
-      - make/00_debian_version.mk
+      - make/00_debian_bullseye_version.mk
 
 jobs:
   build_and_push:
@@ -36,8 +36,8 @@ jobs:
           go-version: ${{ steps.go-version.outputs.result }}
 
       - id: release
-        run: make release-debian-trust-package
+        run: make release-debian-bullseye-trust-package
 
     outputs:
-      RELEASE_OCI_MANAGER_IMAGE: ${{ steps.release.outputs.RELEASE_OCI_PACKAGE_DEBIAN_IMAGE }}
-      RELEASE_OCI_MANAGER_TAG: ${{ steps.release.outputs.RELEASE_OCI_PACKAGE_DEBIAN_TAG }}
+      RELEASE_OCI_MANAGER_IMAGE: ${{ steps.release.outputs.RELEASE_OCI_PACKAGE_DEBIAN_BULLSEYE_IMAGE }}
+      RELEASE_OCI_MANAGER_TAG: ${{ steps.release.outputs.RELEASE_OCI_PACKAGE_DEBIAN_BULLSEYE_TAG }}
