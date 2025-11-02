@@ -4,6 +4,10 @@ linters:
   exclusions:
     generated: lax
     presets: [comments, common-false-positives, legacy, std-error-handling]
+    rules:
+      - linters:
+          - modernize
+        text: .*
     paths: [third_party, builtin$, examples$]
     warn-unused: true
   settings:
