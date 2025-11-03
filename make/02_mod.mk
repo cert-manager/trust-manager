@@ -35,6 +35,7 @@ smoke:
 include make/validate-trust-package.mk
 include make/debian-trust-package.mk
 include make/debian-trust-package-bookworm.mk
+include make/debian-trust-package-trixie.mk
 
 .PHONY: release
 ## Publish all release artifacts (image + helm chart)
