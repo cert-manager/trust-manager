@@ -144,7 +144,7 @@ func TestAddCertsFromPEM(t *testing.T) {
 				t.Errorf("expected sanitizedBundle not to end with a newline")
 			}
 
-			for _, line := range strings.Split(sanitizedBundle, "\n") {
+			for line := range strings.SplitSeq(sanitizedBundle, "\n") {
 				// Check that each "encapsulation boundary" (-----BEGIN/END <x>-----) is on its
 				// own line. ("Encapsulation boundary" is apparently the name according to rfc7468)
 				if !strings.HasPrefix(line, "-----") {
