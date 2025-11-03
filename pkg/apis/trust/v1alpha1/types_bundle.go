@@ -128,9 +128,9 @@ type AdditionalFormats struct {
 	// JKS requests a JKS-formatted binary trust bundle to be written to the target.
 	// The bundle has "changeit" as the default password.
 	// For more information refer to this link https://cert-manager.io/docs/faq/#keystore-passwords
-	// +optional
-	// Deprecated: Writing JKS is subject for removal. Please migrate to PKCS12.
+	// Format is deprecated: Writing JKS is subject for removal. Please migrate to PKCS12.
 	// PKCS#12 trust stores created by trust-manager are compatible with Java.
+	// +optional
 	JKS *JKS `json:"jks,omitempty"`
 	// PKCS12 requests a PKCS12-formatted binary trust bundle to be written to the target.
 	//
