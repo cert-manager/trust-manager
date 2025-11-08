@@ -37,8 +37,9 @@ var BundleHashAnnotationKey = "trust.cert-manager.io/hash"
 // +genclient:nonNamespaced
 
 type Bundle struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
+	metav1.ObjectMeta `json:"metadata"`
 
 	// Desired state of the Bundle resource.
 	Spec BundleSpec `json:"spec"`

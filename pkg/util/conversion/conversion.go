@@ -37,8 +37,8 @@ import (
 func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *randfill.Filler {
 	funcs = append([]fuzzer.FuzzerFuncs{
 		metafuzzer.Funcs,
-		func(_ runtimeserializer.CodecFactory) []interface{} {
-			return []interface{}{
+		func(_ runtimeserializer.CodecFactory) []any {
+			return []any{
 				// Custom fuzzer for metav1.Time pointers which weren't
 				// fuzzed and always resulted in `nil` values.
 				// This implementation is somewhat similar to the one provided
