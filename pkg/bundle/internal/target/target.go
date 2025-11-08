@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -55,7 +56,7 @@ type Reconciler struct {
 
 	// PatchResourceOverwrite allows use to override the patchResource function
 	// it is used for testing purposes
-	PatchResourceOverwrite func(ctx context.Context, obj interface{}) error
+	PatchResourceOverwrite func(ctx context.Context, obj any) error
 }
 
 // CleanupTarget ensures the obsolete bundle target is cleanup up.
@@ -222,9 +223,7 @@ func (r *Reconciler) applySecret(
 	if err != nil {
 		return false, err
 	}
-	for k, v := range binData {
-		data[k] = v
-	}
+	maps.Copy(data, binData)
 
 	patch := prepareTargetPatch(coreapplyconfig.Secret(target.Name, target.Namespace), *bundle).
 		WithAnnotations(bundleTarget.Secret.GetAnnotations()).

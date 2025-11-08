@@ -452,13 +452,13 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 
 			var (
 				logMutex        sync.Mutex
-				resourcePatches []interface{}
+				resourcePatches []any
 			)
 
 			r := &Reconciler{
 				Client: fakeClient,
 				Cache:  fakeClient,
-				PatchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
+				PatchResourceOverwrite: func(ctx context.Context, obj any) error {
 					logMutex.Lock()
 					defer logMutex.Unlock()
 
@@ -904,13 +904,13 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 
 			var (
 				logMutex        sync.Mutex
-				resourcePatches []interface{}
+				resourcePatches []any
 			)
 
 			r := &Reconciler{
 				Client: fakeClient,
 				Cache:  fakeClient,
-				PatchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
+				PatchResourceOverwrite: func(ctx context.Context, obj any) error {
 					logMutex.Lock()
 					defer logMutex.Unlock()
 

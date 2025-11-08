@@ -37,8 +37,8 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 }
 
-func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func fuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		spokeBundleSpecFuzzer,
 		spokeSourceObjectKeySelectorFuzzer,
 		spokeBundleTargetFuzzer,

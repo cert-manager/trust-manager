@@ -42,7 +42,7 @@ func usage(logger *log.Logger) func() {
 		flag.CommandLine.SetOutput(buf)
 		flag.PrintDefaults()
 
-		for _, line := range strings.Split(buf.String(), "\n") {
+		for line := range strings.SplitSeq(buf.String(), "\n") {
 			if strings.TrimSpace(line) == "" {
 				continue
 			}

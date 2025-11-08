@@ -295,7 +295,7 @@ func Test_Reconcile(t *testing.T) {
 		disableSecretTargets    bool
 		expResult               ctrl.Result
 		expError                bool
-		expPatches              []interface{}
+		expPatches              []any
 		expBundlePatch          *trustapi.BundleStatus
 		expEvent                string
 		targetNamespaces        []string
@@ -405,7 +405,7 @@ func Test_Reconcile(t *testing.T) {
 			},
 			existingSecrets: []client.Object{sourceSecret},
 			expError:        false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
@@ -458,7 +458,7 @@ func Test_Reconcile(t *testing.T) {
 				),
 			},
 			expError: false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				secretPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
 				secretPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
 				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
@@ -511,7 +511,7 @@ func Test_Reconcile(t *testing.T) {
 					gen.SetBundleTargetAdditionalFormats(pkcs12DefaultAdditionalFormats),
 				)},
 			expError: false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				configMapPatch(baseBundle.Name, "trust-namespace", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
@@ -577,7 +577,7 @@ func Test_Reconcile(t *testing.T) {
 				),
 			},
 			expError: false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				configMapPatch(baseBundle.Name, "trust-namespace", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
@@ -652,7 +652,7 @@ func Test_Reconcile(t *testing.T) {
 				),
 			},
 			expError:   false,
-			expPatches: []interface{}{},
+			expPatches: []any{},
 			expBundlePatch: &trustapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
@@ -711,7 +711,7 @@ func Test_Reconcile(t *testing.T) {
 				),
 			},
 			expError: false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				configMapPatch(baseBundle.Name, "trust-namespace", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
@@ -748,7 +748,7 @@ func Test_Reconcile(t *testing.T) {
 				},
 			)},
 			expError: false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
@@ -782,7 +782,7 @@ func Test_Reconcile(t *testing.T) {
 			existingSecrets:    []client.Object{sourceSecret},
 			existingBundles:    []client.Object{gen.BundleFrom(baseBundle)},
 			expError:           false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
@@ -821,7 +821,7 @@ func Test_Reconcile(t *testing.T) {
 			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
 				gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}))},
 			expError: false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				configMapPatch(baseBundle.Name, "random-namespace", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "another-random-namespace", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 			},
@@ -873,7 +873,7 @@ func Test_Reconcile(t *testing.T) {
 				gen.SetBundleTargetNamespaceSelectorMatchLabels(map[string]string{"foo": "bar"}),
 			)},
 			expError: false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{}, nil, nil, nil),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{}, nil, nil, nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{}, nil, nil, nil),
@@ -938,7 +938,7 @@ func Test_Reconcile(t *testing.T) {
 					})),
 			},
 			expError: false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
@@ -1130,7 +1130,7 @@ func Test_Reconcile(t *testing.T) {
 			},
 			configureDefaultPackage: true,
 			expError:                false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3, dummy.TestCertificate5)}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3, dummy.TestCertificate5)}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3, dummy.TestCertificate5)}, nil, ptr.To(targetKey), nil),
@@ -1199,7 +1199,7 @@ func Test_Reconcile(t *testing.T) {
 			)},
 			configureDefaultPackage: true,
 			expError:                false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
@@ -1271,7 +1271,7 @@ func Test_Reconcile(t *testing.T) {
 			)},
 			configureDefaultPackage: true,
 			expError:                false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				configMapPatch(baseBundle.Name, trustNamespace, nil, nil, nil, nil),
 				configMapPatch(baseBundle.Name, "ns-1", nil, nil, nil, nil),
 				configMapPatch(baseBundle.Name, "ns-2", nil, nil, nil, nil),
@@ -1346,7 +1346,7 @@ func Test_Reconcile(t *testing.T) {
 			)},
 			configureDefaultPackage: true,
 			expError:                false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				secretPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
 				secretPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
 				secretPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, ptr.To(targetKey), nil),
@@ -1394,7 +1394,7 @@ func Test_Reconcile(t *testing.T) {
 			)},
 			configureDefaultPackage: true,
 			expError:                false,
-			expPatches:              []interface{}{},
+			expPatches:              []any{},
 			expBundlePatch: &trustapi.BundleStatus{
 				Conditions: []metav1.Condition{
 					{
@@ -1457,7 +1457,7 @@ func Test_Reconcile(t *testing.T) {
 				}),
 			)},
 			expError: false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3)}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3)}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3)}, nil, ptr.To(targetKey), nil),
@@ -1488,7 +1488,7 @@ func Test_Reconcile(t *testing.T) {
 			},
 			targetNamespaces: []string{"ns-1", "ns-2"},
 			expError:         false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 			},
@@ -1548,7 +1548,7 @@ func Test_Reconcile(t *testing.T) {
 			},
 			targetNamespaces: []string{"ns-1", "ns-2"},
 			expError:         false,
-			expPatches: []interface{}{
+			expPatches: []any{
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
 			},
@@ -1594,7 +1594,7 @@ func Test_Reconcile(t *testing.T) {
 
 			var (
 				logMutex        sync.Mutex
-				resourcePatches []interface{}
+				resourcePatches []any
 			)
 
 			_, ctx := ktesting.NewTestContext(t)
@@ -1615,7 +1615,7 @@ func Test_Reconcile(t *testing.T) {
 				targetReconciler: &target.Reconciler{
 					Client: fakeClient,
 					Cache:  fakeClient,
-					PatchResourceOverwrite: func(ctx context.Context, obj interface{}) error {
+					PatchResourceOverwrite: func(ctx context.Context, obj any) error {
 						logMutex.Lock()
 						defer logMutex.Unlock()
 
