@@ -45,3 +45,15 @@ upgrade-debian-bookworm-trust-package-version: | $(bin_dir)/bin/validate-trust-p
 
 	latest_version=$$(jq -r '.version' $(temp_out)); \
 		$(sed_inplace) "s/DEBIAN_BOOKWORM_BUNDLE_VERSION := .*/DEBIAN_BOOKWORM_BUNDLE_VERSION := $$latest_version/" make/00_debian_bookworm_version.mk
+
+
+.PHONY: scan-debian-bookworm-trust-package
+## Scan the latest Debian Bookworm trust package OCI image with Trivy
+## @category [shared] Release
+scan-debian-bookworm-trust-package: | $(NEEDS_TRIVY) $(NEEDS_CRANE)
+	@# We explicitly exclude the tag "20230311.0" here because it breaks version comparisons with "sort -V" and compares as newer than the other tags.
+	@# Even with that tag excluded, this is brittle; the current format used for the tag doesn't allow us to easily
+	@# answer the question "which tag is latest" without more custom logic. For now, this works but for future trust packages it might be worth considering our own version format.
+	$(eval latest_bookworm_tag := $(shell $(CRANE) ls --omit-digest-tags $(oci_package_debian_bookworm_image_name) | grep -v "20230311.0" | sort -V | tail -n1))
+	@echo "Scanning latest Debian Bookworm trust package: $(oci_package_debian_bookworm_image_name):$(latest_bookworm_tag)"
+	$(TRIVY) image --exit-code 1 $(oci_package_debian_bookworm_image_name):$(latest_bookworm_tag)

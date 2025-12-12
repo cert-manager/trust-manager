@@ -36,6 +36,12 @@ include make/validate-trust-package.mk
 include make/debian-bullseye-trust-package.mk
 include make/debian-bookworm-trust-package.mk
 
+.PHONY: prerelease-scan
+## Perform security scans on the codebase with govulncheck and on released trust packages
+## using Trivy. This is intended as a signal for whether a release is safe to proceed.
+## @category [shared] Release
+prerelease-scan: verify-govulncheck scan-debian-bookworm-trust-package scan-debian-bullseye-trust-package | $(NEEDS_TRIVY) $(NEEDS_CRANE)
+
 .PHONY: release
 ## Publish all release artifacts (image + helm chart)
 ## @category [shared] Release
