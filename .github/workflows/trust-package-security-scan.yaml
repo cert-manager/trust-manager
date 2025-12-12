@@ -1,0 +1,25 @@
+# Run trivy scans on the trust package container images every night.
+name: trust-package-security-scan
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '30 1 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  trust-package-security-scan:
+    runs-on: ubuntu-latest
+
+    if: github.repository == 'cert-manager/trust-manager'
+
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        # Adding `fetch-depth: 0` makes sure tags are also fetched. We need
+        # the tags so `git describe` returns a valid version.
+        # see https://github.com/actions/checkout/issues/701 for extra info about this option
+        with: { fetch-depth: 0 }
+
+      - run: make scan-debian-bookworm-trust-package
+      - run: make scan-debian-bullseye-trust-package
