@@ -45,3 +45,12 @@ upgrade-debian-bullseye-trust-package-version: | $(bin_dir)/bin/validate-trust-p
 
 	latest_version=$$(jq -r '.version' $(temp_out)); \
 		$(sed_inplace) "s/DEBIAN_BULLSEYE_BUNDLE_VERSION := .*/DEBIAN_BULLSEYE_BUNDLE_VERSION := $$latest_version/" make/00_debian_bullseye_version.mk
+
+.PHONY: scan-debian-bullseye-trust-package
+## Scan the latest Debian Bullseye trust package OCI image with Trivy
+## @category [shared] Release
+scan-debian-bullseye-trust-package: | $(NEEDS_TRIVY) $(NEEDS_CRANE)
+	$(eval latest_bullseye_tag := $(shell $(CRANE) ls --omit-digest-tags $(oci_package_debian_bullseye_image_name) | sort -V | tail -n1))
+	@echo "Scanning latest Debian Bullseye trust package: $(oci_package_debian_bullseye_image_name):$(latest_bullseye_tag)"
+	$(TRIVY) image --exit-code 1 $(oci_package_debian_bullseye_image_name):$(latest_bullseye_tag)
+
