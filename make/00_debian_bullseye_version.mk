@@ -17,5 +17,5 @@
 # This file is used to store the latest version of the debian trust package and the DEBIAN_BULLSEYE_BUNDLE_VERSION
 # variable is automatically updated by the `upgrade-debian-bullseye-trust-package-version` target and cron GH action.
 
-DEBIAN_BULLSEYE_BUNDLE_VERSION := 20210119.2
+DEBIAN_BULLSEYE_BUNDLE_VERSION := 20210119.3
 DEBIAN_BULLSEYE_BUNDLE_SOURCE_IMAGE=docker.io/library/debian:11-slim
