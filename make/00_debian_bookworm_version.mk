@@ -17,5 +17,5 @@
 # This file is used to store the latest version of the debian trust package and the DEBIAN_BOOKWORM_BUNDLE_VERSION
 # variable is automatically updated by the `upgrade-debian-bookworm-trust-package-version` target and cron GH action.
 
-DEBIAN_BOOKWORM_BUNDLE_VERSION := 20230311+deb12u1.2
+DEBIAN_BOOKWORM_BUNDLE_VERSION := 20230311+deb12u1.3
 DEBIAN_BOOKWORM_BUNDLE_SOURCE_IMAGE=docker.io/library/debian:12-slim
