@@ -17,7 +17,8 @@ trust-manager has several release artifacts including:
    This will scan the latest versions of the trust packages images, as well as scanning the trust-manager codebase using govulncheck. If it reports a vulnerability that needs to be addressed, fix it before proceeding with the release.
 
 1. a. (If required) Update the trust package images. See the "Trust packages" section below for more information on how to do that.
-1. b. (If required) Update the trust-manager values.yaml file to point to the new trust package image tag by default.
+      The values.yaml file for the Helm chart is automatically set to point at the latest patch release of the latest
+      trust package version at build time.
 
 2. Proceed with the trust-manager controller and Helm chart release process. See the "trust-manager Controller and Helm Chart" section below for more information on how to do that.
 
