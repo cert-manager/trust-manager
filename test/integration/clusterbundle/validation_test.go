@@ -221,7 +221,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 						Entry("reject trust-manager.io prefix", map[string]string{"trust-manager.io/hash": "test"}, "spec.target.%s.metadata.%s: Forbidden: must not use forbidden domains as prefixes (e.g., trust-manager.io)"),
 						Entry("accept non-reserved prefix", map[string]string{"not-trust-manager.io/hash": "test"}, ""),
 						Entry("reject invalid characters", map[string]string{"@@@@": "test"}, "spec.target.%s.metadata.%s: Invalid value: \"@@@@\": name part must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]"),
-						Entry("reject too long name", map[string]string{strings.Repeat("a", 64): "test"}, "spec.target.%s.metadata.%s: Invalid value: \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": name part must be no more than 63 characters"),
+						Entry("reject too long name", map[string]string{strings.Repeat("a", 64): "test"}, "spec.target.%s.metadata.%s: Invalid value: \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": name part must be no more than 63 bytes"),
 						Entry("accept long prefixes", map[string]string{strings.Repeat("a", 64) + "/foo": "test"}, ""),
 					)
 
@@ -236,7 +236,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 							}
 						},
 						Entry("reject invalid characters", map[string]string{"foo": "@@@@@"}, "spec.target.%s.metadata.%s: Invalid value: \"@@@@@\": a valid label must be an empty string or consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyValue',  or 'my_value',  or '12345', regex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?"),
-						Entry("reject too long", map[string]string{"foo": strings.Repeat("a", 64)}, "spec.target.%s.metadata.%s: Invalid value: \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": must be no more than 63 characters"),
+						Entry("reject too long", map[string]string{"foo": strings.Repeat("a", 64)}, "spec.target.%s.metadata.%s: Invalid value: \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": must be no more than 63 bytes"),
 					)
 				}
 
