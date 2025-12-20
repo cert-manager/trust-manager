@@ -19,9 +19,12 @@ package v1alpha1
 
 // JKSApplyConfiguration represents a declarative configuration of the JKS type for use
 // with apply.
+//
+// JKS specifies additional target JKS files
 type JKSApplyConfiguration struct {
 	KeySelectorApplyConfiguration `json:",inline"`
-	Password                      *string `json:"password,omitempty"`
+	// Password for JKS trust store
+	Password *string `json:"password,omitempty"`
 }
 
 // JKSApplyConfiguration constructs a declarative configuration of the JKS type for use with

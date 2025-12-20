@@ -23,9 +23,15 @@ import (
 
 // BundleSourceApplyConfiguration represents a declarative configuration of the BundleSource type for use
 // with apply.
+//
+// BundleSource is the set of sources whose data will be appended and synced to
+// the BundleTarget in all Namespaces.
 type BundleSourceApplyConfiguration struct {
 	SourceReferenceApplyConfiguration `json:",inline"`
-	Key                               *string `json:"key,omitempty"`
+	// Key(s) of the entry in the object's `data` field to be used.
+	// Wildcards "*" in Key matches any sequence characters.
+	// A Key containing only "*" will match all data fields.
+	Key *string `json:"key,omitempty"`
 }
 
 // BundleSourceApplyConfiguration constructs a declarative configuration of the BundleSource type for use with

@@ -23,9 +23,17 @@ import (
 
 // BundleStatusApplyConfiguration represents a declarative configuration of the BundleStatus type for use
 // with apply.
+//
+// BundleStatus defines the observed state of the Bundle.
 type BundleStatusApplyConfiguration struct {
-	Conditions              []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
-	DefaultCAPackageVersion *string                          `json:"defaultCAVersion,omitempty"`
+	// List of status conditions to indicate the status of the Bundle.
+	// Known condition types are `Bundle`.
+	Conditions []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
+	// DefaultCAPackageVersion, if set and non-empty, indicates the version information
+	// which was retrieved when the set of default CAs was requested in the bundle
+	// source. This should only be set if useDefaultCAs was set to "true" on a source,
+	// and will be the same for the same version of a bundle with identical certificates.
+	DefaultCAPackageVersion *string `json:"defaultCAVersion,omitempty"`
 }
 
 // BundleStatusApplyConfiguration constructs a declarative configuration of the BundleStatus type for use with

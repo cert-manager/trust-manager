@@ -19,7 +19,10 @@ package v1alpha1
 
 // KeySelectorApplyConfiguration represents a declarative configuration of the KeySelector type for use
 // with apply.
+//
+// KeySelector is a reference to a key for some map data object.
 type KeySelectorApplyConfiguration struct {
+	// Key is the key of the entry in the object's `data` field to be used.
 	Key *string `json:"key,omitempty"`
 }
 

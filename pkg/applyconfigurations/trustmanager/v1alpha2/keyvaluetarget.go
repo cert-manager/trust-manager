@@ -19,9 +19,13 @@ package v1alpha2
 
 // KeyValueTargetApplyConfiguration represents a declarative configuration of the KeyValueTarget type for use
 // with apply.
+//
+// KeyValueTarget is the specification of key value target resources as ConfigMaps and Secrets.
 type KeyValueTargetApplyConfiguration struct {
-	Data     []TargetKeyValueApplyConfiguration `json:"data,omitempty"`
-	Metadata *TargetMetadataApplyConfiguration  `json:"metadata,omitempty"`
+	// Data is the specification of the object's `data` field.
+	Data []TargetKeyValueApplyConfiguration `json:"data,omitempty"`
+	// Metadata is an optional set of labels and annotations to be copied to the target.
+	Metadata *TargetMetadataApplyConfiguration `json:"metadata,omitempty"`
 }
 
 // KeyValueTargetApplyConfiguration constructs a declarative configuration of the KeyValueTarget type for use with

@@ -28,8 +28,10 @@ import (
 type ClusterBundleApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *BundleSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                           *BundleStatusApplyConfiguration `json:"status,omitempty"`
+	// Desired state of the Bundle resource.
+	Spec *BundleSpecApplyConfiguration `json:"spec,omitempty"`
+	// Status of the Bundle. This is set and managed automatically.
+	Status *BundleStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ClusterBundle constructs a declarative configuration of the ClusterBundle type for use with
@@ -41,6 +43,7 @@ func ClusterBundle(name string) *ClusterBundleApplyConfiguration {
 	b.WithAPIVersion("trust-manager.io/v1alpha2")
 	return b
 }
+
 func (b ClusterBundleApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value

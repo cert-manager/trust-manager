@@ -23,11 +23,21 @@ import (
 
 // SourceObjectKeySelectorApplyConfiguration represents a declarative configuration of the SourceObjectKeySelector type for use
 // with apply.
+//
+// SourceObjectKeySelector is a reference to a source object and its `data` key(s)
+// in the trust Namespace.
 type SourceObjectKeySelectorApplyConfiguration struct {
-	Name           *string                             `json:"name,omitempty"`
-	Selector       *v1.LabelSelectorApplyConfiguration `json:"selector,omitempty"`
-	Key            *string                             `json:"key,omitempty"`
-	IncludeAllKeys *bool                               `json:"includeAllKeys,omitempty"`
+	// Name is the name of the source object in the trust Namespace.
+	// This field must be left empty when `selector` is set
+	Name *string `json:"name,omitempty"`
+	// Selector is the label selector to use to fetch a list of objects. Must not be set
+	// when `Name` is set.
+	Selector *v1.LabelSelectorApplyConfiguration `json:"selector,omitempty"`
+	// Key of the entry in the object's `data` field to be used.
+	Key *string `json:"key,omitempty"`
+	// IncludeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
+	// This field must not be true when `Key` is set.
+	IncludeAllKeys *bool `json:"includeAllKeys,omitempty"`
 }
 
 // SourceObjectKeySelectorApplyConfiguration constructs a declarative configuration of the SourceObjectKeySelector type for use with
