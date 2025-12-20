@@ -478,6 +478,130 @@ PQ5qEvRB3rGmtpvWu/p8z4AlMSWFb9C+Qp4NiU2jiPgw0t1DL/vdrvLcYb/ExyJx
 HYjDRRens0uEsJFTfFBq0YbGiIAHZ1ESs/ipdisdgmLkIDjF8UKRNoBacodAsghV
 z40l74JcR+GvcFZWz7/jmJq95YMZ7LawLAr1CaAXxCwsoLbJpbgg4lVo6odACzY=
 -----END CERTIFICATE-----`
+
+	// Certificate:
+	//     Data:
+	//         Version: 3 (0x2)
+	//         Serial Number:
+	//             67:bc:27:4c:38:bd:86:8e:64:64:b9:bc:e7:96:c6:fa:4e:78:57:a4
+	//         Signature Algorithm: sha256WithRSAEncryption
+	//         Issuer: C=US, L=Default City, O=Internet Security Research Group, CN=www.example.com
+	//         Validity
+	//             Not Before: Dec 20 15:32:26 2025 GMT
+	//             Not After : Dec 18 15:32:26 2035 GMT
+	//         Subject: C=US, L=Default City, O=Internet Security Research Group, CN=www.example.com
+	//         Subject Public Key Info:
+	//             Public Key Algorithm: rsaEncryption
+	//                 Public-Key: (4096 bit)
+	//                 Modulus:
+	//                     00:a9:7c:2d:2a:b1:67:0e:90:f8:37:db:c4:d7:7b:
+	//                     7b:00:40:72:8e:d9:44:70:b0:96:38:4c:4f:91:9f:
+	//										 ...
+	//                     56:c9:bc:07:0f:87:f3:10:75:0e:3d:3a:1e:83:cc:
+	//                     61:4d:fb
+	//                 Exponent: 65537 (0x10001)
+	//         X509v3 extensions:
+	//             X509v3 Subject Key Identifier:
+	//                 6F:F8:A7:F7:66:75:D9:EB:02:25:05:A4:4E:62:C5:D9:85:53:F9:0B
+	//             X509v3 Authority Key Identifier:
+	//                 6F:F8:A7:F7:66:75:D9:EB:02:25:05:A4:4E:62:C5:D9:85:53:F9:0B
+	//             X509v3 Basic Constraints:
+	//                 CA:FALSE
+	TestCertificateNonCA1 = `-----BEGIN CERTIFICATE-----
+MIIFrTCCA5WgAwIBAgIUZ7wnTDi9ho5kZLm855bG+k54V6QwDQYJKoZIhvcNAQEL
+BQAwaTELMAkGA1UEBhMCVVMxFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEpMCcGA1UE
+CgwgSW50ZXJuZXQgU2VjdXJpdHkgUmVzZWFyY2ggR3JvdXAxGDAWBgNVBAMMD3d3
+dy5leGFtcGxlLmNvbTAeFw0yNTEyMjAxNTMyMjZaFw0zNTEyMTgxNTMyMjZaMGkx
+CzAJBgNVBAYTAlVTMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxKTAnBgNVBAoMIElu
+dGVybmV0IFNlY3VyaXR5IFJlc2VhcmNoIEdyb3VwMRgwFgYDVQQDDA93d3cuZXhh
+bXBsZS5jb20wggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCpfC0qsWcO
+kPg328TXe3sAQHKO2URwsJY4TE+Rn99jMHtMwHtgmxPQ/sMlljrhPk5vdf55i0R9
+iWm9sEvRynhv2hejr2hV0RAM7Q2+Q4We9Qmn8Bh9+sN60I5YVM1lOmVKUbxDQTFm
+D1WrC3NMLuAhnkoJKE1ElAN3f6TWihWhlg4lmN8qbFcZIsGMXmEKXiPPFLqTn0h7
+G5HTo0SCOqQnG4qdIW4hdOXVb3dIeX5/yVeKwQJcUWrIcOSONG5SAfbwvUFExp7d
+10g/j5r4wWGvvzm9pJzpMLgGCwMoATxHdM7k2twSbIIrulfmCgiqzqqmctUEP3c4
+AYbPr/LDtlRqEGxFHlfmnpT9nDETF44enBEeQ75tsj7sguqNOay+/lemM42SnfSt
+mrcm14LAvZtpV5+zeyxA4ujczsUybWuWM6jtmRaBbQ4MtPCG3q+GMyroMtJ+AXYH
+1sM67AppyTNaxYf5bns+mdCKce9BrOM1Uqqh8R0hikoVTW65WhDdh+iJHU9DAbvC
+mIW5NDeyevs/utI3hppLZZ1dyhrQ5U1CjrWZ63sEjy0InCF4OJg8Ck4d8HYe1Ipk
+I16pRBe9FAd0AvOZgUXE18o5si6LOOEWkAkf9aw3+CeUs3ijRmsg2vFWgivoz4uE
+w8L7+b2cQFbJvAcPh/MQdQ49Oh6DzGFN+wIDAQABo00wSzAdBgNVHQ4EFgQUb/in
+92Z12esCJQWkTmLF2YVT+QswHwYDVR0jBBgwFoAUb/in92Z12esCJQWkTmLF2YVT
++QswCQYDVR0TBAIwADANBgkqhkiG9w0BAQsFAAOCAgEAfgAjHMI8Kt7uVxvRWo8W
+DzmYT7FJYWxBGEng7DJcvb346C9o3Bo/4HDG4t0G/COwpbO5k/7GY9WmOCTi7hD9
+s5itXH2Oxvnn2Vmnyf0ZcbzFnJWN7sHHvqB7HBCVCmJdzp1etjr7klXUalIRPp9w
+Xpv6XUKBCRAWDVvIiZOfeTHrmF1GHcsbBiSZKn/sD7HbgOY4eHFbwWjEtOynW3i4
+YBDmd7IZlUnxUJEGFq+8wuFt1QpjtzZp+zD2ZLKE2hdzoUmIWNPPWtrplvP68yTY
+KGtggpbG4rTmaq4C7Y2g56hAbWARgtwa52keGl42vBeIoY6uDuByQG1+uxJlkRhh
+vKKL8Nv1Bvv1QBpFZa3WckRbe+vUl+4lWQsaHWjydrv//rxTpKw7NO+y2O5YYwgz
+kX7dbrSluYP9KjvawopYqaN362QA+ZDkq17u2jF0H3l78IMoVTEszEME5VF9GuP6
+EeuzMl8ttrIwZig/t7TSpVzGyxbNAE2CJQ5Ydt22AaLnZX2BXiBRCNxmi58j/fBH
+1dIomzU1yZwcXZwUCga0j9+xEhdG8gdr77G4O0P1BO8Tui6WeNU3DAWWWiuBLWT6
+K6WVn0GVZR2gMUZs6Fdi1f5pguIQE10be9VM+m2ei9Cy3rjZLnAKN87D2JJJPm8C
+plNZGnaNc9ms+ZvMgFUOQOQ=
+-----END CERTIFICATE-----`
+
+	// Certificate:
+	//     Data:
+	//         Version: 3 (0x2)
+	//         Serial Number:
+	//             26:0f:0c:cd:09:53:87:27:55:51:74:7b:d9:4e:c4:e1:ea:cd:6d:2c
+	//         Signature Algorithm: sha256WithRSAEncryption
+	//         Issuer: C=US, L=Default City, O=Internet Security Research Group, CN=mail.example.com
+	//         Validity
+	//             Not Before: Dec 20 15:36:45 2025 GMT
+	//             Not After : Dec 18 15:36:45 2035 GMT
+	//         Subject: C=US, L=Default City, O=Internet Security Research Group, CN=mail.example.com
+	//         Subject Public Key Info:
+	//             Public Key Algorithm: rsaEncryption
+	//                 Public-Key: (4096 bit)
+	//                 Modulus:
+	//                     00:b6:81:5f:a9:f3:19:1f:a6:71:56:61:e6:53:e9:
+	//                     8f:24:f4:05:4f:06:25:a9:8b:f3:4f:b3:82:9a:dd:
+	//										 ...
+	//                     c8:d1:ca:45:84:69:8e:f6:1d:bb:e0:43:24:73:7c:
+	//                     2f:08:bd
+	//                 Exponent: 65537 (0x10001)
+	//         X509v3 extensions:
+	//             X509v3 Subject Key Identifier:
+	//                 43:3E:01:3D:F9:34:CE:19:31:8A:F1:2F:82:68:CD:1D:F5:A8:61:87
+	//             X509v3 Authority Key Identifier:
+	//                 43:3E:01:3D:F9:34:CE:19:31:8A:F1:2F:82:68:CD:1D:F5:A8:61:87
+	//             X509v3 Basic Constraints:
+	//                 CA:FALSE
+	TestCertificateNonCA2 = `-----BEGIN CERTIFICATE-----
+MIIFrzCCA5egAwIBAgIUJg8MzQlThydVUXR72U7E4erNbSwwDQYJKoZIhvcNAQEL
+BQAwajELMAkGA1UEBhMCVVMxFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEpMCcGA1UE
+CgwgSW50ZXJuZXQgU2VjdXJpdHkgUmVzZWFyY2ggR3JvdXAxGTAXBgNVBAMMEG1h
+aWwuZXhhbXBsZS5jb20wHhcNMjUxMjIwMTUzNjQ1WhcNMzUxMjE4MTUzNjQ1WjBq
+MQswCQYDVQQGEwJVUzEVMBMGA1UEBwwMRGVmYXVsdCBDaXR5MSkwJwYDVQQKDCBJ
+bnRlcm5ldCBTZWN1cml0eSBSZXNlYXJjaCBHcm91cDEZMBcGA1UEAwwQbWFpbC5l
+eGFtcGxlLmNvbTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBALaBX6nz
+GR+mcVZh5lPpjyT0BU8GJamL80+zgprdJ/Xq1aMB709asF3o/gWlHVMke2JIX+lr
+kvQLoSxr0AB7eOwaz+8KfWH3BLw399j9c88Lo+ZAot8CgpUz7YaeETOUveEGJVSb
+PP/k0bmNxqBPnP3ba20xTRlW5MFnTXHxNJ5TghRC98FfeGwEkN8tb5YdFzoRKM/m
+FSRevS4rcHBIwpU4l9xNIBfgI7P/Ib/UlrXTITVdAMriypU3AkNn25cUECa4sJ5a
+YVvI/bv4r63x8gscFVwhleM5Ms9eENoAF/BbZq2Fc/la2DwZANkaq1WOz0us5NS2
+UzIIhKM9OU/+FbPs1x2UiAjGLa5X/HVE2Y0HJx0JzAEb4jMaDHn1KoE2HImWCp5F
+RdS2VEAJKoH0Dv6toP//exK/uQoQs3c/V668Dm4yRERWJ42ipeSHrVNkkwUSKgvp
+qD2oaaE8CGgXunraE5hbKb4zOy/xBiw6FVdOZ3fyNGlWZ38lvUDLVjyK4GdKEWN5
+b6T098qmUfl4vflAxvL0NeGb8zvT2n12REWbtSpPFjp2Tq+fBcPCq1OE3zDsca4d
+hwiVNJ33O5VVhqnVd20VlAo+IxHi+IhdIotMhHnhXi0+86i/aRTTiUO2/h/BoHWK
+zYp6VSKAFUu2yNHKRYRpjvYdu+BDJHN8Lwi9AgMBAAGjTTBLMB0GA1UdDgQWBBRD
+PgE9+TTOGTGK8S+CaM0d9ahhhzAfBgNVHSMEGDAWgBRDPgE9+TTOGTGK8S+CaM0d
+9ahhhzAJBgNVHRMEAjAAMA0GCSqGSIb3DQEBCwUAA4ICAQA12GwhzZfNQBWbWmk1
+2E6JdQFrsRIcgkHo54eyhoIjLsHKrwP99DcHTTFrOfJPrGRk5b/C8mnNlcQOey+I
+qmpRrwvpvW4njxPR5bUzt4UsOrG7k+GsA4ovQzjvDCAdjLcvoFFYrMvoQ18rvxEH
+NuJeRoqc5bnSO0k+B5lc9TCsfHQwLkw7s6K8l2scdJj7X0vg2KTn0FDRMQlvWcBK
+lxbfHTDGK2+N841TIABalhT1ljMlhnfdDiVQGqRnmVdrTM4diJ1CaRm7CW36CwCE
+yeYLc5Q/hdNd3AlsZo4Wu9xnjW5ozeoOKveJrm1KSl+BylkF+bHWFaq1w7EDQkVC
+uv0BEdFyXcFL7sI3OsblXJibSqZJsZn/SeJja3LAvm5M5FIjoZ1uZzzdc0Hx1tzb
+OdjK0cgXqcyz/stQ22kKnadZOi0lMoVUmP8TLo+2B6LvAYHClStEIhBet2W80wDe
+PwfVKfLQ98Fpt7QHzpzcwje2I3dfyI1WHNPptJcryFdXcJHLHksv1rk+tbcaHN8K
+rsE6P1NCjsAFn43+Kicmlj14IR1UZ54MmK+KXlr1I2/MAXvI86rXhTXC7xI+uS5v
+/qf5aom1SWBJAQmexwbC+viyH/obwSNAygLNTyUBOx9TSPlsEazQ8TV+9OaWkbsh
+rtDOMVCUoMGIbAJRLwKLL7djlw==
+-----END CERTIFICATE-----`
 )
 
 func DefaultJoinedCerts() string {

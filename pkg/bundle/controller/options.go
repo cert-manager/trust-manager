@@ -35,4 +35,7 @@ type Options struct {
 
 	// Limit both the manager and target caches to the provided list of namespaces
 	TargetNamespaces []string
+
+	// Filter non-CA certificates, only CAs are used in the resulting Bundle
+	FilterNonCACerts bool
 }

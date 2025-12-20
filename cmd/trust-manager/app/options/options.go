@@ -256,6 +256,10 @@ func (o *Options) addBundleFlags(fs *pflag.FlagSet) {
 	fs.StringSliceVar(&o.Bundle.TargetNamespaces,
 		"target-namespaces", nil,
 		"Comma-separated list of namespaces to limit both the manager and target caches.")
+
+	fs.BoolVar(&o.Bundle.FilterNonCACerts,
+		"filter-non-ca-certs", false,
+		"Filter non-CA certificates, only CAs are used in the resulting Bundle")
 }
 
 func (o *Options) addLoggingFlags(fs *pflag.FlagSet) {
