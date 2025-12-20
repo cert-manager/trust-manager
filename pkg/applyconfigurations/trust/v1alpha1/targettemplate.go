@@ -19,8 +19,12 @@ package v1alpha1
 
 // TargetTemplateApplyConfiguration represents a declarative configuration of the TargetTemplate type for use
 // with apply.
+//
+// TargetTemplate defines the form of the Kubernetes Secret or ConfigMap bundle targets.
 type TargetTemplateApplyConfiguration struct {
-	Key      *string                           `json:"key,omitempty"`
+	// Key is the key of the entry in the object's `data` field to be used.
+	Key *string `json:"key,omitempty"`
+	// Metadata is an optional set of labels and annotations to be copied to the target.
 	Metadata *TargetMetadataApplyConfiguration `json:"metadata,omitempty"`
 }
 

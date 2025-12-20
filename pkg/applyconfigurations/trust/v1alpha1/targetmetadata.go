@@ -19,9 +19,14 @@ package v1alpha1
 
 // TargetMetadataApplyConfiguration represents a declarative configuration of the TargetMetadata type for use
 // with apply.
+//
+// TargetMetadata defines the default labels and annotations
+// to be copied to the Kubernetes Secret or ConfigMap bundle targets.
 type TargetMetadataApplyConfiguration struct {
+	// Annotations is a key value map to be copied to the target.
 	Annotations map[string]string `json:"annotations,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
+	// Labels is a key value map to be copied to the target.
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // TargetMetadataApplyConfiguration constructs a declarative configuration of the TargetMetadata type for use with

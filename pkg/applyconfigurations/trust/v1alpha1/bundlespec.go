@@ -19,9 +19,13 @@ package v1alpha1
 
 // BundleSpecApplyConfiguration represents a declarative configuration of the BundleSpec type for use
 // with apply.
+//
+// BundleSpec defines the desired state of a Bundle.
 type BundleSpecApplyConfiguration struct {
+	// Sources is a set of references to data whose data will sync to the target.
 	Sources []BundleSourceApplyConfiguration `json:"sources,omitempty"`
-	Target  *BundleTargetApplyConfiguration  `json:"target,omitempty"`
+	// Target is the target location in all namespaces to sync source data to.
+	Target *BundleTargetApplyConfiguration `json:"target,omitempty"`
 }
 
 // BundleSpecApplyConfiguration constructs a declarative configuration of the BundleSpec type for use with

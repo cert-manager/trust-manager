@@ -23,9 +23,22 @@ import (
 
 // PKCS12ApplyConfiguration represents a declarative configuration of the PKCS12 type for use
 // with apply.
+//
+// PKCS12 specifies configs for target PKCS#12 files.
 type PKCS12ApplyConfiguration struct {
-	Password *string                             `json:"password,omitempty"`
-	Profile  *trustmanagerv1alpha2.PKCS12Profile `json:"profile,omitempty"`
+	// Password for PKCS12 trust store.
+	// By default, no password is used (password-less PKCS#12).
+	Password *string `json:"password,omitempty"`
+	// Profile specifies the certificate encryption algorithms and the HMAC algorithm
+	// used to create the PKCS12 trust store.
+	//
+	// If provided, allowed values are:
+	// `LegacyRC2`: Deprecated. Not supported by default in OpenSSL 3 or Java 20.
+	// `LegacyDES`: Less secure algorithm. Use this option for maximal compatibility.
+	// `Modern2023`: Secure algorithm. Use this option in case you have to always use secure algorithms (e.g. because of company policy).
+	//
+	// Default value is `LegacyDES`.
+	Profile *trustmanagerv1alpha2.PKCS12Profile `json:"profile,omitempty"`
 }
 
 // PKCS12ApplyConfiguration constructs a declarative configuration of the PKCS12 type for use with

@@ -23,9 +23,17 @@ import (
 
 // BundleTargetApplyConfiguration represents a declarative configuration of the BundleTarget type for use
 // with apply.
+//
+// BundleTarget is the target resource that the Bundle will sync all source
+// data to.
 type BundleTargetApplyConfiguration struct {
-	ConfigMap         *KeyValueTargetApplyConfiguration   `json:"configMap,omitempty"`
-	Secret            *KeyValueTargetApplyConfiguration   `json:"secret,omitempty"`
+	// ConfigMap is the target ConfigMap in Namespaces that all Bundle source data will be synced to.
+	ConfigMap *KeyValueTargetApplyConfiguration `json:"configMap,omitempty"`
+	// Secret is the target Secret in Namespaces that all Bundle source data will be synced to.
+	// Using Secrets as targets is only supported if enabled at trust-manager startup.
+	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
+	Secret *KeyValueTargetApplyConfiguration `json:"secret,omitempty"`
+	// NamespaceSelector specifies the namespaces where target resources will be synced.
 	NamespaceSelector *v1.LabelSelectorApplyConfiguration `json:"namespaceSelector,omitempty"`
 }
 

@@ -19,11 +19,24 @@ package v1alpha2
 
 // BundleSpecApplyConfiguration represents a declarative configuration of the BundleSpec type for use
 // with apply.
+//
+// BundleSpec defines the desired state of a Bundle.
 type BundleSpecApplyConfiguration struct {
-	Sources           []BundleSourceApplyConfiguration `json:"sources,omitempty"`
-	IncludeDefaultCAs *bool                            `json:"includeDefaultCAs,omitempty"`
-	InLineCAs         *string                          `json:"inLineCAs,omitempty"`
-	Target            *BundleTargetApplyConfiguration  `json:"target,omitempty"`
+	// Sources is a set of references to data whose data will sync to the target.
+	Sources []BundleSourceApplyConfiguration `json:"sources,omitempty"`
+	// IncludeDefaultCAs, when true, requests the default CA bundle to be used as a source.
+	// Default CAs are available if trust-manager was installed via Helm
+	// or was otherwise set up to include a package-injecting init container by using the
+	// "--default-package-location" flag when starting the trust-manager controller.
+	// If default CAs were not configured at start-up, any request to use the default
+	// CAs will fail.
+	// The version of the default CA package which is used for a Bundle is stored in the
+	// defaultCAPackageVersion field of the Bundle's status field.
+	IncludeDefaultCAs *bool `json:"includeDefaultCAs,omitempty"`
+	// InLine is a simple string to append as the source data.
+	InLineCAs *string `json:"inLineCAs,omitempty"`
+	// Target is the target location in all namespaces to sync source data to.
+	Target *BundleTargetApplyConfiguration `json:"target,omitempty"`
 }
 
 // BundleSpecApplyConfiguration constructs a declarative configuration of the BundleSpec type for use with

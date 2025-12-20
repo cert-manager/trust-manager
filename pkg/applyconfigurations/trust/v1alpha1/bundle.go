@@ -28,8 +28,10 @@ import (
 type BundleApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *BundleSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                           *BundleStatusApplyConfiguration `json:"status,omitempty"`
+	// Desired state of the Bundle resource.
+	Spec *BundleSpecApplyConfiguration `json:"spec,omitempty"`
+	// Status of the Bundle. This is set and managed automatically.
+	Status *BundleStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // Bundle constructs a declarative configuration of the Bundle type for use with
@@ -41,6 +43,7 @@ func Bundle(name string) *BundleApplyConfiguration {
 	b.WithAPIVersion("trust.cert-manager.io/v1alpha1")
 	return b
 }
+
 func (b BundleApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value
