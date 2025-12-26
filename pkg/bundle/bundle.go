@@ -105,7 +105,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 	statusPatch = &trustapi.BundleStatus{
 		DefaultCAPackageVersion: bundle.Status.DefaultCAPackageVersion,
 	}
-	resolvedBundle, err := b.bundleBuilder.BuildBundle(ctx, bundle.Spec.Sources)
+	resolvedBundle, err := b.bundleBuilder.BuildBundle(ctx, bundle.Spec)
 
 	if err != nil {
 		var reason, message string

@@ -26,6 +26,8 @@ type BundleSpecApplyConfiguration struct {
 	Sources []BundleSourceApplyConfiguration `json:"sources,omitempty"`
 	// Target is the target location in all namespaces to sync source data to.
 	Target *BundleTargetApplyConfiguration `json:"target,omitempty"`
+	// Use only CAs certificates in a resulting Bundle
+	UseCACertsOnly *bool `json:"useCACertsOnly,omitempty"`
 }
 
 // BundleSpecApplyConfiguration constructs a declarative configuration of the BundleSpec type for use with
@@ -52,5 +54,13 @@ func (b *BundleSpecApplyConfiguration) WithSources(values ...*BundleSourceApplyC
 // If called multiple times, the Target field is set to the value of the last call.
 func (b *BundleSpecApplyConfiguration) WithTarget(value *BundleTargetApplyConfiguration) *BundleSpecApplyConfiguration {
 	b.Target = value
+	return b
+}
+
+// WithUseCACertsOnly sets the UseCACertsOnly field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the UseCACertsOnly field is set to the value of the last call.
+func (b *BundleSpecApplyConfiguration) WithUseCACertsOnly(value bool) *BundleSpecApplyConfiguration {
+	b.UseCACertsOnly = &value
 	return b
 }

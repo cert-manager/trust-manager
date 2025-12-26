@@ -84,6 +84,10 @@ type BundleSpec struct {
 	// Target is the target location in all namespaces to sync source data to.
 	// +optional
 	Target BundleTarget `json:"target,omitzero"`
+
+	// Use only CAs certificates in a resulting Bundle
+	// +optional
+	UseCACertsOnly *bool `json:"useCACertsOnly,omitempty"`
 }
 
 // BundleSource is the set of sources whose data will be appended and synced to

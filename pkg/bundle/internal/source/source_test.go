@@ -339,7 +339,10 @@ func Test_BuildBundle(t *testing.T) {
 				Options: controller.Options{FilterExpiredCerts: tt.filterExpired},
 			}
 
-			resolvedBundle, err := b.BuildBundle(t.Context(), tt.sources)
+			bundle := trustapi.BundleSpec{
+				Sources: tt.sources,
+			}
+			resolvedBundle, err := b.BuildBundle(t.Context(), bundle)
 
 			if (err != nil) != tt.expError {
 				t.Errorf("unexpected error, exp=%t got=%v", tt.expError, err)

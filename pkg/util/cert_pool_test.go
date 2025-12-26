@@ -92,3 +92,46 @@ func TestAppendCertFromPEM(t *testing.T) {
 		})
 	}
 }
+
+// CA certificates only
+func TestAppendCACertFromPEM(t *testing.T) {
+	tests := map[string]struct {
+		pemData        string
+		filterExpired  bool
+		expError       string
+		expEmpty       bool
+		useCACertsOnly bool
+		CACertsCount   int
+	}{
+		"if multiple certificates, should return": {
+			pemData:      dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificateNonCA1, dummy.TestCertificate2, dummy.TestCertificate3, dummy.TestCertificateNonCA2),
+			CACertsCount: 3,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			certPool := NewCertPool(WithCACertsOnly(true))
+
+			err := certPool.AddCertsFromPEM([]byte(test.pemData))
+			if test.expError != "" {
+				assert.Error(t, err, test.expError)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			CACertsList := certPool.Certificates()
+			if len(CACertsList) != test.CACertsCount {
+				t.Fatalf("The number of CA certificates isn't equal to expected one: given %d, expected %d", len(CACertsList), test.CACertsCount)
+			}
+
+			for _, cert := range CACertsList {
+				if !cert.IsCA {
+					t.Fatalf("there are nonCA certificates in the certificates list")
+				}
+			}
+		})
+	}
+}

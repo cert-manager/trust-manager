@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -55,14 +56,19 @@ type BundleBuilder struct {
 	DefaultPackage *fspkg.Package
 
 	controller.Options
+
+	// Use only CAs certificates
+	UseCACertsOnly bool
 }
 
 // BuildBundle retrieves and concatenates all source bundle data for this Bundle object.
 // Each source data is validated and pruned to ensure that all certificates within are valid.
-func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.BundleSource) (BundleData, error) {
+func (b *BundleBuilder) BuildBundle(ctx context.Context, bundle trustapi.BundleSpec) (BundleData, error) {
 	var resolvedBundle BundleData
+	var sources = bundle.Sources
 	resolvedBundle.CertPool = util.NewCertPool(
 		util.WithFilteredExpiredCerts(b.FilterExpiredCerts),
+		util.WithCACertsOnly(ptr.Deref(bundle.UseCACertsOnly, false)),
 		util.WithLogger(logf.FromContext(ctx).WithName("cert-pool")),
 	)
 

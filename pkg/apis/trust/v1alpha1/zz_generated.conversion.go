@@ -138,6 +138,7 @@ func autoConvert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in *BundleSpec, out 
 	if err := Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(&in.Target, &out.Target, s); err != nil {
 		return err
 	}
+	out.UseCACertsOnly = (*bool)(unsafe.Pointer(in.UseCACertsOnly))
 	return nil
 }
 
@@ -163,6 +164,7 @@ func autoConvert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *v1alpha2.BundleS
 	if err := Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(&in.Target, &out.Target, s); err != nil {
 		return err
 	}
+	out.UseCACertsOnly = (*bool)(unsafe.Pointer(in.UseCACertsOnly))
 	return nil
 }
 

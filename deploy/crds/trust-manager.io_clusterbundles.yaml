@@ -419,6 +419,9 @@ spec:
                 - message: 'any of the following fields must be provided: [configMap,
                     secret]'
                   rule: '[has(self.configMap), has(self.secret)].exists(x,x)'
+              useCACertsOnly:
+                description: Use only CAs certificates in a resulting Bundle
+                type: boolean
             type: object
           status:
             description: Status of the Bundle. This is set and managed automatically.

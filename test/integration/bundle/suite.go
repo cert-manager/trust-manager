@@ -727,6 +727,30 @@ var _ = Describe("Integration", func() {
 			Expect(configMap.Annotations).To(HaveKeyWithValue("test1", "test1"), "Ensuring target contains additional annotations")
 		}
 	})
+
+	It("should update all targets with CA certificates only", func() {
+		configMap := corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "new-bundle-source",
+				Namespace: opts.Namespace,
+			},
+			Data: map[string]string{
+				"new-source-key": dummy.JoinCerts(dummy.TestCertificateNonCA1),
+			},
+		}
+
+		Expect(cl.Create(ctx, &configMap)).NotTo(HaveOccurred())
+
+		Expect(komega.Update(testBundle, func() {
+			testBundle.Spec.UseCACertsOnly = ptr.To(true)
+			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", Key: "new-source-key"},
+			})
+		})()).To(Succeed())
+
+		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3)
+		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, expectedData)
+	})
 })
 
 func writeDefaultPackage() (string, error) {

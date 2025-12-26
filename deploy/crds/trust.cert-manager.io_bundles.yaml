@@ -409,6 +409,9 @@ spec:
                     - key
                     type: object
                 type: object
+              useCACertsOnly:
+                description: Use only CAs certificates in a resulting Bundle
+                type: boolean
             required:
             - sources
             type: object
