@@ -18,27 +18,17 @@ package test
 
 import (
 	"context"
-	"encoding/json"
-	"os"
 
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2/ktesting"
 	"k8s.io/utils/ptr"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/komega"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust-manager/pkg/bundle"
-	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
-	"github.com/cert-manager/trust-manager/pkg/fspkg"
-	"github.com/cert-manager/trust-manager/test"
 	"github.com/cert-manager/trust-manager/test/dummy"
 	testenv "github.com/cert-manager/trust-manager/test/env"
 
@@ -54,90 +44,18 @@ const (
 
 var _ = Describe("Integration", func() {
 	var (
-		ctx    context.Context
-		cancel func()
-
-		log logr.Logger
-
-		cl         client.Client
-		mgr        manager.Manager
-		mgrStopped chan struct{}
-		opts       controller.Options
+		ctx context.Context
 
 		testBundle *trustapi.Bundle
 		testData   testenv.TestData
-
-		tmpFileName string
 	)
 
 	BeforeEach(func() {
-		log, ctx = ktesting.NewTestContext(GinkgoT())
-		ctx, cancel = context.WithCancel(ctx)
-
-		var err error
-
-		By("Writing default package")
-		tmpFileName, err = writeDefaultPackage()
-		Expect(err).NotTo(HaveOccurred())
-
-		cl, err = client.New(env.Config, client.Options{
-			Scheme: test.Scheme,
-		})
-		Expect(err).NotTo(HaveOccurred())
-		komega.SetClient(cl)
-
-		namespace := &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-bunde-trust-",
-			},
-		}
-		Expect(cl.Create(ctx, namespace)).NotTo(HaveOccurred())
-
-		By("Created trust Namespace: " + namespace.Name)
-		opts = controller.Options{
-			Namespace:              namespace.Name,
-			DefaultPackageLocation: tmpFileName,
-		}
-
-		By("Make sure that manager is not running")
-		Expect(mgr).To(BeNil())
-
-		ctrl.SetLogger(log)
-		mgr, err = ctrl.NewManager(env.Config, ctrl.Options{
-			Scheme: test.Scheme,
-			// we don't need leader election for this test,
-			// there should only be one test running at a time
-			LeaderElection: false,
-			Controller: config.Controller{
-				// need to skip unique controller name validation
-				// since all tests need a dedicated controller
-				SkipNameValidation: ptr.To(true),
-			},
-			Cache: bundle.CacheOpts(controller.Options{}),
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		mgrStopped = make(chan struct{})
-
-		Expect(bundle.SetupWithManager(ctx, mgr, opts)).NotTo(HaveOccurred())
-
-		By("Running Bundle controller")
-		go func() {
-			defer close(mgrStopped)
-
-			err := mgr.Start(ctx)
-			Expect(err).NotTo(HaveOccurred())
-		}()
-
-		By("Waiting for Informers to Sync")
-		Expect(mgr.GetCache().WaitForCacheSync(ctx)).Should(BeTrue())
-
-		By("Waiting for Leader Election")
-		<-mgr.Elected()
+		_, ctx = ktesting.NewTestContext(GinkgoT())
 
 		By("Creating Bundle for test")
 		testData = testenv.DefaultTrustData()
-		testBundle = testenv.NewTestBundleConfigMapTarget(ctx, cl, opts, testData)
+		testBundle = testenv.NewTestBundleConfigMapTarget(ctx, cl, trustNamespace, testData)
 
 		testenv.EventuallyBundleHasSyncedAllNamespaces(ctx, cl, testBundle.Name, dummy.DefaultJoinedCerts())
 	})
@@ -145,35 +63,23 @@ var _ = Describe("Integration", func() {
 	AfterEach(func() {
 		By("Deleting test Bundle")
 		Expect(cl.Delete(ctx, testBundle)).NotTo(HaveOccurred())
-
-		By("Deleting test trust Namespace: " + opts.Namespace)
-		Expect(cl.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: opts.Namespace}})).ToNot(HaveOccurred())
-
-		By("Stopping Bundle controller")
-		cancel()
-
-		By("Removing default package")
-		Expect(os.Remove(tmpFileName)).ToNot(HaveOccurred())
-
-		<-mgrStopped
-		// set to nil to indicate that the manager has been stopped
-		mgr = nil
 	})
 
 	It("should update all targets when a ConfigMap source is added", func() {
-		Expect(cl.Create(ctx, &corev1.ConfigMap{
+		configMap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "new-bundle-source",
-				Namespace: opts.Namespace,
+				GenerateName: "new-bundle-source-",
+				Namespace:    trustNamespace,
 			},
 			Data: map[string]string{
 				"new-source-key": dummy.TestCertificate4,
 			},
-		})).NotTo(HaveOccurred())
+		}
+		Expect(cl.Create(ctx, configMap)).NotTo(HaveOccurred())
 
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				ConfigMap: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", Key: "new-source-key"},
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, Key: "new-source-key"},
 			})
 		})()).To(Succeed())
 
@@ -183,20 +89,21 @@ var _ = Describe("Integration", func() {
 	})
 
 	It("should update all targets when a ConfigMap source including all keys is added", func() {
-		Expect(cl.Create(ctx, &corev1.ConfigMap{
+		configMap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "new-bundle-source",
-				Namespace: opts.Namespace,
+				GenerateName: "new-bundle-source-",
+				Namespace:    trustNamespace,
 			},
 			Data: map[string]string{
 				"new-source-key-1": dummy.TestCertificate4,
 				"new-source-key-2": dummy.TestCertificate5,
 			},
-		})).NotTo(HaveOccurred())
+		}
+		Expect(cl.Create(ctx, configMap)).NotTo(HaveOccurred())
 
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				ConfigMap: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", IncludeAllKeys: true},
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: true},
 			})
 		})()).To(Succeed())
 
@@ -206,19 +113,20 @@ var _ = Describe("Integration", func() {
 	})
 
 	It("should update all targets when a Secret source is added", func() {
-		Expect(cl.Create(ctx, &corev1.Secret{
+		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "new-bundle-source",
-				Namespace: opts.Namespace,
+				GenerateName: "new-bundle-source-",
+				Namespace:    trustNamespace,
 			},
 			Data: map[string][]byte{
 				"new-source-key": []byte(dummy.TestCertificate4),
 			},
-		})).NotTo(HaveOccurred())
+		}
+		Expect(cl.Create(ctx, secret)).NotTo(HaveOccurred())
 
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				Secret: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", Key: "new-source-key"},
+				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, Key: "new-source-key"},
 			})
 		})()).To(Succeed())
 
@@ -228,20 +136,21 @@ var _ = Describe("Integration", func() {
 	})
 
 	It("should update all targets when a Secret source including all keys is added", func() {
-		Expect(cl.Create(ctx, &corev1.Secret{
+		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "new-bundle-source",
-				Namespace: opts.Namespace,
+				GenerateName: "new-bundle-source-",
+				Namespace:    trustNamespace,
 			},
 			Data: map[string][]byte{
 				"new-source-key-1": []byte(dummy.TestCertificate4),
 				"new-source-key-2": []byte(dummy.TestCertificate5),
 			},
-		})).NotTo(HaveOccurred())
+		}
+		Expect(cl.Create(ctx, secret)).NotTo(HaveOccurred())
 
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				Secret: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", IncludeAllKeys: true},
+				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: true},
 			})
 		})()).To(Succeed())
 
@@ -310,7 +219,7 @@ var _ = Describe("Integration", func() {
 	It("should update all targets when a ConfigMap source has been modified", func() {
 		var configMap corev1.ConfigMap
 
-		Expect(cl.Get(ctx, client.ObjectKey{Namespace: opts.Namespace, Name: testBundle.Spec.Sources[0].ConfigMap.Name}, &configMap)).NotTo(HaveOccurred())
+		Expect(cl.Get(ctx, client.ObjectKey{Namespace: trustNamespace, Name: testBundle.Spec.Sources[0].ConfigMap.Name}, &configMap)).NotTo(HaveOccurred())
 
 		configMap.Data[testData.Sources.ConfigMap.Key] = dummy.TestCertificate4
 
@@ -324,8 +233,8 @@ var _ = Describe("Integration", func() {
 	It("should update all targets when a ConfigMap source including all keys has a new key", func() {
 		secret := corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "new-bundle-source",
-				Namespace: opts.Namespace,
+				GenerateName: "new-bundle-source-",
+				Namespace:    trustNamespace,
 			},
 			Data: map[string][]byte{
 				"new-source-key-1": []byte(dummy.TestCertificate4),
@@ -335,7 +244,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &secret)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				Secret: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", IncludeAllKeys: true},
+				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: true},
 			})
 		})()).To(Succeed())
 
@@ -352,8 +261,8 @@ var _ = Describe("Integration", func() {
 	It("should update all targets when a ConfigMap source including all keys has a key removed", func() {
 		secret := corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "new-bundle-source",
-				Namespace: opts.Namespace,
+				GenerateName: "new-bundle-source-",
+				Namespace:    trustNamespace,
 			},
 			Data: map[string][]byte{
 				"new-source-key-1": []byte(dummy.TestCertificate4),
@@ -364,7 +273,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &secret)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				Secret: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", IncludeAllKeys: true},
+				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: true},
 			})
 		})()).To(Succeed())
 
@@ -381,8 +290,8 @@ var _ = Describe("Integration", func() {
 	It("should update all targets when a ConfigMap source including all keys has a key updated", func() {
 		secret := corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "new-bundle-source",
-				Namespace: opts.Namespace,
+				GenerateName: "new-bundle-source-",
+				Namespace:    trustNamespace,
 			},
 			Data: map[string][]byte{
 				"new-source-key-1": []byte(dummy.TestCertificate4),
@@ -392,7 +301,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &secret)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				Secret: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", IncludeAllKeys: true},
+				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: true},
 			})
 		})()).To(Succeed())
 
@@ -409,7 +318,7 @@ var _ = Describe("Integration", func() {
 	It("should update all targets when a Secret source has been modified", func() {
 		var secret corev1.Secret
 
-		Expect(cl.Get(ctx, client.ObjectKey{Namespace: opts.Namespace, Name: testBundle.Spec.Sources[1].Secret.Name}, &secret)).NotTo(HaveOccurred())
+		Expect(cl.Get(ctx, client.ObjectKey{Namespace: trustNamespace, Name: testBundle.Spec.Sources[1].Secret.Name}, &secret)).NotTo(HaveOccurred())
 
 		secret.Data[testData.Sources.Secret.Key] = []byte(dummy.TestCertificate4)
 
@@ -423,8 +332,8 @@ var _ = Describe("Integration", func() {
 	It("should update all targets when a Secret source including all keys has a new key", func() {
 		configMap := corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "new-bundle-source",
-				Namespace: opts.Namespace,
+				GenerateName: "new-bundle-source-",
+				Namespace:    trustNamespace,
 			},
 			Data: map[string]string{
 				"new-source-key-1": dummy.TestCertificate4,
@@ -434,7 +343,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &configMap)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				ConfigMap: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", IncludeAllKeys: true},
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: true},
 			})
 		})()).To(Succeed())
 
@@ -451,8 +360,8 @@ var _ = Describe("Integration", func() {
 	It("should update all targets when a Secret source including all keys has a key removed", func() {
 		configMap := corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "new-bundle-source",
-				Namespace: opts.Namespace,
+				GenerateName: "new-bundle-source-",
+				Namespace:    trustNamespace,
 			},
 			Data: map[string]string{
 				"new-source-key-1": dummy.TestCertificate4,
@@ -463,7 +372,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &configMap)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				ConfigMap: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", IncludeAllKeys: true},
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: true},
 			})
 		})()).To(Succeed())
 
@@ -480,8 +389,8 @@ var _ = Describe("Integration", func() {
 	It("should update all targets when a Secret source including all keys has a key updated", func() {
 		configMap := corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "new-bundle-source",
-				Namespace: opts.Namespace,
+				GenerateName: "new-bundle-source-",
+				Namespace:    trustNamespace,
 			},
 			Data: map[string]string{
 				"new-source-key-1": dummy.TestCertificate4,
@@ -491,7 +400,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &configMap)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				ConfigMap: &trustapi.SourceObjectKeySelector{Name: "new-bundle-source", IncludeAllKeys: true},
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: true},
 			})
 		})()).To(Succeed())
 
@@ -728,30 +637,3 @@ var _ = Describe("Integration", func() {
 		}
 	})
 })
-
-func writeDefaultPackage() (string, error) {
-	file, err := os.CreateTemp("", "trust-manager-suite-*.json")
-	if err != nil {
-		return "", err
-	}
-
-	defer file.Close()
-
-	pkg := &fspkg.Package{
-		Name:    "asd",
-		Version: "123",
-		Bundle:  dummy.TestCertificate5,
-	}
-
-	serialized, err := json.Marshal(pkg)
-	if err != nil {
-		return "", err
-	}
-
-	_, err = file.Write(serialized)
-	if err != nil {
-		return "", err
-	}
-
-	return file.Name(), nil
-}

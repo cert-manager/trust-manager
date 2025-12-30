@@ -19,33 +19,49 @@ package test
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net"
+	"os"
 	"path"
 	"time"
 
 	admissionv1 "k8s.io/api/admissionregistration/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2/ktesting"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	ctrlwebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	"github.com/cert-manager/trust-manager/pkg/bundle"
+	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
+	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/pkg/webhook"
 	"github.com/cert-manager/trust-manager/test"
+	"github.com/cert-manager/trust-manager/test/dummy"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 var (
-	env *envtest.Environment
+	env         *envtest.Environment
+	tmpFileName string
+
+	cl             client.Client
+	trustNamespace = "trust-manager"
 )
 
 var _ = BeforeSuite(func() {
+	_, ctx := ktesting.NewTestContext(GinkgoT())
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	env = &envtest.Environment{
@@ -80,6 +96,30 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	Expect(webhook.SetupWebhookWithManager(mgr)).Should(Succeed())
+
+	By("Writing default package")
+	tmpFileName, err = writeDefaultPackage()
+	Expect(err).NotTo(HaveOccurred())
+
+	cl, err = client.New(env.Config, client.Options{
+		Scheme: test.Scheme,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	komega.SetClient(cl)
+
+	By("Creating trust Namespace: " + trustNamespace)
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: trustNamespace,
+		},
+	}
+	Expect(cl.Create(ctx, namespace)).NotTo(HaveOccurred())
+
+	opts := controller.Options{
+		Namespace:              namespace.Name,
+		DefaultPackageLocation: tmpFileName,
+	}
+	Expect(bundle.SetupWithManager(ctx, mgr, opts)).NotTo(HaveOccurred())
 
 	go func() {
 		defer GinkgoRecover()
@@ -135,7 +175,37 @@ func bundleValidatingWebhook() admissionv1.ValidatingWebhook {
 }
 
 var _ = AfterSuite(func() {
+	By("Removing default package")
+	Expect(os.Remove(tmpFileName)).ToNot(HaveOccurred())
+
 	if env == nil {
 		Expect(env.Stop()).NotTo(HaveOccurred())
 	}
 })
+
+func writeDefaultPackage() (string, error) {
+	file, err := os.CreateTemp("", "trust-manager-suite-*.json")
+	if err != nil {
+		return "", err
+	}
+
+	defer file.Close()
+
+	pkg := &fspkg.Package{
+		Name:    "asd",
+		Version: "123",
+		Bundle:  dummy.TestCertificate5,
+	}
+
+	serialized, err := json.Marshal(pkg)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = file.Write(serialized)
+	if err != nil {
+		return "", err
+	}
+
+	return file.Name(), nil
+}

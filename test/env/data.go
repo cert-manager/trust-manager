@@ -30,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
 	"github.com/cert-manager/trust-manager/pkg/util"
 	"github.com/cert-manager/trust-manager/test/dummy"
 
@@ -78,13 +77,13 @@ func DefaultTrustData() TestData {
 
 // newTestBundle creates a new Bundle in the API using the input test data.
 // Returns the create Bundle object.
-func newTestBundle(ctx context.Context, cl client.Client, opts controller.Options, td TestData, targetType string) *trustapi.Bundle {
+func newTestBundle(ctx context.Context, cl client.Client, trustNamespace string, td TestData, targetType string) *trustapi.Bundle {
 	By("creating trust Bundle")
 
 	configMap := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-bundle-",
-			Namespace:    opts.Namespace,
+			Namespace:    trustNamespace,
 		},
 		Data: map[string]string{
 			td.Sources.ConfigMap.Key: td.Sources.ConfigMap.Data,
@@ -95,7 +94,7 @@ func newTestBundle(ctx context.Context, cl client.Client, opts controller.Option
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-bundle-",
-			Namespace:    opts.Namespace,
+			Namespace:    trustNamespace,
 		},
 		Data: map[string][]byte{
 			td.Sources.Secret.Key: []byte(td.Sources.Secret.Data),
@@ -148,14 +147,14 @@ func newTestBundle(ctx context.Context, cl client.Client, opts controller.Option
 
 // NewTestBundleSecretTarget creates a new Bundle in the API using the input test data.
 // Returns the create Bundle object.
-func NewTestBundleSecretTarget(ctx context.Context, cl client.Client, opts controller.Options, td TestData) *trustapi.Bundle {
-	return newTestBundle(ctx, cl, opts, td, "Secret")
+func NewTestBundleSecretTarget(ctx context.Context, cl client.Client, trustNamespace string, td TestData) *trustapi.Bundle {
+	return newTestBundle(ctx, cl, trustNamespace, td, "Secret")
 }
 
 // newTestBundleConfigMapTarget creates a new Bundle in the API using the input test data with target set to ConfigMap.
 // Returns the create Bundle object.
-func NewTestBundleConfigMapTarget(ctx context.Context, cl client.Client, opts controller.Options, td TestData) *trustapi.Bundle {
-	return newTestBundle(ctx, cl, opts, td, "ConfigMap")
+func NewTestBundleConfigMapTarget(ctx context.Context, cl client.Client, trustNamespace string, td TestData) *trustapi.Bundle {
+	return newTestBundle(ctx, cl, trustNamespace, td, "ConfigMap")
 }
 
 func checkBundleSyncedInternal(ctx context.Context, cl client.Client, bundleName string, namespace string, comparator func(string) error) error {
