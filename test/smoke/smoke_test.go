@@ -44,5 +44,5 @@ var _ = BeforeSuite(func() {
 
 // Test_Smoke runs the full suite of smoke tests against trust.cert-manager.io
 func Test_Smoke(t *testing.T) {
-	env.RunSuite(t, "smoke-trust", "../../_artifacts")
+	env.RunSuite(t, "smoke-trust")
 }

@@ -30,7 +30,7 @@ func init() {
 	wait.ForeverTestTimeout = time.Second * 60
 }
 
-func RunSuite(t *testing.T, suiteName, artifactDir string) {
+func RunSuite(t *testing.T, suiteName string) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
 	suiteConfig, reporterConfig := ginkgo.GinkgoConfiguration()
