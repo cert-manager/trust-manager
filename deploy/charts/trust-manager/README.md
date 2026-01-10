@@ -156,6 +156,31 @@ resources:
     cpu: 100m
     memory: 128Mi
 ```
+#### **defaultPackage.securityContext.allowPrivilegeEscalation** ~ `bool`
+> Default value:
+> ```yaml
+> false
+> ```
+#### **defaultPackage.securityContext.capabilities.drop[0]** ~ `string`
+> Default value:
+> ```yaml
+> ALL
+> ```
+#### **defaultPackage.securityContext.readOnlyRootFilesystem** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
+#### **defaultPackage.securityContext.runAsNonRoot** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
+#### **defaultPackage.securityContext.seccompProfile.type** ~ `string`
+> Default value:
+> ```yaml
+> RuntimeDefault
+> ```
 #### **defaultPackageImage.registry** ~ `string`
 
 Target image registry. This value is prepended to the target image repository, if set.  
@@ -276,6 +301,13 @@ resources:
     cpu: 100m
     memory: 128Mi
 ```
+#### **podSecurityContext** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+
+Security Context to be set on the trust-manager Pod. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).
 #### **priorityClassName** ~ `string`
 > Default value:
 > ```yaml
@@ -433,13 +465,31 @@ The namespace used as the trust source. Note that the namespace _must_ exist bef
 
 List of target namespaces that trust-manager can write to. By default, trust-manager can write targets in any namespace.
 
-#### **app.securityContext.seccompProfileEnabled** ~ `bool`
+#### **app.securityContext.allowPrivilegeEscalation** ~ `bool`
+> Default value:
+> ```yaml
+> false
+> ```
+#### **app.securityContext.capabilities.drop[0]** ~ `string`
+> Default value:
+> ```yaml
+> ALL
+> ```
+#### **app.securityContext.readOnlyRootFilesystem** ~ `bool`
 > Default value:
 > ```yaml
 > true
 > ```
-
-If false, disables the default seccomp profile, which might be required to run on certain platforms.
+#### **app.securityContext.runAsNonRoot** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
+#### **app.securityContext.seccompProfile.type** ~ `string`
+> Default value:
+> ```yaml
+> RuntimeDefault
+> ```
 #### **app.podLabels** ~ `object`
 > Default value:
 > ```yaml
