@@ -57,6 +57,9 @@
         "podDisruptionBudget": {
           "$ref": "#/$defs/helm-values.podDisruptionBudget"
         },
+        "podSecurityContext": {
+          "$ref": "#/$defs/helm-values.podSecurityContext"
+        },
         "priorityClassName": {
           "$ref": "#/$defs/helm-values.priorityClassName"
         },
@@ -328,18 +331,21 @@
       "type": "number"
     },
     "helm-values.app.securityContext": {
-      "additionalProperties": false,
-      "properties": {
-        "seccompProfileEnabled": {
-          "$ref": "#/$defs/helm-values.app.securityContext.seccompProfileEnabled"
+      "default": {
+        "allowPrivilegeEscalation": false,
+        "capabilities": {
+          "drop": [
+            "ALL"
+          ]
+        },
+        "readOnlyRootFilesystem": true,
+        "runAsNonRoot": true,
+        "seccompProfile": {
+          "type": "RuntimeDefault"
         }
       },
+      "description": "Security Context to be set on the trust-manager app container. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).",
       "type": "object"
-    },
-    "helm-values.app.securityContext.seccompProfileEnabled": {
-      "default": true,
-      "description": "If false, disables the default seccomp profile, which might be required to run on certain platforms.",
-      "type": "boolean"
     },
     "helm-values.app.targetNamespaces": {
       "description": "List of target namespaces that trust-manager can write to. By default, trust-manager can write targets in any namespace.",
@@ -559,6 +565,9 @@
         },
         "resources": {
           "$ref": "#/$defs/helm-values.defaultPackage.resources"
+        },
+        "securityContext": {
+          "$ref": "#/$defs/helm-values.defaultPackage.securityContext"
         }
       },
       "type": "object"
@@ -571,6 +580,23 @@
     "helm-values.defaultPackage.resources": {
       "default": {},
       "description": "Kubernetes pod resource limits for default package init container.\n\nFor example:\nresources:\n  limits:\n    cpu: 100m\n    memory: 128Mi\n  requests:\n    cpu: 100m\n    memory: 128Mi",
+      "type": "object"
+    },
+    "helm-values.defaultPackage.securityContext": {
+      "default": {
+        "allowPrivilegeEscalation": false,
+        "capabilities": {
+          "drop": [
+            "ALL"
+          ]
+        },
+        "readOnlyRootFilesystem": true,
+        "runAsNonRoot": true,
+        "seccompProfile": {
+          "type": "RuntimeDefault"
+        }
+      },
+      "description": "Security Context to be set on the trust-manager default package init container. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).",
       "type": "object"
     },
     "helm-values.defaultPackageImage": {
@@ -753,6 +779,11 @@
     },
     "helm-values.podDisruptionBudget.minAvailable": {
       "description": "This configures the minimum available pods for disruptions. It can either be set to an integer (e.g. 1) or a percentage value (e.g. 25%).\nIt cannot be used if `maxUnavailable` is set."
+    },
+    "helm-values.podSecurityContext": {
+      "default": {},
+      "description": "Security Context to be set on the trust-manager Pod. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).",
+      "type": "object"
     },
     "helm-values.priorityClassName": {
       "default": "",
