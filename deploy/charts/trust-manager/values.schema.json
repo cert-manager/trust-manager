@@ -36,6 +36,9 @@
         "filterExpiredCertificates": {
           "$ref": "#/$defs/helm-values.filterExpiredCertificates"
         },
+        "filterNonCACerts": {
+          "$ref": "#/$defs/helm-values.filterNonCACerts"
+        },
         "global": {
           "$ref": "#/$defs/helm-values.global"
         },
@@ -639,6 +642,20 @@
     "helm-values.filterExpiredCertificates.enabled": {
       "default": false,
       "description": "Whether to filter expired certificates from the trust bundle.",
+      "type": "boolean"
+    },
+    "helm-values.filterNonCACerts": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "$ref": "#/$defs/helm-values.filterNonCACerts.enabled"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.filterNonCACerts.enabled": {
+      "default": false,
+      "description": "Filter non-CA certificates, only CAs are used in the resulting Bundle.",
       "type": "boolean"
     },
     "helm-values.global": {

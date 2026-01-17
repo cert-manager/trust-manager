@@ -441,3 +441,44 @@ func TestBundlesDeduplication(t *testing.T) {
 		})
 	}
 }
+
+func TestFilterNonCACerts(t *testing.T) {
+	tests := map[string]struct {
+		name       string
+		bundle     []string
+		expError   string
+		testBundle []string
+	}{
+		"add non-CA certificate into the bundle": {
+			bundle: []string{
+				dummy.TestCertificateNonCA1,
+				dummy.TestCertificate1,
+				dummy.TestCertificateNonCA2,
+				dummy.TestCertificate2,
+			},
+			testBundle: []string{
+				dummy.TestCertificate2,
+				dummy.TestCertificate1,
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			certPool := util.NewCertPool(util.WithFilteredNonCaCerts(true))
+			err := certPool.AddCertsFromPEM([]byte(strings.Join(test.bundle, "\n")))
+			if test.expError != "" {
+				assert.Error(t, err, test.expError)
+			} else {
+				assert.Nil(t, err)
+			}
+
+			resultBundle := certPool.PEMSplit()
+
+			// check certificates bundle for CA certificates
+			assert.Equal(t, test.testBundle, resultBundle)
+		})
+	}
+}

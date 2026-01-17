@@ -63,6 +63,7 @@ func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.Bund
 	var resolvedBundle BundleData
 	resolvedBundle.CertPool = util.NewCertPool(
 		util.WithFilteredExpiredCerts(b.FilterExpiredCerts),
+		util.WithFilteredNonCaCerts(b.FilterNonCACerts),
 		util.WithLogger(logf.FromContext(ctx).WithName("cert-pool")),
 	)
 

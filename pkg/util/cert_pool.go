@@ -36,6 +36,8 @@ type CertPool struct {
 
 	filterExpired bool
 
+	filterNonCACerts bool
+
 	logger logr.Logger
 }
 
@@ -44,6 +46,12 @@ type Option func(*CertPool)
 func WithFilteredExpiredCerts(filterExpired bool) Option {
 	return func(cp *CertPool) {
 		cp.filterExpired = filterExpired
+	}
+}
+
+func WithFilteredNonCaCerts(filterNonCACerts bool) Option {
+	return func(cp *CertPool) {
+		cp.filterNonCACerts = filterNonCACerts
 	}
 }
 
@@ -139,6 +147,11 @@ func (cp *CertPool) AddCertsFromPEM(pemData []byte) error {
 func (cp *CertPool) AddCert(certificate *x509.Certificate) bool {
 	if cp.filterExpired && time.Now().After(certificate.NotAfter) {
 		cp.logger.Info("ignoring expired certificate", "certificate", certificate.Subject)
+		return false
+	}
+
+	if cp.filterNonCACerts && !certificate.IsCA {
+		cp.logger.Info("ignoring non-CA certificate", "certificate", certificate.Subject)
 		return false
 	}
 

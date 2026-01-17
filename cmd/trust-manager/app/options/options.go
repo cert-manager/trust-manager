@@ -253,6 +253,10 @@ func (o *Options) addBundleFlags(fs *pflag.FlagSet) {
 		"filter-expired-certificates", false,
 		"Filter expired certificates from the bundle.")
 
+	fs.BoolVar(&o.Bundle.FilterNonCACerts,
+		"filter-non-ca-certs", false,
+		"Filter non-CA certificates, only CAs are used in the resulting Bundle")
+
 	fs.StringSliceVar(&o.Bundle.TargetNamespaces,
 		"target-namespaces", nil,
 		"Comma-separated list of namespaces to limit both the manager and target caches.")
