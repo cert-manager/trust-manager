@@ -112,6 +112,9 @@ spec:
           {{- if .Values.filterExpiredCertificates.enabled }}
           - "--filter-expired-certificates=true"
           {{- end }}
+          {{- if .Values.filterNonCACerts.enabled }}
+          - "--filter-non-ca-certs=true"
+          {{- end }}
           {{- if .Values.app.targetNamespaces }}
           - '--target-namespaces={{ join "," .Values.app.targetNamespaces }}'
           {{- end }}

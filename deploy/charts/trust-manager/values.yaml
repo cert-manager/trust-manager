@@ -209,6 +209,10 @@ filterExpiredCertificates:
   # Whether to filter expired certificates from the trust bundle.
   enabled: false
 
+filterNonCACerts:
+  # Filter non-CA certificates, only CAs are used in the resulting Bundle.
+  enabled: false
+
 app:
   # Minimum TLS version supported. If omitted, the default Go minimum version will be used.
   minTLSVersion: ""

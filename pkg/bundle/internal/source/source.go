@@ -59,9 +59,8 @@ type BundleBuilder struct {
 
 // BuildBundle retrieves and concatenates all source bundle data for this Bundle object.
 // Each source data is validated and pruned to ensure that all certificates within are valid.
-func (b *BundleBuilder) BuildBundle(ctx context.Context, bundle trustapi.BundleSpec) (BundleData, error) {
+func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.BundleSource) (BundleData, error) {
 	var resolvedBundle BundleData
-	var sources = bundle.Sources
 	resolvedBundle.CertPool = util.NewCertPool(
 		util.WithFilteredExpiredCerts(b.FilterExpiredCerts),
 		util.WithFilteredNonCaCerts(b.FilterNonCACerts),

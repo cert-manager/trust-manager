@@ -36,9 +36,9 @@ type CertPool struct {
 
 	filterExpired bool
 
-	logger logr.Logger
-
 	filterNonCACerts bool
+
+	logger logr.Logger
 }
 
 type Option func(*CertPool)
@@ -49,15 +49,15 @@ func WithFilteredExpiredCerts(filterExpired bool) Option {
 	}
 }
 
-func WithLogger(logger logr.Logger) Option {
-	return func(cp *CertPool) {
-		cp.logger = logger
-	}
-}
-
 func WithFilteredNonCaCerts(filterNonCACerts bool) Option {
 	return func(cp *CertPool) {
 		cp.filterNonCACerts = filterNonCACerts
+	}
+}
+
+func WithLogger(logger logr.Logger) Option {
+	return func(cp *CertPool) {
+		cp.logger = logger
 	}
 }
 

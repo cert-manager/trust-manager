@@ -352,6 +352,13 @@ topologySpreadConstraints:
 > ```
 
 Whether to filter expired certificates from the trust bundle.
+#### **filterNonCACerts.enabled** ~ `bool`
+> Default value:
+> ```yaml
+> false
+> ```
+
+Filter non-CA certificates, only CAs are used in the resulting Bundle.
 #### **app.minTLSVersion** ~ `string`
 > Default value:
 > ```yaml
