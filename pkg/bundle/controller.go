@@ -174,7 +174,7 @@ func addBundleController(
 		WatchesRawSource(
 			ctrlsource.Kind(
 				targetCache,
-				&metav1.PartialObjectMetadata{TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "ConfigMap"}},
+				&metav1.PartialObjectMetadata{TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: trustmanagerapi.ConfigMapKind}},
 				handler.TypedEnqueueRequestForOwner[*metav1.PartialObjectMetadata](
 					mgr.GetScheme(),
 					mgr.GetRESTMapper(),
@@ -190,7 +190,7 @@ func addBundleController(
 		controller.WatchesRawSource(
 			ctrlsource.Kind(
 				targetCache,
-				&metav1.PartialObjectMetadata{TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"}},
+				&metav1.PartialObjectMetadata{TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: trustmanagerapi.SecretKind}},
 				handler.TypedEnqueueRequestForOwner[*metav1.PartialObjectMetadata](
 					mgr.GetScheme(),
 					mgr.GetRESTMapper(),

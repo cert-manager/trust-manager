@@ -72,10 +72,10 @@ func (b *BundleBuilder) BuildBundle(ctx context.Context, spec trustmanagerapi.Bu
 		var certSource bundleSource
 
 		switch source.Kind {
-		case "ConfigMap":
+		case trustmanagerapi.ConfigMapKind:
 			certSource = &configMapBundleSource{b.Reader, b.Namespace, source}
 
-		case "Secret":
+		case trustmanagerapi.SecretKind:
 			certSource = &secretBundleSource{b.Reader, b.Namespace, source}
 
 		default:
