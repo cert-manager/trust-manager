@@ -1,0 +1,9 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c
+  # Using the commit hash instead of version directly equivalent to this version:
+  # rev: v6.0.0
+  # ref: https://github.com/pre-commit/pre-commit-hooks/releases/tag/v6.0.0
+  hooks:
+    - id: trailing-whitespace
+    - id: end-of-file-fixer
