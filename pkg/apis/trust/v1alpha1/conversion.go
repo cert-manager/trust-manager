@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"slices"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
@@ -78,7 +79,17 @@ func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(in *BundleSource, ou
 
 	if in.InLine != nil {
 		obj := scope.Meta().Context.(*trustv1alpha2.ClusterBundle)
-		obj.Spec.InLineCAs = in.InLine
+		if obj.Spec.InLineCAs == nil {
+			obj.Spec.InLineCAs = in.InLine
+		} else {
+			cas := *obj.Spec.InLineCAs
+			if strings.HasSuffix(cas, "\n") {
+				cas += *in.InLine
+			} else {
+				cas = cas + "\n" + *in.InLine
+			}
+			obj.Spec.InLineCAs = &cas
+		}
 	}
 	if in.UseDefaultCAs != nil {
 		obj := scope.Meta().Context.(*trustv1alpha2.ClusterBundle)
