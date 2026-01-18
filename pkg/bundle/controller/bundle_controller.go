@@ -14,22 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//nolint:staticcheck // SA1019
 package controller
 
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/json"
+	metav1ac "k8s.io/client-go/applyconfigurations/meta/v1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
+	trustapiac "github.com/cert-manager/trust-manager/pkg/applyconfigurations/trust/v1alpha1"
 	trustmanagerac "github.com/cert-manager/trust-manager/pkg/applyconfigurations/trustmanager/v1alpha2"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
 )
@@ -69,26 +74,26 @@ func (r *BundleReconciler) reconcile(ctx context.Context, bundle *trustapi.Bundl
 		if err := r.unmanageClusterBundle(ctx, clusterBundle); client.IgnoreNotFound(err) != nil {
 			return fmt.Errorf("failed to unmanaged ClusterBundle: %w", err)
 		}
-		return r.applyBundleCondition(ctx, bundle, metav1.Condition{
-			Type:               trustapi.BundleConditionMigrated,
-			Status:             metav1.ConditionTrue,
-			Reason:             "MigrationDetected",
-			Message:            "Bundle is migrated to ClusterBundle by user; this resource can be safely deleted.",
-			ObservedGeneration: bundle.Generation,
-		})
+		return r.applyBundleCondition(ctx, bundle, metav1ac.Condition().
+			WithType(trustapi.BundleConditionMigrated).
+			WithStatus(metav1.ConditionTrue).
+			WithReason("MigrationDetected").
+			WithMessage("Bundle is migrated to ClusterBundle by user; this resource can be safely deleted.").
+			WithObservedGeneration(bundle.Generation),
+		)
 	}
 
 	if err := r.applyClusterBundle(ctx, bundle); err != nil {
 		return fmt.Errorf("failed to apply ClusterBundle: %w", err)
 	}
 
-	return r.applyBundleCondition(ctx, bundle, metav1.Condition{
-		Type:               trustapi.BundleConditionDeprecated,
-		Status:             metav1.ConditionTrue,
-		Reason:             "MigrationRequired",
-		Message:            "Bundle is deprecated; please migrate to ClusterBundle.",
-		ObservedGeneration: bundle.Generation,
-	})
+	return r.applyBundleCondition(ctx, bundle, metav1ac.Condition().
+		WithType(trustapi.BundleConditionDeprecated).
+		WithStatus(metav1.ConditionTrue).
+		WithReason("MigrationRequired").
+		WithMessage("Bundle is deprecated; please migrate to ClusterBundle.").
+		WithObservedGeneration(bundle.Generation),
+	)
 }
 
 func (r *BundleReconciler) applyClusterBundle(ctx context.Context, bundle *trustapi.Bundle) error {
@@ -107,18 +112,26 @@ func (r *BundleReconciler) applyClusterBundle(ctx context.Context, bundle *trust
 	return r.Patch(ctx, clusterBundle, ssa_client.ApplyPatch{Patch: encodedPatch}, ssa_client.FieldManager, client.ForceOwnership)
 }
 
-func (r *BundleReconciler) applyBundleCondition(ctx context.Context, bundle *trustapi.Bundle, condition metav1.Condition) error {
-	meta.SetStatusCondition(&bundle.Status.Conditions, condition)
-
-	bundleStatus := &trustapi.BundleStatus{
-		Conditions: []metav1.Condition{*meta.FindStatusCondition(bundle.Status.Conditions, condition.Type)},
+func (r *BundleReconciler) applyBundleCondition(ctx context.Context, bundle *trustapi.Bundle, condition *metav1ac.ConditionApplyConfiguration) error {
+	existingCondition := meta.FindStatusCondition(bundle.Status.Conditions, *condition.Type)
+	if existingCondition != nil && existingCondition.Status == *condition.Status {
+		condition.LastTransitionTime = &existingCondition.LastTransitionTime
+	} else {
+		condition.LastTransitionTime = ptr.To(metav1.NewTime(time.Now()))
 	}
-	b, patch, err := ssa_client.GenerateBundleStatusPatch(bundle.Name, bundleStatus)
+
+	ac := trustapiac.Bundle(bundle.Name).
+		WithStatus(
+			trustapiac.BundleStatus().
+				WithConditions(condition),
+		)
+
+	encodedPatch, err := json.Marshal(ac)
 	if err != nil {
-		return fmt.Errorf("failed to generate bundle status patch: %w", err)
+		return fmt.Errorf("failed to marshal Bundle status patch: %w", err)
 	}
 
-	return r.Status().Patch(ctx, b, patch, ssa_client.FieldManager, client.ForceOwnership)
+	return r.Status().Patch(ctx, bundle, ssa_client.ApplyPatch{Patch: encodedPatch}, ssa_client.FieldManager, client.ForceOwnership)
 }
 
 func (r *BundleReconciler) unmanageClusterBundle(ctx context.Context, cb *trustmanagerapi.ClusterBundle) error {
@@ -146,7 +159,10 @@ func convertBundleToClusterBundle(bundle *trustapi.Bundle) (*trustmanagerapi.Clu
 	clusterBundle := &trustmanagerapi.ClusterBundle{}
 	clusterBundle.APIVersion = "trust-manager.io/v1alpha2"
 	clusterBundle.Kind = "ClusterBundle"
-	clusterBundle.Name = bundle.Name
+	clusterBundle.Name = cb.Name
+	if jksKey, ok := cb.Annotations[trustapi.AnnotationKeyJKSKey]; ok {
+		clusterBundle.Annotations = map[string]string{trustapi.AnnotationKeyJKSKey: jksKey}
+	}
 	clusterBundle.Spec = cb.Spec
 	return clusterBundle, nil
 }

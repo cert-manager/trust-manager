@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"slices"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
@@ -27,7 +28,7 @@ import (
 	trustv1alpha2 "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 )
 
-const annotationKeyJKSKey = "internal.trust-manager.io/jks-key"
+const AnnotationKeyJKSKey = "internal.trust-manager.io/jks-key"
 
 func (src *Bundle) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*trustv1alpha2.ClusterBundle)
@@ -78,7 +79,17 @@ func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(in *BundleSource, ou
 
 	if in.InLine != nil {
 		obj := scope.Meta().Context.(*trustv1alpha2.ClusterBundle)
-		obj.Spec.InLineCAs = in.InLine
+		if obj.Spec.InLineCAs == nil {
+			obj.Spec.InLineCAs = in.InLine
+		} else {
+			cas := *obj.Spec.InLineCAs
+			if strings.HasSuffix(cas, "\n") {
+				cas += *in.InLine
+			} else {
+				cas = cas + "\n" + *in.InLine
+			}
+			obj.Spec.InLineCAs = &cas
+		}
 	}
 	if in.UseDefaultCAs != nil {
 		obj := scope.Meta().Context.(*trustv1alpha2.ClusterBundle)
@@ -122,7 +133,7 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 			if obj.Annotations == nil {
 				obj.Annotations = map[string]string{}
 			}
-			obj.Annotations[annotationKeyJKSKey] = targetKV.Key
+			obj.Annotations[AnnotationKeyJKSKey] = targetKV.Key
 		}
 		if in.AdditionalFormats.PKCS12 != nil {
 			targetKV := trustv1alpha2.TargetKeyValue{
@@ -243,7 +254,7 @@ func Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *trustv1alpha2.Bu
 	var pkcs12 *PKCS12
 	for _, tkv := range targetKeyValues {
 		if tkv.Format == trustv1alpha2.BundleFormatPKCS12 {
-			if k, ok := obj.Annotations[annotationKeyJKSKey]; ok && k == tkv.Key {
+			if k, ok := obj.Annotations[AnnotationKeyJKSKey]; ok && k == tkv.Key {
 				jks = &JKS{}
 				jks.Key = tkv.Key
 				jks.Password = tkv.PKCS12.Password
@@ -269,7 +280,7 @@ func Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *trustv1alpha2.Bu
 		}
 	}
 
-	delete(obj.Annotations, annotationKeyJKSKey)
+	delete(obj.Annotations, AnnotationKeyJKSKey)
 	if len(obj.Annotations) == 0 {
 		obj.Annotations = nil
 	}
