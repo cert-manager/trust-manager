@@ -21,17 +21,67 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
-	trustv1alpha2 "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	utilconversion "github.com/cert-manager/trust-manager/pkg/util/conversion"
+	"github.com/cert-manager/trust-manager/test/dummy"
 )
+
+// TestBundle_Conversion is for additional/special testcases not fully covered by TestFuzzyConversion below.
+func TestBundle_Conversion(t *testing.T) {
+	tests := map[string]struct {
+		src    Bundle
+		exp    trustmanagerapi.ClusterBundle
+		expSrc Bundle
+	}{
+		"multiple inline Bundle sources should be concatenated in ClusterBundle inLineCAs": {
+			src: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{InLine: ptr.To(dummy.TestCertificate1)},
+						{InLine: ptr.To(dummy.TestCertificate2)},
+					},
+				},
+			},
+			exp: trustmanagerapi.ClusterBundle{
+				Spec: trustmanagerapi.BundleSpec{
+					InLineCAs: ptr.To(dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2)),
+				},
+			},
+			// This asserts that the conversion is NOT round-trippable, but equivalent
+			expSrc: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{InLine: ptr.To(dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2))},
+					},
+				},
+			},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			dst := trustmanagerapi.ClusterBundle{}
+			err := tt.src.ConvertTo(&dst)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.exp, dst)
+
+			src := Bundle{}
+			err = src.ConvertFrom(&dst)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expSrc, src)
+		})
+	}
+}
 
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for Bundle", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &trustv1alpha2.ClusterBundle{},
+		Hub:         &trustmanagerapi.ClusterBundle{},
 		Spoke:       &Bundle{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
@@ -107,23 +157,23 @@ func spokeBundleTargetFuzzer(obj *BundleTarget, c randfill.Continue) {
 	}
 }
 
-func hubBundleSourceFuzzer(obj *trustv1alpha2.BundleSource, c randfill.Continue) {
+func hubBundleSourceFuzzer(obj *trustmanagerapi.BundleSource, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	// We only allow known kinds, so must normalize the source kind
-	kindSet := []string{trustv1alpha2.ConfigMapKind, trustv1alpha2.SecretKind}
+	kindSet := []string{trustmanagerapi.ConfigMapKind, trustmanagerapi.SecretKind}
 	obj.Kind = kindSet[rand.Intn(len(kindSet))] //nolint:gosec
 }
 
-func hubBundleTargetFuzzer(obj *trustv1alpha2.BundleTarget, c randfill.Continue) {
+func hubBundleTargetFuzzer(obj *trustmanagerapi.BundleTarget, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
-	normalizeTarget := func(target *trustv1alpha2.KeyValueTarget) *trustv1alpha2.KeyValueTarget {
+	normalizeTarget := func(target *trustmanagerapi.KeyValueTarget) *trustmanagerapi.KeyValueTarget {
 		if target == nil {
 			return nil
 		}
 
-		target.Data = slices.DeleteFunc(target.Data, func(tkv trustv1alpha2.TargetKeyValue) bool {
+		target.Data = slices.DeleteFunc(target.Data, func(tkv trustmanagerapi.TargetKeyValue) bool {
 			if tkv.Key == "" {
 				// Key is a mandatory field
 				return true
@@ -136,7 +186,7 @@ func hubBundleTargetFuzzer(obj *trustv1alpha2.BundleTarget, c randfill.Continue)
 
 			switch {
 			case tkv.Password != nil:
-				tkv.Format = trustv1alpha2.BundleFormatPKCS12
+				tkv.Format = trustmanagerapi.BundleFormatPKCS12
 			default:
 				tkv.Format = ""
 				tkv.Profile = ""

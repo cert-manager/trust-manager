@@ -103,6 +103,8 @@ func (r *BundleReconciler) applyClusterBundle(ctx context.Context, bundle *trust
 		return fmt.Errorf("failed to set ClusterBundle controller reference: %w", err)
 	}
 
+	clusterBundle.APIVersion = "trust-manager.io/v1alpha2"
+	clusterBundle.Kind = "ClusterBundle"
 	encodedPatch, err := json.Marshal(clusterBundle)
 	if err != nil {
 		return fmt.Errorf("failed to marshal ClusterBundle patch: %w", err)
@@ -157,9 +159,10 @@ func convertBundleToClusterBundle(bundle *trustapi.Bundle) (*trustmanagerapi.Clu
 	}
 
 	clusterBundle := &trustmanagerapi.ClusterBundle{}
-	clusterBundle.APIVersion = "trust-manager.io/v1alpha2"
-	clusterBundle.Kind = "ClusterBundle"
-	clusterBundle.Name = bundle.Name
+	clusterBundle.Name = cb.Name
+	if jksKey, ok := cb.Annotations[trustapi.AnnotationKeyJKSKey]; ok {
+		clusterBundle.Annotations = map[string]string{trustapi.AnnotationKeyJKSKey: jksKey}
+	}
 	clusterBundle.Spec = cb.Spec
 	return clusterBundle, nil
 }

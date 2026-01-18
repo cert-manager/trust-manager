@@ -53,6 +53,18 @@ var _ = Describe("ClusterBundle Migration", func() {
 		bundle = &trustapi.Bundle{}
 		bundle.GenerateName = "migration-"
 		bundle.Spec.Sources = []trustapi.BundleSource{{InLine: ptr.To(dummy.TestCertificate4)}}
+		bundle.Spec.Target = trustapi.BundleTarget{
+			ConfigMap: &trustapi.TargetTemplate{
+				Key: "ca.crt",
+			},
+			AdditionalFormats: &trustapi.AdditionalFormats{
+				JKS: &trustapi.JKS{
+					KeySelector: trustapi.KeySelector{
+						Key: "ca.jks",
+					},
+				},
+			},
+		}
 
 		clusterBundle = &trustmanagerapi.ClusterBundle{}
 
@@ -72,6 +84,22 @@ var _ = Describe("ClusterBundle Migration", func() {
 
 		Expect(cl.Get(ctx, client.ObjectKeyFromObject(bundle), clusterBundle)).To(Succeed())
 		Expect(clusterBundle.Spec.InLineCAs).To(Equal(ptr.To(dummy.TestCertificate4)))
+		By("Ensuring additional JKS target is converted correctly with internal support annotation", func() {
+			Expect(clusterBundle.Spec.Target.ConfigMap).To(Not(BeNil()))
+			Expect(clusterBundle.Spec.Target.ConfigMap.Data).To(ConsistOf(
+				trustmanagerapi.TargetKeyValue{
+					Key: "ca.crt",
+				},
+				trustmanagerapi.TargetKeyValue{
+					Key:    "ca.jks",
+					Format: trustmanagerapi.BundleFormatPKCS12,
+					PKCS12: trustmanagerapi.PKCS12{
+						Password: ptr.To(trustapi.DefaultJKSPassword),
+					},
+				},
+			))
+			Expect(clusterBundle.Annotations).To(HaveKeyWithValue(trustapi.AnnotationKeyJKSKey, "ca.jks"))
+		})
 		Expect(clusterBundle.OwnerReferences).To(Equal([]metav1.OwnerReference{{
 			APIVersion:         "trust.cert-manager.io/v1alpha1",
 			Kind:               "Bundle",
