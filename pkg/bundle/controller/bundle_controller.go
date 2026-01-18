@@ -159,7 +159,10 @@ func convertBundleToClusterBundle(bundle *trustapi.Bundle) (*trustmanagerapi.Clu
 	clusterBundle := &trustmanagerapi.ClusterBundle{}
 	clusterBundle.APIVersion = "trust-manager.io/v1alpha2"
 	clusterBundle.Kind = "ClusterBundle"
-	clusterBundle.Name = bundle.Name
+	clusterBundle.Name = cb.Name
+	if jksKey, ok := cb.Annotations[trustapi.AnnotationKeyJKSKey]; ok {
+		clusterBundle.Annotations = map[string]string{trustapi.AnnotationKeyJKSKey: jksKey}
+	}
 	clusterBundle.Spec = cb.Spec
 	return clusterBundle, nil
 }

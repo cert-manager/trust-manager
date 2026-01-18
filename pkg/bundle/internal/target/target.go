@@ -39,6 +39,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/structured-merge-diff/v6/fieldpath"
 
+	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/source"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
@@ -159,7 +160,7 @@ func (r *Reconciler) applyConfigMap(
 		}
 	}
 
-	binData, err := binaryData(resolvedBundle.CertPool, bundleTarget.ConfigMap.Data)
+	binData, err := binaryData(resolvedBundle.CertPool, bundle.Annotations, bundleTarget.ConfigMap.Data)
 	if err != nil {
 		return false, err
 	}
@@ -225,7 +226,7 @@ func (r *Reconciler) applySecret(
 		}
 	}
 
-	binData, err := binaryData(resolvedBundle.CertPool, bundleTarget.Secret.Data)
+	binData, err := binaryData(resolvedBundle.CertPool, bundle.Annotations, bundleTarget.Secret.Data)
 	if err != nil {
 		return false, err
 	}
@@ -427,20 +428,32 @@ func TrustBundleHash(data []byte, target *trustmanagerapi.KeyValueTarget) string
 	return hex.EncodeToString(hashValue[:])
 }
 
-func binaryData(pool *util.CertPool, targetKeys []trustmanagerapi.TargetKeyValue) (binData map[string][]byte, err error) {
+func binaryData(pool *util.CertPool, annotations map[string]string, targetKeys []trustmanagerapi.TargetKeyValue) (binData map[string][]byte, err error) {
 	var pkcs12Encoded []byte
 	for _, targetKey := range targetKeys {
 		if targetKey.Format == trustmanagerapi.BundleFormatPKCS12 {
-			if pkcs12Encoded == nil {
-				pkcs12Encoded, err = truststore.NewPKCS12Encoder(*targetKey.PKCS12.Password, targetKey.PKCS12.Profile).Encode(pool)
+			var encoded []byte
+
+			switch {
+			case targetKey.Key == annotations[trustapi.AnnotationKeyJKSKey]:
+				encoded, err = truststore.NewJKSEncoder(*targetKey.PKCS12.Password).Encode(pool)
+				if err != nil {
+					return nil, fmt.Errorf("failed to encode JKS: %w", err)
+				}
+			case pkcs12Encoded == nil:
+				encoded, err = truststore.NewPKCS12Encoder(*targetKey.PKCS12.Password, targetKey.PKCS12.Profile).Encode(pool)
 				if err != nil {
 					return nil, fmt.Errorf("failed to encode PKCS12: %w", err)
 				}
+				pkcs12Encoded = encoded
+			default:
+				encoded = pkcs12Encoded
 			}
+
 			if binData == nil {
 				binData = make(map[string][]byte)
 			}
-			binData[targetKey.Key] = pkcs12Encoded
+			binData[targetKey.Key] = encoded
 		}
 	}
 	return binData, nil
