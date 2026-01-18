@@ -20,6 +20,7 @@ package test
 import (
 	"context"
 
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -488,6 +489,9 @@ var _ = Describe("Integration", func() {
 	})
 
 	It("should re-add the owner reference of a target ConfigMap if it has been removed", func() {
+		var testClusterBundle trustmanagerapi.ClusterBundle
+		Expect(cl.Get(ctx, client.ObjectKey{Name: testBundle.Name}, &testClusterBundle)).ToNot(HaveOccurred())
+
 		var configMap corev1.ConfigMap
 		Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
 
@@ -499,10 +503,10 @@ var _ = Describe("Integration", func() {
 			var configMap corev1.ConfigMap
 			Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
 			return len(configMap.OwnerReferences) == 1 && apiequality.Semantic.DeepEqual(configMap.OwnerReferences[0], metav1.OwnerReference{
-				Kind:               "Bundle",
-				APIVersion:         "trust.cert-manager.io/v1alpha1",
-				UID:                testBundle.UID,
-				Name:               testBundle.Name,
+				Kind:               "ClusterBundle",
+				APIVersion:         "trust-manager.io/v1alpha2",
+				UID:                testClusterBundle.UID,
+				Name:               testClusterBundle.Name,
 				Controller:         ptr.To(true),
 				BlockOwnerDeletion: ptr.To(true),
 			})
