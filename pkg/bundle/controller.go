@@ -224,7 +224,7 @@ func addBundleController(
 		Watches(&corev1.ConfigMap{}, b.enqueueRequestsFromBundleFunc(
 			func(obj client.Object, bundle trustmanagerapi.ClusterBundle) bool {
 				for _, s := range bundle.Spec.Sources {
-					if sourceSelectsObject(s, obj) {
+					if sourceSelectsObject(s, trustmanagerapi.ConfigMapKind, obj) {
 						return true
 					}
 				}
@@ -236,7 +236,7 @@ func addBundleController(
 		Watches(&corev1.Secret{}, b.enqueueRequestsFromBundleFunc(
 			func(obj client.Object, bundle trustmanagerapi.ClusterBundle) bool {
 				for _, s := range bundle.Spec.Sources {
-					if sourceSelectsObject(s, obj) {
+					if sourceSelectsObject(s, trustmanagerapi.SecretKind, obj) {
 						return true
 					}
 				}
@@ -295,8 +295,8 @@ func inNamespacePredicate(namespace string) predicate.Predicate {
 }
 
 // sourceSelectsObject returns true if source selector selects obj and false otherwise
-func sourceSelectsObject(source trustmanagerapi.BundleSource, obj client.Object) bool {
-	if source.Kind != obj.GetObjectKind().GroupVersionKind().Kind {
+func sourceSelectsObject(source trustmanagerapi.BundleSource, kind string, obj client.Object) bool {
+	if source.Kind != kind {
 		return false
 	}
 
