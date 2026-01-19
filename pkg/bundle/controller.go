@@ -130,7 +130,7 @@ func addBundleController(
 ) error {
 	b := &bundle{
 		client:   mgr.GetClient(),
-		recorder: mgr.GetEventRecorderFor("bundles"),
+		recorder: mgr.GetEventRecorder("bundles"),
 		clock:    clock.RealClock{},
 		Options:  opts,
 		bundleBuilder: &source.BundleBuilder{

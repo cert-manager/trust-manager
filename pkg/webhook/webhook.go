@@ -25,8 +25,7 @@ import (
 
 // SetupWebhookWithManager the webhook endpoints against the Manager.
 func SetupWebhookWithManager(mgr manager.Manager) error {
-	return builder.WebhookManagedBy(mgr).
-		For(&trustapi.Bundle{}).
+	return builder.WebhookManagedBy(mgr, &trustapi.Bundle{}).
 		WithValidator(&validator{}).
 		Complete()
 }

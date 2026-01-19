@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,7 +49,7 @@ type bundle struct {
 	client client.Client
 
 	// recorder is used for create Kubernetes Events for reconciled Bundles.
-	recorder record.EventRecorder
+	recorder events.EventRecorder
 
 	// clock returns time which can be overwritten for testing.
 	clock clock.Clock
@@ -134,7 +134,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 				ObservedGeneration: bundle.Generation,
 			},
 		)
-		b.recorder.Event(&bundle, corev1.EventTypeWarning, reason, errMsg)
+		b.recorder.Eventf(&bundle, nil, corev1.EventTypeWarning, reason, "SyncFailed", errMsg)
 
 		return statusPatch, returnedErr
 	}
@@ -143,7 +143,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 	if !b.Options.SecretTargetsEnabled && bundle.Spec.Target.Secret != nil {
 
 		log.Error(err, "bundle has Secret targets but the feature is disabled")
-		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "SecretTargetsDisabled", "Bundle has Secret targets but the feature is disabled")
+		b.recorder.Eventf(&bundle, nil, corev1.EventTypeWarning, "SecretTargetsDisabled", "SyncFailed", "Bundle has Secret targets but the feature is disabled")
 
 		b.setBundleCondition(
 			bundle.Status.Conditions,
@@ -164,7 +164,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 
 	namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
 	if err != nil {
-		b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceSelectorError", "Failed to build namespace match labels selector: %s", err)
+		b.recorder.Eventf(&bundle, nil, corev1.EventTypeWarning, "NamespaceSelectorError", "SyncFailed", "Failed to build namespace match labels selector: %s", err)
 		return nil, fmt.Errorf("failed to build NamespaceSelector: %w", err)
 	}
 
@@ -175,7 +175,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 			LabelSelector: namespaceSelector,
 		}); err != nil {
 			log.Error(err, "failed to list namespaces")
-			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, "NamespaceListError", "Failed to list namespaces: %s", err)
+			b.recorder.Eventf(&bundle, nil, corev1.EventTypeWarning, "NamespaceListError", "SyncFailed", "Failed to list namespaces: %s", err)
 			return nil, fmt.Errorf("failed to list Namespaces: %w", err)
 		}
 		for _, namespace := range namespaceList.Items {
@@ -227,7 +227,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 		})
 		if err != nil {
 			log.Error(err, "failed to list targets", "kind", kind)
-			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, fmt.Sprintf("%sListError", kind), "Failed to list %ss: %s", strings.ToLower(string(kind)), err)
+			b.recorder.Eventf(&bundle, nil, corev1.EventTypeWarning, fmt.Sprintf("%sListError", kind), "SyncFailed", "Failed to list %ss: %s", strings.ToLower(string(kind)), err)
 			return nil, fmt.Errorf("failed to list %ss: %w", kind, err)
 		}
 
@@ -272,7 +272,8 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 		synced, err := b.targetReconciler.ApplyTarget(logf.IntoContext(ctx, targetLog), t, &bundle, resolvedBundle)
 		if err != nil {
 			targetLog.Error(err, "failed sync bundle to target namespace")
-			b.recorder.Eventf(&bundle, corev1.EventTypeWarning, fmt.Sprintf("Sync%sTargetFailed", t.Kind), "Failed to sync target %s in Namespace %q: %s", t.Kind, t.Namespace, err)
+			// TODO(erikgb): See if we can set related on the event too
+			b.recorder.Eventf(&bundle, nil, corev1.EventTypeWarning, fmt.Sprintf("Sync%sTargetFailed", t.Kind), "SyncFailed", "Failed to sync target %s in Namespace %q: %s", t.Kind, t.Namespace, err)
 
 			b.setBundleCondition(
 				bundle.Status.Conditions,
@@ -332,7 +333,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 		syncedCondition,
 	)
 
-	b.recorder.Eventf(&bundle, corev1.EventTypeNormal, "Synced", message)
+	b.recorder.Eventf(&bundle, nil, corev1.EventTypeNormal, "Synced", "Synced", message)
 
 	return statusPatch, nil
 }
