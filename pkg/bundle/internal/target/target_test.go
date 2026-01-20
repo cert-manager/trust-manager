@@ -37,6 +37,7 @@ import (
 	"software.sslmate.com/src/go-pkcs12"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/source"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
 	"github.com/cert-manager/trust-manager/pkg/util"
@@ -56,7 +57,7 @@ const (
 )
 
 func Test_ApplyTarget_ConfigMap(t *testing.T) {
-	bundleHash := TrustBundleHash([]byte(data), nil, nil)
+	bundleHash := TrustBundleHash([]byte(data), nil)
 
 	tests := map[string]struct {
 		object runtime.Object
@@ -99,8 +100,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:          bundleName,
 					Namespace:     namespace,
-					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:        map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations:   map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					ManagedFields: ssa_client.ManagedFieldEntries(nil, nil),
 				},
 			},
@@ -111,8 +112,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:          bundleName,
 					Namespace:     namespace,
-					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:        map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations:   map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string]string{key: data},
@@ -124,8 +125,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -144,8 +145,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: "wrong hash"},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: "wrong hash"},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -166,8 +167,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -190,8 +191,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -214,8 +215,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -236,8 +237,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -263,8 +264,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -290,8 +291,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -312,8 +313,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -336,8 +337,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -360,8 +361,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -392,8 +393,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -416,8 +417,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -471,38 +472,39 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 			err := certPool.AddCertsFromPEM([]byte(data))
 			assert.NoError(t, err)
 
-			spec := trustapi.BundleSpec{
-				Target: trustapi.BundleTarget{
-					ConfigMap:         &trustapi.TargetTemplate{Key: key},
-					AdditionalFormats: &trustapi.AdditionalFormats{},
+			var annotations map[string]string
+			spec := trustmanagerapi.BundleSpec{
+				Target: trustmanagerapi.BundleTarget{
+					ConfigMap: &trustmanagerapi.KeyValueTarget{
+						Data: []trustmanagerapi.TargetKeyValue{{Key: key}},
+					},
 				},
 			}
 			resolvedBundle := source.BundleData{CertPool: certPool}
 			if tt.withJKS {
-				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
-					KeySelector: trustapi.KeySelector{
-						Key: jksKey,
-					},
-					Password: ptr.To(trustapi.DefaultJKSPassword),
-				}
+				spec.Target.ConfigMap.Data = append(spec.Target.ConfigMap.Data, trustmanagerapi.TargetKeyValue{
+					Key:    jksKey,
+					Format: trustmanagerapi.BundleFormatPKCS12,
+					PKCS12: trustmanagerapi.PKCS12{Password: ptr.To(trustapi.DefaultJKSPassword)},
+				})
+				annotations = map[string]string{trustapi.AnnotationKeyJKSKey: jksKey}
 			}
 			if tt.withPKCS12 {
-				spec.Target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{
-					KeySelector: trustapi.KeySelector{
-						Key: pkcs12Key,
-					},
-					Password: ptr.To(trustapi.DefaultPKCS12Password),
-				}
+				spec.Target.ConfigMap.Data = append(spec.Target.ConfigMap.Data, trustmanagerapi.TargetKeyValue{
+					Key:    pkcs12Key,
+					Format: trustmanagerapi.BundleFormatPKCS12,
+					PKCS12: trustmanagerapi.PKCS12{Password: ptr.To(trustmanagerapi.DefaultPKCS12Password)},
+				})
 			}
 			if tt.withTargetAnnotation {
 				if spec.Target.ConfigMap.Metadata == nil {
-					spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{}
+					spec.Target.ConfigMap.Metadata = &trustmanagerapi.TargetMetadata{}
 				}
 				spec.Target.ConfigMap.Metadata.Annotations = map[string]string{targetAnnotation: "true"}
 			}
 			if tt.withTargetLabel {
 				if spec.Target.ConfigMap.Metadata == nil {
-					spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{}
+					spec.Target.ConfigMap.Metadata = &trustmanagerapi.TargetMetadata{}
 				}
 				spec.Target.ConfigMap.Metadata.Labels = map[string]string{targetLabel: "true"}
 			}
@@ -511,8 +513,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 			needsUpdate, err := r.ApplyTarget(ctx, Resource{
 				Kind:           KindConfigMap,
 				NamespacedName: types.NamespacedName{Name: bundleName, Namespace: namespace},
-			}, &trustapi.Bundle{
-				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
+			}, &trustmanagerapi.ClusterBundle{
+				ObjectMeta: metav1.ObjectMeta{Name: bundleName, Annotations: annotations},
 				Spec:       spec,
 			}, resolvedBundle)
 			assert.NoError(t, err)
@@ -530,8 +532,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 
 				expectedOwnerReference := metav1applyconfig.
 					OwnerReference().
-					WithAPIVersion(trustapi.SchemeGroupVersion.String()).
-					WithKind(trustapi.BundleKind).
+					WithAPIVersion(trustmanagerapi.SchemeGroupVersion.String()).
+					WithKind(trustmanagerapi.ClusterBundleKind).
 					WithName(bundleName).
 					WithUID("").
 					WithBlockOwnerDeletion(true).
@@ -549,7 +551,7 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				assert.Equal(t, tt.expPKCS12, pkcs12Exists)
 
 				if tt.expPKCS12 {
-					assertPKCS12Data(t, binData, trustapi.DefaultPKCS12Password)
+					assertPKCS12Data(t, binData, trustmanagerapi.DefaultPKCS12Password)
 				}
 
 				if tt.expTargetLabel {
@@ -564,7 +566,7 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 }
 
 func Test_ApplyTarget_Secret(t *testing.T) {
-	bundleHash := TrustBundleHash([]byte(data), nil, nil)
+	bundleHash := TrustBundleHash([]byte(data), nil)
 
 	tests := map[string]struct {
 		object runtime.Object
@@ -599,8 +601,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:          bundleName,
 					Namespace:     namespace,
-					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:        map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations:   map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					ManagedFields: ssa_client.ManagedFieldEntries(nil, nil),
 				},
 			},
@@ -611,8 +613,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:          bundleName,
 					Namespace:     namespace,
-					Labels:        map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations:   map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:        map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations:   map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
 				},
 				Data: map[string][]byte{key: []byte(data)},
@@ -624,8 +626,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -644,8 +646,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: "wrong hash"},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: "wrong hash"},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -666,8 +668,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -690,8 +692,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -714,8 +716,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -736,8 +738,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -763,8 +765,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -790,8 +792,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -812,8 +814,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -836,8 +838,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -860,8 +862,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        bundleName,
 					Namespace:   namespace,
-					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
-					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					Labels:      map[string]string{trustmanagerapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustmanagerapi.BundleHashAnnotationKey: bundleHash},
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Kind:               "Bundle",
@@ -923,36 +925,37 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 			err := certPool.AddCertsFromPEM([]byte(data))
 			assert.NoError(t, err)
 
-			spec := trustapi.BundleSpec{
-				Target: trustapi.BundleTarget{
-					Secret:            &trustapi.TargetTemplate{Key: key},
-					AdditionalFormats: &trustapi.AdditionalFormats{},
+			var annotations map[string]string
+			spec := trustmanagerapi.BundleSpec{
+				Target: trustmanagerapi.BundleTarget{
+					Secret: &trustmanagerapi.KeyValueTarget{
+						Data: []trustmanagerapi.TargetKeyValue{{Key: key}},
+					},
 				},
 			}
 			resolvedBundle := source.BundleData{CertPool: certPool}
 			if tt.withJKS {
-				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
-					KeySelector: trustapi.KeySelector{
-						Key: jksKey,
-					},
-					Password: ptr.To(trustapi.DefaultJKSPassword),
-				}
+				spec.Target.Secret.Data = append(spec.Target.Secret.Data, trustmanagerapi.TargetKeyValue{
+					Key:    jksKey,
+					Format: trustmanagerapi.BundleFormatPKCS12,
+					PKCS12: trustmanagerapi.PKCS12{Password: ptr.To(trustapi.DefaultJKSPassword)},
+				})
+				annotations = map[string]string{trustapi.AnnotationKeyJKSKey: jksKey}
 			}
 			if tt.withPKCS12 {
-				spec.Target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{
-					KeySelector: trustapi.KeySelector{
-						Key: pkcs12Key,
-					},
-					Password: ptr.To(trustapi.DefaultPKCS12Password),
-				}
+				spec.Target.Secret.Data = append(spec.Target.Secret.Data, trustmanagerapi.TargetKeyValue{
+					Key:    pkcs12Key,
+					Format: trustmanagerapi.BundleFormatPKCS12,
+					PKCS12: trustmanagerapi.PKCS12{Password: ptr.To(trustmanagerapi.DefaultPKCS12Password)},
+				})
 			}
 
 			_, ctx := ktesting.NewTestContext(t)
 			needsUpdate, err := r.ApplyTarget(ctx, Resource{
 				Kind:           KindSecret,
 				NamespacedName: types.NamespacedName{Name: bundleName, Namespace: namespace},
-			}, &trustapi.Bundle{
-				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
+			}, &trustmanagerapi.ClusterBundle{
+				ObjectMeta: metav1.ObjectMeta{Name: bundleName, Annotations: annotations},
 				Spec:       spec,
 			}, resolvedBundle)
 			assert.NoError(t, err)
@@ -970,8 +973,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 
 				expectedOwnerReference := metav1applyconfig.
 					OwnerReference().
-					WithAPIVersion(trustapi.SchemeGroupVersion.String()).
-					WithKind(trustapi.BundleKind).
+					WithAPIVersion(trustmanagerapi.SchemeGroupVersion.String()).
+					WithKind(trustmanagerapi.ClusterBundleKind).
 					WithName(bundleName).
 					WithUID("").
 					WithBlockOwnerDeletion(true).
@@ -989,7 +992,7 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				assert.Equal(t, tt.expPKCS12, pkcs12Exists)
 
 				if tt.expPKCS12 {
-					assertPKCS12Data(t, binData, trustapi.DefaultPKCS12Password)
+					assertPKCS12Data(t, binData, trustmanagerapi.DefaultPKCS12Password)
 				}
 			}
 		})
@@ -998,9 +1001,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 
 func Test_TrustBundleHash(t *testing.T) {
 	type inputArgs struct {
-		data              []byte
-		additionalFormats *trustapi.AdditionalFormats
-		targetTemplate    *trustapi.TargetTemplate
+		data   []byte
+		target *trustmanagerapi.KeyValueTarget
 	}
 	tests := map[string]struct {
 		input      inputArgs
@@ -1008,55 +1010,40 @@ func Test_TrustBundleHash(t *testing.T) {
 		mismatches []inputArgs
 	}{
 		"empty data": {
-			input: inputArgs{data: []byte{}, additionalFormats: nil},
+			input: inputArgs{data: []byte{}},
 			matches: []inputArgs{
-				{data: []byte{}, additionalFormats: nil},
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{}},
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{}}},
+				{data: []byte{}},
+				{data: []byte{}, target: &trustmanagerapi.KeyValueTarget{}},
+				{data: []byte{}, target: &trustmanagerapi.KeyValueTarget{Data: []trustmanagerapi.TargetKeyValue{{PKCS12: trustmanagerapi.PKCS12{}}}}},
 				// NOTE: default passwords are applied by openapi, so the input arguments for the function
 				// will never have a password of "". And we don't have to account for it in the test.
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: ptr.To("")}}},
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{}}},
-				// NOTE: default passwords are applied by openapi, so the input arguments for the function
-				// will never have a password of "". And we don't have to account for it in the test.
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: ptr.To("")}}},
+				{data: []byte{}, target: &trustmanagerapi.KeyValueTarget{Data: []trustmanagerapi.TargetKeyValue{{PKCS12: trustmanagerapi.PKCS12{Password: ptr.To("")}}}}},
 			},
 			mismatches: []inputArgs{
-				{data: []byte("data"), additionalFormats: nil},
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: ptr.To("nonempty")}}},
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: ptr.To("nonempty")}}},
+				{data: []byte("data")},
+				{data: []byte{}, target: &trustmanagerapi.KeyValueTarget{Data: []trustmanagerapi.TargetKeyValue{{PKCS12: trustmanagerapi.PKCS12{Password: ptr.To("nonempty")}}}}},
 			},
 		},
 		"non-empty data": {
-			input: inputArgs{data: []byte("data"), additionalFormats: nil},
+			input: inputArgs{data: []byte("data")},
 			matches: []inputArgs{
-				{data: []byte("data"), additionalFormats: nil},
-			},
-		},
-		"jks password": {
-			input: inputArgs{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: ptr.To("password")}}},
-			matches: []inputArgs{
-				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: ptr.To("password")}}},
-			},
-			mismatches: []inputArgs{
-				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: ptr.To("wrong")}}},
+				{data: []byte("data")},
 			},
 		},
 		"pkcs12 password": {
-			input: inputArgs{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: ptr.To("password")}}},
+			input: inputArgs{data: []byte("data"), target: &trustmanagerapi.KeyValueTarget{Data: []trustmanagerapi.TargetKeyValue{{PKCS12: trustmanagerapi.PKCS12{Password: ptr.To("password")}}}}},
 			matches: []inputArgs{
-				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: ptr.To("password")}}},
+				{data: []byte("data"), target: &trustmanagerapi.KeyValueTarget{Data: []trustmanagerapi.TargetKeyValue{{PKCS12: trustmanagerapi.PKCS12{Password: ptr.To("password")}}}}},
 			},
 			mismatches: []inputArgs{
-				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: ptr.To("wrong")}}},
+				{data: []byte("data"), target: &trustmanagerapi.KeyValueTarget{Data: []trustmanagerapi.TargetKeyValue{{PKCS12: trustmanagerapi.PKCS12{Password: ptr.To("wrong")}}}}},
 			},
 		},
 		"target metadata": {
 			input: inputArgs{
-				data:              []byte("data"),
-				additionalFormats: &trustapi.AdditionalFormats{},
-				targetTemplate: &trustapi.TargetTemplate{
-					Metadata: &trustapi.TargetMetadata{
+				data: []byte("data"),
+				target: &trustmanagerapi.KeyValueTarget{
+					Metadata: &trustmanagerapi.TargetMetadata{
 						Annotations: map[string]string{"annotation1": "value1"},
 						Labels:      map[string]string{"annotation1": "value1"},
 					},
@@ -1064,10 +1051,9 @@ func Test_TrustBundleHash(t *testing.T) {
 			},
 			matches: []inputArgs{
 				{
-					data:              []byte("data"),
-					additionalFormats: &trustapi.AdditionalFormats{},
-					targetTemplate: &trustapi.TargetTemplate{
-						Metadata: &trustapi.TargetMetadata{
+					data: []byte("data"),
+					target: &trustmanagerapi.KeyValueTarget{
+						Metadata: &trustmanagerapi.TargetMetadata{
 							Annotations: map[string]string{"annotation1": "value1"},
 							Labels:      map[string]string{"annotation1": "value1"},
 						},
@@ -1076,38 +1062,34 @@ func Test_TrustBundleHash(t *testing.T) {
 			},
 			mismatches: []inputArgs{
 				{
-					data:              []byte("data"),
-					additionalFormats: &trustapi.AdditionalFormats{},
-					targetTemplate: &trustapi.TargetTemplate{
-						Metadata: &trustapi.TargetMetadata{
+					data: []byte("data"),
+					target: &trustmanagerapi.KeyValueTarget{
+						Metadata: &trustmanagerapi.TargetMetadata{
 							Annotations: map[string]string{"annotation1": "value1"},
 						},
 					},
 				},
 				{
-					data:              []byte("data"),
-					additionalFormats: &trustapi.AdditionalFormats{},
-					targetTemplate: &trustapi.TargetTemplate{
-						Metadata: &trustapi.TargetMetadata{
+					data: []byte("data"),
+					target: &trustmanagerapi.KeyValueTarget{
+						Metadata: &trustmanagerapi.TargetMetadata{
 							Labels: map[string]string{"annotation1": "value1"},
 						},
 					},
 				},
 				{
-					data:              []byte("data"),
-					additionalFormats: &trustapi.AdditionalFormats{},
-					targetTemplate: &trustapi.TargetTemplate{
-						Metadata: &trustapi.TargetMetadata{
+					data: []byte("data"),
+					target: &trustmanagerapi.KeyValueTarget{
+						Metadata: &trustmanagerapi.TargetMetadata{
 							Annotations: map[string]string{"annotation1": "value2"},
 							Labels:      map[string]string{"annotation1": "value1"},
 						},
 					},
 				},
 				{
-					data:              []byte("data"),
-					additionalFormats: &trustapi.AdditionalFormats{},
-					targetTemplate: &trustapi.TargetTemplate{
-						Metadata: &trustapi.TargetMetadata{
+					data: []byte("data"),
+					target: &trustmanagerapi.KeyValueTarget{
+						Metadata: &trustmanagerapi.TargetMetadata{
 							Annotations: map[string]string{"annotation1": "value1"},
 							Labels:      map[string]string{"annotation1": "value2"},
 						},
@@ -1121,14 +1103,14 @@ func Test_TrustBundleHash(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			inputHash := TrustBundleHash(test.input.data, test.input.additionalFormats, test.input.targetTemplate)
+			inputHash := TrustBundleHash(test.input.data, test.input.target)
 			for _, match := range test.matches {
-				matchHash := TrustBundleHash(match.data, match.additionalFormats, match.targetTemplate)
+				matchHash := TrustBundleHash(match.data, match.target)
 				assert.Equal(t, inputHash, matchHash)
 			}
 
 			for _, mismatch := range test.mismatches {
-				mismatchHash := TrustBundleHash(mismatch.data, mismatch.additionalFormats, mismatch.targetTemplate)
+				mismatchHash := TrustBundleHash(mismatch.data, mismatch.target)
 				assert.NotEqual(t, inputHash, mismatchHash)
 			}
 		})

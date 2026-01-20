@@ -19,15 +19,15 @@ package source
 import (
 	"context"
 	"fmt"
+	"path"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
 	"github.com/cert-manager/trust-manager/pkg/util"
@@ -60,7 +60,7 @@ type BundleBuilder struct {
 
 // BuildBundle retrieves and concatenates all source bundle data for this Bundle object.
 // Each source data is validated and pruned to ensure that all certificates within are valid.
-func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.BundleSource) (BundleData, error) {
+func (b *BundleBuilder) BuildBundle(ctx context.Context, spec trustmanagerapi.BundleSpec) (BundleData, error) {
 	var resolvedBundle BundleData
 	resolvedBundle.CertPool = util.NewCertPool(
 		util.WithFilteredExpiredCerts(b.FilterExpiredCerts),
@@ -68,32 +68,38 @@ func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.Bund
 		util.WithLogger(logf.FromContext(ctx).WithName("cert-pool")),
 	)
 
-	for _, source := range sources {
+	for _, source := range spec.SourceRefs {
 		var certSource bundleSource
 
-		switch {
-		case source.ConfigMap != nil:
-			certSource = &configMapBundleSource{b.Reader, b.Namespace, source.ConfigMap}
+		switch source.Kind {
+		case trustmanagerapi.ConfigMapKind:
+			certSource = &configMapBundleSource{b.Reader, b.Namespace, source}
 
-		case source.Secret != nil:
-			certSource = &secretBundleSource{b.Reader, b.Namespace, source.Secret}
+		case trustmanagerapi.SecretKind:
+			certSource = &secretBundleSource{b.Reader, b.Namespace, source}
 
-		case source.InLine != nil:
-			certSource = &inlineBundleSource{*source.InLine}
-
-		case source.UseDefaultCAs != nil:
-			if !*source.UseDefaultCAs {
-				continue
-			}
-			if b.DefaultPackage == nil {
-				return BundleData{}, NotFoundError{fmt.Errorf("no default package was specified when trust-manager was started; default CAs not available")}
-			}
-			certSource = &defaultCAsBundleSource{b.DefaultPackage.Bundle}
-			resolvedBundle.DefaultCAPackageStringID = b.DefaultPackage.StringID()
 		default:
-			panic(fmt.Sprintf("don't know how to process source: %+v", source))
+			panic(fmt.Sprintf("don't know how to process source of kind: %q", source.Kind))
 		}
 
+		if err := certSource.addToCertPool(ctx, resolvedBundle.CertPool); err != nil {
+			return BundleData{}, err
+		}
+	}
+
+	if spec.InLineCAs != nil {
+		certSource := &inlineBundleSource{*spec.InLineCAs}
+		if err := certSource.addToCertPool(ctx, resolvedBundle.CertPool); err != nil {
+			return BundleData{}, err
+		}
+	}
+
+	if spec.DefaultCAs != nil && spec.DefaultCAs.Provider == trustmanagerapi.DefaultCAsProviderSystem {
+		if b.DefaultPackage == nil {
+			return BundleData{}, NotFoundError{fmt.Errorf("no default package was specified when trust-manager was started; default CAs not available")}
+		}
+		certSource := &defaultCAsBundleSource{b.DefaultPackage.Bundle}
+		resolvedBundle.DefaultCAPackageStringID = b.DefaultPackage.StringID()
 		if err := certSource.addToCertPool(ctx, resolvedBundle.CertPool); err != nil {
 			return BundleData{}, err
 		}
@@ -136,7 +142,7 @@ func (s defaultCAsBundleSource) addToCertPool(_ context.Context, pool *util.Cert
 type configMapBundleSource struct {
 	client.Reader
 	Namespace string
-	ref       *trustapi.SourceObjectKeySelector
+	ref       trustmanagerapi.BundleSourceRef
 }
 
 func (b configMapBundleSource) addToCertPool(ctx context.Context, pool *util.CertPool) error {
@@ -177,20 +183,22 @@ func (b configMapBundleSource) addToCertPool(ctx context.Context, pool *util.Cer
 	}
 
 	for _, cm := range configMaps {
-		if len(b.ref.Key) > 0 {
-			data, ok := cm.Data[b.ref.Key]
-			if !ok {
-				return NotFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, b.ref.Key)}
+		found := false
+		for k, v := range cm.Data {
+			ok, err := path.Match(b.ref.Key, k)
+			if err != nil {
+				return fmt.Errorf("failed to match key %q in ConfigMap %s/%s: %w", b.ref.Key, cm.Namespace, cm.Name, err)
 			}
-			if err := pool.AddCertsFromPEM([]byte(data)); err != nil {
-				return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, b.ref.Key, err)}
-			}
-		} else if ptr.Deref(b.ref.IncludeAllKeys, false) {
-			for key, data := range cm.Data {
-				if err := pool.AddCertsFromPEM([]byte(data)); err != nil {
-					return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, key, err)}
+			if ok {
+				if err := pool.AddCertsFromPEM([]byte(v)); err != nil {
+					return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, k, err)}
 				}
+				found = true
 			}
+		}
+
+		if !found {
+			return NotFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, b.ref.Key)}
 		}
 	}
 	return nil
@@ -199,7 +207,7 @@ func (b configMapBundleSource) addToCertPool(ctx context.Context, pool *util.Cer
 type secretBundleSource struct {
 	client.Reader
 	Namespace string
-	ref       *trustapi.SourceObjectKeySelector
+	ref       trustmanagerapi.BundleSourceRef
 }
 
 func (b secretBundleSource) addToCertPool(ctx context.Context, pool *util.CertPool) error {
@@ -240,25 +248,26 @@ func (b secretBundleSource) addToCertPool(ctx context.Context, pool *util.CertPo
 	}
 
 	for _, secret := range secrets {
-		if len(b.ref.Key) > 0 {
-			data, ok := secret.Data[b.ref.Key]
-			if !ok {
-				return NotFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, b.ref.Key)}
+		// This is done to prevent mistakes. All keys should never be included for a TLS secret, since that would include the private key.
+		if secret.Type == corev1.SecretTypeTLS && b.ref.Key == "*" {
+			return InvalidSecretError{fmt.Errorf("including all keys is not supported for TLS Secrets such as %s/%s", secret.Namespace, secret.Name)}
+		}
+		found := false
+		for k, v := range secret.Data {
+			ok, err := path.Match(b.ref.Key, k)
+			if err != nil {
+				return fmt.Errorf("failed to match key %q in Secret %s/%s: %w", b.ref.Key, secret.Namespace, secret.Name, err)
 			}
-			if err := pool.AddCertsFromPEM(data); err != nil {
-				return InvalidPEMError{fmt.Errorf("invalid PEM data in Secret %s/%s at key %q: %w", secret.Namespace, secret.Name, b.ref.Key, err)}
-			}
-		} else if ptr.Deref(b.ref.IncludeAllKeys, false) {
-			// This is done to prevent mistakes. All keys should never be included for a TLS secret, since that would include the private key.
-			if secret.Type == corev1.SecretTypeTLS {
-				return InvalidSecretError{fmt.Errorf("includeAllKeys is not supported for TLS Secrets such as %s/%s", secret.Namespace, secret.Name)}
-			}
-
-			for key, data := range secret.Data {
-				if err := pool.AddCertsFromPEM(data); err != nil {
-					return InvalidPEMError{fmt.Errorf("invalid PEM data in Secret %s/%s at key %q: %w", secret.Namespace, secret.Name, key, err)}
+			if ok {
+				if err := pool.AddCertsFromPEM(v); err != nil {
+					return InvalidPEMError{fmt.Errorf("invalid PEM data in Secret %s/%s at key %q: %w", secret.Namespace, secret.Name, k, err)}
 				}
+				found = true
 			}
+		}
+
+		if !found {
+			return NotFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, b.ref.Key)}
 		}
 	}
 	return nil
