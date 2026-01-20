@@ -26,6 +26,7 @@ var BundleLabelKey = "trust.cert-manager.io/bundle"
 var BundleHashAnnotationKey = "trust.cert-manager.io/hash"
 
 // +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion:warning="trust.cert-manager.io/v1alpha1 Bundle is deprecated, please migrate to trust-manager.io/v1alpha2 ClusterBundle"
 // +kubebuilder:printcolumn:name="ConfigMap Target",type="string",JSONPath=".spec.target.configMap.key",description="Bundle ConfigMap Target Key"
 // +kubebuilder:printcolumn:name="Secret Target",type="string",JSONPath=".spec.target.secret.key",description="Bundle Secret Target Key"
 // +kubebuilder:printcolumn:name="Synced",type="string",JSONPath=`.status.conditions[?(@.type == "Synced")].status`,description="Bundle has been synced"
@@ -36,6 +37,7 @@ var BundleHashAnnotationKey = "trust.cert-manager.io/hash"
 // +genclient
 // +genclient:nonNamespaced
 
+// Deprecated: v1alpha1.Bundle will be removed in a future release. Migrate to v1alpha2.ClusterBundle instead.
 type Bundle struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -54,6 +56,8 @@ type Bundle struct {
 }
 
 // +kubebuilder:object:root=true
+
+// Deprecated: v1alpha1.BundleList will be removed in one of the next releases. Migrate to v1alpha2.ClusterBundleList instead.
 type BundleList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
