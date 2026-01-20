@@ -25,6 +25,8 @@ import (
 
 // BundleApplyConfiguration represents a declarative configuration of the Bundle type for use
 // with apply.
+//
+// Deprecated: v1alpha1.Bundle will be removed in a future release. Migrate to v1alpha2.ClusterBundle instead.
 type BundleApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
