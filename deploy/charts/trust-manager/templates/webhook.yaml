@@ -124,3 +124,26 @@ webhooks:
         name: {{ include "trust-manager.name" . }}
         namespace: {{ include "trust-manager.namespace" . }}
         path: /validate-trust-cert-manager-io-v1alpha1-bundle
+  - name: vclusterbundle-v1alpha2.trust-manager.io
+    rules:
+      - apiGroups:
+          - "trust-manager.io"
+        apiVersions:
+          - v1alpha2
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - clusterbundles
+    admissionReviewVersions: ["v1"]
+    timeoutSeconds: {{ .Values.app.webhook.timeoutSeconds }}
+    failurePolicy: Fail
+    sideEffects: None
+    clientConfig:
+{{ if .Values.app.webhook.tls.helmCert.enabled }}
+      caBundle: "{{ $ca.Cert | b64enc }}"
+{{ end }}
+      service:
+        name: {{ include "trust-manager.name" . }}
+        namespace: {{ include "trust-manager.namespace" . }}
+        path: /validate-trust-manager-io-v1alpha2-clusterbundle
