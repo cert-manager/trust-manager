@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fakeclock "k8s.io/utils/clock/testing"
 
-	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 )
 
 func Test_bundleHasCondition(t *testing.T) {
@@ -187,11 +187,11 @@ func Test_setBundleCondition(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			b := &bundle{clock: fixedclock}
-			bundle := &trustapi.Bundle{
+			bundle := &trustmanagerapi.ClusterBundle{
 				ObjectMeta: metav1.ObjectMeta{
 					Generation: bundleGeneration,
 				},
-				Status: trustapi.BundleStatus{
+				Status: trustmanagerapi.BundleStatus{
 					Conditions: test.existingConditions,
 				},
 			}
@@ -223,14 +223,14 @@ func Test_setBundleStatusDefaultCAVersion(t *testing.T) {
 	)
 
 	tests := map[string]struct {
-		inputBundle                     trustapi.Bundle
+		inputBundle                     trustmanagerapi.ClusterBundle
 		requiredID                      string
 		expectedDefaultCAPackageVersion string
 		expectUpdate                    bool
 	}{
 		"requiredID empty but status populated; should update": {
-			inputBundle: trustapi.Bundle{
-				Status: trustapi.BundleStatus{
+			inputBundle: trustmanagerapi.ClusterBundle{
+				Status: trustmanagerapi.BundleStatus{
 					DefaultCAPackageVersion: "abc123",
 				},
 			},
@@ -239,8 +239,8 @@ func Test_setBundleStatusDefaultCAVersion(t *testing.T) {
 			expectUpdate:                    true,
 		},
 		"requiredID empty and status empty; should not update": {
-			inputBundle: trustapi.Bundle{
-				Status: trustapi.BundleStatus{
+			inputBundle: trustmanagerapi.ClusterBundle{
+				Status: trustmanagerapi.BundleStatus{
 					DefaultCAPackageVersion: "",
 				},
 			},
@@ -249,8 +249,8 @@ func Test_setBundleStatusDefaultCAVersion(t *testing.T) {
 			expectUpdate:                    false,
 		},
 		"requiredID not empty and status nil; should update": {
-			inputBundle: trustapi.Bundle{
-				Status: trustapi.BundleStatus{
+			inputBundle: trustmanagerapi.ClusterBundle{
+				Status: trustmanagerapi.BundleStatus{
 					DefaultCAPackageVersion: "",
 				},
 			},
@@ -259,8 +259,8 @@ func Test_setBundleStatusDefaultCAVersion(t *testing.T) {
 			expectUpdate:                    true,
 		},
 		"requiredID not empty and status populated but incorrect; should update": {
-			inputBundle: trustapi.Bundle{
-				Status: trustapi.BundleStatus{
+			inputBundle: trustmanagerapi.ClusterBundle{
+				Status: trustmanagerapi.BundleStatus{
 					DefaultCAPackageVersion: "def456",
 				},
 			},
@@ -269,8 +269,8 @@ func Test_setBundleStatusDefaultCAVersion(t *testing.T) {
 			expectUpdate:                    true,
 		},
 		"requiredID not empty and status populated currently; should not update": {
-			inputBundle: trustapi.Bundle{
-				Status: trustapi.BundleStatus{
+			inputBundle: trustmanagerapi.ClusterBundle{
+				Status: trustmanagerapi.BundleStatus{
 					DefaultCAPackageVersion: "abc123",
 				},
 			},
