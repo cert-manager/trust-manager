@@ -42,7 +42,8 @@ type ClusterBundle struct {
 	metav1.ObjectMeta `json:"metadata"`
 
 	// Desired state of the Bundle resource.
-	Spec BundleSpec `json:"spec"`
+	// +optional
+	Spec BundleSpec `json:"spec,omitzero"`
 
 	// Status of the Bundle. This is set and managed automatically.
 	// +optional
@@ -95,6 +96,7 @@ type BundleSource struct {
 	// Key(s) of the entry in the object's `data` field to be used.
 	// Wildcards "*" in Key matches any sequence characters.
 	// A Key containing only "*" will match all data fields.
+	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.\-*]+$`
 	Key string `json:"key"`
@@ -115,6 +117,7 @@ type BundleTarget struct {
 	Secret *KeyValueTarget `json:"secret,omitempty"`
 
 	// NamespaceSelector specifies the namespaces where target resources will be synced.
+	// +required
 	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector"`
 }
 
@@ -123,8 +126,8 @@ type BundleTarget struct {
 type PKCS12 struct {
 	// Password for PKCS12 trust store.
 	// By default, no password is used (password-less PKCS#12).
-	//+optional
-	//+kubebuilder:validation:MaxLength=128
+	// +optional
+	// +kubebuilder:validation:MaxLength=128
 	Password *string `json:"password,omitempty"`
 
 	// Profile specifies the certificate encryption algorithms and the HMAC algorithm
@@ -163,25 +166,27 @@ const (
 // +kubebuilder:validation:XValidation:rule="[has(self.name), has(self.selector)].exists_one(x,x)", message="exactly one of the following fields must be provided: [name, selector]"
 type SourceReference struct {
 	// Kind is the kind of the source object.
+	// +required
 	// +kubebuilder:validation:Enum=ConfigMap;Secret
 	Kind string `json:"kind"`
 
 	// Name is the name of the source object in the trust Namespace.
 	// This field must be left empty when `selector` is set
-	//+optional
+	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	Name string `json:"name,omitempty"`
 
 	// Selector is the label selector to use to fetch a list of objects. Must not be set
 	// when `Name` is set.
-	//+optional
+	// +optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 }
 
 // KeyValueTarget is the specification of key value target resources as ConfigMaps and Secrets.
 type KeyValueTarget struct {
 	// Data is the specification of the object's `data` field.
+	// +required
 	// +listType=map
 	// +listMapKey=key
 	// +kubebuilder:validation:MinItems=1
@@ -215,13 +220,14 @@ func (t *KeyValueTarget) GetLabels() map[string]string {
 // +kubebuilder:validation:XValidation:rule="!has(self.profile) || (has(self.format) && self.format == 'PKCS12')", reason=FieldValueForbidden, fieldPath=".profile", message="may only be set when format is 'PKCS12'"
 type TargetKeyValue struct {
 	// Key is the key of the entry in the object's `data` field to be used.
+	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.\-]+$`
 	Key string `json:"key"`
 
 	// Format defines the format of the target value.
 	// The default format is PEM.
-	//+optional
+	// +optional
 	Format BundleFormat `json:"format,omitempty"`
 
 	// PKCS12 specifies configs for PKCS#12 files.

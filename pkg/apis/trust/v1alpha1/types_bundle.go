@@ -42,6 +42,7 @@ type Bundle struct {
 	metav1.ObjectMeta `json:"metadata"`
 
 	// Desired state of the Bundle resource.
+	// +required
 	Spec BundleSpec `json:"spec"`
 
 	// Status of the Bundle. This is set and managed automatically.
@@ -60,6 +61,7 @@ type BundleList struct {
 // BundleSpec defines the desired state of a Bundle.
 type BundleSpec struct {
 	// Sources is a set of references to data whose data will sync to the target.
+	// +required
 	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
@@ -147,11 +149,11 @@ type JKS struct {
 	KeySelector `json:",inline"`
 
 	// Password for JKS trust store
-	//+optional
-	//+kubebuilder:validation:MinLength=1
-	//+kubebuilder:validation:MaxLength=128
-	//+kubebuilder:default=changeit
-	Password *string `json:"password"`
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=128
+	// +kubebuilder:default=changeit
+	Password *string `json:"password,omitempty"`
 }
 
 // PKCS12 specifies additional target PKCS#12 files
@@ -160,9 +162,9 @@ type PKCS12 struct {
 	KeySelector `json:",inline"`
 
 	// Password for PKCS12 trust store
-	//+optional
-	//+kubebuilder:validation:MaxLength=128
-	//+kubebuilder:default=""
+	// +optional
+	// +kubebuilder:validation:MaxLength=128
+	// +kubebuilder:default=""
 	Password *string `json:"password,omitempty"`
 
 	// Profile specifies the certificate encryption algorithms and the HMAC algorithm
@@ -198,29 +200,30 @@ const (
 type SourceObjectKeySelector struct {
 	// Name is the name of the source object in the trust Namespace.
 	// This field must be left empty when `selector` is set
-	//+optional
+	// +optional
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name,omitempty"`
 
 	// Selector is the label selector to use to fetch a list of objects. Must not be set
 	// when `Name` is set.
-	//+optional
+	// +optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 
 	// Key of the entry in the object's `data` field to be used.
-	//+optional
+	// +optional
 	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key,omitempty"`
 
 	// IncludeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
 	// This field must not be true when `Key` is set.
-	//+optional
+	// +optional
 	IncludeAllKeys bool `json:"includeAllKeys,omitempty"`
 }
 
 // TargetTemplate defines the form of the Kubernetes Secret or ConfigMap bundle targets.
 type TargetTemplate struct {
 	// Key is the key of the entry in the object's `data` field to be used.
+	// +required
 	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key"`
 
@@ -248,6 +251,7 @@ func (t *TargetTemplate) GetLabels() map[string]string {
 // KeySelector is a reference to a key for some map data object.
 type KeySelector struct {
 	// Key is the key of the entry in the object's `data` field to be used.
+	// +required
 	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key"`
 }

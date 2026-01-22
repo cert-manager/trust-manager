@@ -101,3 +101,5 @@ generate-conversion: | $(NEEDS_CONVERSION-GEN)
 		./pkg/apis/trust/v1alpha1
 
 shared_generate_targets += generate-conversion
+
+include make/kube-api-lint.mk
