@@ -51,10 +51,10 @@ var _ = Describe("ClusterBundle Validation", func() {
 		bundle.GenerateName = "validation-"
 	})
 
-	Context("Source item", func() {
+	Context("Source reference", func() {
 		DescribeTable("should validate key",
 			func(key string, matchErr string) {
-				bundle.Spec.Sources = []trustmanagerapi.BundleSource{{
+				bundle.Spec.SourceRefs = []trustmanagerapi.BundleSourceRef{{
 					Key: key,
 					SourceReference: trustmanagerapi.SourceReference{
 						Kind: trustmanagerapi.ConfigMapKind,
@@ -67,16 +67,16 @@ var _ = Describe("ClusterBundle Validation", func() {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
 				}
 			},
-			Entry("when unset", "", "spec.sources[0].key: Invalid value: \"\": spec.sources[0].key in body should be at least 1 chars long"),
+			Entry("when unset", "", "spec.sourceRefs[0].key: Invalid value: \"\": spec.sourceRefs[0].key in body should be at least 1 chars long"),
 			Entry("when given", "ca.crt", ""),
 			Entry("when using simple wildcard to include some keys", "*.crt", ""),
 			Entry("when using simple wildcard to include all keys", "*", ""),
-			Entry("when using too advanced wildcards", "ca[0-9].crt", "spec.sources[0].key: Invalid value: \"ca[0-9].crt\": spec.sources[0].key in body should match '^[0-9A-Za-z_.\\-*]+$"),
+			Entry("when using too advanced wildcards", "ca[0-9].crt", "spec.sourceRefs[0].key: Invalid value: \"ca[0-9].crt\": spec.sourceRefs[0].key in body should match '^[0-9A-Za-z_.\\-*]+$"),
 		)
 
-		DescribeTable("should validate source reference",
+		DescribeTable("should validate refs",
 			func(sourceRef trustmanagerapi.SourceReference, matchErr string) {
-				bundle.Spec.Sources = []trustmanagerapi.BundleSource{{
+				bundle.Spec.SourceRefs = []trustmanagerapi.BundleSourceRef{{
 					Key:             "ca.crt",
 					SourceReference: sourceRef,
 				}}
@@ -86,15 +86,15 @@ var _ = Describe("ClusterBundle Validation", func() {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
 				}
 			},
-			Entry("when kind unset", trustmanagerapi.SourceReference{Name: "ca"}, "spec.sources[0].kind: Unsupported value: \"\": supported values: \"ConfigMap\", \"Secret\""),
+			Entry("when kind unset", trustmanagerapi.SourceReference{Name: "ca"}, "spec.sourceRefs[0].kind: Unsupported value: \"\": supported values: \"ConfigMap\", \"Secret\""),
 			Entry("when kind ConfigMap", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind, Name: "ca"}, ""),
 			Entry("when kind Secret", trustmanagerapi.SourceReference{Kind: trustmanagerapi.SecretKind, Name: "ca"}, ""),
-			Entry("when kind unknown", trustmanagerapi.SourceReference{Kind: "OtherKind", Name: "ca"}, "spec.sources[0].kind: Unsupported value: \"OtherKind\": supported values: \"ConfigMap\", \"Secret\""),
-			Entry("when no name nor selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind}, "spec.sources[0]: Invalid value: exactly one of the following fields must be provided: [name, selector"),
+			Entry("when kind unknown", trustmanagerapi.SourceReference{Kind: "OtherKind", Name: "ca"}, "spec.sourceRefs[0].kind: Unsupported value: \"OtherKind\": supported values: \"ConfigMap\", \"Secret\""),
+			Entry("when no name nor selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind}, "spec.sourceRefs[0]: Invalid value: exactly one of the following fields must be provided: [name, selector"),
 			Entry("when name set", trustmanagerapi.SourceReference{Name: "ca", Kind: trustmanagerapi.ConfigMapKind}, ""),
 			Entry("when selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind, Selector: &metav1.LabelSelector{}}, ""),
-			Entry("when invalid selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind, Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"@@@@": "test"}}}, "spec.sources[0].selector.matchLabels: Invalid value: \"@@@@\": name part must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')"),
-			Entry("when name and selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind, Name: "ca", Selector: &metav1.LabelSelector{}}, "spec.sources[0]: Invalid value: exactly one of the following fields must be provided: [name, selector"),
+			Entry("when invalid selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind, Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"@@@@": "test"}}}, "spec.sourceRefs[0].selector.matchLabels: Invalid value: \"@@@@\": name part must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')"),
+			Entry("when name and selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind, Name: "ca", Selector: &metav1.LabelSelector{}}, "spec.sourceRefs[0]: Invalid value: exactly one of the following fields must be provided: [name, selector"),
 		)
 	})
 

@@ -61,17 +61,37 @@ func (src *Bundle) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	// Remove empty sources, as some source fields are "promoted" to spec in ClusterBundle.
-	dst.Spec.Sources = slices.DeleteFunc(dst.Spec.Sources, func(bs trustv1alpha2.BundleSource) bool {
-		return bs == trustv1alpha2.BundleSource{}
+	dst.Spec.SourceRefs = slices.DeleteFunc(dst.Spec.SourceRefs, func(bs trustv1alpha2.BundleSourceRef) bool {
+		return bs == trustv1alpha2.BundleSourceRef{}
 	})
-	if len(dst.Spec.Sources) == 0 {
-		dst.Spec.Sources = nil
+	if len(dst.Spec.SourceRefs) == 0 {
+		dst.Spec.SourceRefs = nil
 	}
 
 	return nil
 }
 
-func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(in *BundleSource, out *trustv1alpha2.BundleSource, scope apimachineryconversion.Scope) error {
+func Convert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in *BundleSpec, out *trustv1alpha2.BundleSpec, scope apimachineryconversion.Scope) error {
+	if err := autoConvert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in, out, scope); err != nil {
+		return err
+	}
+
+	if in.Sources != nil {
+		in, out := &in.Sources, &out.SourceRefs
+		*out = make([]trustv1alpha2.BundleSourceRef, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSourceRef(&(*in)[i], &(*out)[i], scope); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.SourceRefs = nil
+	}
+
+	return nil
+}
+
+func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSourceRef(in *BundleSource, out *trustv1alpha2.BundleSourceRef, scope apimachineryconversion.Scope) error {
 	var sourceObjectKeySelector *SourceObjectKeySelector
 	if in.ConfigMap != nil {
 		out.Kind = trustv1alpha2.ConfigMapKind
@@ -218,6 +238,18 @@ func Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *trustv1alpha2.Bundle
 		return err
 	}
 
+	if in.SourceRefs != nil {
+		in, out := &in.SourceRefs, &out.Sources
+		*out = make([]BundleSource, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha2_BundleSourceRef_To_v1alpha1_BundleSource(&(*in)[i], &(*out)[i], scope); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Sources = nil
+	}
+
 	if in.InLineCAs != nil {
 		out.Sources = append(out.Sources, BundleSource{InLine: in.InLineCAs})
 	}
@@ -228,7 +260,7 @@ func Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *trustv1alpha2.Bundle
 	return nil
 }
 
-func Convert_v1alpha2_BundleSource_To_v1alpha1_BundleSource(in *trustv1alpha2.BundleSource, out *BundleSource, _ apimachineryconversion.Scope) error {
+func Convert_v1alpha2_BundleSourceRef_To_v1alpha1_BundleSource(in *trustv1alpha2.BundleSourceRef, out *BundleSource, _ apimachineryconversion.Scope) error {
 	key := in.Key
 	includeAllKeys := false
 	if in.Key == "*" {

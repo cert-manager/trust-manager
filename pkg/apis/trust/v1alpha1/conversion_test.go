@@ -92,7 +92,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []any {
 		spokeBundleSpecFuzzer,
 		spokeSourceObjectKeySelectorFuzzer,
 		spokeBundleTargetFuzzer,
-		hubBundleSourceFuzzer,
+		hubBundleSourceRefFuzzer,
 		hubBundleTargetFuzzer,
 	}
 }
@@ -157,7 +157,7 @@ func spokeBundleTargetFuzzer(obj *BundleTarget, c randfill.Continue) {
 	}
 }
 
-func hubBundleSourceFuzzer(obj *trustmanagerapi.BundleSource, c randfill.Continue) {
+func hubBundleSourceRefFuzzer(obj *trustmanagerapi.BundleSourceRef, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	// We only allow known kinds, so must normalize the source kind

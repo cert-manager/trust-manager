@@ -22,8 +22,9 @@ package v1alpha2
 //
 // BundleSpec defines the desired state of a Bundle.
 type BundleSpecApplyConfiguration struct {
-	// Sources is a set of references to data whose data will sync to the target.
-	Sources []BundleSourceApplyConfiguration `json:"sources,omitempty"`
+	// SourceRefs is a list of references to resources whose data will be appended and synced into
+	// the bundle target resources.
+	SourceRefs []BundleSourceRefApplyConfiguration `json:"sourceRefs,omitempty"`
 	// IncludeDefaultCAs, when true, requests the default CA bundle to be used as a source.
 	// Default CAs are available if trust-manager was installed via Helm
 	// or was otherwise set up to include a package-injecting init container by using the
@@ -45,15 +46,15 @@ func BundleSpec() *BundleSpecApplyConfiguration {
 	return &BundleSpecApplyConfiguration{}
 }
 
-// WithSources adds the given value to the Sources field in the declarative configuration
+// WithSourceRefs adds the given value to the SourceRefs field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
-// If called multiple times, values provided by each call will be appended to the Sources field.
-func (b *BundleSpecApplyConfiguration) WithSources(values ...*BundleSourceApplyConfiguration) *BundleSpecApplyConfiguration {
+// If called multiple times, values provided by each call will be appended to the SourceRefs field.
+func (b *BundleSpecApplyConfiguration) WithSourceRefs(values ...*BundleSourceRefApplyConfiguration) *BundleSpecApplyConfiguration {
 	for i := range values {
 		if values[i] == nil {
-			panic("nil value passed to WithSources")
+			panic("nil value passed to WithSourceRefs")
 		}
-		b.Sources = append(b.Sources, *values[i])
+		b.SourceRefs = append(b.SourceRefs, *values[i])
 	}
 	return b
 }
