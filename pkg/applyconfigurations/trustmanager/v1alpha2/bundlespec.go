@@ -25,15 +25,8 @@ type BundleSpecApplyConfiguration struct {
 	// sourceRefs is a list of references to resources whose data will be appended and synced into
 	// the bundle target resources.
 	SourceRefs []BundleSourceRefApplyConfiguration `json:"sourceRefs,omitempty"`
-	// includeDefaultCAs indicates whether the default CA bundle should be used as a source.
-	// The default CA bundle is available only if trust-manager was installed with
-	// default CA support enabled, either via the Helm chart or by starting the
-	// trust-manager controller with the "--default-package-location" flag.
-	// If default CA support was not enabled at startup, setting this field to true
-	// will result in reconciliation failure.
-	// The version of the default CA package used for this Bundle is reported in
-	// status.defaultCAVersion.
-	IncludeDefaultCAs *bool `json:"includeDefaultCAs,omitempty"`
+	// defaultCAs configures the use of a default CA bundle as a trust source.
+	DefaultCAs *DefaultCAsSourceApplyConfiguration `json:"defaultCAs,omitempty"`
 	// inLineCAs is a simple string to append as the source data.
 	InLineCAs *string `json:"inLineCAs,omitempty"`
 	// target is the target location in all namespaces to sync source data to.
@@ -59,11 +52,11 @@ func (b *BundleSpecApplyConfiguration) WithSourceRefs(values ...*BundleSourceRef
 	return b
 }
 
-// WithIncludeDefaultCAs sets the IncludeDefaultCAs field in the declarative configuration to the given value
+// WithDefaultCAs sets the DefaultCAs field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the IncludeDefaultCAs field is set to the value of the last call.
-func (b *BundleSpecApplyConfiguration) WithIncludeDefaultCAs(value bool) *BundleSpecApplyConfiguration {
-	b.IncludeDefaultCAs = &value
+// If called multiple times, the DefaultCAs field is set to the value of the last call.
+func (b *BundleSpecApplyConfiguration) WithDefaultCAs(value *DefaultCAsSourceApplyConfiguration) *BundleSpecApplyConfiguration {
+	b.DefaultCAs = value
 	return b
 }
 

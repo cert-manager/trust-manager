@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	trustv1alpha2 "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
@@ -125,7 +126,11 @@ func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSourceRef(in *BundleSource,
 	}
 	if in.UseDefaultCAs != nil {
 		obj := scope.Meta().Context.(*trustv1alpha2.ClusterBundle)
-		obj.Spec.IncludeDefaultCAs = in.UseDefaultCAs
+		provider := trustv1alpha2.DefaultCAsProviderDisabled
+		if *in.UseDefaultCAs {
+			provider = trustv1alpha2.DefaultCAsProviderSystem
+		}
+		obj.Spec.DefaultCAs = &trustv1alpha2.DefaultCAsSource{Provider: provider}
 	}
 
 	return nil
@@ -253,8 +258,8 @@ func Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *trustv1alpha2.Bundle
 	if in.InLineCAs != nil {
 		out.Sources = append(out.Sources, BundleSource{InLine: in.InLineCAs})
 	}
-	if in.IncludeDefaultCAs != nil {
-		out.Sources = append(out.Sources, BundleSource{UseDefaultCAs: in.IncludeDefaultCAs})
+	if in.DefaultCAs != nil {
+		out.Sources = append(out.Sources, BundleSource{UseDefaultCAs: ptr.To(in.DefaultCAs.Provider == trustv1alpha2.DefaultCAsProviderSystem)})
 	}
 
 	return nil

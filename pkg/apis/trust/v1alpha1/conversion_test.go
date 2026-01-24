@@ -93,6 +93,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []any {
 		spokeSourceObjectKeySelectorFuzzer,
 		spokeBundleTargetFuzzer,
 		hubBundleSourceRefFuzzer,
+		hubDefaultCAsFuzzer,
 		hubBundleTargetFuzzer,
 	}
 }
@@ -163,6 +164,14 @@ func hubBundleSourceRefFuzzer(obj *trustmanagerapi.BundleSourceRef, c randfill.C
 	// We only allow known kinds, so must normalize the source kind
 	kindSet := []string{trustmanagerapi.ConfigMapKind, trustmanagerapi.SecretKind}
 	obj.Kind = kindSet[rand.Intn(len(kindSet))] //nolint:gosec
+}
+
+func hubDefaultCAsFuzzer(obj *trustmanagerapi.DefaultCAsSource, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	// We only allow known providers, so must normalize the provider
+	providerSet := []string{trustmanagerapi.DefaultCAsProviderDisabled, trustmanagerapi.DefaultCAsProviderSystem}
+	obj.Provider = providerSet[rand.Intn(len(providerSet))] //nolint:gosec
 }
 
 func hubBundleTargetFuzzer(obj *trustmanagerapi.BundleTarget, c randfill.Continue) {

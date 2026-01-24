@@ -119,7 +119,7 @@ var _ = Describe("ClusterBundle Migration", func() {
 		clusterBundle.Annotations = map[string]string{
 			trustmanagerapi.BundleMigratedAnnotation: "true",
 		}
-		clusterBundle.Spec.IncludeDefaultCAs = ptr.To(true)
+		clusterBundle.Spec.DefaultCAs = &trustmanagerapi.DefaultCAsSource{Provider: trustmanagerapi.DefaultCAsProviderSystem}
 		Expect(cl.Update(ctx, clusterBundle)).To(Succeed())
 
 		Eventually(func() (string, error) {
