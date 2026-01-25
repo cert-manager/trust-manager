@@ -36,6 +36,12 @@ spec:
   secretTemplate:
     {{- toYaml .| nindent 4 }}
   {{- end }}
+  {{- with .Values.app.webhook.tls.certificate.privateKey }}
+  privateKey:
+    {{- with .rotationPolicy }}
+    rotationPolicy: {{ . }}
+    {{- end }}
+  {{- end }}
   revisionHistoryLimit: 1
   issuerRef:
     name: {{ include "trust-manager.name" . }}
