@@ -493,11 +493,28 @@
     "helm-values.app.webhook.tls.certificate": {
       "additionalProperties": false,
       "properties": {
+        "privateKey": {
+          "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.privateKey"
+        },
         "secretTemplate": {
           "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.secretTemplate"
         }
       },
       "type": "object"
+    },
+    "helm-values.app.webhook.tls.certificate.privateKey": {
+      "additionalProperties": false,
+      "properties": {
+        "rotationPolicy": {
+          "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.privateKey.rotationPolicy"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.app.webhook.tls.certificate.privateKey.rotationPolicy": {
+      "default": "Always",
+      "description": "The rotation policy for the private key. When set to Always, the private key will be regenerated when the certificate is renewed. Valid values are Never and Always.",
+      "type": "string"
     },
     "helm-values.app.webhook.tls.certificate.secretTemplate": {
       "default": {},
