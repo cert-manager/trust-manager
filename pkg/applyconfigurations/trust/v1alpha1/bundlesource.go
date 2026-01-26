@@ -23,22 +23,22 @@ package v1alpha1
 // BundleSource is the set of sources whose data will be appended and synced to
 // the BundleTarget in all Namespaces.
 type BundleSourceApplyConfiguration struct {
-	// ConfigMap is a reference (by name) to a ConfigMap's `data` key(s), or to a
-	// list of ConfigMap's `data` key(s) using label selector, in the trust Namespace.
+	// configMap is a reference (by name) to a ConfigMap's `data` key(s), or to a
+	// list of ConfigMap's `data` key(s) using label selector, in the trust namespace.
 	ConfigMap *SourceObjectKeySelectorApplyConfiguration `json:"configMap,omitempty"`
-	// Secret is a reference (by name) to a Secret's `data` key(s), or to a
-	// list of Secret's `data` key(s) using label selector, in the trust Namespace.
+	// secret is a reference (by name) to a Secret's `data` key(s), or to a
+	// list of Secret's `data` key(s) using label selector, in the trust namespace.
 	Secret *SourceObjectKeySelectorApplyConfiguration `json:"secret,omitempty"`
-	// InLine is a simple string to append as the source data.
+	// inLine is a simple string to append as the source data.
 	InLine *string `json:"inLine,omitempty"`
-	// UseDefaultCAs, when true, requests the default CA bundle to be used as a source.
-	// Default CAs are available if trust-manager was installed via Helm
-	// or was otherwise set up to include a package-injecting init container by using the
-	// "--default-package-location" flag when starting the trust-manager controller.
-	// If default CAs were not configured at start-up, any request to use the default
-	// CAs will fail.
-	// The version of the default CA package which is used for a Bundle is stored in the
-	// defaultCAPackageVersion field of the Bundle's status field.
+	// useDefaultCAs indicates whether the default CA bundle should be used as a source.
+	// The default CA bundle is available only if trust-manager was installed with
+	// default CA support enabled, either via the Helm chart or by starting the
+	// trust-manager controller with the "--default-package-location" flag.
+	// If default CA support was not enabled at startup, setting this field to true
+	// will result in reconciliation failure.
+	// The version of the default CA package used for this Bundle is reported in
+	// status.defaultCAVersion.
 	UseDefaultCAs *bool `json:"useDefaultCAs,omitempty"`
 }
 

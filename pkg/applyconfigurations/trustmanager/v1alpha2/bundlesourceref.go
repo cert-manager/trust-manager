@@ -28,9 +28,9 @@ import (
 // the bundle target resources.
 type BundleSourceRefApplyConfiguration struct {
 	SourceReferenceApplyConfiguration `json:",inline"`
-	// Key(s) of the entry in the object's `data` field to be used.
-	// Wildcards "*" in Key matches any sequence characters.
-	// A Key containing only "*" will match all data fields.
+	// key specifies one or more keys in the object's data field to be used.
+	// The "*" wildcard matches any sequence of characters within a key.
+	// A value of "*" matches all entries in the data field.
 	Key *string `json:"key,omitempty"`
 }
 

@@ -57,10 +57,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: Desired state of the Bundle resource.
+            description: spec represents the desired state of the Bundle resource.
             properties:
               sources:
-                description: Sources is a set of references to data whose data will
+                description: sources is a set of references to data whose data will
                   sync to the target.
                 items:
                   description: |-
@@ -69,29 +69,29 @@ spec:
                   properties:
                     configMap:
                       description: |-
-                        ConfigMap is a reference (by name) to a ConfigMap's `data` key(s), or to a
-                        list of ConfigMap's `data` key(s) using label selector, in the trust Namespace.
+                        configMap is a reference (by name) to a ConfigMap's `data` key(s), or to a
+                        list of ConfigMap's `data` key(s) using label selector, in the trust namespace.
                       properties:
                         includeAllKeys:
                           description: |-
-                            IncludeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
-                            This field must not be true when `Key` is set.
+                            includeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
+                            This field must not be true when `key` is set.
                           type: boolean
                         key:
-                          description: Key of the entry in the object's `data` field
+                          description: key of the entry in the object's `data` field
                             to be used.
                           minLength: 1
                           type: string
                         name:
                           description: |-
-                            Name is the name of the source object in the trust Namespace.
+                            name is the name of the source object in the trust namespace.
                             This field must be left empty when `selector` is set
                           minLength: 1
                           type: string
                         selector:
                           description: |-
-                            Selector is the label selector to use to fetch a list of objects. Must not be set
-                            when `Name` is set.
+                            selector is the label selector to use to fetch a list of objects. Must not be set
+                            when `name` is set.
                           properties:
                             matchExpressions:
                               description: matchExpressions is a list of label selector
@@ -139,34 +139,34 @@ spec:
                       type: object
                       x-kubernetes-map-type: atomic
                     inLine:
-                      description: InLine is a simple string to append as the source
+                      description: inLine is a simple string to append as the source
                         data.
                       type: string
                     secret:
                       description: |-
-                        Secret is a reference (by name) to a Secret's `data` key(s), or to a
-                        list of Secret's `data` key(s) using label selector, in the trust Namespace.
+                        secret is a reference (by name) to a Secret's `data` key(s), or to a
+                        list of Secret's `data` key(s) using label selector, in the trust namespace.
                       properties:
                         includeAllKeys:
                           description: |-
-                            IncludeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
-                            This field must not be true when `Key` is set.
+                            includeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
+                            This field must not be true when `key` is set.
                           type: boolean
                         key:
-                          description: Key of the entry in the object's `data` field
+                          description: key of the entry in the object's `data` field
                             to be used.
                           minLength: 1
                           type: string
                         name:
                           description: |-
-                            Name is the name of the source object in the trust Namespace.
+                            name is the name of the source object in the trust namespace.
                             This field must be left empty when `selector` is set
                           minLength: 1
                           type: string
                         selector:
                           description: |-
-                            Selector is the label selector to use to fetch a list of objects. Must not be set
-                            when `Name` is set.
+                            selector is the label selector to use to fetch a list of objects. Must not be set
+                            when `name` is set.
                           properties:
                             matchExpressions:
                               description: matchExpressions is a list of label selector
@@ -215,14 +215,14 @@ spec:
                       x-kubernetes-map-type: atomic
                     useDefaultCAs:
                       description: |-
-                        UseDefaultCAs, when true, requests the default CA bundle to be used as a source.
-                        Default CAs are available if trust-manager was installed via Helm
-                        or was otherwise set up to include a package-injecting init container by using the
-                        "--default-package-location" flag when starting the trust-manager controller.
-                        If default CAs were not configured at start-up, any request to use the default
-                        CAs will fail.
-                        The version of the default CA package which is used for a Bundle is stored in the
-                        defaultCAPackageVersion field of the Bundle's status field.
+                        useDefaultCAs indicates whether the default CA bundle should be used as a source.
+                        The default CA bundle is available only if trust-manager was installed with
+                        default CA support enabled, either via the Helm chart or by starting the
+                        trust-manager controller with the "--default-package-location" flag.
+                        If default CA support was not enabled at startup, setting this field to true
+                        will result in reconciliation failure.
+                        The version of the default CA package used for this Bundle is reported in
+                        status.defaultCAVersion.
                       type: boolean
                   type: object
                   x-kubernetes-map-type: atomic
@@ -231,29 +231,29 @@ spec:
                 type: array
                 x-kubernetes-list-type: atomic
               target:
-                description: Target is the target location in all namespaces to sync
+                description: target is the target location in all namespaces to sync
                   source data to.
                 properties:
                   additionalFormats:
-                    description: AdditionalFormats specifies any additional formats
+                    description: additionalFormats specifies any additional formats
                       to write to the target
                     properties:
                       jks:
                         description: |-
-                          JKS requests a JKS-formatted binary trust bundle to be written to the target.
+                          jks requests a JKS-formatted binary trust bundle to be written to the target.
                           The bundle has "changeit" as the default password.
                           For more information refer to this link https://cert-manager.io/docs/faq/#keystore-passwords
                           Format is deprecated: Writing JKS is subject for removal. Please migrate to PKCS12.
                           PKCS#12 trust stores created by trust-manager are compatible with Java.
                         properties:
                           key:
-                            description: Key is the key of the entry in the object's
+                            description: key is the key of the entry in the object's
                               `data` field to be used.
                             minLength: 1
                             type: string
                           password:
                             default: changeit
-                            description: Password for JKS trust store
+                            description: password for JKS trust store
                             maxLength: 128
                             minLength: 1
                             type: string
@@ -263,24 +263,24 @@ spec:
                         x-kubernetes-map-type: atomic
                       pkcs12:
                         description: |-
-                          PKCS12 requests a PKCS12-formatted binary trust bundle to be written to the target.
+                          pkcs12 requests a PKCS12-formatted binary trust bundle to be written to the target.
 
                           The bundle is by default created without a password.
                           For more information refer to this link https://cert-manager.io/docs/faq/#keystore-passwords
                         properties:
                           key:
-                            description: Key is the key of the entry in the object's
+                            description: key is the key of the entry in the object's
                               `data` field to be used.
                             minLength: 1
                             type: string
                           password:
                             default: ""
-                            description: Password for PKCS12 trust store
+                            description: password for PKCS12 trust store
                             maxLength: 128
                             type: string
                           profile:
                             description: |-
-                              Profile specifies the certificate encryption algorithms and the HMAC algorithm
+                              profile specifies the certificate encryption algorithms and the HMAC algorithm
                               used to create the PKCS12 trust store.
 
                               If provided, allowed values are:
@@ -301,28 +301,28 @@ spec:
                     type: object
                   configMap:
                     description: |-
-                      ConfigMap is the target ConfigMap in Namespaces that all Bundle source
+                      configMap is the target ConfigMap in Namespaces that all Bundle source
                       data will be synced to.
                     properties:
                       key:
-                        description: Key is the key of the entry in the object's `data`
+                        description: key is the key of the entry in the object's `data`
                           field to be used.
                         minLength: 1
                         type: string
                       metadata:
-                        description: Metadata is an optional set of labels and annotations
+                        description: metadata is an optional set of labels and annotations
                           to be copied to the target.
                         properties:
                           annotations:
                             additionalProperties:
                               type: string
-                            description: Annotations is a key value map to be copied
+                            description: annotations is a key value map to be copied
                               to the target.
                             type: object
                           labels:
                             additionalProperties:
                               type: string
-                            description: Labels is a key value map to be copied to
+                            description: labels is a key value map to be copied to
                               the target.
                             type: object
                         type: object
@@ -331,7 +331,7 @@ spec:
                     type: object
                   namespaceSelector:
                     description: |-
-                      NamespaceSelector will, if set, only sync the target resource in
+                      namespaceSelector will, if set, only sync the target resource in
                       Namespaces which match the selector.
                     properties:
                       matchExpressions:
@@ -379,29 +379,29 @@ spec:
                     x-kubernetes-map-type: atomic
                   secret:
                     description: |-
-                      Secret is the target Secret that all Bundle source data will be synced to.
+                      secret is the target Secret that all Bundle source data will be synced to.
                       Using Secrets as targets is only supported if enabled at trust-manager startup.
                       By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
                     properties:
                       key:
-                        description: Key is the key of the entry in the object's `data`
+                        description: key is the key of the entry in the object's `data`
                           field to be used.
                         minLength: 1
                         type: string
                       metadata:
-                        description: Metadata is an optional set of labels and annotations
+                        description: metadata is an optional set of labels and annotations
                           to be copied to the target.
                         properties:
                           annotations:
                             additionalProperties:
                               type: string
-                            description: Annotations is a key value map to be copied
+                            description: annotations is a key value map to be copied
                               to the target.
                             type: object
                           labels:
                             additionalProperties:
                               type: string
-                            description: Labels is a key value map to be copied to
+                            description: labels is a key value map to be copied to
                               the target.
                             type: object
                         type: object
@@ -413,12 +413,11 @@ spec:
             - sources
             type: object
           status:
-            description: Status of the Bundle. This is set and managed automatically.
+            description: status of the Bundle. This is set and managed automatically.
             properties:
               conditions:
-                description: |-
-                  List of status conditions to indicate the status of the Bundle.
-                  Known condition types are `Bundle`.
+                description: conditions represent the latest available observations
+                  of the Bundle's current state.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -479,10 +478,11 @@ spec:
                 x-kubernetes-list-type: map
               defaultCAVersion:
                 description: |-
-                  DefaultCAPackageVersion, if set and non-empty, indicates the version information
-                  which was retrieved when the set of default CAs was requested in the bundle
-                  source. This should only be set if useDefaultCAs was set to "true" on a source,
-                  and will be the same for the same version of a bundle with identical certificates.
+                  defaultCAVersion is the version of the default CA package used when resolving
+                  the default CA source(s) for this Bundle (for example, when any source has
+                  useDefaultCAs set to true), if applicable.
+                  Bundles resolved from identical sets of default CA certificates will report
+                  the same defaultCAVersion value.
                 type: string
             type: object
         required:

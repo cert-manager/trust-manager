@@ -22,21 +22,21 @@ package v1alpha2
 //
 // BundleSpec defines the desired state of a Bundle.
 type BundleSpecApplyConfiguration struct {
-	// SourceRefs is a list of references to resources whose data will be appended and synced into
+	// sourceRefs is a list of references to resources whose data will be appended and synced into
 	// the bundle target resources.
 	SourceRefs []BundleSourceRefApplyConfiguration `json:"sourceRefs,omitempty"`
-	// IncludeDefaultCAs, when true, requests the default CA bundle to be used as a source.
-	// Default CAs are available if trust-manager was installed via Helm
-	// or was otherwise set up to include a package-injecting init container by using the
-	// "--default-package-location" flag when starting the trust-manager controller.
-	// If default CAs were not configured at start-up, any request to use the default
-	// CAs will fail.
-	// The version of the default CA package which is used for a Bundle is stored in the
-	// defaultCAPackageVersion field of the Bundle's status field.
+	// includeDefaultCAs indicates whether the default CA bundle should be used as a source.
+	// The default CA bundle is available only if trust-manager was installed with
+	// default CA support enabled, either via the Helm chart or by starting the
+	// trust-manager controller with the "--default-package-location" flag.
+	// If default CA support was not enabled at startup, setting this field to true
+	// will result in reconciliation failure.
+	// The version of the default CA package used for this Bundle is reported in
+	// status.defaultCAVersion.
 	IncludeDefaultCAs *bool `json:"includeDefaultCAs,omitempty"`
-	// InLine is a simple string to append as the source data.
+	// inLineCAs is a simple string to append as the source data.
 	InLineCAs *string `json:"inLineCAs,omitempty"`
-	// Target is the target location in all namespaces to sync source data to.
+	// target is the target location in all namespaces to sync source data to.
 	Target *BundleTargetApplyConfiguration `json:"target,omitempty"`
 }
 

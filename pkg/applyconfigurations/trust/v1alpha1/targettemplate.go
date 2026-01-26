@@ -22,9 +22,9 @@ package v1alpha1
 //
 // TargetTemplate defines the form of the Kubernetes Secret or ConfigMap bundle targets.
 type TargetTemplateApplyConfiguration struct {
-	// Key is the key of the entry in the object's `data` field to be used.
+	// key is the key of the entry in the object's `data` field to be used.
 	Key *string `json:"key,omitempty"`
-	// Metadata is an optional set of labels and annotations to be copied to the target.
+	// metadata is an optional set of labels and annotations to be copied to the target.
 	Metadata *TargetMetadataApplyConfiguration `json:"metadata,omitempty"`
 }
 

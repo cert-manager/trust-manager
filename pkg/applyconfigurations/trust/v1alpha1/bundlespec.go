@@ -22,9 +22,9 @@ package v1alpha1
 //
 // BundleSpec defines the desired state of a Bundle.
 type BundleSpecApplyConfiguration struct {
-	// Sources is a set of references to data whose data will sync to the target.
+	// sources is a set of references to data whose data will sync to the target.
 	Sources []BundleSourceApplyConfiguration `json:"sources,omitempty"`
-	// Target is the target location in all namespaces to sync source data to.
+	// target is the target location in all namespaces to sync source data to.
 	Target *BundleTargetApplyConfiguration `json:"target,omitempty"`
 }
 

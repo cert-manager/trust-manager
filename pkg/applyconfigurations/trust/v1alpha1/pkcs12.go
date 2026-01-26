@@ -27,9 +27,9 @@ import (
 // PKCS12 specifies additional target PKCS#12 files
 type PKCS12ApplyConfiguration struct {
 	KeySelectorApplyConfiguration `json:",inline"`
-	// Password for PKCS12 trust store
+	// password for PKCS12 trust store
 	Password *string `json:"password,omitempty"`
-	// Profile specifies the certificate encryption algorithms and the HMAC algorithm
+	// profile specifies the certificate encryption algorithms and the HMAC algorithm
 	// used to create the PKCS12 trust store.
 	//
 	// If provided, allowed values are:

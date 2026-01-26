@@ -27,16 +27,16 @@ import (
 // BundleTarget is the target resource that the Bundle will sync all source
 // data to.
 type BundleTargetApplyConfiguration struct {
-	// ConfigMap is the target ConfigMap in Namespaces that all Bundle source
+	// configMap is the target ConfigMap in Namespaces that all Bundle source
 	// data will be synced to.
 	ConfigMap *TargetTemplateApplyConfiguration `json:"configMap,omitempty"`
-	// Secret is the target Secret that all Bundle source data will be synced to.
+	// secret is the target Secret that all Bundle source data will be synced to.
 	// Using Secrets as targets is only supported if enabled at trust-manager startup.
 	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
 	Secret *TargetTemplateApplyConfiguration `json:"secret,omitempty"`
-	// AdditionalFormats specifies any additional formats to write to the target
+	// additionalFormats specifies any additional formats to write to the target
 	AdditionalFormats *AdditionalFormatsApplyConfiguration `json:"additionalFormats,omitempty"`
-	// NamespaceSelector will, if set, only sync the target resource in
+	// namespaceSelector will, if set, only sync the target resource in
 	// Namespaces which match the selector.
 	NamespaceSelector *v1.LabelSelectorApplyConfiguration `json:"namespaceSelector,omitempty"`
 }

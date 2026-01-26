@@ -38,14 +38,17 @@ var BundleHashAnnotationKey = "trust.cert-manager.io/hash"
 
 type Bundle struct {
 	metav1.TypeMeta `json:",inline"`
+
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
 	metav1.ObjectMeta `json:"metadata"`
 
-	// Desired state of the Bundle resource.
+	// spec represents the desired state of the Bundle resource.
 	// +required
 	Spec BundleSpec `json:"spec"`
 
-	// Status of the Bundle. This is set and managed automatically.
+	// status of the Bundle. This is set and managed automatically.
 	// +optional
 	Status BundleStatus `json:"status,omitzero"`
 }
@@ -60,14 +63,14 @@ type BundleList struct {
 
 // BundleSpec defines the desired state of a Bundle.
 type BundleSpec struct {
-	// Sources is a set of references to data whose data will sync to the target.
+	// sources is a set of references to data whose data will sync to the target.
 	// +required
 	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	Sources []BundleSource `json:"sources"`
 
-	// Target is the target location in all namespaces to sync source data to.
+	// target is the target location in all namespaces to sync source data to.
 	// +optional
 	Target BundleTarget `json:"target,omitzero"`
 }
@@ -76,28 +79,28 @@ type BundleSpec struct {
 // the BundleTarget in all Namespaces.
 // +structType=atomic
 type BundleSource struct {
-	// ConfigMap is a reference (by name) to a ConfigMap's `data` key(s), or to a
-	// list of ConfigMap's `data` key(s) using label selector, in the trust Namespace.
+	// configMap is a reference (by name) to a ConfigMap's `data` key(s), or to a
+	// list of ConfigMap's `data` key(s) using label selector, in the trust namespace.
 	// +optional
 	ConfigMap *SourceObjectKeySelector `json:"configMap,omitempty"`
 
-	// Secret is a reference (by name) to a Secret's `data` key(s), or to a
-	// list of Secret's `data` key(s) using label selector, in the trust Namespace.
+	// secret is a reference (by name) to a Secret's `data` key(s), or to a
+	// list of Secret's `data` key(s) using label selector, in the trust namespace.
 	// +optional
 	Secret *SourceObjectKeySelector `json:"secret,omitempty"`
 
-	// InLine is a simple string to append as the source data.
+	// inLine is a simple string to append as the source data.
 	// +optional
 	InLine *string `json:"inLine,omitempty"`
 
-	// UseDefaultCAs, when true, requests the default CA bundle to be used as a source.
-	// Default CAs are available if trust-manager was installed via Helm
-	// or was otherwise set up to include a package-injecting init container by using the
-	// "--default-package-location" flag when starting the trust-manager controller.
-	// If default CAs were not configured at start-up, any request to use the default
-	// CAs will fail.
-	// The version of the default CA package which is used for a Bundle is stored in the
-	// defaultCAPackageVersion field of the Bundle's status field.
+	// useDefaultCAs indicates whether the default CA bundle should be used as a source.
+	// The default CA bundle is available only if trust-manager was installed with
+	// default CA support enabled, either via the Helm chart or by starting the
+	// trust-manager controller with the "--default-package-location" flag.
+	// If default CA support was not enabled at startup, setting this field to true
+	// will result in reconciliation failure.
+	// The version of the default CA package used for this Bundle is reported in
+	// status.defaultCAVersion.
 	// +optional
 	UseDefaultCAs *bool `json:"useDefaultCAs,omitempty"`
 }
@@ -105,22 +108,22 @@ type BundleSource struct {
 // BundleTarget is the target resource that the Bundle will sync all source
 // data to.
 type BundleTarget struct {
-	// ConfigMap is the target ConfigMap in Namespaces that all Bundle source
+	// configMap is the target ConfigMap in Namespaces that all Bundle source
 	// data will be synced to.
 	// +optional
 	ConfigMap *TargetTemplate `json:"configMap,omitempty"`
 
-	// Secret is the target Secret that all Bundle source data will be synced to.
+	// secret is the target Secret that all Bundle source data will be synced to.
 	// Using Secrets as targets is only supported if enabled at trust-manager startup.
 	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
 	// +optional
 	Secret *TargetTemplate `json:"secret,omitempty"`
 
-	// AdditionalFormats specifies any additional formats to write to the target
+	// additionalFormats specifies any additional formats to write to the target
 	// +optional
 	AdditionalFormats *AdditionalFormats `json:"additionalFormats,omitempty"`
 
-	// NamespaceSelector will, if set, only sync the target resource in
+	// namespaceSelector will, if set, only sync the target resource in
 	// Namespaces which match the selector.
 	// +optional
 	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
@@ -128,14 +131,14 @@ type BundleTarget struct {
 
 // AdditionalFormats specifies any additional formats to write to the target
 type AdditionalFormats struct {
-	// JKS requests a JKS-formatted binary trust bundle to be written to the target.
+	// jks requests a JKS-formatted binary trust bundle to be written to the target.
 	// The bundle has "changeit" as the default password.
 	// For more information refer to this link https://cert-manager.io/docs/faq/#keystore-passwords
 	// Format is deprecated: Writing JKS is subject for removal. Please migrate to PKCS12.
 	// PKCS#12 trust stores created by trust-manager are compatible with Java.
 	// +optional
 	JKS *JKS `json:"jks,omitempty"`
-	// PKCS12 requests a PKCS12-formatted binary trust bundle to be written to the target.
+	// pkcs12 requests a PKCS12-formatted binary trust bundle to be written to the target.
 	//
 	// The bundle is by default created without a password.
 	// For more information refer to this link https://cert-manager.io/docs/faq/#keystore-passwords
@@ -148,7 +151,7 @@ type AdditionalFormats struct {
 type JKS struct {
 	KeySelector `json:",inline"`
 
-	// Password for JKS trust store
+	// password for JKS trust store
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
@@ -161,13 +164,13 @@ type JKS struct {
 type PKCS12 struct {
 	KeySelector `json:",inline"`
 
-	// Password for PKCS12 trust store
+	// password for PKCS12 trust store
 	// +optional
 	// +kubebuilder:validation:MaxLength=128
 	// +kubebuilder:default=""
 	Password *string `json:"password,omitempty"`
 
-	// Profile specifies the certificate encryption algorithms and the HMAC algorithm
+	// profile specifies the certificate encryption algorithms and the HMAC algorithm
 	// used to create the PKCS12 trust store.
 	//
 	// If provided, allowed values are:
@@ -195,39 +198,39 @@ const (
 )
 
 // SourceObjectKeySelector is a reference to a source object and its `data` key(s)
-// in the trust Namespace.
+// in the trust namespace.
 // +structType=atomic
 type SourceObjectKeySelector struct {
-	// Name is the name of the source object in the trust Namespace.
+	// name is the name of the source object in the trust namespace.
 	// This field must be left empty when `selector` is set
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name,omitempty"`
 
-	// Selector is the label selector to use to fetch a list of objects. Must not be set
-	// when `Name` is set.
+	// selector is the label selector to use to fetch a list of objects. Must not be set
+	// when `name` is set.
 	// +optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 
-	// Key of the entry in the object's `data` field to be used.
+	// key of the entry in the object's `data` field to be used.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key,omitempty"`
 
-	// IncludeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
-	// This field must not be true when `Key` is set.
+	// includeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
+	// This field must not be true when `key` is set.
 	// +optional
 	IncludeAllKeys bool `json:"includeAllKeys,omitempty"`
 }
 
 // TargetTemplate defines the form of the Kubernetes Secret or ConfigMap bundle targets.
 type TargetTemplate struct {
-	// Key is the key of the entry in the object's `data` field to be used.
+	// key is the key of the entry in the object's `data` field to be used.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key"`
 
-	// Metadata is an optional set of labels and annotations to be copied to the target.
+	// metadata is an optional set of labels and annotations to be copied to the target.
 	// +optional
 	Metadata *TargetMetadata `json:"metadata,omitempty"`
 }
@@ -250,7 +253,7 @@ func (t *TargetTemplate) GetLabels() map[string]string {
 
 // KeySelector is a reference to a key for some map data object.
 type KeySelector struct {
-	// Key is the key of the entry in the object's `data` field to be used.
+	// key is the key of the entry in the object's `data` field to be used.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key"`
@@ -259,28 +262,28 @@ type KeySelector struct {
 // TargetMetadata defines the default labels and annotations
 // to be copied to the Kubernetes Secret or ConfigMap bundle targets.
 type TargetMetadata struct {
-	// Annotations is a key value map to be copied to the target.
+	// annotations is a key value map to be copied to the target.
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	// Labels is a key value map to be copied to the target.
+	// labels is a key value map to be copied to the target.
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // BundleStatus defines the observed state of the Bundle.
 type BundleStatus struct {
-	// List of status conditions to indicate the status of the Bundle.
-	// Known condition types are `Bundle`.
+	// conditions represent the latest available observations of the Bundle's current state.
 	// +listType=map
 	// +listMapKey=type
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// DefaultCAPackageVersion, if set and non-empty, indicates the version information
-	// which was retrieved when the set of default CAs was requested in the bundle
-	// source. This should only be set if useDefaultCAs was set to "true" on a source,
-	// and will be the same for the same version of a bundle with identical certificates.
+	// defaultCAVersion is the version of the default CA package used when resolving
+	// the default CA source(s) for this Bundle (for example, when any source has
+	// useDefaultCAs set to true), if applicable.
+	// Bundles resolved from identical sets of default CA certificates will report
+	// the same defaultCAVersion value.
 	// +optional
 	DefaultCAPackageVersion *string `json:"defaultCAVersion,omitempty"`
 }
