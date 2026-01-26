@@ -21,12 +21,12 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// BundleSourceApplyConfiguration represents a declarative configuration of the BundleSource type for use
+// BundleSourceRefApplyConfiguration represents a declarative configuration of the BundleSourceRef type for use
 // with apply.
 //
-// BundleSource is the set of sources whose data will be appended and synced to
-// the BundleTarget in all Namespaces.
-type BundleSourceApplyConfiguration struct {
+// BundleSourceRef is a reference to source resource(s) whose data will be appended and synced into
+// the bundle target resources.
+type BundleSourceRefApplyConfiguration struct {
 	SourceReferenceApplyConfiguration `json:",inline"`
 	// Key(s) of the entry in the object's `data` field to be used.
 	// Wildcards "*" in Key matches any sequence characters.
@@ -34,16 +34,16 @@ type BundleSourceApplyConfiguration struct {
 	Key *string `json:"key,omitempty"`
 }
 
-// BundleSourceApplyConfiguration constructs a declarative configuration of the BundleSource type for use with
+// BundleSourceRefApplyConfiguration constructs a declarative configuration of the BundleSourceRef type for use with
 // apply.
-func BundleSource() *BundleSourceApplyConfiguration {
-	return &BundleSourceApplyConfiguration{}
+func BundleSourceRef() *BundleSourceRefApplyConfiguration {
+	return &BundleSourceRefApplyConfiguration{}
 }
 
 // WithKind sets the Kind field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
-func (b *BundleSourceApplyConfiguration) WithKind(value string) *BundleSourceApplyConfiguration {
+func (b *BundleSourceRefApplyConfiguration) WithKind(value string) *BundleSourceRefApplyConfiguration {
 	b.SourceReferenceApplyConfiguration.Kind = &value
 	return b
 }
@@ -51,7 +51,7 @@ func (b *BundleSourceApplyConfiguration) WithKind(value string) *BundleSourceApp
 // WithName sets the Name field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Name field is set to the value of the last call.
-func (b *BundleSourceApplyConfiguration) WithName(value string) *BundleSourceApplyConfiguration {
+func (b *BundleSourceRefApplyConfiguration) WithName(value string) *BundleSourceRefApplyConfiguration {
 	b.SourceReferenceApplyConfiguration.Name = &value
 	return b
 }
@@ -59,7 +59,7 @@ func (b *BundleSourceApplyConfiguration) WithName(value string) *BundleSourceApp
 // WithSelector sets the Selector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Selector field is set to the value of the last call.
-func (b *BundleSourceApplyConfiguration) WithSelector(value *v1.LabelSelectorApplyConfiguration) *BundleSourceApplyConfiguration {
+func (b *BundleSourceRefApplyConfiguration) WithSelector(value *v1.LabelSelectorApplyConfiguration) *BundleSourceRefApplyConfiguration {
 	b.SourceReferenceApplyConfiguration.Selector = value
 	return b
 }
@@ -67,7 +67,7 @@ func (b *BundleSourceApplyConfiguration) WithSelector(value *v1.LabelSelectorApp
 // WithKey sets the Key field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Key field is set to the value of the last call.
-func (b *BundleSourceApplyConfiguration) WithKey(value string) *BundleSourceApplyConfiguration {
+func (b *BundleSourceRefApplyConfiguration) WithKey(value string) *BundleSourceRefApplyConfiguration {
 	b.Key = &value
 	return b
 }

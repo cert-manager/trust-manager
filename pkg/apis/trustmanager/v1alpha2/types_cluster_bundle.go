@@ -59,12 +59,13 @@ type ClusterBundleList struct {
 
 // BundleSpec defines the desired state of a Bundle.
 type BundleSpec struct {
-	// Sources is a set of references to data whose data will sync to the target.
+	// SourceRefs is a list of references to resources whose data will be appended and synced into
+	// the bundle target resources.
 	// +listType=atomic
 	// +optional
 	// +kubebuilder:validation:MinItems=0
 	// +kubebuilder:validation:MaxItems=100
-	Sources []BundleSource `json:"sources,omitempty"`
+	SourceRefs []BundleSourceRef `json:"sourceRefs,omitempty"`
 
 	// IncludeDefaultCAs, when true, requests the default CA bundle to be used as a source.
 	// Default CAs are available if trust-manager was installed via Helm
@@ -86,10 +87,10 @@ type BundleSpec struct {
 	Target BundleTarget `json:"target,omitzero"`
 }
 
-// BundleSource is the set of sources whose data will be appended and synced to
-// the BundleTarget in all Namespaces.
+// BundleSourceRef is a reference to source resource(s) whose data will be appended and synced into
+// the bundle target resources.
 // +structType=atomic
-type BundleSource struct {
+type BundleSourceRef struct {
 	SourceReference `json:",inline"`
 
 	// Key(s) of the entry in the object's `data` field to be used.

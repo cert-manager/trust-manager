@@ -70,8 +70,8 @@ func (webhook *ClusterBundle) validate(ctx context.Context, obj runtime.Object) 
 		fldPath  = field.NewPath("spec")
 	)
 
-	for i, source := range bundle.Spec.Sources {
-		el = append(el, webhook.validateSource(source, fldPath.Child("sources").Index(i))...)
+	for i, sourceRef := range bundle.Spec.SourceRefs {
+		el = append(el, webhook.validateSourceRef(sourceRef, fldPath.Child("sourceRefs").Index(i))...)
 	}
 
 	el = append(el, webhook.validateTarget(bundle.Spec.Target, fldPath.Child("target"))...)
@@ -80,8 +80,8 @@ func (webhook *ClusterBundle) validate(ctx context.Context, obj runtime.Object) 
 
 }
 
-func (webhook *ClusterBundle) validateSource(source trustmanagerapi.BundleSource, fldPath *field.Path) field.ErrorList {
-	return validation.ValidateLabelSelector(source.Selector, validation.LabelSelectorValidationOptions{}, fldPath.Child("selector"))
+func (webhook *ClusterBundle) validateSourceRef(sourceRef trustmanagerapi.BundleSourceRef, fldPath *field.Path) field.ErrorList {
+	return validation.ValidateLabelSelector(sourceRef.Selector, validation.LabelSelectorValidationOptions{}, fldPath.Child("selector"))
 }
 
 func (webhook *ClusterBundle) validateTarget(target trustmanagerapi.BundleTarget, fldPath *field.Path) field.ErrorList {
