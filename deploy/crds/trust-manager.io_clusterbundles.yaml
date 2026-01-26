@@ -494,8 +494,6 @@ spec:
                   and will be the same for the same version of a bundle with identical certificates.
                 type: string
             type: object
-        required:
-        - spec
         type: object
     served: true
     storage: true
