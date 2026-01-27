@@ -71,16 +71,9 @@ type BundleSpec struct {
 	// +kubebuilder:validation:MaxItems=100
 	SourceRefs []BundleSourceRef `json:"sourceRefs,omitempty"`
 
-	// includeDefaultCAs indicates whether the default CA bundle should be used as a source.
-	// The default CA bundle is available only if trust-manager was installed with
-	// default CA support enabled, either via the Helm chart or by starting the
-	// trust-manager controller with the "--default-package-location" flag.
-	// If default CA support was not enabled at startup, setting this field to true
-	// will result in reconciliation failure.
-	// The version of the default CA package used for this Bundle is reported in
-	// status.defaultCAVersion.
+	// defaultCAs configures the use of a default CA bundle as a trust source.
 	// +optional
-	IncludeDefaultCAs *bool `json:"includeDefaultCAs,omitempty"`
+	DefaultCAs *DefaultCAsSource `json:"defaultCAs,omitempty"`
 
 	// inLineCAs is a simple string to append as the source data.
 	// +optional
@@ -104,6 +97,27 @@ type BundleSourceRef struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.\-*]+$`
 	Key string `json:"key"`
+}
+
+// DefaultCAsSource configures the use of a default CA bundle as a trust source.
+type DefaultCAsSource struct {
+	// provider identifies the provider of the default CA bundle.
+	//
+	// Valid values:
+	// - System: Uses the default CA package made available to trust-manager at startup.
+	//      The default CA bundle is available only if trust-manager was installed with
+	//		default CA support enabled, either via the Helm chart or by starting the
+	//		trust-manager controller with the "--default-package-location" flag.
+	//
+	//		If no default CA package was configured at startup, specifying this source
+	//		will result in reconciliation failure.
+	//
+	//		The version of the default CA package used for this Bundle is reported in
+	//		status.defaultCAVersion.
+	// - Disabled: No default CAs are used as sources.
+	// +required
+	// +kubebuilder:validation:Enum=System;Disabled
+	Provider string `json:"provider"`
 }
 
 // BundleTarget is the target resource that the Bundle will sync all source
@@ -163,6 +177,9 @@ const (
 	ConfigMapKind string = "ConfigMap"
 
 	SecretKind string = "Secret"
+
+	DefaultCAsProviderDisabled string = "Disabled"
+	DefaultCAsProviderSystem   string = "System"
 )
 
 // SourceReference is a reference to a source object.

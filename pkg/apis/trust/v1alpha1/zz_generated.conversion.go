@@ -119,7 +119,7 @@ func autoConvert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in *BundleSpec, out 
 
 func autoConvert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *v1alpha2.BundleSpec, out *BundleSpec, s conversion.Scope) error {
 	// WARNING: in.SourceRefs requires manual conversion: does not exist in peer-type
-	// WARNING: in.IncludeDefaultCAs requires manual conversion: does not exist in peer-type
+	// WARNING: in.DefaultCAs requires manual conversion: does not exist in peer-type
 	// WARNING: in.InLineCAs requires manual conversion: does not exist in peer-type
 	if err := Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(&in.Target, &out.Target, s); err != nil {
 		return err
