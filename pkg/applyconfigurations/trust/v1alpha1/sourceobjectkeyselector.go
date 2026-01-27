@@ -25,18 +25,18 @@ import (
 // with apply.
 //
 // SourceObjectKeySelector is a reference to a source object and its `data` key(s)
-// in the trust Namespace.
+// in the trust namespace.
 type SourceObjectKeySelectorApplyConfiguration struct {
-	// Name is the name of the source object in the trust Namespace.
+	// name is the name of the source object in the trust namespace.
 	// This field must be left empty when `selector` is set
 	Name *string `json:"name,omitempty"`
-	// Selector is the label selector to use to fetch a list of objects. Must not be set
-	// when `Name` is set.
+	// selector is the label selector to use to fetch a list of objects. Must not be set
+	// when `name` is set.
 	Selector *v1.LabelSelectorApplyConfiguration `json:"selector,omitempty"`
-	// Key of the entry in the object's `data` field to be used.
+	// key of the entry in the object's `data` field to be used.
 	Key *string `json:"key,omitempty"`
-	// IncludeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
-	// This field must not be true when `Key` is set.
+	// includeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
+	// This field must not be true when `key` is set.
 	IncludeAllKeys *bool `json:"includeAllKeys,omitempty"`
 }
 

@@ -26,13 +26,13 @@ import (
 //
 // SourceReference is a reference to a source object.
 type SourceReferenceApplyConfiguration struct {
-	// Kind is the kind of the source object.
+	// kind is the kind of the source object.
 	Kind *string `json:"kind,omitempty"`
-	// Name is the name of the source object in the trust Namespace.
+	// name is the name of the source object in the trust namespace.
 	// This field must be left empty when `selector` is set
 	Name *string `json:"name,omitempty"`
-	// Selector is the label selector to use to fetch a list of objects. Must not be set
-	// when `Name` is set.
+	// selector is the label selector to use to fetch a list of objects. Must not be set
+	// when `name` is set.
 	Selector *v1.LabelSelectorApplyConfiguration `json:"selector,omitempty"`
 }
 

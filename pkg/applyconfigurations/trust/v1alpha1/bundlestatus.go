@@ -26,13 +26,13 @@ import (
 //
 // BundleStatus defines the observed state of the Bundle.
 type BundleStatusApplyConfiguration struct {
-	// List of status conditions to indicate the status of the Bundle.
-	// Known condition types are `Bundle`.
+	// conditions represent the latest available observations of the Bundle's current state.
 	Conditions []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
-	// DefaultCAPackageVersion, if set and non-empty, indicates the version information
-	// which was retrieved when the set of default CAs was requested in the bundle
-	// source. This should only be set if useDefaultCAs was set to "true" on a source,
-	// and will be the same for the same version of a bundle with identical certificates.
+	// defaultCAVersion is the version of the default CA package used when resolving
+	// the default CA source(s) for this Bundle (for example, when any source has
+	// useDefaultCAs set to true), if applicable.
+	// Bundles resolved from identical sets of default CA certificates will report
+	// the same defaultCAVersion value.
 	DefaultCAPackageVersion *string `json:"defaultCAVersion,omitempty"`
 }
 

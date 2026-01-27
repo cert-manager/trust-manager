@@ -26,11 +26,13 @@ import (
 // ClusterBundleApplyConfiguration represents a declarative configuration of the ClusterBundle type for use
 // with apply.
 type ClusterBundleApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	v1.TypeMetaApplyConfiguration `json:",inline"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	// Desired state of the Bundle resource.
+	// spec represents the desired state of the ClusterBundle resource.
 	Spec *BundleSpecApplyConfiguration `json:"spec,omitempty"`
-	// Status of the Bundle. This is set and managed automatically.
+	// status of the ClusterBundle. This is set and managed automatically.
 	Status *BundleStatusApplyConfiguration `json:"status,omitempty"`
 }
 

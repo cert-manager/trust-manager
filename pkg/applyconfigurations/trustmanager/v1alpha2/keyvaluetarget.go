@@ -22,9 +22,9 @@ package v1alpha2
 //
 // KeyValueTarget is the specification of key value target resources as ConfigMaps and Secrets.
 type KeyValueTargetApplyConfiguration struct {
-	// Data is the specification of the object's `data` field.
+	// data is the specification of the object's `data` field.
 	Data []TargetKeyValueApplyConfiguration `json:"data,omitempty"`
-	// Metadata is an optional set of labels and annotations to be copied to the target.
+	// metadata is an optional set of labels and annotations to be copied to the target.
 	Metadata *TargetMetadataApplyConfiguration `json:"metadata,omitempty"`
 }
 

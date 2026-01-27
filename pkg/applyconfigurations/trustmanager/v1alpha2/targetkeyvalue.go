@@ -26,9 +26,9 @@ import (
 //
 // TargetKeyValue is the specification of a key with value in a key-value target resource.
 type TargetKeyValueApplyConfiguration struct {
-	// Key is the key of the entry in the object's `data` field to be used.
+	// key is the key of the entry in the object's `data` field to be used.
 	Key *string `json:"key,omitempty"`
-	// Format defines the format of the target value.
+	// format defines the format of the target value.
 	// The default format is PEM.
 	Format *trustmanagerv1alpha2.BundleFormat `json:"format,omitempty"`
 	// PKCS12 specifies configs for PKCS#12 files.
