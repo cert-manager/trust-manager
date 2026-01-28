@@ -24,7 +24,6 @@ import (
 
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/validation"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -35,26 +34,22 @@ import (
 // validator validates against trust.cert-manager.io resources.
 type validator struct{}
 
-var _ admission.CustomValidator = &validator{}
+var _ admission.Validator[*trustapi.Bundle] = &validator{}
 
-func (v *validator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *validator) ValidateCreate(ctx context.Context, obj *trustapi.Bundle) (admission.Warnings, error) {
 	return v.validate(ctx, obj)
 }
 
-func (v *validator) ValidateUpdate(ctx context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+func (v *validator) ValidateUpdate(ctx context.Context, _, newObj *trustapi.Bundle) (admission.Warnings, error) {
 	return v.validate(ctx, newObj)
 }
 
-func (v *validator) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (v *validator) ValidateDelete(_ context.Context, _ *trustapi.Bundle) (admission.Warnings, error) {
 	// always allow deletes
 	return nil, nil
 }
 
-func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	bundle, ok := obj.(*trustapi.Bundle)
-	if !ok {
-		return nil, fmt.Errorf("expected a Bundle, but got a %T", obj)
-	}
+func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admission.Warnings, error) {
 	log := logf.FromContext(ctx, "name", bundle.Name)
 	log.V(2).Info("received validation request")
 	var (

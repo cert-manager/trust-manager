@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/klog/v2/ktesting"
 	fakeclock "k8s.io/utils/clock/testing"
 	"k8s.io/utils/ptr"
@@ -1590,7 +1590,7 @@ func Test_Reconcile(t *testing.T) {
 				WithStatusSubresource(deepCopyArray(tt.existingBundles)...).
 				Build()
 
-			fakeRecorder := record.NewFakeRecorder(1)
+			fakeRecorder := events.NewFakeRecorder(1)
 
 			var (
 				logMutex        sync.Mutex

@@ -18,11 +18,9 @@ package webhook
 
 import (
 	"context"
-	"fmt"
 
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/validation"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -32,8 +30,7 @@ import (
 )
 
 func (webhook *ClusterBundle) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&trustmanagerapi.ClusterBundle{}).
+	return ctrl.NewWebhookManagedBy(mgr, &trustmanagerapi.ClusterBundle{}).
 		WithValidator(webhook).
 		Complete()
 }
@@ -42,26 +39,22 @@ func (webhook *ClusterBundle) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // available in Kubernetes OpenAPI schema nor CEL.
 type ClusterBundle struct{}
 
-var _ admission.CustomValidator = &ClusterBundle{}
+var _ admission.Validator[*trustmanagerapi.ClusterBundle] = &ClusterBundle{}
 
-func (webhook *ClusterBundle) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (webhook *ClusterBundle) ValidateCreate(ctx context.Context, obj *trustmanagerapi.ClusterBundle) (admission.Warnings, error) {
 	return webhook.validate(ctx, obj)
 }
 
-func (webhook *ClusterBundle) ValidateUpdate(ctx context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+func (webhook *ClusterBundle) ValidateUpdate(ctx context.Context, _, newObj *trustmanagerapi.ClusterBundle) (admission.Warnings, error) {
 	return webhook.validate(ctx, newObj)
 }
 
-func (webhook *ClusterBundle) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *ClusterBundle) ValidateDelete(_ context.Context, _ *trustmanagerapi.ClusterBundle) (admission.Warnings, error) {
 	// always allow deletes
 	return nil, nil
 }
 
-func (webhook *ClusterBundle) validate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	bundle, ok := obj.(*trustmanagerapi.ClusterBundle)
-	if !ok {
-		return nil, fmt.Errorf("expected a ClusterBundle, but got a %T", obj)
-	}
+func (webhook *ClusterBundle) validate(ctx context.Context, bundle *trustmanagerapi.ClusterBundle) (admission.Warnings, error) {
 	log := logf.FromContext(ctx, "name", bundle.Name)
 	log.V(2).Info("received validation request")
 	var (
