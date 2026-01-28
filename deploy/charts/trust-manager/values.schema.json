@@ -191,6 +191,9 @@
     "helm-values.app.metrics": {
       "additionalProperties": false,
       "properties": {
+        "podmonitor": {
+          "$ref": "#/$defs/helm-values.app.metrics.podmonitor"
+        },
         "port": {
           "$ref": "#/$defs/helm-values.app.metrics.port"
         },
@@ -199,6 +202,60 @@
         }
       },
       "type": "object"
+    },
+    "helm-values.app.metrics.podmonitor": {
+      "type": "object",
+      "properties": {
+        "annotations": {
+          "$ref": "#/$defs/helm-values.app.metrics.podmonitor.annotations"
+        },
+        "enabled": {
+          "$ref": "#/$defs/helm-values.app.metrics.podmonitor.enabled"
+        },
+        "interval": {
+          "$ref": "#/$defs/helm-values.app.metrics.podmonitor.interval"
+        },
+        "labels": {
+          "$ref": "#/$defs/helm-values.app.metrics.podmonitor.labels"
+        },
+        "prometheusInstance": {
+          "$ref": "#/$defs/helm-values.app.metrics.podmonitor.prometheusInstance"
+        },
+        "scrapeTimeout": {
+          "$ref": "#/$defs/helm-values.app.metrics.podmonitor.scrapeTimeout"
+        }
+      },
+      "additionalProperties": false
+    },
+    "helm-values.app.metrics.podmonitor.annotations": {
+      "description": "Additional annotations to add to the PodMonitor.",
+      "type": "object",
+      "default": {}
+    },
+    "helm-values.app.metrics.podmonitor.enabled": {
+      "description": "The PodMonitor resource for this Service.",
+      "type": "boolean",
+      "default": false
+    },
+    "helm-values.app.metrics.podmonitor.interval": {
+      "description": "The interval to scrape metrics.",
+      "type": "string",
+      "default": "10s"
+    },
+    "helm-values.app.metrics.podmonitor.labels": {
+      "description": "Additional labels to add to the PodMonitor.",
+      "type": "object",
+      "default": {}
+    },
+    "helm-values.app.metrics.podmonitor.prometheusInstance": {
+      "description": "Specifies the `prometheus` label on the created PodMonitor. This is used when different Prometheus instances have label selectors matching different PodMonitors.",
+      "type": "string",
+      "default": "default"
+    },
+    "helm-values.app.metrics.podmonitor.scrapeTimeout": {
+      "description": "The timeout before a metrics scrape fails.",
+      "type": "string",
+      "default": "5s"
     },
     "helm-values.app.metrics.port": {
       "default": 9402,
