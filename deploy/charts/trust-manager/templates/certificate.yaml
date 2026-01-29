@@ -38,9 +38,7 @@ spec:
   {{- end }}
   {{- with .Values.app.webhook.tls.certificate.privateKey }}
   privateKey:
-    {{- with .rotationPolicy }}
-    rotationPolicy: {{ . }}
-    {{- end }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
   revisionHistoryLimit: 1
   issuerRef:
