@@ -535,6 +535,13 @@ The name of cert-manager's Service Account. Only used if `app.webhook.tls.approv
 > ```yaml
 > {}
 > ```
+#### **app.webhook.tls.certificate.privateKey.rotationPolicy** ~ `string`
+> Default value:
+> ```yaml
+> Always
+> ```
+
+The rotation policy for the private key. When set to Always, the private key will be regenerated when the certificate is renewed.
 #### **app.webhook.hostNetwork** ~ `bool`
 > Default value:
 > ```yaml
