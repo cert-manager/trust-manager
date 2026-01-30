@@ -513,7 +513,11 @@
     },
     "helm-values.app.webhook.tls.certificate.privateKey.rotationPolicy": {
       "default": "Always",
-      "description": "The rotation policy for the private key. When set to Always, the private key will be regenerated when the certificate is renewed.",
+      "description": "The rotation policy for the private key. Valid values are \"Always\" and \"Never\". When set to Always, the private key will be regenerated when the certificate is renewed.",
+      "enum": [
+        "Always",
+        "Never"
+      ],
       "type": "string"
     },
     "helm-values.app.webhook.tls.certificate.secretTemplate": {
