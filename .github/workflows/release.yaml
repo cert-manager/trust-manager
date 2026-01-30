@@ -23,7 +23,7 @@ jobs:
         run: |
           make print-go-version >> "$GITHUB_OUTPUT"
 
-      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: quay.io
           username: ${{ secrets.QUAY_USERNAME }}
