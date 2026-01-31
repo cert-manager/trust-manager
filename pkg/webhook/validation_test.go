@@ -20,9 +20,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2/ktesting"
 	"k8s.io/utils/ptr"
@@ -33,14 +31,10 @@ import (
 
 func Test_validate(t *testing.T) {
 	tests := map[string]struct {
-		bundle      runtime.Object
+		bundle      *trustapi.Bundle
 		expErr      *string
 		expWarnings admission.Warnings
 	}{
-		"if the object being validated is not a Bundle, return an error": {
-			bundle: &corev1.Pod{},
-			expErr: ptr.To("expected a Bundle, but got a *v1.Pod"),
-		},
 		"no sources, no target": {
 			bundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{},
@@ -498,8 +492,8 @@ func Test_validate(t *testing.T) {
 
 func Test_validate_update(t *testing.T) {
 	tests := map[string]struct {
-		oldBundle   runtime.Object
-		newBundle   runtime.Object
+		oldBundle   *trustapi.Bundle
+		newBundle   *trustapi.Bundle
 		expErr      *string
 		expWarnings admission.Warnings
 	}{
