@@ -62,6 +62,7 @@ type ClusterBundleList struct {
 }
 
 // BundleSpec defines the desired state of a Bundle.
+// +kubebuilder:validation:MinProperties=1
 type BundleSpec struct {
 	// sourceRefs is a list of references to resources whose data will be appended and synced into
 	// the bundle target resources.
@@ -77,6 +78,8 @@ type BundleSpec struct {
 
 	// inLineCAs is a simple string to append as the source data.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1048576
 	InLineCAs *string `json:"inLineCAs,omitempty"`
 
 	// target is the target location in all namespaces to sync source data to.
@@ -95,6 +98,7 @@ type BundleSourceRef struct {
 	// A value of "*" matches all entries in the data field.
 	// +required
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.\-*]+$`
 	Key string `json:"key"`
 }
@@ -122,7 +126,7 @@ type DefaultCAsSource struct {
 
 // BundleTarget is the target resource that the Bundle will sync all source
 // data to.
-// +kubebuilder:validation:XValidation:rule="[has(self.configMap), has(self.secret)].exists(x,x)", message="any of the following fields must be provided: [configMap, secret]"
+// +kubebuilder:validation:AtLeastOneOf=configMap;secret
 type BundleTarget struct {
 	// configMap is the target ConfigMap in Namespaces that all Bundle source data will be synced to.
 	// +optional
@@ -141,10 +145,12 @@ type BundleTarget struct {
 
 // PKCS12 specifies configs for target PKCS#12 files.
 // +structType=atomic
+// +kubebuilder:validation:MinProperties=0
 type PKCS12 struct {
 	// password for PKCS12 trust store.
 	// By default, no password is used (password-less PKCS#12).
 	// +optional
+	// +kubebuilder:validation:MinLength=0
 	// +kubebuilder:validation:MaxLength=128
 	Password *string `json:"password,omitempty"`
 
@@ -184,7 +190,7 @@ const (
 
 // SourceReference is a reference to a source object.
 // +structType=atomic
-// +kubebuilder:validation:XValidation:rule="[has(self.name), has(self.selector)].exists_one(x,x)", message="exactly one of the following fields must be provided: [name, selector]"
+// +kubebuilder:validation:ExactlyOneOf=name;selector
 type SourceReference struct {
 	// kind is the kind of the source object.
 	// +required
@@ -243,6 +249,7 @@ type TargetKeyValue struct {
 	// key is the key of the entry in the object's `data` field to be used.
 	// +required
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.\-]+$`
 	Key string `json:"key"`
 
@@ -269,24 +276,30 @@ const (
 
 // TargetMetadata defines the default labels and annotations
 // to be copied to the Kubernetes Secret or ConfigMap bundle targets.
+// +kubebuilder:validation:MinProperties=1
 type TargetMetadata struct {
 	// annotations is a key value map to be copied to the target.
 	// +optional
+	// +kubebuilder:validation:MinProperties=1
 	// +kubebuilder:validation:XValidation:rule="self.all(k, !k.startsWith('trust-manager.io/'))", reason=FieldValueForbidden, message="must not use forbidden domains as prefixes (e.g., trust-manager.io)"
 	Annotations map[string]string `json:"annotations,omitempty"`
 
 	// labels is a key value map to be copied to the target.
 	// +optional
+	// +kubebuilder:validation:MinProperties=1
 	// +kubebuilder:validation:XValidation:rule="self.all(k, !k.startsWith('trust-manager.io/'))", reason=FieldValueForbidden, message="must not use forbidden domains as prefixes (e.g., trust-manager.io)"
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // BundleStatus defines the observed state of the Bundle.
+// +kubebuilder:validation:MinProperties=1
 type BundleStatus struct {
 	// conditions represent the latest available observations of the ClusterBundle's current state.
 	// +listType=map
 	// +listMapKey=type
 	// +optional
+	// +kubebuilder:validation:MinItems=0
+	// +kubebuilder:validation:MaxItems=10
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// defaultCAVersion is the version of the default CA package used for this ClusterBundle
@@ -295,6 +308,8 @@ type BundleStatus struct {
 	// ClusterBundles resolved from identical sets of default CA certificates will report
 	// the same defaultCAVersion value.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	DefaultCAPackageVersion *string `json:"defaultCAVersion,omitempty"`
 }
 
