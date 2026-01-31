@@ -80,12 +80,14 @@ spec:
                         key:
                           description: key of the entry in the object's `data` field
                             to be used.
+                          maxLength: 253
                           minLength: 1
                           type: string
                         name:
                           description: |-
                             name is the name of the source object in the trust namespace.
                             This field must be left empty when `selector` is set
+                          maxLength: 253
                           minLength: 1
                           type: string
                         selector:
@@ -138,9 +140,16 @@ spec:
                           x-kubernetes-map-type: atomic
                       type: object
                       x-kubernetes-map-type: atomic
+                      x-kubernetes-validations:
+                      - message: exactly one of the fields in [name selector] must
+                          be set
+                        rule: '[has(self.name),has(self.selector)].filter(x,x==true).size()
+                          == 1'
                     inLine:
                       description: inLine is a simple string to append as the source
                         data.
+                      maxLength: 1048576
+                      minLength: 1
                       type: string
                     secret:
                       description: |-
@@ -155,12 +164,14 @@ spec:
                         key:
                           description: key of the entry in the object's `data` field
                             to be used.
+                          maxLength: 253
                           minLength: 1
                           type: string
                         name:
                           description: |-
                             name is the name of the source object in the trust namespace.
                             This field must be left empty when `selector` is set
+                          maxLength: 253
                           minLength: 1
                           type: string
                         selector:
@@ -213,6 +224,11 @@ spec:
                           x-kubernetes-map-type: atomic
                       type: object
                       x-kubernetes-map-type: atomic
+                      x-kubernetes-validations:
+                      - message: exactly one of the fields in [name selector] must
+                          be set
+                        rule: '[has(self.name),has(self.selector)].filter(x,x==true).size()
+                          == 1'
                     useDefaultCAs:
                       description: |-
                         useDefaultCAs indicates whether the default CA bundle should be used as a source.
@@ -226,6 +242,11 @@ spec:
                       type: boolean
                   type: object
                   x-kubernetes-map-type: atomic
+                  x-kubernetes-validations:
+                  - message: exactly one of the fields in [configMap secret inLine
+                      useDefaultCAs] must be set
+                    rule: '[has(self.configMap),has(self.secret),has(self.inLine),has(self.useDefaultCAs)].filter(x,x==true).size()
+                      == 1'
                 maxItems: 100
                 minItems: 1
                 type: array
@@ -245,10 +266,12 @@ spec:
                           For more information refer to this link https://cert-manager.io/docs/faq/#keystore-passwords
                           Format is deprecated: Writing JKS is subject for removal. Please migrate to PKCS12.
                           PKCS#12 trust stores created by trust-manager are compatible with Java.
+                        minProperties: 1
                         properties:
                           key:
                             description: key is the key of the entry in the object's
                               `data` field to be used.
+                            maxLength: 253
                             minLength: 1
                             type: string
                           password:
@@ -267,16 +290,19 @@ spec:
 
                           The bundle is by default created without a password.
                           For more information refer to this link https://cert-manager.io/docs/faq/#keystore-passwords
+                        minProperties: 1
                         properties:
                           key:
                             description: key is the key of the entry in the object's
                               `data` field to be used.
+                            maxLength: 253
                             minLength: 1
                             type: string
                           password:
                             default: ""
                             description: password for PKCS12 trust store
                             maxLength: 128
+                            minLength: 0
                             type: string
                           profile:
                             description: |-
@@ -299,6 +325,11 @@ spec:
                         type: object
                         x-kubernetes-map-type: atomic
                     type: object
+                    x-kubernetes-validations:
+                    - message: at least one of the fields in [jks pkcs12] must be
+                        set
+                      rule: '[has(self.jks),has(self.pkcs12)].filter(x,x==true).size()
+                        >= 1'
                   configMap:
                     description: |-
                       configMap is the target ConfigMap in Namespaces that all Bundle source
@@ -307,23 +338,27 @@ spec:
                       key:
                         description: key is the key of the entry in the object's `data`
                           field to be used.
+                        maxLength: 253
                         minLength: 1
                         type: string
                       metadata:
                         description: metadata is an optional set of labels and annotations
                           to be copied to the target.
+                        minProperties: 1
                         properties:
                           annotations:
                             additionalProperties:
                               type: string
                             description: annotations is a key value map to be copied
                               to the target.
+                            minProperties: 1
                             type: object
                           labels:
                             additionalProperties:
                               type: string
                             description: labels is a key value map to be copied to
                               the target.
+                            minProperties: 1
                             type: object
                         type: object
                     required:
@@ -386,34 +421,44 @@ spec:
                       key:
                         description: key is the key of the entry in the object's `data`
                           field to be used.
+                        maxLength: 253
                         minLength: 1
                         type: string
                       metadata:
                         description: metadata is an optional set of labels and annotations
                           to be copied to the target.
+                        minProperties: 1
                         properties:
                           annotations:
                             additionalProperties:
                               type: string
                             description: annotations is a key value map to be copied
                               to the target.
+                            minProperties: 1
                             type: object
                           labels:
                             additionalProperties:
                               type: string
                             description: labels is a key value map to be copied to
                               the target.
+                            minProperties: 1
                             type: object
                         type: object
                     required:
                     - key
                     type: object
                 type: object
+                x-kubernetes-validations:
+                - message: at least one of the fields in [configMap secret] must be
+                    set
+                  rule: '[has(self.configMap),has(self.secret)].filter(x,x==true).size()
+                    >= 1'
             required:
             - sources
             type: object
           status:
             description: status of the Bundle. This is set and managed automatically.
+            minProperties: 1
             properties:
               conditions:
                 description: conditions represent the latest available observations
@@ -472,6 +517,8 @@ spec:
                   - status
                   - type
                   type: object
+                maxItems: 10
+                minItems: 0
                 type: array
                 x-kubernetes-list-map-keys:
                 - type
@@ -483,6 +530,8 @@ spec:
                   useDefaultCAs set to true), if applicable.
                   Bundles resolved from identical sets of default CA certificates will report
                   the same defaultCAVersion value.
+                maxLength: 253
+                minLength: 1
                 type: string
             type: object
         required:

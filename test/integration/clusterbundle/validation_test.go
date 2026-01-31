@@ -90,11 +90,11 @@ var _ = Describe("ClusterBundle Validation", func() {
 			Entry("when kind ConfigMap", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind, Name: "ca"}, ""),
 			Entry("when kind Secret", trustmanagerapi.SourceReference{Kind: trustmanagerapi.SecretKind, Name: "ca"}, ""),
 			Entry("when kind unknown", trustmanagerapi.SourceReference{Kind: "OtherKind", Name: "ca"}, "spec.sourceRefs[0].kind: Unsupported value: \"OtherKind\": supported values: \"ConfigMap\", \"Secret\""),
-			Entry("when no name nor selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind}, "spec.sourceRefs[0]: Invalid value: exactly one of the following fields must be provided: [name, selector"),
+			Entry("when no name nor selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind}, "spec.sourceRefs[0]: Invalid value: exactly one of the fields in [name selector] must be set"),
 			Entry("when name set", trustmanagerapi.SourceReference{Name: "ca", Kind: trustmanagerapi.ConfigMapKind}, ""),
 			Entry("when selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind, Selector: &metav1.LabelSelector{}}, ""),
 			Entry("when invalid selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind, Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"@@@@": "test"}}}, "spec.sourceRefs[0].selector.matchLabels: Invalid value: \"@@@@\": name part must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')"),
-			Entry("when name and selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind, Name: "ca", Selector: &metav1.LabelSelector{}}, "spec.sourceRefs[0]: Invalid value: exactly one of the following fields must be provided: [name, selector"),
+			Entry("when name and selector set", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind, Name: "ca", Selector: &metav1.LabelSelector{}}, "spec.sourceRefs[0]: Invalid value: exactly one of the fields in [name selector] must be set"),
 		)
 	})
 
@@ -131,7 +131,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 		)
 
 		It("should require a target if namespace selector set", func() {
-			expectedErr := "spec.target: Invalid value: any of the following fields must be provided: [configMap, secret]"
+			expectedErr := "spec.target: Invalid value: at least one of the fields in [configMap secret] must be set"
 			Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
 		})
 

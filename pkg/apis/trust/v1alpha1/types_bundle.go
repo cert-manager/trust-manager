@@ -78,6 +78,7 @@ type BundleSpec struct {
 // BundleSource is the set of sources whose data will be appended and synced to
 // the BundleTarget in all Namespaces.
 // +structType=atomic
+// +kubebuilder:validation:ExactlyOneOf=configMap;secret;inLine;useDefaultCAs
 type BundleSource struct {
 	// configMap is a reference (by name) to a ConfigMap's `data` key(s), or to a
 	// list of ConfigMap's `data` key(s) using label selector, in the trust namespace.
@@ -91,6 +92,8 @@ type BundleSource struct {
 
 	// inLine is a simple string to append as the source data.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1048576
 	InLine *string `json:"inLine,omitempty"`
 
 	// useDefaultCAs indicates whether the default CA bundle should be used as a source.
@@ -107,6 +110,7 @@ type BundleSource struct {
 
 // BundleTarget is the target resource that the Bundle will sync all source
 // data to.
+// +kubebuilder:validation:AtLeastOneOf=configMap;secret
 type BundleTarget struct {
 	// configMap is the target ConfigMap in Namespaces that all Bundle source
 	// data will be synced to.
@@ -130,6 +134,7 @@ type BundleTarget struct {
 }
 
 // AdditionalFormats specifies any additional formats to write to the target
+// +kubebuilder:validation:AtLeastOneOf=jks;pkcs12
 type AdditionalFormats struct {
 	// jks requests a JKS-formatted binary trust bundle to be written to the target.
 	// The bundle has "changeit" as the default password.
@@ -148,6 +153,7 @@ type AdditionalFormats struct {
 
 // JKS specifies additional target JKS files
 // +structType=atomic
+// +kubebuilder:validation:MinProperties=1
 type JKS struct {
 	KeySelector `json:",inline"`
 
@@ -161,11 +167,13 @@ type JKS struct {
 
 // PKCS12 specifies additional target PKCS#12 files
 // +structType=atomic
+// +kubebuilder:validation:MinProperties=1
 type PKCS12 struct {
 	KeySelector `json:",inline"`
 
 	// password for PKCS12 trust store
 	// +optional
+	// +kubebuilder:validation:MinLength=0
 	// +kubebuilder:validation:MaxLength=128
 	// +kubebuilder:default=""
 	Password *string `json:"password,omitempty"`
@@ -200,11 +208,13 @@ const (
 // SourceObjectKeySelector is a reference to a source object and its `data` key(s)
 // in the trust namespace.
 // +structType=atomic
+// +kubebuilder:validation:ExactlyOneOf=name;selector
 type SourceObjectKeySelector struct {
 	// name is the name of the source object in the trust namespace.
 	// This field must be left empty when `selector` is set
 	// +optional
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	Name string `json:"name,omitempty"`
 
 	// selector is the label selector to use to fetch a list of objects. Must not be set
@@ -215,6 +225,7 @@ type SourceObjectKeySelector struct {
 	// key of the entry in the object's `data` field to be used.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	Key string `json:"key,omitempty"`
 
 	// includeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
@@ -228,6 +239,7 @@ type TargetTemplate struct {
 	// key is the key of the entry in the object's `data` field to be used.
 	// +required
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	Key string `json:"key"`
 
 	// metadata is an optional set of labels and annotations to be copied to the target.
@@ -256,27 +268,34 @@ type KeySelector struct {
 	// key is the key of the entry in the object's `data` field to be used.
 	// +required
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	Key string `json:"key"`
 }
 
 // TargetMetadata defines the default labels and annotations
 // to be copied to the Kubernetes Secret or ConfigMap bundle targets.
+// +kubebuilder:validation:MinProperties=1
 type TargetMetadata struct {
 	// annotations is a key value map to be copied to the target.
 	// +optional
+	// +kubebuilder:validation:MinProperties=1
 	Annotations map[string]string `json:"annotations,omitempty"`
 
 	// labels is a key value map to be copied to the target.
 	// +optional
+	// +kubebuilder:validation:MinProperties=1
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // BundleStatus defines the observed state of the Bundle.
+// +kubebuilder:validation:MinProperties=1
 type BundleStatus struct {
 	// conditions represent the latest available observations of the Bundle's current state.
 	// +listType=map
 	// +listMapKey=type
 	// +optional
+	// +kubebuilder:validation:MinItems=0
+	// +kubebuilder:validation:MaxItems=10
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// defaultCAVersion is the version of the default CA package used when resolving
@@ -285,6 +304,8 @@ type BundleStatus struct {
 	// Bundles resolved from identical sets of default CA certificates will report
 	// the same defaultCAVersion value.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	DefaultCAPackageVersion *string `json:"defaultCAVersion,omitempty"`
 }
 
