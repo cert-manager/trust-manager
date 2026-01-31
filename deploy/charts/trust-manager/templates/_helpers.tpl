@@ -77,7 +77,7 @@ Namespaced resources rules
   verbs: ["get","list","create","patch","watch","delete"]
 
 - apiGroups:
-  - ""
+  - "events.k8s.io"
   resources:
   - "events"
   verbs: ["create","patch"]
