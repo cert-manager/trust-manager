@@ -73,7 +73,7 @@ type BundleSpec struct {
 
 	// defaultCAs configures the use of a default CA bundle as a trust source.
 	// +optional
-	DefaultCAs *DefaultCAsSource `json:"defaultCAs,omitempty"`
+	DefaultCAs DefaultCAsSource `json:"defaultCAs,omitzero"`
 
 	// inLineCAs is a simple string to append as the source data.
 	// +optional

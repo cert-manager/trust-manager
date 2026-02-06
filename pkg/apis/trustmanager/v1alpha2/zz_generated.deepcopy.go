@@ -51,11 +51,7 @@ func (in *BundleSpec) DeepCopyInto(out *BundleSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.DefaultCAs != nil {
-		in, out := &in.DefaultCAs, &out.DefaultCAs
-		*out = new(DefaultCAsSource)
-		**out = **in
-	}
+	out.DefaultCAs = in.DefaultCAs
 	if in.InLineCAs != nil {
 		in, out := &in.InLineCAs, &out.InLineCAs
 		*out = new(string)
