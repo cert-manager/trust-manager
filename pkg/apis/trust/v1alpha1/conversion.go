@@ -141,17 +141,12 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 		return err
 	}
 
-	// No targets defined; we are done
-	if *out == (trustv1alpha2.BundleTarget{}) {
-		return nil
-	}
-
 	if in.AdditionalFormats != nil {
 		appendTargetKV := func(tkv trustv1alpha2.TargetKeyValue) {
-			if in.ConfigMap != nil {
+			if in.ConfigMap != (TargetTemplate{}) {
 				out.ConfigMap.Data = append(out.ConfigMap.Data, tkv)
 			}
-			if in.Secret != nil {
+			if in.Secret != (TargetTemplate{}) {
 				out.Secret.Data = append(out.Secret.Data, tkv)
 			}
 		}
@@ -185,7 +180,7 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 		}
 	}
 
-	if in.NamespaceSelector == nil {
+	if *in != (BundleTarget{}) && in.NamespaceSelector == nil {
 		// NamespaceSelector is required in v1alpha2
 		out.NamespaceSelector = &metav1.LabelSelector{}
 	}
@@ -193,6 +188,10 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 }
 
 func Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(in *TargetTemplate, out *trustv1alpha2.KeyValueTarget, scope apimachineryconversion.Scope) error {
+	if *in == (TargetTemplate{}) {
+		return nil
+	}
+
 	out.Data = []trustv1alpha2.TargetKeyValue{{Key: in.Key}}
 	if in.Metadata != nil {
 		out.Metadata = &trustv1alpha2.TargetMetadata{}
@@ -293,12 +292,8 @@ func Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *trustv1alpha2.Bu
 	}
 
 	var targetKeyValues []trustv1alpha2.TargetKeyValue
-	if in.Secret != nil {
-		targetKeyValues = append(targetKeyValues, in.Secret.Data...)
-	}
-	if in.ConfigMap != nil {
-		targetKeyValues = append(targetKeyValues, in.ConfigMap.Data...)
-	}
+	targetKeyValues = append(targetKeyValues, in.Secret.Data...)
+	targetKeyValues = append(targetKeyValues, in.ConfigMap.Data...)
 
 	obj := scope.Meta().Context.(*Bundle)
 

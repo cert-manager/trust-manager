@@ -473,7 +473,7 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 
 			spec := trustapi.BundleSpec{
 				Target: trustapi.BundleTarget{
-					ConfigMap:         &trustapi.TargetTemplate{Key: key},
+					ConfigMap:         trustapi.TargetTemplate{Key: key},
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
@@ -925,7 +925,7 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 
 			spec := trustapi.BundleSpec{
 				Target: trustapi.BundleTarget{
-					Secret:            &trustapi.TargetTemplate{Key: key},
+					Secret:            trustapi.TargetTemplate{Key: key},
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}

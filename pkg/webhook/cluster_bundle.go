@@ -80,12 +80,8 @@ func (webhook *ClusterBundle) validateSourceRef(sourceRef trustmanagerapi.Bundle
 func (webhook *ClusterBundle) validateTarget(target trustmanagerapi.BundleTarget, fldPath *field.Path) field.ErrorList {
 	var el field.ErrorList
 
-	if target.ConfigMap != nil {
-		el = append(el, webhook.validateTargetMetadata(target.ConfigMap.Metadata, fldPath.Child("configMap", "metadata"))...)
-	}
-	if target.Secret != nil {
-		el = append(el, webhook.validateTargetMetadata(target.Secret.Metadata, fldPath.Child("secret", "metadata"))...)
-	}
+	el = append(el, webhook.validateTargetMetadata(target.ConfigMap.Metadata, fldPath.Child("configMap", "metadata"))...)
+	el = append(el, webhook.validateTargetMetadata(target.Secret.Metadata, fldPath.Child("secret", "metadata"))...)
 	el = append(el, validation.ValidateLabelSelector(target.NamespaceSelector, validation.LabelSelectorValidationOptions{}, fldPath.Child("namespaceSelector"))...)
 
 	return el

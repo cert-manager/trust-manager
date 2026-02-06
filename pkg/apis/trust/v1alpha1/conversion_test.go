@@ -134,7 +134,7 @@ func spokeSourceObjectKeySelectorFuzzer(obj *SourceObjectKeySelector, c randfill
 func spokeBundleTargetFuzzer(obj *BundleTarget, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
-	if (obj.Secret == nil || obj.Secret.Key == "") && (obj.ConfigMap == nil || obj.ConfigMap.Key == "") {
+	if obj.Secret.Key == "" && obj.ConfigMap.Key == "" {
 		// Key is a mandatory field
 		obj.AdditionalFormats = nil
 	}
@@ -177,11 +177,7 @@ func hubDefaultCAsFuzzer(obj *trustmanagerapi.DefaultCAsSource, c randfill.Conti
 func hubBundleTargetFuzzer(obj *trustmanagerapi.BundleTarget, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
-	normalizeTarget := func(target *trustmanagerapi.KeyValueTarget) *trustmanagerapi.KeyValueTarget {
-		if target == nil {
-			return nil
-		}
-
+	normalizeTarget := func(target trustmanagerapi.KeyValueTarget) trustmanagerapi.KeyValueTarget {
 		target.Data = slices.DeleteFunc(target.Data, func(tkv trustmanagerapi.TargetKeyValue) bool {
 			if tkv.Key == "" {
 				// Key is a mandatory field
@@ -205,9 +201,9 @@ func hubBundleTargetFuzzer(obj *trustmanagerapi.BundleTarget, c randfill.Continu
 			target.Data[i] = tkv
 		}
 
-		if !pemFound {
+		if !pemFound || len(target.Data) == 0 {
 			// No default format (PEM) keys found, which is not supported by v1alpha1 targets
-			return nil
+			return trustmanagerapi.KeyValueTarget{}
 		}
 		return target
 	}
