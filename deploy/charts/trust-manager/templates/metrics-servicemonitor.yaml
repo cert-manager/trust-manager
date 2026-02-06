@@ -28,4 +28,7 @@ spec:
     path: "/metrics"
     interval: {{ .Values.app.metrics.service.servicemonitor.interval }}
     scrapeTimeout: {{ .Values.app.metrics.service.servicemonitor.scrapeTimeout }}
+    {{- with .Values.app.metrics.service.servicemonitor.endpointAdditionalProperties }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 {{- end }}
