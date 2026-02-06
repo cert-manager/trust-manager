@@ -62,6 +62,7 @@ type ClusterBundleList struct {
 }
 
 // BundleSpec defines the desired state of a Bundle.
+// +kubebuilder:validation:MinProperties=1
 type BundleSpec struct {
 	// sourceRefs is a list of references to resources whose data will be appended and synced into
 	// the bundle target resources.
@@ -282,6 +283,7 @@ type TargetMetadata struct {
 }
 
 // BundleStatus defines the observed state of the Bundle.
+// +kubebuilder:validation:MinProperties=1
 type BundleStatus struct {
 	// conditions represent the latest available observations of the ClusterBundle's current state.
 	// +listType=map
