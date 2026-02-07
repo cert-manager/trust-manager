@@ -21,7 +21,6 @@ linters:
               - arrayofstruct # Ensures arrays of structs have at least one required field
               - nonpointerstructs # Ensures non-pointer structs are marked correctly with required/optional markers
               - optionalfields # Validates optional field conventions
-              - requiredfields # Validates required field conventions
           lintersConfig:
             conditions:
               useProtobuf: Forbid

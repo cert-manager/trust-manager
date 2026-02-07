@@ -100,7 +100,7 @@ type BundleSourceRef struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.\-*]+$`
-	Key string `json:"key"`
+	Key string `json:"key,omitempty"`
 }
 
 // DefaultCAsSource configures the use of a default CA bundle as a trust source.
@@ -121,7 +121,7 @@ type DefaultCAsSource struct {
 	// - Disabled: No default CAs are used as sources.
 	// +required
 	// +kubebuilder:validation:Enum=System;Disabled
-	Provider string `json:"provider"`
+	Provider string `json:"provider,omitempty"`
 }
 
 // BundleTarget is the target resource that the Bundle will sync all source
@@ -140,7 +140,7 @@ type BundleTarget struct {
 
 	// namespaceSelector specifies the namespaces where target resources will be synced.
 	// +required
-	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector"`
+	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 }
 
 // PKCS12 specifies configs for target PKCS#12 files.
@@ -195,7 +195,7 @@ type SourceReference struct {
 	// kind is the kind of the source object.
 	// +required
 	// +kubebuilder:validation:Enum=ConfigMap;Secret
-	Kind string `json:"kind"`
+	Kind string `json:"kind,omitempty"`
 
 	// name is the name of the source object in the trust namespace.
 	// This field must be left empty when `selector` is set
@@ -218,7 +218,7 @@ type KeyValueTarget struct {
 	// +listMapKey=key
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=10
-	Data []TargetKeyValue `json:"data"`
+	Data []TargetKeyValue `json:"data,omitempty"`
 
 	// metadata is an optional set of labels and annotations to be copied to the target.
 	// +optional
@@ -251,7 +251,7 @@ type TargetKeyValue struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.\-]+$`
-	Key string `json:"key"`
+	Key string `json:"key,omitempty"`
 
 	// format defines the format of the target value.
 	// The default format is PEM.
