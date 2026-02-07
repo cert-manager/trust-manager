@@ -19,7 +19,6 @@ package webhook
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
@@ -62,7 +61,7 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 	defaultCAsCount := 0
 
 	for i, source := range bundle.Spec.Sources {
-		path := path.Child("sources").Child("[" + strconv.Itoa(i) + "]")
+		path := path.Child("sources").Index(i)
 
 		unionCount := 0
 
@@ -146,7 +145,10 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
 			if source.ConfigMap != nil && source.ConfigMap.Name == bundle.Name && source.ConfigMap.Key == target.Key {
-				el = append(el, field.Forbidden(path.Child(fmt.Sprintf("[%d]", i), "configMap", source.ConfigMap.Name, source.ConfigMap.Key), "cannot define the same source as target"))
+				el = append(el, field.Forbidden(
+					path.Index(i).Child("configMap", source.ConfigMap.Name, source.ConfigMap.Key),
+					"cannot define the same source as target",
+				))
 			}
 		}
 	}
@@ -155,7 +157,10 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
 			if source.Secret != nil && source.Secret.Name == bundle.Name && source.Secret.Key == target.Key {
-				el = append(el, field.Forbidden(path.Child(fmt.Sprintf("[%d]", i), "secret", source.Secret.Name, source.Secret.Key), "cannot define the same source as target"))
+				el = append(el, field.Forbidden(
+					path.Index(i).Child("secret", source.Secret.Name, source.Secret.Key),
+					"cannot define the same source as target",
+				))
 			}
 		}
 	}
@@ -186,7 +191,10 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 		for f, selector := range formats {
 			if selector != nil {
 				if _, ok := targetKeys[selector.Key]; ok {
-					el = append(el, field.Invalid(path.Child("target", "additionalFormats", f, "key"), selector.Key, "key must be unique in target configMap"))
+					el = append(el, field.Invalid(
+						path.Child("target", "additionalFormats", f, "key"), selector.Key,
+						"key must be unique in target configMap",
+					))
 				}
 				targetKeys[selector.Key] = struct{}{}
 			}
@@ -194,10 +202,12 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 	}
 
 	if bundle.Spec.Target.ConfigMap != nil {
-		el = append(el, validateTargetMetadata(bundle.Spec.Target.ConfigMap.Metadata, path.Child("target", "configMap", "metadata"))...)
+		errs := validateTargetMetadata(bundle.Spec.Target.ConfigMap.Metadata, path.Child("target", "configMap", "metadata"))
+		el = append(el, errs...)
 	}
 	if bundle.Spec.Target.Secret != nil {
-		el = append(el, validateTargetMetadata(bundle.Spec.Target.Secret.Metadata, path.Child("target", "secret", "metadata"))...)
+		errs := validateTargetMetadata(bundle.Spec.Target.Secret.Metadata, path.Child("target", "secret", "metadata"))
+		el = append(el, errs...)
 	}
 
 	errs := validation.ValidateLabelSelector(bundle.Spec.Target.NamespaceSelector, validation.LabelSelectorValidationOptions{}, path.Child("target", "namespaceSelector"))
