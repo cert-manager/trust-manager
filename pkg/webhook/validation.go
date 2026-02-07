@@ -141,7 +141,7 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 		))
 	}
 
-	if target := bundle.Spec.Target.ConfigMap; target != (trustapi.TargetTemplate{}) {
+	if target := bundle.Spec.Target.ConfigMap; target != nil {
 		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
 			if source.ConfigMap != nil && source.ConfigMap.Name == bundle.Name && source.ConfigMap.Key == target.Key {
@@ -153,7 +153,7 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 		}
 	}
 
-	if target := bundle.Spec.Target.Secret; target != (trustapi.TargetTemplate{}) {
+	if target := bundle.Spec.Target.Secret; target != nil {
 		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
 			if source.Secret != nil && source.Secret.Name == bundle.Name && source.Secret.Key == target.Key {
@@ -171,10 +171,10 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 
 		var formats = make(map[string]*trustapi.KeySelector)
 		targetKeys := map[string]struct{}{}
-		if configMap != (trustapi.TargetTemplate{}) {
+		if configMap != nil {
 			targetKeys[configMap.Key] = struct{}{}
 		}
-		if secret != (trustapi.TargetTemplate{}) {
+		if secret != nil {
 			targetKeys[secret.Key] = struct{}{}
 		}
 
@@ -201,8 +201,12 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 		}
 	}
 
-	el = append(el, validateTargetMetadata(bundle.Spec.Target.ConfigMap.Metadata, path.Child("target", "configMap", "metadata"))...)
-	el = append(el, validateTargetMetadata(bundle.Spec.Target.Secret.Metadata, path.Child("target", "secret", "metadata"))...)
+	if bundle.Spec.Target.ConfigMap != nil {
+		el = append(el, validateTargetMetadata(bundle.Spec.Target.ConfigMap.Metadata, path.Child("target", "configMap", "metadata"))...)
+	}
+	if bundle.Spec.Target.Secret != nil {
+		el = append(el, validateTargetMetadata(bundle.Spec.Target.Secret.Metadata, path.Child("target", "secret", "metadata"))...)
+	}
 
 	errs := validation.ValidateLabelSelector(bundle.Spec.Target.NamespaceSelector, validation.LabelSelectorValidationOptions{}, path.Child("target", "namespaceSelector"))
 	el = append(el, errs...)
