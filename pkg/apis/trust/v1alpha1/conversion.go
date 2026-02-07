@@ -106,7 +106,7 @@ func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSourceRef(in *BundleSource,
 		out.Name = sourceObjectKeySelector.Name
 		out.Selector = sourceObjectKeySelector.Selector
 		out.Key = sourceObjectKeySelector.Key
-		if sourceObjectKeySelector.IncludeAllKeys {
+		if ptr.Deref(sourceObjectKeySelector.IncludeAllKeys, false) {
 			out.Key = "*"
 		}
 	}
@@ -267,10 +267,10 @@ func Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *trustv1alpha2.Bundle
 
 func Convert_v1alpha2_BundleSourceRef_To_v1alpha1_BundleSource(in *trustv1alpha2.BundleSourceRef, out *BundleSource, _ apimachineryconversion.Scope) error {
 	key := in.Key
-	includeAllKeys := false
+	var includeAllKeys *bool
 	if in.Key == "*" {
 		key = ""
-		includeAllKeys = true
+		includeAllKeys = ptr.To(true)
 	}
 	sourceObjectKeySelector := &SourceObjectKeySelector{
 		Name:           in.Name,
