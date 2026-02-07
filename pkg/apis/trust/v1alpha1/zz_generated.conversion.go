@@ -111,9 +111,7 @@ func RegisterConversions(s *runtime.Scheme) error {
 
 func autoConvert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in *BundleSpec, out *v1alpha2.BundleSpec, s conversion.Scope) error {
 	// WARNING: in.Sources requires manual conversion: does not exist in peer-type
-	if err := Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(&in.Target, &out.Target, s); err != nil {
-		return err
-	}
+	// WARNING: in.Target requires manual conversion: inconvertible types (*github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1.BundleTarget vs github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2.BundleTarget)
 	return nil
 }
 
@@ -121,9 +119,7 @@ func autoConvert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *v1alpha2.BundleS
 	// WARNING: in.SourceRefs requires manual conversion: does not exist in peer-type
 	// WARNING: in.DefaultCAs requires manual conversion: does not exist in peer-type
 	// WARNING: in.InLineCAs requires manual conversion: does not exist in peer-type
-	if err := Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(&in.Target, &out.Target, s); err != nil {
-		return err
-	}
+	// WARNING: in.Target requires manual conversion: inconvertible types (github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2.BundleTarget vs *github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1.BundleTarget)
 	return nil
 }
 

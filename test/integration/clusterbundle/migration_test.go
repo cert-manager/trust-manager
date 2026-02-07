@@ -53,7 +53,7 @@ var _ = Describe("ClusterBundle Migration", func() {
 		bundle = &trustapi.Bundle{}
 		bundle.GenerateName = "migration-"
 		bundle.Spec.Sources = []trustapi.BundleSource{{InLine: ptr.To(dummy.TestCertificate4)}}
-		bundle.Spec.Target = trustapi.BundleTarget{
+		bundle.Spec.Target = &trustapi.BundleTarget{
 			ConfigMap: &trustapi.TargetTemplate{
 				Key: "ca.crt",
 			},

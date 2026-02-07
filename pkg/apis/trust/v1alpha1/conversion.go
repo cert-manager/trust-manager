@@ -73,8 +73,10 @@ func (src *Bundle) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 func Convert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in *BundleSpec, out *trustv1alpha2.BundleSpec, scope apimachineryconversion.Scope) error {
-	if err := autoConvert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in, out, scope); err != nil {
-		return err
+	if in.Target != nil {
+		if err := Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in.Target, &out.Target, scope); err != nil {
+			return err
+		}
 	}
 
 	if in.Sources != nil {
@@ -138,11 +140,6 @@ func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSourceRef(in *BundleSource,
 func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, out *trustv1alpha2.BundleTarget, scope apimachineryconversion.Scope) error {
 	if err := autoConvert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in, out, scope); err != nil {
 		return err
-	}
-
-	// No targets defined; we are done
-	if *out == (trustv1alpha2.BundleTarget{}) {
-		return nil
 	}
 
 	if in.AdditionalFormats != nil {
@@ -238,8 +235,11 @@ func (dst *Bundle) ConvertFrom(srcRaw conversion.Hub) error {
 }
 
 func Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *trustv1alpha2.BundleSpec, out *BundleSpec, scope apimachineryconversion.Scope) error {
-	if err := autoConvert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in, out, scope); err != nil {
-		return err
+	if in.Target != (trustv1alpha2.BundleTarget{}) {
+		out.Target = &BundleTarget{}
+		if err := Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(&in.Target, out.Target, scope); err != nil {
+			return err
+		}
 	}
 
 	if in.SourceRefs != nil {

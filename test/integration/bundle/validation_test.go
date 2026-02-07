@@ -51,7 +51,7 @@ var _ = Describe("Bundle Validation", func() {
 		bundle.Spec.Sources = []trustapi.BundleSource{{
 			UseDefaultCAs: ptr.To(true),
 		}}
-		bundle.Spec.Target = trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt"}}
+		bundle.Spec.Target = &trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt"}}
 	})
 
 	Context("Sources", func() {
@@ -170,7 +170,7 @@ var _ = Describe("Bundle Validation", func() {
 		})
 
 		DescribeTable("should prevent annotations and labels with the trust manager prefixes",
-			func(target trustapi.BundleTarget, wantErr bool) {
+			func(target *trustapi.BundleTarget, wantErr bool) {
 				bundle.Spec.Target = target
 				if wantErr {
 					Expect(cl.Create(ctx, bundle)).Should(MatchError(
@@ -185,22 +185,22 @@ var _ = Describe("Bundle Validation", func() {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
 				}
 			},
-			Entry("when trust-manager.io annotations are used", trustapi.BundleTarget{
+			Entry("when trust-manager.io annotations are used", &trustapi.BundleTarget{
 				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"trust-manager.io/hash": "test"}}}}, true),
-			Entry("when trust.cert-manager.io annotations are used", trustapi.BundleTarget{
+			Entry("when trust.cert-manager.io annotations are used", &trustapi.BundleTarget{
 				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"trust.cert-manager.io/hash": "test"}}}}, true),
-			Entry("when trust-manager.io labels are used", trustapi.BundleTarget{
+			Entry("when trust-manager.io labels are used", &trustapi.BundleTarget{
 				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"trust-manager.io/bundle": "bundle"}}}}, true),
-			Entry("when trust.cert-manager.io labels are used", trustapi.BundleTarget{
+			Entry("when trust.cert-manager.io labels are used", &trustapi.BundleTarget{
 				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"trust.cert-manager.io/bundle": "bundle"}}}}, true),
-			Entry("when non-reserved annotations are used", trustapi.BundleTarget{
+			Entry("when non-reserved annotations are used", &trustapi.BundleTarget{
 				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"not-trust-manager.io/hash": "test"}}}}, false),
-			Entry("when non-reserved labels are used", trustapi.BundleTarget{
+			Entry("when non-reserved labels are used", &trustapi.BundleTarget{
 				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"not-trust-manager.io/bundle": "bundle"}}}}, false),
 		)
 
 		DescribeTable("should require target key",
-			func(target trustapi.BundleTarget, wantErr bool) {
+			func(target *trustapi.BundleTarget, wantErr bool) {
 				bundle.Spec.Target = target
 				if wantErr {
 					Expect(cl.Create(ctx, bundle)).Should(MatchError(
@@ -213,8 +213,8 @@ var _ = Describe("Bundle Validation", func() {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
 				}
 			},
-			Entry("for configmap", trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: ""}}, true),
-			Entry("for secret", trustapi.BundleTarget{Secret: &trustapi.TargetTemplate{Key: ""}}, true),
+			Entry("for configmap", &trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: ""}}, true),
+			Entry("for secret", &trustapi.BundleTarget{Secret: &trustapi.TargetTemplate{Key: ""}}, true),
 		)
 
 		type TargetKeySpec struct {
@@ -239,7 +239,7 @@ var _ = Describe("Bundle Validation", func() {
 				if keySpec.PKCS12Key != "" {
 					target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: keySpec.PKCS12Key}}
 				}
-				bundle.Spec.Target = target
+				bundle.Spec.Target = &target
 
 				if wantErr {
 					expectedErr := "key must be unique in target"
@@ -286,7 +286,7 @@ var _ = Describe("Bundle Validation", func() {
 
 		targetObjectAsserts := func() {
 			It("should require target key", func() {
-				bundle.Spec.Target = trustapi.BundleTarget{}
+				bundle.Spec.Target = &trustapi.BundleTarget{}
 				selectorAccessor(&trustapi.TargetTemplate{})
 				expectedErr := "spec.target.%s.key: Invalid value: \"\": spec.target.%s.key in body should be at least 1 chars long"
 				Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr, field, field)))

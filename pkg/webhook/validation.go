@@ -141,6 +141,17 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 		))
 	}
 
+	if bundle.Spec.Target != nil {
+		el = append(el, validateTarget(bundle, path)...)
+	}
+
+	return warnings, el.ToAggregate()
+
+}
+
+func validateTarget(bundle *trustapi.Bundle, path *field.Path) field.ErrorList {
+	el := field.ErrorList{}
+
 	if target := bundle.Spec.Target.ConfigMap; target != nil {
 		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
@@ -211,8 +222,7 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 	errs := validation.ValidateLabelSelector(bundle.Spec.Target.NamespaceSelector, validation.LabelSelectorValidationOptions{}, path.Child("target", "namespaceSelector"))
 	el = append(el, errs...)
 
-	return warnings, el.ToAggregate()
-
+	return el
 }
 
 // validateAnnotationsLabelsTemplate Validates that the target template annotations and labels are both valid and that they do not contain reserved keys.

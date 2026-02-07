@@ -126,17 +126,17 @@ func newTestBundle(ctx context.Context, cl client.Client, trustNamespace string,
 					InLine: &td.Sources.InLine.Data,
 				},
 			},
-			Target: trustapi.BundleTarget{
+			Target: &trustapi.BundleTarget{
 				ConfigMap: &td.Target,
 			},
 		},
 	}
 	if targetType == "ConfigMap" {
-		bundle.Spec.Target = trustapi.BundleTarget{
+		bundle.Spec.Target = &trustapi.BundleTarget{
 			ConfigMap: &td.Target,
 		}
 	} else if targetType == "Secret" {
-		bundle.Spec.Target = trustapi.BundleTarget{
+		bundle.Spec.Target = &trustapi.BundleTarget{
 			Secret: &td.Target,
 		}
 	}

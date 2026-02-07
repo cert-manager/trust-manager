@@ -472,7 +472,7 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 			assert.NoError(t, err)
 
 			spec := trustapi.BundleSpec{
-				Target: trustapi.BundleTarget{
+				Target: &trustapi.BundleTarget{
 					ConfigMap:         &trustapi.TargetTemplate{Key: key},
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
@@ -924,7 +924,7 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 			assert.NoError(t, err)
 
 			spec := trustapi.BundleSpec{
-				Target: trustapi.BundleTarget{
+				Target: &trustapi.BundleTarget{
 					Secret:            &trustapi.TargetTemplate{Key: key},
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
