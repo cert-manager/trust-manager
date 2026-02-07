@@ -83,13 +83,13 @@ var _ = Describe("Bundle Validation", func() {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
 				}
 			},
-			Entry("when none set", trustapi.BundleSource{}, "spec.sources.[0]: Forbidden: must define exactly one source type for each item but found 0 defined types, spec.sources: Forbidden: must define at least one source"),
+			Entry("when none set", trustapi.BundleSource{}, "spec.sources[0]: Forbidden: must define exactly one source type for each item but found 0 defined types, spec.sources: Forbidden: must define at least one source"),
 			Entry("when configMap set", trustapi.BundleSource{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "ca", Key: "ca.crt"}}, ""),
 			Entry("when secret set", trustapi.BundleSource{Secret: &trustapi.SourceObjectKeySelector{Name: "ca", Key: "ca.crt"}}, ""),
 			Entry("when inLine set", trustapi.BundleSource{InLine: ptr.To("")}, ""),
 			Entry("when useDefaultCAs=true set", trustapi.BundleSource{UseDefaultCAs: ptr.To(true)}, ""),
 			Entry("when useDefaultCAs=false set", trustapi.BundleSource{UseDefaultCAs: ptr.To(false)}, "spec.sources: Forbidden: must define at least one source"),
-			Entry("when multiple set", trustapi.BundleSource{InLine: ptr.To(""), UseDefaultCAs: ptr.To(true)}, "spec.sources.[0]: Forbidden: must define exactly one source type for each item but found 2 defined types"),
+			Entry("when multiple set", trustapi.BundleSource{InLine: ptr.To(""), UseDefaultCAs: ptr.To(true)}, "spec.sources[0]: Forbidden: must define exactly one source type for each item but found 2 defined types"),
 		)
 	})
 

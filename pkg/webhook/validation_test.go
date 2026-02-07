@@ -61,8 +61,8 @@ func Test_validate(t *testing.T) {
 				},
 			},
 			expErr: ptr.To(field.ErrorList{
-				field.Forbidden(field.NewPath("spec", "sources", "[0]"), "must define exactly one source type for each item but found 2 defined types"),
-				field.Forbidden(field.NewPath("spec", "sources", "[2]"), "must define exactly one source type for each item but found 2 defined types"),
+				field.Forbidden(field.NewPath("spec", "sources").Index(0), "must define exactly one source type for each item but found 2 defined types"),
+				field.Forbidden(field.NewPath("spec", "sources").Index(2), "must define exactly one source type for each item but found 2 defined types"),
 			}.ToAggregate().Error()),
 		},
 		"empty source with no defined types": {
@@ -75,7 +75,7 @@ func Test_validate(t *testing.T) {
 				},
 			},
 			expErr: ptr.To(field.ErrorList{
-				field.Forbidden(field.NewPath("spec", "sources", "[0]"), "must define exactly one source type for each item but found 0 defined types"),
+				field.Forbidden(field.NewPath("spec", "sources").Index(0), "must define exactly one source type for each item but found 0 defined types"),
 				field.Forbidden(field.NewPath("spec", "sources"), "must define at least one source"),
 			}.ToAggregate().Error()),
 		},
@@ -145,10 +145,10 @@ func Test_validate(t *testing.T) {
 				},
 			},
 			expErr: ptr.To(field.ErrorList{
-				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap"), "name: ' ', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
-				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap"), "key: ' ', includeAllKeys: false", "source configMap key must be defined when includeAllKeys is false"),
-				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "name: ' ', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
-				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "key: ' ', includeAllKeys: false", "source secret key must be defined when includeAllKeys is false"),
+				field.Invalid(field.NewPath("spec", "sources").Index(0).Child("configMap"), "name: ' ', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
+				field.Invalid(field.NewPath("spec", "sources").Index(0).Child("configMap"), "key: ' ', includeAllKeys: false", "source configMap key must be defined when includeAllKeys is false"),
+				field.Invalid(field.NewPath("spec", "sources").Index(2).Child("secret"), "name: ' ', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
+				field.Invalid(field.NewPath("spec", "sources").Index(2).Child("secret"), "key: ' ', includeAllKeys: false", "source secret key must be defined when includeAllKeys is false"),
 			}.ToAggregate().Error()),
 		},
 		"sources names and selectors are both set": {
@@ -163,8 +163,8 @@ func Test_validate(t *testing.T) {
 				},
 			},
 			expErr: ptr.To(field.ErrorList{
-				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap"), "name: some-config-map, selector: {}", "must validate one and only one schema (oneOf): [name, selector]. Found both set"),
-				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "name: some-secret, selector: {}", "must validate one and only one schema (oneOf): [name, selector]. Found both set"),
+				field.Invalid(field.NewPath("spec", "sources").Index(0).Child("configMap"), "name: some-config-map, selector: {}", "must validate one and only one schema (oneOf): [name, selector]. Found both set"),
+				field.Invalid(field.NewPath("spec", "sources").Index(2).Child("secret"), "name: some-secret, selector: {}", "must validate one and only one schema (oneOf): [name, selector]. Found both set"),
 			}.ToAggregate().Error()),
 		},
 		"sources key is set and includeAllKeys is true": {
@@ -179,8 +179,8 @@ func Test_validate(t *testing.T) {
 				},
 			},
 			expErr: ptr.To(field.ErrorList{
-				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap"), "key: test, includeAllKeys: true", "source configMap key cannot be defined when includeAllKeys is true"),
-				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "key: test, includeAllKeys: true", "source secret key cannot be defined when includeAllKeys is true"),
+				field.Invalid(field.NewPath("spec", "sources").Index(0).Child("configMap"), "key: test, includeAllKeys: true", "source configMap key cannot be defined when includeAllKeys is true"),
+				field.Invalid(field.NewPath("spec", "sources").Index(2).Child("secret"), "key: test, includeAllKeys: true", "source secret key cannot be defined when includeAllKeys is true"),
 			}.ToAggregate().Error()),
 		},
 		"sources defines the same configMap target": {
@@ -195,7 +195,7 @@ func Test_validate(t *testing.T) {
 				},
 			},
 			expErr: ptr.To(field.ErrorList{
-				field.Forbidden(field.NewPath("spec", "sources", "[1]", "configMap", "test-bundle", "test"), "cannot define the same source as target"),
+				field.Forbidden(field.NewPath("spec", "sources").Index(1).Child("configMap", "test-bundle", "test"), "cannot define the same source as target"),
 			}.ToAggregate().Error()),
 		},
 		"sources defines the same secret target": {
@@ -210,7 +210,7 @@ func Test_validate(t *testing.T) {
 				},
 			},
 			expErr: ptr.To(field.ErrorList{
-				field.Forbidden(field.NewPath("spec", "sources", "[1]", "secret", "test-bundle", "test"), "cannot define the same source as target"),
+				field.Forbidden(field.NewPath("spec", "sources").Index(1).Child("secret", "test-bundle", "test"), "cannot define the same source as target"),
 			}.ToAggregate().Error()),
 		},
 		"invalid namespace selector": {
