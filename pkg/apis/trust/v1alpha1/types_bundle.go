@@ -156,7 +156,7 @@ type JKS struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
 	// +kubebuilder:default=changeit
-	Password *string `json:"password,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 // PKCS12 specifies additional target PKCS#12 files

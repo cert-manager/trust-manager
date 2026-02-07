@@ -402,8 +402,8 @@ func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats,
 
 	_, _ = hash.Write(data)
 
-	if additionalFormats != nil && additionalFormats.JKS.Password != nil {
-		_, _ = hash.Write([]byte(*additionalFormats.JKS.Password))
+	if additionalFormats != nil && additionalFormats.JKS.Password != "" {
+		_, _ = hash.Write([]byte(additionalFormats.JKS.Password))
 	}
 	if additionalFormats != nil && additionalFormats.PKCS12.Password != nil {
 		_, _ = hash.Write([]byte(*additionalFormats.PKCS12.Password))
@@ -428,7 +428,7 @@ func binaryData(pool *util.CertPool, formats *trustapi.AdditionalFormats) (binDa
 		binData = make(map[string][]byte)
 
 		if formats.JKS.Key != "" {
-			encoded, err := truststore.NewJKSEncoder(*formats.JKS.Password).Encode(pool)
+			encoded, err := truststore.NewJKSEncoder(formats.JKS.Password).Encode(pool)
 			if err != nil {
 				return nil, fmt.Errorf("failed to encode JKS: %w", err)
 			}

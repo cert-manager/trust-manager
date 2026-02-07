@@ -157,7 +157,7 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 				Key:    in.AdditionalFormats.JKS.Key,
 				Format: trustv1alpha2.BundleFormatPKCS12,
 				PKCS12: trustv1alpha2.PKCS12{
-					Password: in.AdditionalFormats.JKS.Password,
+					Password: &in.AdditionalFormats.JKS.Password,
 				},
 			}
 			appendTargetKV(targetKV)
@@ -307,7 +307,7 @@ func Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *trustv1alpha2.Bu
 		if tkv.Format == trustv1alpha2.BundleFormatPKCS12 {
 			if k, ok := obj.Annotations[AnnotationKeyJKSKey]; ok && k == tkv.Key {
 				jks.Key = tkv.Key
-				jks.Password = tkv.PKCS12.Password
+				jks.Password = *tkv.PKCS12.Password
 			} else {
 				pkcs12.Key = tkv.Key
 				pkcs12.Password = tkv.PKCS12.Password
