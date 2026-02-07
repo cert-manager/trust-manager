@@ -144,10 +144,10 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 
 	if in.AdditionalFormats != nil {
 		appendTargetKV := func(tkv trustv1alpha2.TargetKeyValue) {
-			if in.ConfigMap != nil {
+			if in.ConfigMap.Key != "" {
 				out.ConfigMap.Data = append(out.ConfigMap.Data, tkv)
 			}
-			if in.Secret != nil {
+			if in.Secret.Key != "" {
 				out.Secret.Data = append(out.Secret.Data, tkv)
 			}
 		}
@@ -189,7 +189,9 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 }
 
 func Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(in *TargetTemplate, out *trustv1alpha2.KeyValueTarget, scope apimachineryconversion.Scope) error {
-	out.Data = []trustv1alpha2.TargetKeyValue{{Key: in.Key}}
+	if in.Key != "" {
+		out.Data = []trustv1alpha2.TargetKeyValue{{Key: in.Key}}
+	}
 	if in.Metadata != nil {
 		out.Metadata = &trustv1alpha2.TargetMetadata{}
 		if err := Convert_v1alpha1_TargetMetadata_To_v1alpha2_TargetMetadata(in.Metadata, out.Metadata, scope); err != nil {
@@ -235,7 +237,7 @@ func (dst *Bundle) ConvertFrom(srcRaw conversion.Hub) error {
 }
 
 func Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *trustv1alpha2.BundleSpec, out *BundleSpec, scope apimachineryconversion.Scope) error {
-	if in.Target != (trustv1alpha2.BundleTarget{}) {
+	if len(in.Target.ConfigMap.Data) > 0 || len(in.Target.ConfigMap.Data) > 0 || in.Target.NamespaceSelector != nil {
 		out.Target = &BundleTarget{}
 		if err := Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(&in.Target, out.Target, scope); err != nil {
 			return err
@@ -292,10 +294,10 @@ func Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *trustv1alpha2.Bu
 	}
 
 	var targetKeyValues []trustv1alpha2.TargetKeyValue
-	if in.Secret != nil {
+	if len(in.Secret.Data) > 0 {
 		targetKeyValues = append(targetKeyValues, in.Secret.Data...)
 	}
-	if in.ConfigMap != nil {
+	if len(in.ConfigMap.Data) > 0 {
 		targetKeyValues = append(targetKeyValues, in.ConfigMap.Data...)
 	}
 

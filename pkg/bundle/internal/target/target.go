@@ -134,14 +134,14 @@ func (r *Reconciler) applyConfigMap(
 	}
 
 	bundleTarget := bundle.Spec.Target
-	if bundleTarget.ConfigMap == nil {
+	if bundleTarget.ConfigMap.Key == "" {
 		return false, errors.New("target not defined")
 	}
 
 	bundlePEM := resolvedBundle.CertPool.PEM()
 	// Generated PKCS #12 is not deterministic - best we can do here is update if the pem cert has
 	// changed (hence not checking if PKCS #12 matches)
-	bundleHash := TrustBundleHash([]byte(bundlePEM), bundleTarget.AdditionalFormats, bundleTarget.ConfigMap)
+	bundleHash := TrustBundleHash([]byte(bundlePEM), bundleTarget.AdditionalFormats, &bundleTarget.ConfigMap)
 	// If the resource exists, check if it is up-to-date.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
@@ -197,14 +197,14 @@ func (r *Reconciler) applySecret(
 	}
 
 	bundleTarget := bundle.Spec.Target
-	if bundleTarget.Secret == nil {
+	if bundleTarget.Secret.Key == "" {
 		return false, errors.New("target not defined")
 	}
 
 	bundlePEM := resolvedBundle.CertPool.PEM()
 	// Generated PKCS #12 is not deterministic - best we can do here is update if the pem cert has
 	// changed (hence not checking if PKCS #12 matches)
-	bundleHash := TrustBundleHash([]byte(bundlePEM), bundleTarget.AdditionalFormats, bundleTarget.Secret)
+	bundleHash := TrustBundleHash([]byte(bundlePEM), bundleTarget.AdditionalFormats, &bundleTarget.Secret)
 	// If the resource exists, check if it is up-to-date.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed

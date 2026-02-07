@@ -153,10 +153,10 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 func validateTarget(bundle *trustapi.Bundle, path *field.Path) field.ErrorList {
 	el := field.ErrorList{}
 
-	if target := bundle.Spec.Target.ConfigMap; target != nil {
+	if key := bundle.Spec.Target.ConfigMap.Key; key == "" {
 		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
-			if source.ConfigMap != nil && source.ConfigMap.Name == bundle.Name && source.ConfigMap.Key == target.Key {
+			if source.ConfigMap != nil && source.ConfigMap.Name == bundle.Name && source.ConfigMap.Key == key {
 				el = append(el, field.Forbidden(
 					path.Index(i).Child("configMap", source.ConfigMap.Name, source.ConfigMap.Key),
 					"cannot define the same source as target",
@@ -165,10 +165,10 @@ func validateTarget(bundle *trustapi.Bundle, path *field.Path) field.ErrorList {
 		}
 	}
 
-	if target := bundle.Spec.Target.Secret; target != nil {
+	if key := bundle.Spec.Target.Secret.Key; key == "" {
 		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
-			if source.Secret != nil && source.Secret.Name == bundle.Name && source.Secret.Key == target.Key {
+			if source.Secret != nil && source.Secret.Name == bundle.Name && source.Secret.Key == key {
 				el = append(el, field.Forbidden(
 					path.Index(i).Child("secret", source.Secret.Name, source.Secret.Key),
 					"cannot define the same source as target",
@@ -182,10 +182,10 @@ func validateTarget(bundle *trustapi.Bundle, path *field.Path) field.ErrorList {
 		secret := bundle.Spec.Target.Secret
 
 		targetKeys := map[string]struct{}{}
-		if configMap != nil {
+		if configMap.Key != "" {
 			targetKeys[configMap.Key] = struct{}{}
 		}
-		if secret != nil {
+		if secret.Key != "" {
 			targetKeys[secret.Key] = struct{}{}
 		}
 
@@ -206,12 +206,8 @@ func validateTarget(bundle *trustapi.Bundle, path *field.Path) field.ErrorList {
 		}
 	}
 
-	if bundle.Spec.Target.ConfigMap != nil {
-		el = append(el, validateTargetMetadata(bundle.Spec.Target.ConfigMap.Metadata, path.Child("target", "configMap", "metadata"))...)
-	}
-	if bundle.Spec.Target.Secret != nil {
-		el = append(el, validateTargetMetadata(bundle.Spec.Target.Secret.Metadata, path.Child("target", "secret", "metadata"))...)
-	}
+	el = append(el, validateTargetMetadata(bundle.Spec.Target.ConfigMap.Metadata, path.Child("target", "configMap", "metadata"))...)
+	el = append(el, validateTargetMetadata(bundle.Spec.Target.Secret.Metadata, path.Child("target", "secret", "metadata"))...)
 
 	errs := validation.ValidateLabelSelector(bundle.Spec.Target.NamespaceSelector, validation.LabelSelectorValidationOptions{}, path.Child("target", "namespaceSelector"))
 	el = append(el, errs...)

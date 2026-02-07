@@ -111,13 +111,13 @@ type BundleTarget struct {
 	// configMap is the target ConfigMap in Namespaces that all Bundle source
 	// data will be synced to.
 	// +optional
-	ConfigMap *TargetTemplate `json:"configMap,omitzero"`
+	ConfigMap TargetTemplate `json:"configMap,omitzero"`
 
 	// secret is the target Secret that all Bundle source data will be synced to.
 	// Using Secrets as targets is only supported if enabled at trust-manager startup.
 	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
 	// +optional
-	Secret *TargetTemplate `json:"secret,omitzero"`
+	Secret TargetTemplate `json:"secret,omitzero"`
 
 	// additionalFormats specifies any additional formats to write to the target
 	// +optional

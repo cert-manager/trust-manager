@@ -51,7 +51,7 @@ var _ = Describe("Bundle Validation", func() {
 		bundle.Spec.Sources = []trustapi.BundleSource{{
 			UseDefaultCAs: ptr.To(true),
 		}}
-		bundle.Spec.Target = &trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt"}}
+		bundle.Spec.Target = &trustapi.BundleTarget{ConfigMap: trustapi.TargetTemplate{Key: "ca-bundle.crt"}}
 	})
 
 	Context("Sources", func() {
@@ -186,17 +186,17 @@ var _ = Describe("Bundle Validation", func() {
 				}
 			},
 			Entry("when trust-manager.io annotations are used", &trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"trust-manager.io/hash": "test"}}}}, true),
+				ConfigMap: trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"trust-manager.io/hash": "test"}}}}, true),
 			Entry("when trust.cert-manager.io annotations are used", &trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"trust.cert-manager.io/hash": "test"}}}}, true),
+				ConfigMap: trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"trust.cert-manager.io/hash": "test"}}}}, true),
 			Entry("when trust-manager.io labels are used", &trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"trust-manager.io/bundle": "bundle"}}}}, true),
+				ConfigMap: trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"trust-manager.io/bundle": "bundle"}}}}, true),
 			Entry("when trust.cert-manager.io labels are used", &trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"trust.cert-manager.io/bundle": "bundle"}}}}, true),
+				ConfigMap: trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"trust.cert-manager.io/bundle": "bundle"}}}}, true),
 			Entry("when non-reserved annotations are used", &trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"not-trust-manager.io/hash": "test"}}}}, false),
+				ConfigMap: trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"not-trust-manager.io/hash": "test"}}}}, false),
 			Entry("when non-reserved labels are used", &trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"not-trust-manager.io/bundle": "bundle"}}}}, false),
+				ConfigMap: trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"not-trust-manager.io/bundle": "bundle"}}}}, false),
 		)
 
 		DescribeTable("should require target key",
@@ -213,8 +213,8 @@ var _ = Describe("Bundle Validation", func() {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
 				}
 			},
-			Entry("for configmap", &trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: ""}}, true),
-			Entry("for secret", &trustapi.BundleTarget{Secret: &trustapi.TargetTemplate{Key: ""}}, true),
+			Entry("for configmap", &trustapi.BundleTarget{ConfigMap: trustapi.TargetTemplate{Key: ""}}, true),
+			Entry("for secret", &trustapi.BundleTarget{Secret: trustapi.TargetTemplate{Key: ""}}, true),
 		)
 
 		type TargetKeySpec struct {
@@ -228,10 +228,10 @@ var _ = Describe("Bundle Validation", func() {
 			func(keySpec TargetKeySpec, wantErr bool) {
 				target := trustapi.BundleTarget{AdditionalFormats: &trustapi.AdditionalFormats{}}
 				if keySpec.ConfigMapKey != "" {
-					target.ConfigMap = &trustapi.TargetTemplate{Key: keySpec.ConfigMapKey}
+					target.ConfigMap = trustapi.TargetTemplate{Key: keySpec.ConfigMapKey}
 				}
 				if keySpec.SecretKey != "" {
-					target.Secret = &trustapi.TargetTemplate{Key: keySpec.SecretKey}
+					target.Secret = trustapi.TargetTemplate{Key: keySpec.SecretKey}
 				}
 				if keySpec.JKSKey != "" {
 					target.AdditionalFormats.JKS = trustapi.JKS{KeySelector: trustapi.KeySelector{Key: keySpec.JKSKey}}
@@ -296,7 +296,7 @@ var _ = Describe("Bundle Validation", func() {
 		Context("ConfigMap", func() {
 			BeforeEach(func() {
 				selectorAccessor = func(selector *trustapi.TargetTemplate) {
-					bundle.Spec.Target.ConfigMap = selector
+					bundle.Spec.Target.ConfigMap = *selector
 				}
 				field = "configMap"
 			})
@@ -307,7 +307,7 @@ var _ = Describe("Bundle Validation", func() {
 		Context("Secret", func() {
 			BeforeEach(func() {
 				selectorAccessor = func(selector *trustapi.TargetTemplate) {
-					bundle.Spec.Target.Secret = selector
+					bundle.Spec.Target.Secret = *selector
 				}
 				field = "secret"
 			})

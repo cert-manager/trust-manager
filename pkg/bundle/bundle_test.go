@@ -117,7 +117,7 @@ func Test_Reconcile(t *testing.T) {
 					{Secret: &trustapi.SourceObjectKeySelector{Name: sourceSecretName, Key: sourceSecretKey}},
 					{InLine: ptr.To(dummy.TestCertificate3)},
 				},
-				Target: &trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: targetKey}},
+				Target: &trustapi.BundleTarget{ConfigMap: trustapi.TargetTemplate{Key: targetKey}},
 			},
 		}
 
@@ -452,7 +452,7 @@ func Test_Reconcile(t *testing.T) {
 					func(b *trustapi.Bundle) {
 						// swap target configmap for secret
 						keySelector := b.Spec.Target.ConfigMap
-						b.Spec.Target.ConfigMap = nil
+						b.Spec.Target.ConfigMap = b.Spec.Target.Secret
 						b.Spec.Target.Secret = keySelector
 					},
 				),
@@ -1327,7 +1327,7 @@ func Test_Reconcile(t *testing.T) {
 				func(b *trustapi.Bundle) {
 					// swap target configmap for secret
 					keySelector := b.Spec.Target.ConfigMap
-					b.Spec.Target.ConfigMap = nil
+					b.Spec.Target.ConfigMap = b.Spec.Target.Secret
 					b.Spec.Target.Secret = keySelector
 				},
 				gen.SetBundleStatus(trustapi.BundleStatus{
@@ -1482,7 +1482,6 @@ func Test_Reconcile(t *testing.T) {
 			existingSecrets:    []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle, func(b *trustapi.Bundle) {
-					b.Spec.Target.Secret = nil
 					b.Spec.Target.NamespaceSelector = nil
 				}),
 			},
@@ -1534,7 +1533,6 @@ func Test_Reconcile(t *testing.T) {
 			existingSecrets:    []client.Object{sourceSecret},
 			existingBundles: []client.Object{
 				gen.BundleFrom(baseBundle, func(b *trustapi.Bundle) {
-					b.Spec.Target.Secret = nil
 					b.Spec.Target.NamespaceSelector = &metav1.LabelSelector{
 						MatchExpressions: []metav1.LabelSelectorRequirement{
 							{

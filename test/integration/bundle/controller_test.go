@@ -429,7 +429,7 @@ var _ = Describe("Integration", func() {
 	It("should delete old targets and update to new ones when the Spec.Target is modified", func() {
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Target = &trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "changed-target-key"},
+				ConfigMap: trustapi.TargetTemplate{Key: "changed-target-key"},
 			}
 		})()).To(Succeed())
 
@@ -455,7 +455,7 @@ var _ = Describe("Integration", func() {
 	It("should delete old targets and update to new ones when a JKS file is requested in the target", func() {
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Target = &trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: testData.Target.Key},
+				ConfigMap: trustapi.TargetTemplate{Key: testData.Target.Key},
 				AdditionalFormats: &trustapi.AdditionalFormats{
 					JKS: trustapi.JKS{
 						KeySelector: trustapi.KeySelector{

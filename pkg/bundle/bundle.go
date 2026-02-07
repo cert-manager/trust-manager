@@ -140,7 +140,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 	}
 
 	// Detect if we have a bundle with Secret targets but the feature is disabled.
-	if !b.Options.SecretTargetsEnabled && bundle.Spec.Target != nil && bundle.Spec.Target.Secret != nil {
+	if !b.Options.SecretTargetsEnabled && bundle.Spec.Target != nil && bundle.Spec.Target.Secret.Key != "" {
 
 		log.Error(err, "bundle has Secret targets but the feature is disabled")
 		b.recorder.Eventf(&bundle, nil, corev1.EventTypeWarning, "SecretTargetsDisabled", "SyncFailed", "Bundle has Secret targets but the feature is disabled")
@@ -199,10 +199,10 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 				Namespace: namespace.Name,
 			}
 
-			if bundle.Spec.Target.Secret != nil {
+			if bundle.Spec.Target.Secret.Key != "" {
 				targetResources[target.Resource{Kind: target.KindSecret, NamespacedName: namespacedName}] = struct{}{}
 			}
-			if bundle.Spec.Target.ConfigMap != nil {
+			if bundle.Spec.Target.ConfigMap.Key != "" {
 				targetResources[target.Resource{Kind: target.KindConfigMap, NamespacedName: namespacedName}] = struct{}{}
 			}
 		}
