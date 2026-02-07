@@ -181,7 +181,6 @@ func validateTarget(bundle *trustapi.Bundle, path *field.Path) field.ErrorList {
 		configMap := bundle.Spec.Target.ConfigMap
 		secret := bundle.Spec.Target.Secret
 
-		var formats = make(map[string]*trustapi.KeySelector)
 		targetKeys := map[string]struct{}{}
 		if configMap != nil {
 			targetKeys[configMap.Key] = struct{}{}
@@ -190,18 +189,12 @@ func validateTarget(bundle *trustapi.Bundle, path *field.Path) field.ErrorList {
 			targetKeys[secret.Key] = struct{}{}
 		}
 
-		// Checks for nil to avoid nil point dereference error
-		if bundle.Spec.Target.AdditionalFormats.JKS != nil {
-			formats["jks"] = &bundle.Spec.Target.AdditionalFormats.JKS.KeySelector
+		var formats = map[string]trustapi.KeySelector{
+			"jks":    bundle.Spec.Target.AdditionalFormats.JKS.KeySelector,
+			"pkcs12": bundle.Spec.Target.AdditionalFormats.PKCS12.KeySelector,
 		}
-
-		// Checks for nil to avoid nil point dereference error
-		if bundle.Spec.Target.AdditionalFormats.PKCS12 != nil {
-			formats["pkcs12"] = &bundle.Spec.Target.AdditionalFormats.PKCS12.KeySelector
-		}
-
 		for f, selector := range formats {
-			if selector != nil {
+			if selector.Key != "" {
 				if _, ok := targetKeys[selector.Key]; ok {
 					el = append(el, field.Invalid(
 						path.Child("target", "additionalFormats", f, "key"), selector.Key,

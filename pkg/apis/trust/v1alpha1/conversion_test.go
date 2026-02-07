@@ -139,20 +139,20 @@ func spokeBundleTargetFuzzer(obj *BundleTarget, c randfill.Continue) {
 		obj.AdditionalFormats = nil
 	}
 	if obj.AdditionalFormats != nil {
-		if obj.AdditionalFormats.PKCS12 != nil && obj.AdditionalFormats.PKCS12.Profile == "" {
+		if obj.AdditionalFormats.PKCS12.Profile == "" {
 			obj.AdditionalFormats.PKCS12.Profile = LegacyRC2PKCS12Profile
 		}
-		if obj.AdditionalFormats.PKCS12 != nil && obj.AdditionalFormats.PKCS12.Key == "" {
+		if obj.AdditionalFormats.PKCS12.Key == "" {
 			// Key is a mandatory field
-			obj.AdditionalFormats.PKCS12 = nil
+			obj.AdditionalFormats.PKCS12 = PKCS12{}
 		}
 
-		if obj.AdditionalFormats.JKS != nil && obj.AdditionalFormats.JKS.Key == "" {
+		if obj.AdditionalFormats.JKS.Key == "" {
 			// Key is a mandatory field
-			obj.AdditionalFormats.JKS = nil
+			obj.AdditionalFormats.JKS = JKS{}
 		}
 
-		if obj.AdditionalFormats.PKCS12 == nil && obj.AdditionalFormats.JKS == nil {
+		if obj.AdditionalFormats.PKCS12.Key == "" && obj.AdditionalFormats.JKS.Key == "" {
 			obj.AdditionalFormats = nil
 		}
 	}

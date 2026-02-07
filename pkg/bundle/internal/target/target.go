@@ -274,10 +274,10 @@ func (r *Reconciler) needsUpdate(kind Kind, obj *metav1.PartialObjectMetadata, b
 			return false, fmt.Errorf("failed to list managed properties: %w", err)
 		}
 		expectedProperties := sets.New(key)
-		if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.JKS != nil {
+		if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.JKS.Key != "" {
 			expectedProperties.Insert(bundle.Spec.Target.AdditionalFormats.JKS.Key)
 		}
-		if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.PKCS12 != nil {
+		if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.PKCS12.Key != "" {
 			expectedProperties.Insert(bundle.Spec.Target.AdditionalFormats.PKCS12.Key)
 		}
 		if !properties.Equal(expectedProperties) {
@@ -402,10 +402,10 @@ func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats,
 
 	_, _ = hash.Write(data)
 
-	if additionalFormats != nil && additionalFormats.JKS != nil && additionalFormats.JKS.Password != nil {
+	if additionalFormats != nil && additionalFormats.JKS.Password != nil {
 		_, _ = hash.Write([]byte(*additionalFormats.JKS.Password))
 	}
-	if additionalFormats != nil && additionalFormats.PKCS12 != nil && additionalFormats.PKCS12.Password != nil {
+	if additionalFormats != nil && additionalFormats.PKCS12.Password != nil {
 		_, _ = hash.Write([]byte(*additionalFormats.PKCS12.Password))
 	}
 
@@ -427,7 +427,7 @@ func binaryData(pool *util.CertPool, formats *trustapi.AdditionalFormats) (binDa
 	if formats != nil {
 		binData = make(map[string][]byte)
 
-		if formats.JKS != nil {
+		if formats.JKS.Key != "" {
 			encoded, err := truststore.NewJKSEncoder(*formats.JKS.Password).Encode(pool)
 			if err != nil {
 				return nil, fmt.Errorf("failed to encode JKS: %w", err)
@@ -435,7 +435,7 @@ func binaryData(pool *util.CertPool, formats *trustapi.AdditionalFormats) (binDa
 			binData[formats.JKS.Key] = encoded
 		}
 
-		if formats.PKCS12 != nil {
+		if formats.PKCS12.Key != "" {
 			encoded, err := truststore.NewPKCS12Encoder(*formats.PKCS12.Password, formats.PKCS12.Profile).Encode(pool)
 			if err != nil {
 				return nil, fmt.Errorf("failed to encode PKCS12: %w", err)

@@ -142,7 +142,7 @@ func Test_Reconcile(t *testing.T) {
 		}
 
 		pkcs12DefaultAdditionalFormats = trustapi.AdditionalFormats{
-			PKCS12: &trustapi.PKCS12{
+			PKCS12: trustapi.PKCS12{
 				KeySelector: trustapi.KeySelector{
 					Key: "target.p12",
 				},
@@ -150,7 +150,7 @@ func Test_Reconcile(t *testing.T) {
 			},
 		}
 		pkcs12DefaultAdditionalFormatsOldPassword = trustapi.AdditionalFormats{
-			PKCS12: &trustapi.PKCS12{
+			PKCS12: trustapi.PKCS12{
 				KeySelector: trustapi.KeySelector{
 					Key: "target.p12",
 				},

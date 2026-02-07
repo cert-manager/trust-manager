@@ -58,7 +58,7 @@ var _ = Describe("ClusterBundle Migration", func() {
 				Key: "ca.crt",
 			},
 			AdditionalFormats: &trustapi.AdditionalFormats{
-				JKS: &trustapi.JKS{
+				JKS: trustapi.JKS{
 					KeySelector: trustapi.KeySelector{
 						Key: "ca.jks",
 					},

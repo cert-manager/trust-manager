@@ -152,7 +152,7 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 			}
 		}
 
-		if in.AdditionalFormats.JKS != nil {
+		if in.AdditionalFormats.JKS.Key != "" {
 			targetKV := trustv1alpha2.TargetKeyValue{
 				Key:    in.AdditionalFormats.JKS.Key,
 				Format: trustv1alpha2.BundleFormatPKCS12,
@@ -168,13 +168,13 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 			}
 			obj.Annotations[AnnotationKeyJKSKey] = targetKV.Key
 		}
-		if in.AdditionalFormats.PKCS12 != nil {
+		if in.AdditionalFormats.PKCS12.Key != "" {
 			targetKV := trustv1alpha2.TargetKeyValue{
 				Key:    in.AdditionalFormats.PKCS12.Key,
 				Format: trustv1alpha2.BundleFormatPKCS12,
 				PKCS12: trustv1alpha2.PKCS12{},
 			}
-			if err := Convert_v1alpha1_PKCS12_To_v1alpha2_PKCS12(in.AdditionalFormats.PKCS12, &targetKV.PKCS12, scope); err != nil {
+			if err := Convert_v1alpha1_PKCS12_To_v1alpha2_PKCS12(&in.AdditionalFormats.PKCS12, &targetKV.PKCS12, scope); err != nil {
 				return err
 			}
 			appendTargetKV(targetKV)
@@ -301,16 +301,14 @@ func Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *trustv1alpha2.Bu
 
 	obj := scope.Meta().Context.(*Bundle)
 
-	var jks *JKS
-	var pkcs12 *PKCS12
+	var jks JKS
+	var pkcs12 PKCS12
 	for _, tkv := range targetKeyValues {
 		if tkv.Format == trustv1alpha2.BundleFormatPKCS12 {
 			if k, ok := obj.Annotations[AnnotationKeyJKSKey]; ok && k == tkv.Key {
-				jks = &JKS{}
 				jks.Key = tkv.Key
 				jks.Password = tkv.PKCS12.Password
 			} else {
-				pkcs12 = &PKCS12{}
 				pkcs12.Key = tkv.Key
 				pkcs12.Password = tkv.PKCS12.Password
 				pkcs12.Profile = PKCS12Profile(tkv.PKCS12.Profile)
@@ -320,11 +318,11 @@ func Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *trustv1alpha2.Bu
 				}
 			}
 		}
-		if jks != nil && pkcs12 != nil {
+		if jks.Key != "" && pkcs12.Key != "" {
 			break
 		}
 	}
-	if jks != nil || pkcs12 != nil {
+	if jks.Key != "" || pkcs12.Key != "" {
 		out.AdditionalFormats = &AdditionalFormats{
 			JKS:    jks,
 			PKCS12: pkcs12,
