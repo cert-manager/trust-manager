@@ -414,6 +414,7 @@ spec:
             type: object
           status:
             description: status of the Bundle. This is set and managed automatically.
+            minProperties: 1
             properties:
               conditions:
                 description: conditions represent the latest available observations

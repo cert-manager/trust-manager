@@ -108,7 +108,7 @@ func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSourceRef(in *BundleSource,
 		out.Name = sourceObjectKeySelector.Name
 		out.Selector = sourceObjectKeySelector.Selector
 		out.Key = sourceObjectKeySelector.Key
-		if sourceObjectKeySelector.IncludeAllKeys {
+		if ptr.Deref(sourceObjectKeySelector.IncludeAllKeys, false) {
 			out.Key = "*"
 		}
 	}
@@ -275,7 +275,7 @@ func Convert_v1alpha2_BundleSourceRef_To_v1alpha1_BundleSource(in *trustv1alpha2
 		Name:           in.Name,
 		Selector:       in.Selector,
 		Key:            key,
-		IncludeAllKeys: includeAllKeys,
+		IncludeAllKeys: &includeAllKeys,
 	}
 	switch in.Kind {
 	case trustv1alpha2.ConfigMapKind:

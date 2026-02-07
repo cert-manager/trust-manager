@@ -24,6 +24,7 @@ import (
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -76,11 +77,11 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 			if len(configMap.Name) > 0 && configMap.Selector != nil {
 				el = append(el, field.Invalid(path, fmt.Sprintf("name: %s, selector: {}", configMap.Name), "must validate one and only one schema (oneOf): [name, selector]. Found both set"))
 			}
-			if len(configMap.Key) == 0 && !configMap.IncludeAllKeys {
-				el = append(el, field.Invalid(path, fmt.Sprintf("key: ' ', includeAllKeys: %t", configMap.IncludeAllKeys), "source configMap key must be defined when includeAllKeys is false"))
+			if includeAllKeys := ptr.Deref(configMap.IncludeAllKeys, false); len(configMap.Key) == 0 && !includeAllKeys {
+				el = append(el, field.Invalid(path, fmt.Sprintf("key: ' ', includeAllKeys: %t", includeAllKeys), "source configMap key must be defined when includeAllKeys is false"))
 			}
-			if len(configMap.Key) > 0 && configMap.IncludeAllKeys {
-				el = append(el, field.Invalid(path, fmt.Sprintf("key: %s, includeAllKeys: %t", configMap.Key, configMap.IncludeAllKeys), "source configMap key cannot be defined when includeAllKeys is true"))
+			if includeAllKeys := ptr.Deref(configMap.IncludeAllKeys, false); len(configMap.Key) > 0 && includeAllKeys {
+				el = append(el, field.Invalid(path, fmt.Sprintf("key: %s, includeAllKeys: %t", configMap.Key, includeAllKeys), "source configMap key cannot be defined when includeAllKeys is true"))
 			}
 
 			errs := validation.ValidateLabelSelector(configMap.Selector, validation.LabelSelectorValidationOptions{}, path.Child("selector"))
@@ -98,11 +99,11 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 			if len(secret.Name) > 0 && secret.Selector != nil {
 				el = append(el, field.Invalid(path, fmt.Sprintf("name: %s, selector: {}", secret.Name), "must validate one and only one schema (oneOf): [name, selector]. Found both set"))
 			}
-			if len(secret.Key) == 0 && !secret.IncludeAllKeys {
-				el = append(el, field.Invalid(path, fmt.Sprintf("key: ' ', includeAllKeys: %t", secret.IncludeAllKeys), "source secret key must be defined when includeAllKeys is false"))
+			if includeAllKeys := ptr.Deref(secret.IncludeAllKeys, false); len(secret.Key) == 0 && !includeAllKeys {
+				el = append(el, field.Invalid(path, fmt.Sprintf("key: ' ', includeAllKeys: %t", includeAllKeys), "source secret key must be defined when includeAllKeys is false"))
 			}
-			if len(secret.Key) > 0 && secret.IncludeAllKeys {
-				el = append(el, field.Invalid(path, fmt.Sprintf("key: %s, includeAllKeys: %t", secret.Key, secret.IncludeAllKeys), "source secret key cannot be defined when includeAllKeys is true"))
+			if includeAllKeys := ptr.Deref(secret.IncludeAllKeys, false); len(secret.Key) > 0 && includeAllKeys {
+				el = append(el, field.Invalid(path, fmt.Sprintf("key: %s, includeAllKeys: %t", secret.Key, includeAllKeys), "source secret key cannot be defined when includeAllKeys is true"))
 			}
 
 			errs := validation.ValidateLabelSelector(secret.Selector, validation.LabelSelectorValidationOptions{}, path.Child("selector"))
