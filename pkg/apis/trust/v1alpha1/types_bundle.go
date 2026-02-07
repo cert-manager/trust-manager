@@ -220,7 +220,7 @@ type SourceObjectKeySelector struct {
 	// includeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
 	// This field must not be true when `key` is set.
 	// +optional
-	IncludeAllKeys bool `json:"includeAllKeys,omitempty"`
+	IncludeAllKeys *bool `json:"includeAllKeys,omitempty"`
 }
 
 // TargetTemplate defines the form of the Kubernetes Secret or ConfigMap bundle targets.

@@ -124,10 +124,13 @@ func spokeSourceObjectKeySelectorFuzzer(obj *SourceObjectKeySelector, c randfill
 	c.FillNoCustom(obj)
 
 	// Key and IncludeAllKeys cannot be used at the same time
-	if obj.IncludeAllKeys {
+	switch {
+	case ptr.Deref(obj.IncludeAllKeys, false):
 		obj.Key = ""
-	} else if obj.Key == "" {
-		obj.IncludeAllKeys = true
+	case obj.Key == "":
+		obj.IncludeAllKeys = ptr.To(true)
+	default:
+		obj.IncludeAllKeys = nil
 	}
 }
 

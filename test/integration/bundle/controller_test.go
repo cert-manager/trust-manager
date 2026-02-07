@@ -103,7 +103,7 @@ var _ = Describe("Integration", func() {
 
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: true},
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: ptr.To(true)},
 			})
 		})()).To(Succeed())
 
@@ -150,7 +150,7 @@ var _ = Describe("Integration", func() {
 
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: true},
+				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: ptr.To(true)},
 			})
 		})()).To(Succeed())
 
@@ -244,7 +244,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &secret)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: true},
+				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: ptr.To(true)},
 			})
 		})()).To(Succeed())
 
@@ -273,7 +273,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &secret)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: true},
+				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: ptr.To(true)},
 			})
 		})()).To(Succeed())
 
@@ -301,7 +301,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &secret)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: true},
+				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: ptr.To(true)},
 			})
 		})()).To(Succeed())
 
@@ -343,7 +343,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &configMap)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: true},
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: ptr.To(true)},
 			})
 		})()).To(Succeed())
 
@@ -372,7 +372,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &configMap)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: true},
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: ptr.To(true)},
 			})
 		})()).To(Succeed())
 
@@ -400,7 +400,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &configMap)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: true},
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: ptr.To(true)},
 			})
 		})()).To(Succeed())
 

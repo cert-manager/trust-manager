@@ -133,8 +133,8 @@ var _ = Describe("Bundle Validation", func() {
 				},
 				Entry("when none set", &trustapi.SourceObjectKeySelector{}, true),
 				Entry("when key set", &trustapi.SourceObjectKeySelector{Key: "ca.crt"}, false),
-				Entry("when selector set", &trustapi.SourceObjectKeySelector{IncludeAllKeys: true}, false),
-				Entry("when both set", &trustapi.SourceObjectKeySelector{Key: "ca.crt", IncludeAllKeys: true}, true),
+				Entry("when includeAllKeys set", &trustapi.SourceObjectKeySelector{IncludeAllKeys: ptr.To(true)}, false),
+				Entry("when both set", &trustapi.SourceObjectKeySelector{Key: "ca.crt", IncludeAllKeys: ptr.To(true)}, true),
 			)
 		}
 
