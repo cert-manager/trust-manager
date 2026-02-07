@@ -272,6 +272,7 @@ type TargetMetadata struct {
 }
 
 // BundleStatus defines the observed state of the Bundle.
+// +kubebuilder:validation:MinProperties=1
 type BundleStatus struct {
 	// conditions represent the latest available observations of the Bundle's current state.
 	// +listType=map
