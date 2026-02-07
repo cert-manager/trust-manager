@@ -160,11 +160,6 @@ var _ = Describe("Bundle Validation", func() {
 	})
 
 	Context("Target", func() {
-		var (
-			selectorAccessor func(*trustapi.TargetTemplate)
-			field            string
-		)
-
 		It("should allow no targets", func() {
 			Expect(cl.Create(ctx, bundle)).To(Succeed())
 		})
@@ -198,6 +193,11 @@ var _ = Describe("Bundle Validation", func() {
 			Entry("when non-reserved labels are used", &trustapi.BundleTarget{
 				ConfigMap: trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"not-trust-manager.io/bundle": "bundle"}}}}, false),
 		)
+
+		It("should require at least one target", func() {
+			bundle.Spec.Target = &trustapi.BundleTarget{}
+			Expect(cl.Create(ctx, bundle)).Should(MatchError("spec.target: Invalid value: at least one of the fields in [configMap secret] must be set"))
+		})
 
 		DescribeTable("should require target key",
 			func(target *trustapi.BundleTarget, wantErr bool) {
@@ -283,36 +283,5 @@ var _ = Describe("Bundle Validation", func() {
 			Entry("when both keys set, but different value", &trustapi.AdditionalFormats{JKS: trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "trust.jks"}}, PKCS12: trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "trust.p12"}}}, false),
 			Entry("when both keys set, same value", &trustapi.AdditionalFormats{JKS: trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "cacerts"}}, PKCS12: trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "cacerts"}}}, true),
 		)
-
-		targetObjectAsserts := func() {
-			It("should require target key", func() {
-				bundle.Spec.Target = &trustapi.BundleTarget{}
-				selectorAccessor(&trustapi.TargetTemplate{})
-				expectedErr := "spec.target.%s.key: Invalid value: \"\": spec.target.%s.key in body should be at least 1 chars long"
-				Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr, field, field)))
-			})
-		}
-
-		Context("ConfigMap", func() {
-			BeforeEach(func() {
-				selectorAccessor = func(selector *trustapi.TargetTemplate) {
-					bundle.Spec.Target.ConfigMap = *selector
-				}
-				field = "configMap"
-			})
-
-			targetObjectAsserts()
-		})
-
-		Context("Secret", func() {
-			BeforeEach(func() {
-				selectorAccessor = func(selector *trustapi.TargetTemplate) {
-					bundle.Spec.Target.Secret = *selector
-				}
-				field = "secret"
-			})
-
-			targetObjectAsserts()
-		})
 	})
 })
