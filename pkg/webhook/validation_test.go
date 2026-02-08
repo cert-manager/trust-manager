@@ -264,7 +264,7 @@ func Test_validate(t *testing.T) {
 					},
 				},
 			},
-			expErr: ptr.To("spec.target.additionalFormats.jks.key: Invalid value: \"bar\": key must be unique in target configMap"),
+			expErr: ptr.To("spec.target.additionalFormats.jks.key: Invalid value: \"bar\": key must be unique across all target output keys"),
 		},
 		"a Bundle with a duplicate target PKCS12 key should fail validation and return a denied response": {
 			bundle: &trustapi.Bundle{
@@ -290,7 +290,7 @@ func Test_validate(t *testing.T) {
 					},
 				},
 			},
-			expErr: ptr.To("spec.target.additionalFormats.pkcs12.key: Invalid value: \"bar\": key must be unique in target configMap"),
+			expErr: ptr.To("spec.target.additionalFormats.pkcs12.key: Invalid value: \"bar\": key must be unique across all target output keys"),
 		},
 		"valid Bundle": {
 			bundle: &trustapi.Bundle{
