@@ -242,7 +242,7 @@ var _ = Describe("Bundle Validation", func() {
 				bundle.Spec.Target = target
 
 				if wantErr {
-					expectedErr := "key must be unique in target"
+					expectedErr := "key must be unique across all target output keys"
 					Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
 				} else {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
@@ -271,7 +271,7 @@ var _ = Describe("Bundle Validation", func() {
 			func(formats *trustapi.AdditionalFormats, wantErr bool) {
 				bundle.Spec.Target.AdditionalFormats = formats
 				if wantErr {
-					expectedErr := "spec.target.additionalFormats.pkcs12.key: Invalid value: \"cacerts\": key must be unique in target configMap"
+					expectedErr := "spec.target.additionalFormats.pkcs12.key: Invalid value: \"cacerts\": key must be unique across all target output keys"
 					Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
 				} else {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
