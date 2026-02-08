@@ -11,11 +11,11 @@ linters:
         settings:
           linters:
             enable:
+              - maxlength # Checks for maximum length constraints on strings and arrays
+              - minlength # Checks for minimum length constraints on strings, arrays, maps and structs
               - statusoptional # Ensures status fields are marked as optional
               - statussubresource # Validates status subresource configuration
             # Linters that are not enabled by default, but recommended
-            #  - maxlength # Checks for maximum length constraints on strings and arrays
-            #  - minlength # Checks for minium length constraints on strings, arrays, maps and structs
             #  - nobools # Prevents usage of boolean types
             disable:
               - arrayofstruct # Ensures arrays of structs have at least one required field
