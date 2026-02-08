@@ -265,7 +265,7 @@ func Test_validate(t *testing.T) {
 				},
 			},
 			expErr: field.ErrorList{
-				field.Invalid(field.NewPath("spec", "target", "additionalFormats", "jks", "key"), "bar", "key must be unique in target configMap"),
+				field.Invalid(field.NewPath("spec", "target", "additionalFormats", "jks", "key"), "bar", "key must be unique across all target output keys"),
 			},
 		},
 		"a Bundle with a duplicate target PKCS12 key should fail validation and return a denied response": {
@@ -293,7 +293,7 @@ func Test_validate(t *testing.T) {
 				},
 			},
 			expErr: field.ErrorList{
-				field.Invalid(field.NewPath("spec", "target", "additionalFormats", "pkcs12", "key"), "bar", "key must be unique in target configMap"),
+				field.Invalid(field.NewPath("spec", "target", "additionalFormats", "pkcs12", "key"), "bar", "key must be unique across all target output keys"),
 			},
 		},
 		"valid Bundle": {
