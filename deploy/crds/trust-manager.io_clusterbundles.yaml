@@ -58,6 +58,7 @@ spec:
             type: object
           spec:
             description: spec represents the desired state of the ClusterBundle resource.
+            minProperties: 1
             properties:
               defaultCAs:
                 description: defaultCAs configures the use of a default CA bundle
@@ -436,6 +437,7 @@ spec:
             type: object
           status:
             description: status of the ClusterBundle. This is set and managed automatically.
+            minProperties: 1
             properties:
               conditions:
                 description: conditions represent the latest available observations

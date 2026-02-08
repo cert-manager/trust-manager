@@ -472,22 +472,22 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 			assert.NoError(t, err)
 
 			spec := trustapi.BundleSpec{
-				Target: trustapi.BundleTarget{
-					ConfigMap:         &trustapi.TargetTemplate{Key: key},
+				Target: &trustapi.BundleTarget{
+					ConfigMap:         trustapi.TargetTemplate{Key: key},
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
 			resolvedBundle := source.BundleData{CertPool: certPool}
 			if tt.withJKS {
-				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
+				spec.Target.AdditionalFormats.JKS = trustapi.JKS{
 					KeySelector: trustapi.KeySelector{
 						Key: jksKey,
 					},
-					Password: ptr.To(trustapi.DefaultJKSPassword),
+					Password: trustapi.DefaultJKSPassword,
 				}
 			}
 			if tt.withPKCS12 {
-				spec.Target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{
+				spec.Target.AdditionalFormats.PKCS12 = trustapi.PKCS12{
 					KeySelector: trustapi.KeySelector{
 						Key: pkcs12Key,
 					},
@@ -924,22 +924,22 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 			assert.NoError(t, err)
 
 			spec := trustapi.BundleSpec{
-				Target: trustapi.BundleTarget{
-					Secret:            &trustapi.TargetTemplate{Key: key},
+				Target: &trustapi.BundleTarget{
+					Secret:            trustapi.TargetTemplate{Key: key},
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
 			resolvedBundle := source.BundleData{CertPool: certPool}
 			if tt.withJKS {
-				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
+				spec.Target.AdditionalFormats.JKS = trustapi.JKS{
 					KeySelector: trustapi.KeySelector{
 						Key: jksKey,
 					},
-					Password: ptr.To(trustapi.DefaultJKSPassword),
+					Password: trustapi.DefaultJKSPassword,
 				}
 			}
 			if tt.withPKCS12 {
-				spec.Target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{
+				spec.Target.AdditionalFormats.PKCS12 = trustapi.PKCS12{
 					KeySelector: trustapi.KeySelector{
 						Key: pkcs12Key,
 					},
@@ -1012,19 +1012,14 @@ func Test_TrustBundleHash(t *testing.T) {
 			matches: []inputArgs{
 				{data: []byte{}, additionalFormats: nil},
 				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{}},
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{}}},
 				// NOTE: default passwords are applied by openapi, so the input arguments for the function
 				// will never have a password of "". And we don't have to account for it in the test.
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: ptr.To("")}}},
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{}}},
-				// NOTE: default passwords are applied by openapi, so the input arguments for the function
-				// will never have a password of "". And we don't have to account for it in the test.
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: ptr.To("")}}},
+				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{PKCS12: trustapi.PKCS12{Password: ptr.To("")}}},
 			},
 			mismatches: []inputArgs{
 				{data: []byte("data"), additionalFormats: nil},
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: ptr.To("nonempty")}}},
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: ptr.To("nonempty")}}},
+				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{JKS: trustapi.JKS{Password: "nonempty"}}},
+				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{PKCS12: trustapi.PKCS12{Password: ptr.To("nonempty")}}},
 			},
 		},
 		"non-empty data": {
@@ -1034,21 +1029,21 @@ func Test_TrustBundleHash(t *testing.T) {
 			},
 		},
 		"jks password": {
-			input: inputArgs{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: ptr.To("password")}}},
+			input: inputArgs{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{JKS: trustapi.JKS{Password: "password"}}},
 			matches: []inputArgs{
-				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: ptr.To("password")}}},
+				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{JKS: trustapi.JKS{Password: "password"}}},
 			},
 			mismatches: []inputArgs{
-				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: ptr.To("wrong")}}},
+				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{JKS: trustapi.JKS{Password: "wrong"}}},
 			},
 		},
 		"pkcs12 password": {
-			input: inputArgs{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: ptr.To("password")}}},
+			input: inputArgs{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: trustapi.PKCS12{Password: ptr.To("password")}}},
 			matches: []inputArgs{
-				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: ptr.To("password")}}},
+				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: trustapi.PKCS12{Password: ptr.To("password")}}},
 			},
 			mismatches: []inputArgs{
-				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: ptr.To("wrong")}}},
+				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: trustapi.PKCS12{Password: ptr.To("wrong")}}},
 			},
 		},
 		"target metadata": {

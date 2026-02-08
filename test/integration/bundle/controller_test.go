@@ -103,7 +103,7 @@ var _ = Describe("Integration", func() {
 
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: true},
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: ptr.To(true)},
 			})
 		})()).To(Succeed())
 
@@ -150,7 +150,7 @@ var _ = Describe("Integration", func() {
 
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: true},
+				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: ptr.To(true)},
 			})
 		})()).To(Succeed())
 
@@ -244,7 +244,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &secret)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: true},
+				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: ptr.To(true)},
 			})
 		})()).To(Succeed())
 
@@ -273,7 +273,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &secret)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: true},
+				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: ptr.To(true)},
 			})
 		})()).To(Succeed())
 
@@ -301,7 +301,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &secret)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: true},
+				Secret: &trustapi.SourceObjectKeySelector{Name: secret.Name, IncludeAllKeys: ptr.To(true)},
 			})
 		})()).To(Succeed())
 
@@ -343,7 +343,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &configMap)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: true},
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: ptr.To(true)},
 			})
 		})()).To(Succeed())
 
@@ -372,7 +372,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &configMap)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: true},
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: ptr.To(true)},
 			})
 		})()).To(Succeed())
 
@@ -400,7 +400,7 @@ var _ = Describe("Integration", func() {
 		Expect(cl.Create(ctx, &configMap)).NotTo(HaveOccurred())
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{
-				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: true},
+				ConfigMap: &trustapi.SourceObjectKeySelector{Name: configMap.Name, IncludeAllKeys: ptr.To(true)},
 			})
 		})()).To(Succeed())
 
@@ -428,8 +428,8 @@ var _ = Describe("Integration", func() {
 
 	It("should delete old targets and update to new ones when the Spec.Target is modified", func() {
 		Expect(komega.Update(testBundle, func() {
-			testBundle.Spec.Target = trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "changed-target-key"},
+			testBundle.Spec.Target = &trustapi.BundleTarget{
+				ConfigMap: trustapi.TargetTemplate{Key: "changed-target-key"},
 			}
 		})()).To(Succeed())
 
@@ -454,10 +454,10 @@ var _ = Describe("Integration", func() {
 
 	It("should delete old targets and update to new ones when a JKS file is requested in the target", func() {
 		Expect(komega.Update(testBundle, func() {
-			testBundle.Spec.Target = trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: testData.Target.Key},
+			testBundle.Spec.Target = &trustapi.BundleTarget{
+				ConfigMap: trustapi.TargetTemplate{Key: testData.Target.Key},
 				AdditionalFormats: &trustapi.AdditionalFormats{
-					JKS: &trustapi.JKS{
+					JKS: trustapi.JKS{
 						KeySelector: trustapi.KeySelector{
 							Key: "myfile.jks",
 						},
@@ -588,7 +588,7 @@ var _ = Describe("Integration", func() {
 		It("should have stable resourceVersion for JKS target", func() {
 			Expect(komega.Update(testBundle, func() {
 				testBundle.Spec.Target.AdditionalFormats = &trustapi.AdditionalFormats{
-					JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "target.jks"}}}
+					JKS: trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "target.jks"}}}
 			})()).To(Succeed())
 
 			configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "kube-system", Name: testBundle.Name}}
@@ -601,7 +601,7 @@ var _ = Describe("Integration", func() {
 		It("should have stable resourceVersion for PKCS12 target", func() {
 			Expect(komega.Update(testBundle, func() {
 				testBundle.Spec.Target.AdditionalFormats = &trustapi.AdditionalFormats{
-					PKCS12: &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "target.p12"}}}
+					PKCS12: trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "target.p12"}}}
 			})()).To(Succeed())
 
 			configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "kube-system", Name: testBundle.Name}}

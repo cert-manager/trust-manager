@@ -124,35 +124,35 @@ func spokeSourceObjectKeySelectorFuzzer(obj *SourceObjectKeySelector, c randfill
 	c.FillNoCustom(obj)
 
 	// Key and IncludeAllKeys cannot be used at the same time
-	if obj.IncludeAllKeys {
+	if ptr.Deref(obj.IncludeAllKeys, false) {
 		obj.Key = ""
 	} else if obj.Key == "" {
-		obj.IncludeAllKeys = true
+		obj.IncludeAllKeys = ptr.To(true)
 	}
 }
 
 func spokeBundleTargetFuzzer(obj *BundleTarget, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
-	if (obj.Secret == nil || obj.Secret.Key == "") && (obj.ConfigMap == nil || obj.ConfigMap.Key == "") {
+	if obj.Secret.Key == "" && obj.ConfigMap.Key == "" {
 		// Key is a mandatory field
 		obj.AdditionalFormats = nil
 	}
 	if obj.AdditionalFormats != nil {
-		if obj.AdditionalFormats.PKCS12 != nil && obj.AdditionalFormats.PKCS12.Profile == "" {
+		if obj.AdditionalFormats.PKCS12.Profile == "" {
 			obj.AdditionalFormats.PKCS12.Profile = LegacyRC2PKCS12Profile
 		}
-		if obj.AdditionalFormats.PKCS12 != nil && obj.AdditionalFormats.PKCS12.Key == "" {
+		if obj.AdditionalFormats.PKCS12.Key == "" {
 			// Key is a mandatory field
-			obj.AdditionalFormats.PKCS12 = nil
+			obj.AdditionalFormats.PKCS12 = PKCS12{}
 		}
 
-		if obj.AdditionalFormats.JKS != nil && obj.AdditionalFormats.JKS.Key == "" {
+		if obj.AdditionalFormats.JKS.Key == "" {
 			// Key is a mandatory field
-			obj.AdditionalFormats.JKS = nil
+			obj.AdditionalFormats.JKS = JKS{}
 		}
 
-		if obj.AdditionalFormats.PKCS12 == nil && obj.AdditionalFormats.JKS == nil {
+		if obj.AdditionalFormats.PKCS12.Key == "" && obj.AdditionalFormats.JKS.Key == "" {
 			obj.AdditionalFormats = nil
 		}
 	}
@@ -177,11 +177,7 @@ func hubDefaultCAsFuzzer(obj *trustmanagerapi.DefaultCAsSource, c randfill.Conti
 func hubBundleTargetFuzzer(obj *trustmanagerapi.BundleTarget, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
-	normalizeTarget := func(target *trustmanagerapi.KeyValueTarget) *trustmanagerapi.KeyValueTarget {
-		if target == nil {
-			return nil
-		}
-
+	normalizeTarget := func(target trustmanagerapi.KeyValueTarget) trustmanagerapi.KeyValueTarget {
 		target.Data = slices.DeleteFunc(target.Data, func(tkv trustmanagerapi.TargetKeyValue) bool {
 			if tkv.Key == "" {
 				// Key is a mandatory field
@@ -189,6 +185,10 @@ func hubBundleTargetFuzzer(obj *trustmanagerapi.BundleTarget, c randfill.Continu
 			}
 			return false
 		})
+
+		if len(target.Data) == 0 {
+			return trustmanagerapi.KeyValueTarget{}
+		}
 
 		var pemFound bool
 		for i, tkv := range target.Data {
@@ -207,7 +207,7 @@ func hubBundleTargetFuzzer(obj *trustmanagerapi.BundleTarget, c randfill.Continu
 
 		if !pemFound {
 			// No default format (PEM) keys found, which is not supported by v1alpha1 targets
-			return nil
+			return trustmanagerapi.KeyValueTarget{}
 		}
 		return target
 	}
