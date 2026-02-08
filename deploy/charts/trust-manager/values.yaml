@@ -262,6 +262,13 @@ app:
 
   # Pod annotations to add to trust-manager pods.
   podAnnotations: {}
+  
+  # Kubernetes pod level securityContext: see https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  # for example:
+  #   podSecurityContext:
+  #     seccompProfile:
+  #       type: RuntimeDefault
+  # podSecurityContext: {}
 
   # +docs:section=Webhook
 
