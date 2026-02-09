@@ -169,7 +169,6 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 		configMap := bundle.Spec.Target.ConfigMap
 		secret := bundle.Spec.Target.Secret
 
-		var formats = make(map[string]*trustapi.KeySelector)
 		targetKeys := map[string]struct{}{}
 		if configMap != nil {
 			targetKeys[configMap.Key] = struct{}{}
@@ -178,26 +177,28 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 			targetKeys[secret.Key] = struct{}{}
 		}
 
-		// Checks for nil to avoid nil point dereference error
+		type formatSpec struct {
+			name string
+			key  string
+		}
+		var formats []formatSpec
+
 		if bundle.Spec.Target.AdditionalFormats.JKS != nil {
-			formats["jks"] = &bundle.Spec.Target.AdditionalFormats.JKS.KeySelector
+			formats = append(formats, formatSpec{name: "jks", key: bundle.Spec.Target.AdditionalFormats.JKS.Key})
 		}
-
-		// Checks for nil to avoid nil point dereference error
 		if bundle.Spec.Target.AdditionalFormats.PKCS12 != nil {
-			formats["pkcs12"] = &bundle.Spec.Target.AdditionalFormats.PKCS12.KeySelector
+			formats = append(formats, formatSpec{name: "pkcs12", key: bundle.Spec.Target.AdditionalFormats.PKCS12.Key})
 		}
 
-		for f, selector := range formats {
-			if selector != nil {
-				if _, ok := targetKeys[selector.Key]; ok {
-					el = append(el, field.Invalid(
-						path.Child("target", "additionalFormats", f, "key"), selector.Key,
-						"key must be unique in target configMap",
-					))
-				}
-				targetKeys[selector.Key] = struct{}{}
+		for _, f := range formats {
+			if _, ok := targetKeys[f.key]; ok {
+				el = append(el, field.Invalid(
+					path.Child("target", "additionalFormats", f.name, "key"),
+					f.key,
+					"key must be unique across all target output keys",
+				))
 			}
+			targetKeys[f.key] = struct{}{}
 		}
 	}
 
