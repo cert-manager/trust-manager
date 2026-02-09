@@ -20,7 +20,6 @@ linters:
             disable:
               - arrayofstruct # Ensures arrays of structs have at least one required field
               - nonpointerstructs # Ensures non-pointer structs are marked correctly with required/optional markers
-              - optionalfields # Validates optional field conventions
               - requiredfields # Validates required field conventions
           lintersConfig:
             conditions:
@@ -28,6 +27,9 @@ linters:
               usePatchStrategy: Forbid
             defaults:
               preferredDefaultMarker: kubebuilder:default
+            optionalfields:
+              pointers:
+                preference: WhenRequired
   exclusions:
     generated: strict
     paths-except:

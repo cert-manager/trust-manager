@@ -113,7 +113,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 		DescribeTable("should validate namespace selector",
 			func(selector *metav1.LabelSelector, matchErr string) {
 				bundle.Spec.Target.NamespaceSelector = selector
-				bundle.Spec.Target.ConfigMap = &trustmanagerapi.KeyValueTarget{
+				bundle.Spec.Target.ConfigMap = trustmanagerapi.KeyValueTarget{
 					Data: []trustmanagerapi.TargetKeyValue{{
 						Key: "ca-bundle.crt",
 					}},
@@ -136,12 +136,12 @@ var _ = Describe("ClusterBundle Validation", func() {
 		})
 
 		It("should allow both configmap and secret targets", func() {
-			bundle.Spec.Target.ConfigMap = &trustmanagerapi.KeyValueTarget{
+			bundle.Spec.Target.ConfigMap = trustmanagerapi.KeyValueTarget{
 				Data: []trustmanagerapi.TargetKeyValue{{
 					Key: "ca-bundle.crt",
 				}},
 			}
-			bundle.Spec.Target.Secret = &trustmanagerapi.KeyValueTarget{
+			bundle.Spec.Target.Secret = trustmanagerapi.KeyValueTarget{
 				Data: []trustmanagerapi.TargetKeyValue{{
 					Key: "ca-bundle.crt",
 				}},
@@ -340,7 +340,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 			BeforeEach(func() {
 				targetField = "configMap"
 				setTarget = func(selector *trustmanagerapi.KeyValueTarget) {
-					bundle.Spec.Target.ConfigMap = selector
+					bundle.Spec.Target.ConfigMap = *selector
 				}
 			})
 
@@ -351,7 +351,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 			BeforeEach(func() {
 				targetField = "secret"
 				setTarget = func(selector *trustmanagerapi.KeyValueTarget) {
-					bundle.Spec.Target.Secret = selector
+					bundle.Spec.Target.Secret = *selector
 				}
 			})
 

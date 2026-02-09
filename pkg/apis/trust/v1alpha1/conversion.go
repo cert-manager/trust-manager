@@ -73,8 +73,10 @@ func (src *Bundle) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 func Convert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in *BundleSpec, out *trustv1alpha2.BundleSpec, scope apimachineryconversion.Scope) error {
-	if err := autoConvert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in, out, scope); err != nil {
-		return err
+	if in.Target != nil {
+		if err := Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in.Target, &out.Target, scope); err != nil {
+			return err
+		}
 	}
 
 	if in.Sources != nil {
@@ -126,11 +128,10 @@ func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSourceRef(in *BundleSource,
 	}
 	if in.UseDefaultCAs != nil {
 		obj := scope.Meta().Context.(*trustv1alpha2.ClusterBundle)
-		provider := trustv1alpha2.DefaultCAsProviderDisabled
+		obj.Spec.DefaultCAs.Provider = trustv1alpha2.DefaultCAsProviderDisabled
 		if *in.UseDefaultCAs {
-			provider = trustv1alpha2.DefaultCAsProviderSystem
+			obj.Spec.DefaultCAs.Provider = trustv1alpha2.DefaultCAsProviderSystem
 		}
-		obj.Spec.DefaultCAs = &trustv1alpha2.DefaultCAsSource{Provider: provider}
 	}
 
 	return nil
@@ -141,27 +142,22 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 		return err
 	}
 
-	// No targets defined; we are done
-	if *out == (trustv1alpha2.BundleTarget{}) {
-		return nil
-	}
-
 	if in.AdditionalFormats != nil {
 		appendTargetKV := func(tkv trustv1alpha2.TargetKeyValue) {
-			if in.ConfigMap != nil {
+			if in.ConfigMap.Key != "" {
 				out.ConfigMap.Data = append(out.ConfigMap.Data, tkv)
 			}
-			if in.Secret != nil {
+			if in.Secret.Key != "" {
 				out.Secret.Data = append(out.Secret.Data, tkv)
 			}
 		}
 
-		if in.AdditionalFormats.JKS != nil {
+		if in.AdditionalFormats.JKS.Key != "" {
 			targetKV := trustv1alpha2.TargetKeyValue{
 				Key:    in.AdditionalFormats.JKS.Key,
 				Format: trustv1alpha2.BundleFormatPKCS12,
 				PKCS12: trustv1alpha2.PKCS12{
-					Password: in.AdditionalFormats.JKS.Password,
+					Password: &in.AdditionalFormats.JKS.Password,
 				},
 			}
 			appendTargetKV(targetKV)
@@ -172,13 +168,13 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 			}
 			obj.Annotations[AnnotationKeyJKSKey] = targetKV.Key
 		}
-		if in.AdditionalFormats.PKCS12 != nil {
+		if in.AdditionalFormats.PKCS12.Key != "" {
 			targetKV := trustv1alpha2.TargetKeyValue{
 				Key:    in.AdditionalFormats.PKCS12.Key,
 				Format: trustv1alpha2.BundleFormatPKCS12,
 				PKCS12: trustv1alpha2.PKCS12{},
 			}
-			if err := Convert_v1alpha1_PKCS12_To_v1alpha2_PKCS12(in.AdditionalFormats.PKCS12, &targetKV.PKCS12, scope); err != nil {
+			if err := Convert_v1alpha1_PKCS12_To_v1alpha2_PKCS12(&in.AdditionalFormats.PKCS12, &targetKV.PKCS12, scope); err != nil {
 				return err
 			}
 			appendTargetKV(targetKV)
@@ -193,7 +189,9 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 }
 
 func Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(in *TargetTemplate, out *trustv1alpha2.KeyValueTarget, scope apimachineryconversion.Scope) error {
-	out.Data = []trustv1alpha2.TargetKeyValue{{Key: in.Key}}
+	if in.Key != "" {
+		out.Data = []trustv1alpha2.TargetKeyValue{{Key: in.Key}}
+	}
 	if in.Metadata != nil {
 		out.Metadata = &trustv1alpha2.TargetMetadata{}
 		if err := Convert_v1alpha1_TargetMetadata_To_v1alpha2_TargetMetadata(in.Metadata, out.Metadata, scope); err != nil {
@@ -239,8 +237,11 @@ func (dst *Bundle) ConvertFrom(srcRaw conversion.Hub) error {
 }
 
 func Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *trustv1alpha2.BundleSpec, out *BundleSpec, scope apimachineryconversion.Scope) error {
-	if err := autoConvert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in, out, scope); err != nil {
-		return err
+	if len(in.Target.ConfigMap.Data) > 0 || len(in.Target.Secret.Data) > 0 || in.Target.NamespaceSelector != nil {
+		out.Target = &BundleTarget{}
+		if err := Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(&in.Target, out.Target, scope); err != nil {
+			return err
+		}
 	}
 
 	if in.SourceRefs != nil {
@@ -258,7 +259,7 @@ func Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *trustv1alpha2.Bundle
 	if in.InLineCAs != nil {
 		out.Sources = append(out.Sources, BundleSource{InLine: in.InLineCAs})
 	}
-	if in.DefaultCAs != nil {
+	if in.DefaultCAs != (trustv1alpha2.DefaultCAsSource{}) {
 		out.Sources = append(out.Sources, BundleSource{UseDefaultCAs: ptr.To(in.DefaultCAs.Provider == trustv1alpha2.DefaultCAsProviderSystem)})
 	}
 
@@ -293,25 +294,23 @@ func Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *trustv1alpha2.Bu
 	}
 
 	var targetKeyValues []trustv1alpha2.TargetKeyValue
-	if in.Secret != nil {
+	if len(in.Secret.Data) > 0 {
 		targetKeyValues = append(targetKeyValues, in.Secret.Data...)
 	}
-	if in.ConfigMap != nil {
+	if len(in.ConfigMap.Data) > 0 {
 		targetKeyValues = append(targetKeyValues, in.ConfigMap.Data...)
 	}
 
 	obj := scope.Meta().Context.(*Bundle)
 
-	var jks *JKS
-	var pkcs12 *PKCS12
+	var jks JKS
+	var pkcs12 PKCS12
 	for _, tkv := range targetKeyValues {
 		if tkv.Format == trustv1alpha2.BundleFormatPKCS12 {
 			if k, ok := obj.Annotations[AnnotationKeyJKSKey]; ok && k == tkv.Key {
-				jks = &JKS{}
 				jks.Key = tkv.Key
-				jks.Password = tkv.PKCS12.Password
+				jks.Password = *tkv.PKCS12.Password
 			} else {
-				pkcs12 = &PKCS12{}
 				pkcs12.Key = tkv.Key
 				pkcs12.Password = tkv.PKCS12.Password
 				pkcs12.Profile = PKCS12Profile(tkv.PKCS12.Profile)
@@ -321,11 +320,11 @@ func Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *trustv1alpha2.Bu
 				}
 			}
 		}
-		if jks != nil && pkcs12 != nil {
+		if jks.Key != "" && pkcs12.Key != "" {
 			break
 		}
 	}
-	if jks != nil || pkcs12 != nil {
+	if jks.Key != "" || pkcs12.Key != "" {
 		out.AdditionalFormats = &AdditionalFormats{
 			JKS:    jks,
 			PKCS12: pkcs12,
