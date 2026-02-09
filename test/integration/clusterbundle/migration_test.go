@@ -53,12 +53,12 @@ var _ = Describe("ClusterBundle Migration", func() {
 		bundle = &trustapi.Bundle{}
 		bundle.GenerateName = "migration-"
 		bundle.Spec.Sources = []trustapi.BundleSource{{InLine: ptr.To(dummy.TestCertificate4)}}
-		bundle.Spec.Target = trustapi.BundleTarget{
-			ConfigMap: &trustapi.TargetTemplate{
+		bundle.Spec.Target = &trustapi.BundleTarget{
+			ConfigMap: trustapi.TargetTemplate{
 				Key: "ca.crt",
 			},
 			AdditionalFormats: &trustapi.AdditionalFormats{
-				JKS: &trustapi.JKS{
+				JKS: trustapi.JKS{
 					KeySelector: trustapi.KeySelector{
 						Key: "ca.jks",
 					},
@@ -119,7 +119,7 @@ var _ = Describe("ClusterBundle Migration", func() {
 		clusterBundle.Annotations = map[string]string{
 			trustmanagerapi.BundleMigratedAnnotation: "true",
 		}
-		clusterBundle.Spec.DefaultCAs = &trustmanagerapi.DefaultCAsSource{Provider: trustmanagerapi.DefaultCAsProviderSystem}
+		clusterBundle.Spec.DefaultCAs = trustmanagerapi.DefaultCAsSource{Provider: trustmanagerapi.DefaultCAsProviderSystem}
 		Expect(cl.Update(ctx, clusterBundle)).To(Succeed())
 
 		Eventually(func() (string, error) {

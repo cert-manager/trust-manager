@@ -151,10 +151,10 @@ func testBundleCommon(ctx context.Context, cl client.Client, testBundle *trustap
 
 	Eventually(func() bool {
 		var err error
-		if testBundle.Spec.Target.Secret != nil {
+		if testBundle.Spec.Target.Secret.Key != "" {
 			var secret corev1.Secret
 			err = cl.Get(ctx, client.ObjectKey{Namespace: testNamespace.Name, Name: testBundle.Name}, &secret)
-		} else if testBundle.Spec.Target.ConfigMap != nil {
+		} else if testBundle.Spec.Target.ConfigMap.Key != "" {
 			var cm corev1.ConfigMap
 			err = cl.Get(ctx, client.ObjectKey{Namespace: testNamespace.Name, Name: testBundle.Name}, &cm)
 		}

@@ -134,14 +134,14 @@ func (r *Reconciler) applyConfigMap(
 	}
 
 	bundleTarget := bundle.Spec.Target
-	if bundleTarget.ConfigMap == nil {
+	if bundleTarget.ConfigMap.Key == "" {
 		return false, errors.New("target not defined")
 	}
 
 	bundlePEM := resolvedBundle.CertPool.PEM()
 	// Generated PKCS #12 is not deterministic - best we can do here is update if the pem cert has
 	// changed (hence not checking if PKCS #12 matches)
-	bundleHash := TrustBundleHash([]byte(bundlePEM), bundleTarget.AdditionalFormats, bundleTarget.ConfigMap)
+	bundleHash := TrustBundleHash([]byte(bundlePEM), bundleTarget.AdditionalFormats, &bundleTarget.ConfigMap)
 	// If the resource exists, check if it is up-to-date.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
@@ -197,14 +197,14 @@ func (r *Reconciler) applySecret(
 	}
 
 	bundleTarget := bundle.Spec.Target
-	if bundleTarget.Secret == nil {
+	if bundleTarget.Secret.Key == "" {
 		return false, errors.New("target not defined")
 	}
 
 	bundlePEM := resolvedBundle.CertPool.PEM()
 	// Generated PKCS #12 is not deterministic - best we can do here is update if the pem cert has
 	// changed (hence not checking if PKCS #12 matches)
-	bundleHash := TrustBundleHash([]byte(bundlePEM), bundleTarget.AdditionalFormats, bundleTarget.Secret)
+	bundleHash := TrustBundleHash([]byte(bundlePEM), bundleTarget.AdditionalFormats, &bundleTarget.Secret)
 	// If the resource exists, check if it is up-to-date.
 	if !apierrors.IsNotFound(err) {
 		// Exit early if no update is needed
@@ -274,10 +274,10 @@ func (r *Reconciler) needsUpdate(kind Kind, obj *metav1.PartialObjectMetadata, b
 			return false, fmt.Errorf("failed to list managed properties: %w", err)
 		}
 		expectedProperties := sets.New(key)
-		if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.JKS != nil {
+		if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.JKS.Key != "" {
 			expectedProperties.Insert(bundle.Spec.Target.AdditionalFormats.JKS.Key)
 		}
-		if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.PKCS12 != nil {
+		if bundle.Spec.Target.AdditionalFormats != nil && bundle.Spec.Target.AdditionalFormats.PKCS12.Key != "" {
 			expectedProperties.Insert(bundle.Spec.Target.AdditionalFormats.PKCS12.Key)
 		}
 		if !properties.Equal(expectedProperties) {
@@ -402,10 +402,10 @@ func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats,
 
 	_, _ = hash.Write(data)
 
-	if additionalFormats != nil && additionalFormats.JKS != nil && additionalFormats.JKS.Password != nil {
-		_, _ = hash.Write([]byte(*additionalFormats.JKS.Password))
+	if additionalFormats != nil && additionalFormats.JKS.Password != "" {
+		_, _ = hash.Write([]byte(additionalFormats.JKS.Password))
 	}
-	if additionalFormats != nil && additionalFormats.PKCS12 != nil && additionalFormats.PKCS12.Password != nil {
+	if additionalFormats != nil && additionalFormats.PKCS12.Password != nil {
 		_, _ = hash.Write([]byte(*additionalFormats.PKCS12.Password))
 	}
 
@@ -427,15 +427,15 @@ func binaryData(pool *util.CertPool, formats *trustapi.AdditionalFormats) (binDa
 	if formats != nil {
 		binData = make(map[string][]byte)
 
-		if formats.JKS != nil {
-			encoded, err := truststore.NewJKSEncoder(*formats.JKS.Password).Encode(pool)
+		if formats.JKS.Key != "" {
+			encoded, err := truststore.NewJKSEncoder(formats.JKS.Password).Encode(pool)
 			if err != nil {
 				return nil, fmt.Errorf("failed to encode JKS: %w", err)
 			}
 			binData[formats.JKS.Key] = encoded
 		}
 
-		if formats.PKCS12 != nil {
+		if formats.PKCS12.Key != "" {
 			encoded, err := truststore.NewPKCS12Encoder(*formats.PKCS12.Password, formats.PKCS12.Profile).Encode(pool)
 			if err != nil {
 				return nil, fmt.Errorf("failed to encode PKCS12: %w", err)

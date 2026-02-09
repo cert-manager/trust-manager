@@ -111,9 +111,7 @@ func RegisterConversions(s *runtime.Scheme) error {
 
 func autoConvert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in *BundleSpec, out *v1alpha2.BundleSpec, s conversion.Scope) error {
 	// WARNING: in.Sources requires manual conversion: does not exist in peer-type
-	if err := Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(&in.Target, &out.Target, s); err != nil {
-		return err
-	}
+	// WARNING: in.Target requires manual conversion: inconvertible types (*github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1.BundleTarget vs github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2.BundleTarget)
 	return nil
 }
 
@@ -121,9 +119,7 @@ func autoConvert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *v1alpha2.BundleS
 	// WARNING: in.SourceRefs requires manual conversion: does not exist in peer-type
 	// WARNING: in.DefaultCAs requires manual conversion: does not exist in peer-type
 	// WARNING: in.InLineCAs requires manual conversion: does not exist in peer-type
-	if err := Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(&in.Target, &out.Target, s); err != nil {
-		return err
-	}
+	// WARNING: in.Target requires manual conversion: inconvertible types (github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2.BundleTarget vs *github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1.BundleTarget)
 	return nil
 }
 
@@ -150,23 +146,11 @@ func Convert_v1alpha2_BundleStatus_To_v1alpha1_BundleStatus(in *v1alpha2.BundleS
 }
 
 func autoConvert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, out *v1alpha2.BundleTarget, s conversion.Scope) error {
-	if in.ConfigMap != nil {
-		in, out := &in.ConfigMap, &out.ConfigMap
-		*out = new(v1alpha2.KeyValueTarget)
-		if err := Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.ConfigMap = nil
+	if err := Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(&in.ConfigMap, &out.ConfigMap, s); err != nil {
+		return err
 	}
-	if in.Secret != nil {
-		in, out := &in.Secret, &out.Secret
-		*out = new(v1alpha2.KeyValueTarget)
-		if err := Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Secret = nil
+	if err := Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(&in.Secret, &out.Secret, s); err != nil {
+		return err
 	}
 	// WARNING: in.AdditionalFormats requires manual conversion: does not exist in peer-type
 	out.NamespaceSelector = (*v1.LabelSelector)(unsafe.Pointer(in.NamespaceSelector))
@@ -174,23 +158,11 @@ func autoConvert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget
 }
 
 func autoConvert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *v1alpha2.BundleTarget, out *BundleTarget, s conversion.Scope) error {
-	if in.ConfigMap != nil {
-		in, out := &in.ConfigMap, &out.ConfigMap
-		*out = new(TargetTemplate)
-		if err := Convert_v1alpha2_KeyValueTarget_To_v1alpha1_TargetTemplate(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.ConfigMap = nil
+	if err := Convert_v1alpha2_KeyValueTarget_To_v1alpha1_TargetTemplate(&in.ConfigMap, &out.ConfigMap, s); err != nil {
+		return err
 	}
-	if in.Secret != nil {
-		in, out := &in.Secret, &out.Secret
-		*out = new(TargetTemplate)
-		if err := Convert_v1alpha2_KeyValueTarget_To_v1alpha1_TargetTemplate(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Secret = nil
+	if err := Convert_v1alpha2_KeyValueTarget_To_v1alpha1_TargetTemplate(&in.Secret, &out.Secret, s); err != nil {
+		return err
 	}
 	out.NamespaceSelector = (*v1.LabelSelector)(unsafe.Pointer(in.NamespaceSelector))
 	return nil
