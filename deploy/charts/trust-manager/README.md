@@ -614,6 +614,27 @@ The timeout for a metrics scrape.
 > ```
 
 Additional labels to add to the ServiceMonitor.
+#### **app.metrics.service.servicemonitor.endpointAdditionalProperties** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+
+EndpointAdditionalProperties allows setting additional properties on the endpoint such as relabelings, metricRelabelings etc.  
+  
+For example:
+
+```yaml
+endpointAdditionalProperties:
+ relabelings:
+ - action: replace
+   sourceLabels:
+   - __meta_kubernetes_pod_node_name
+   targetLabel: instance
+```
+
+
+
 #### **podDisruptionBudget.enabled** ~ `bool`
 > Default value:
 > ```yaml

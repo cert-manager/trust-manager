@@ -344,6 +344,20 @@ app:
         scrapeTimeout: 5s
         # Additional labels to add to the ServiceMonitor.
         labels: {}
+        # EndpointAdditionalProperties allows setting additional properties on the
+        # endpoint such as relabelings, metricRelabelings etc.
+        #
+        # For example:
+        #  endpointAdditionalProperties:
+        #   relabelings:
+        #   - action: replace
+        #     sourceLabels:
+        #     - __meta_kubernetes_pod_node_name
+        #     targetLabel: instance
+        #
+        # +docs:property
+        endpointAdditionalProperties: {}
+
 
 podDisruptionBudget:
   # Enable or disable the PodDisruptionBudget resource.
