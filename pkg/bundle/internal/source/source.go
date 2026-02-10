@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -184,7 +185,7 @@ func (b configMapBundleSource) addToCertPool(ctx context.Context, pool *util.Cer
 			if err := pool.AddCertsFromPEM([]byte(data)); err != nil {
 				return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, b.ref.Key, err)}
 			}
-		} else if b.ref.IncludeAllKeys {
+		} else if ptr.Deref(b.ref.IncludeAllKeys, false) {
 			for key, data := range cm.Data {
 				if err := pool.AddCertsFromPEM([]byte(data)); err != nil {
 					return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, key, err)}
@@ -247,7 +248,7 @@ func (b secretBundleSource) addToCertPool(ctx context.Context, pool *util.CertPo
 			if err := pool.AddCertsFromPEM(data); err != nil {
 				return InvalidPEMError{fmt.Errorf("invalid PEM data in Secret %s/%s at key %q: %w", secret.Namespace, secret.Name, b.ref.Key, err)}
 			}
-		} else if b.ref.IncludeAllKeys {
+		} else if ptr.Deref(b.ref.IncludeAllKeys, false) {
 			// This is done to prevent mistakes. All keys should never be included for a TLS secret, since that would include the private key.
 			if secret.Type == corev1.SecretTypeTLS {
 				return InvalidSecretError{fmt.Errorf("includeAllKeys is not supported for TLS Secrets such as %s/%s", secret.Namespace, secret.Name)}
