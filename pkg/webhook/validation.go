@@ -153,7 +153,7 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 func validateTarget(bundle *trustapi.Bundle, path *field.Path) field.ErrorList {
 	el := field.ErrorList{}
 
-	if key := bundle.Spec.Target.ConfigMap.Key; key == "" {
+	if key := bundle.Spec.Target.ConfigMap.Key; key != "" {
 		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
 			if source.ConfigMap != nil && source.ConfigMap.Name == bundle.Name && source.ConfigMap.Key == key {
@@ -165,7 +165,7 @@ func validateTarget(bundle *trustapi.Bundle, path *field.Path) field.ErrorList {
 		}
 	}
 
-	if key := bundle.Spec.Target.Secret.Key; key == "" {
+	if key := bundle.Spec.Target.Secret.Key; key != "" {
 		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
 			if source.Secret != nil && source.Secret.Name == bundle.Name && source.Secret.Key == key {
