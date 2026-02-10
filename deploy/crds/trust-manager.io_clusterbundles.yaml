@@ -58,6 +58,7 @@ spec:
             type: object
           spec:
             description: spec represents the desired state of the ClusterBundle resource.
+            minProperties: 1
             properties:
               defaultCAs:
                 description: defaultCAs configures the use of a default CA bundle
@@ -85,6 +86,8 @@ spec:
               inLineCAs:
                 description: inLineCAs is a simple string to append as the source
                   data.
+                maxLength: 1048576
+                minLength: 1
                 type: string
               sourceRefs:
                 description: |-
@@ -100,6 +103,7 @@ spec:
                         key specifies one or more keys in the object's data field to be used.
                         The "*" wildcard matches any sequence of characters within a key.
                         A value of "*" matches all entries in the data field.
+                      maxLength: 253
                       minLength: 1
                       pattern: ^[0-9A-Za-z_.\-*]+$
                       type: string
@@ -170,9 +174,10 @@ spec:
                   type: object
                   x-kubernetes-map-type: atomic
                   x-kubernetes-validations:
-                  - message: 'exactly one of the following fields must be provided:
-                      [name, selector]'
-                    rule: '[has(self.name), has(self.selector)].exists_one(x,x)'
+                  - message: exactly one of the fields in [name selector] must be
+                      set
+                    rule: '[has(self.name),has(self.selector)].filter(x,x==true).size()
+                      == 1'
                 maxItems: 100
                 minItems: 0
                 type: array
@@ -191,6 +196,7 @@ spec:
                         items:
                           description: TargetKeyValue is the specification of a key
                             with value in a key-value target resource.
+                          minProperties: 0
                           properties:
                             format:
                               description: |-
@@ -203,6 +209,7 @@ spec:
                             key:
                               description: key is the key of the entry in the object's
                                 `data` field to be used.
+                              maxLength: 253
                               minLength: 1
                               pattern: ^[0-9A-Za-z_.\-]+$
                               type: string
@@ -211,6 +218,7 @@ spec:
                                 password for PKCS12 trust store.
                                 By default, no password is used (password-less PKCS#12).
                               maxLength: 128
+                              minLength: 0
                               type: string
                             profile:
                               description: |-
@@ -252,12 +260,14 @@ spec:
                       metadata:
                         description: metadata is an optional set of labels and annotations
                           to be copied to the target.
+                        minProperties: 1
                         properties:
                           annotations:
                             additionalProperties:
                               type: string
                             description: annotations is a key value map to be copied
                               to the target.
+                            minProperties: 1
                             type: object
                             x-kubernetes-validations:
                             - message: must not use forbidden domains as prefixes
@@ -269,6 +279,7 @@ spec:
                               type: string
                             description: labels is a key value map to be copied to
                               the target.
+                            minProperties: 1
                             type: object
                             x-kubernetes-validations:
                             - message: must not use forbidden domains as prefixes
@@ -338,6 +349,7 @@ spec:
                         items:
                           description: TargetKeyValue is the specification of a key
                             with value in a key-value target resource.
+                          minProperties: 0
                           properties:
                             format:
                               description: |-
@@ -350,6 +362,7 @@ spec:
                             key:
                               description: key is the key of the entry in the object's
                                 `data` field to be used.
+                              maxLength: 253
                               minLength: 1
                               pattern: ^[0-9A-Za-z_.\-]+$
                               type: string
@@ -358,6 +371,7 @@ spec:
                                 password for PKCS12 trust store.
                                 By default, no password is used (password-less PKCS#12).
                               maxLength: 128
+                              minLength: 0
                               type: string
                             profile:
                               description: |-
@@ -399,12 +413,14 @@ spec:
                       metadata:
                         description: metadata is an optional set of labels and annotations
                           to be copied to the target.
+                        minProperties: 1
                         properties:
                           annotations:
                             additionalProperties:
                               type: string
                             description: annotations is a key value map to be copied
                               to the target.
+                            minProperties: 1
                             type: object
                             x-kubernetes-validations:
                             - message: must not use forbidden domains as prefixes
@@ -416,6 +432,7 @@ spec:
                               type: string
                             description: labels is a key value map to be copied to
                               the target.
+                            minProperties: 1
                             type: object
                             x-kubernetes-validations:
                             - message: must not use forbidden domains as prefixes
@@ -430,12 +447,14 @@ spec:
                 - namespaceSelector
                 type: object
                 x-kubernetes-validations:
-                - message: 'any of the following fields must be provided: [configMap,
-                    secret]'
-                  rule: '[has(self.configMap), has(self.secret)].exists(x,x)'
+                - message: at least one of the fields in [configMap secret] must be
+                    set
+                  rule: '[has(self.configMap),has(self.secret)].filter(x,x==true).size()
+                    >= 1'
             type: object
           status:
             description: status of the ClusterBundle. This is set and managed automatically.
+            minProperties: 1
             properties:
               conditions:
                 description: conditions represent the latest available observations
@@ -494,6 +513,8 @@ spec:
                   - status
                   - type
                   type: object
+                maxItems: 10
+                minItems: 0
                 type: array
                 x-kubernetes-list-map-keys:
                 - type
@@ -505,6 +526,8 @@ spec:
                   This field is populated only when spec.includeDefaultCAs is set to true.
                   ClusterBundles resolved from identical sets of default CA certificates will report
                   the same defaultCAVersion value.
+                maxLength: 253
+                minLength: 1
                 type: string
             type: object
         type: object

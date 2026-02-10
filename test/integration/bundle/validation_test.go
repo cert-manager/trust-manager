@@ -83,19 +83,20 @@ var _ = Describe("Bundle Validation", func() {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
 				}
 			},
-			Entry("when none set", trustapi.BundleSource{}, "spec.sources[0]: Forbidden: must define exactly one source type for each item but found 0 defined types, spec.sources: Forbidden: must define at least one source"),
+			Entry("when none set", trustapi.BundleSource{}, "spec.sources[0]: Invalid value: exactly one of the fields in [configMap secret inLine useDefaultCAs] must be set"),
 			Entry("when configMap set", trustapi.BundleSource{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "ca", Key: "ca.crt"}}, ""),
 			Entry("when secret set", trustapi.BundleSource{Secret: &trustapi.SourceObjectKeySelector{Name: "ca", Key: "ca.crt"}}, ""),
-			Entry("when inLine set", trustapi.BundleSource{InLine: ptr.To("")}, ""),
+			Entry("when inLine set", trustapi.BundleSource{InLine: ptr.To("cert-placeholder")}, ""),
 			Entry("when useDefaultCAs=true set", trustapi.BundleSource{UseDefaultCAs: ptr.To(true)}, ""),
 			Entry("when useDefaultCAs=false set", trustapi.BundleSource{UseDefaultCAs: ptr.To(false)}, "spec.sources: Forbidden: must define at least one source"),
-			Entry("when multiple set", trustapi.BundleSource{InLine: ptr.To(""), UseDefaultCAs: ptr.To(true)}, "spec.sources[0]: Forbidden: must define exactly one source type for each item but found 2 defined types"),
+			Entry("when multiple set", trustapi.BundleSource{InLine: ptr.To("cert-placeholder"), UseDefaultCAs: ptr.To(true)}, "spec.sources[0]: Invalid value: exactly one of the fields in [configMap secret inLine useDefaultCAs] must be set"),
 		)
 	})
 
 	Context("Source object item", func() {
 		var (
 			selectorAccessor func(*trustapi.SourceObjectKeySelector)
+			field            string
 		)
 
 		BeforeEach(func() {
@@ -108,7 +109,7 @@ var _ = Describe("Bundle Validation", func() {
 					selector.Key = "ca.crt"
 					selectorAccessor(selector)
 					if wantErr {
-						expectedErr := "must validate one and only one schema (oneOf): [name, selector]"
+						expectedErr := "Invalid value: exactly one of the fields in [name selector] must be set"
 						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
 					} else {
 						Expect(cl.Create(ctx, bundle)).To(Succeed())
@@ -121,20 +122,20 @@ var _ = Describe("Bundle Validation", func() {
 			)
 
 			DescribeTable("should require exactly one key specifier",
-				func(selector *trustapi.SourceObjectKeySelector, wantErr bool) {
+				func(selector *trustapi.SourceObjectKeySelector, wantErr string) {
 					selector.Name = "ca"
 					selectorAccessor(selector)
-					if wantErr {
-						expectedErr := "be defined when includeAllKeys"
-						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
+					if wantErr != "" {
+						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(wantErr, field)))
 					} else {
 						Expect(cl.Create(ctx, bundle)).To(Succeed())
 					}
 				},
-				Entry("when none set", &trustapi.SourceObjectKeySelector{}, true),
-				Entry("when key set", &trustapi.SourceObjectKeySelector{Key: "ca.crt"}, false),
-				Entry("when includeAllKeys set", &trustapi.SourceObjectKeySelector{IncludeAllKeys: ptr.To(true)}, false),
-				Entry("when both set", &trustapi.SourceObjectKeySelector{Key: "ca.crt", IncludeAllKeys: ptr.To(true)}, true),
+				Entry("when none set", &trustapi.SourceObjectKeySelector{}, "Invalid value: \"key: ' ', includeAllKeys: false\": source %s key must be defined when includeAllKeys is false"),
+				Entry("when key set", &trustapi.SourceObjectKeySelector{Key: "ca.crt"}, ""),
+				Entry("when includeAllKeys set to true", &trustapi.SourceObjectKeySelector{IncludeAllKeys: ptr.To(true)}, ""),
+				Entry("when includeAllKeys set to false", &trustapi.SourceObjectKeySelector{IncludeAllKeys: ptr.To(false)}, "Invalid value: \"key: ' ', includeAllKeys: false\": source %s key must be defined when includeAllKeys is false"),
+				Entry("when both set", &trustapi.SourceObjectKeySelector{Key: "ca.crt", IncludeAllKeys: ptr.To(true)}, "Invalid value: \"key: ca.crt, includeAllKeys: true\": source %s key cannot be defined when includeAllKeys is true"),
 			)
 		}
 
@@ -143,6 +144,7 @@ var _ = Describe("Bundle Validation", func() {
 				selectorAccessor = func(selector *trustapi.SourceObjectKeySelector) {
 					bundle.Spec.Sources[0].ConfigMap = selector
 				}
+				field = "configMap"
 			})
 
 			sourceObjectAsserts()
@@ -153,6 +155,7 @@ var _ = Describe("Bundle Validation", func() {
 				selectorAccessor = func(selector *trustapi.SourceObjectKeySelector) {
 					bundle.Spec.Sources[0].Secret = selector
 				}
+				field = "secret"
 			})
 
 			sourceObjectAsserts()
@@ -205,8 +208,8 @@ var _ = Describe("Bundle Validation", func() {
 				if wantErr {
 					Expect(cl.Create(ctx, bundle)).Should(MatchError(
 						SatisfyAny(
-							ContainSubstring("Invalid value: \"\": spec.target.configMap.key in body should be at least 1 chars long"),
-							ContainSubstring("Invalid value: \"\": spec.target.secret.key in body should be at least 1 chars long"),
+							ContainSubstring("spec.target.configMap.key: Invalid value: \"\": spec.target.configMap.key in body should be at least 1 chars long"),
+							ContainSubstring("spec.target.secret.key: Invalid value: \"\": spec.target.secret.key in body should be at least 1 chars long"),
 						),
 					))
 				} else {
@@ -226,7 +229,7 @@ var _ = Describe("Bundle Validation", func() {
 
 		DescribeTable("should require additional format keys different from target keys",
 			func(keySpec TargetKeySpec, wantErr bool) {
-				target := trustapi.BundleTarget{AdditionalFormats: &trustapi.AdditionalFormats{}}
+				target := trustapi.BundleTarget{}
 				if keySpec.ConfigMapKey != "" {
 					target.ConfigMap = &trustapi.TargetTemplate{Key: keySpec.ConfigMapKey}
 				}
@@ -234,9 +237,15 @@ var _ = Describe("Bundle Validation", func() {
 					target.Secret = &trustapi.TargetTemplate{Key: keySpec.SecretKey}
 				}
 				if keySpec.JKSKey != "" {
+					if target.AdditionalFormats == nil {
+						target.AdditionalFormats = &trustapi.AdditionalFormats{}
+					}
 					target.AdditionalFormats.JKS = &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: keySpec.JKSKey}}
 				}
 				if keySpec.PKCS12Key != "" {
+					if target.AdditionalFormats == nil {
+						target.AdditionalFormats = &trustapi.AdditionalFormats{}
+					}
 					target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: keySpec.PKCS12Key}}
 				}
 				bundle.Spec.Target = target
@@ -267,21 +276,20 @@ var _ = Describe("Bundle Validation", func() {
 			Entry(nil, TargetKeySpec{ConfigMapKey: "c", SecretKey: "s", JKSKey: "j", PKCS12Key: "s"}, true),
 		)
 
-		DescribeTable("should require unique additional format keys",
-			func(formats *trustapi.AdditionalFormats, wantErr bool) {
+		DescribeTable("should validate additional formats",
+			func(formats *trustapi.AdditionalFormats, wantErr string) {
 				bundle.Spec.Target.AdditionalFormats = formats
-				if wantErr {
-					expectedErr := "spec.target.additionalFormats.pkcs12.key: Invalid value: \"cacerts\": key must be unique across all target output keys"
-					Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
+				if wantErr != "" {
+					Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(wantErr)))
 				} else {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
 				}
 			},
-			Entry("when none set", &trustapi.AdditionalFormats{}, false),
-			Entry("when JKS key set", &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "trust.jks"}}}, false),
-			Entry("when PKCS key set", &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "trust.p12"}}}, false),
-			Entry("when both keys set, but different value", &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "trust.jks"}}, PKCS12: &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "trust.p12"}}}, false),
-			Entry("when both keys set, same value", &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "cacerts"}}, PKCS12: &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "cacerts"}}}, true),
+			Entry("when none set", &trustapi.AdditionalFormats{}, "spec.target.additionalFormats: Invalid value: at least one of the fields in [jks pkcs12] must be set"),
+			Entry("when JKS key set", &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "trust.jks"}}}, ""),
+			Entry("when PKCS key set", &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "trust.p12"}}}, ""),
+			Entry("when both keys set, but different value", &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "trust.jks"}}, PKCS12: &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "trust.p12"}}}, ""),
+			Entry("when both keys set, same value", &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "cacerts"}}, PKCS12: &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "cacerts"}}}, "Invalid value: \"cacerts\": key must be unique across all target output keys"),
 		)
 
 		targetObjectAsserts := func() {
