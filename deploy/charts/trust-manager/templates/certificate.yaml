@@ -36,6 +36,8 @@ spec:
   secretTemplate:
     {{- toYaml .| nindent 4 }}
   {{- end }}
+  privateKey:
+    rotationPolicy: Always
   revisionHistoryLimit: 1
   issuerRef:
     name: {{ include "trust-manager.name" . }}
