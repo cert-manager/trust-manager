@@ -313,11 +313,6 @@ app:
           #   labels:
           #     my-secret-label: foo
 
-        # Private key configuration for the webhook certificate.
-        privateKey:
-          # The rotation policy for the private key. When set to Always, the private key will be regenerated when the certificate is renewed.
-          rotationPolicy: Always
-
     # This value specifies if the app should be started in hostNetwork mode. It is required for use in some managed Kubernetes clusters (such as AWS EKS) with custom CNI.
     hostNetwork: false
 
