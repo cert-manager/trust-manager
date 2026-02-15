@@ -55,10 +55,10 @@ var _ = Describe("Bundle Validation", func() {
 	})
 
 	Context("Sources", func() {
-		It("should require at least one source", func() {
-			bundle.Spec.Sources = make([]trustapi.BundleSource, 0)
+		It("should require sources", func() {
+			bundle.Spec.Sources = nil
 
-			expectedErr := "spec.sources: Invalid value: 0: spec.sources in body should have at least 1 items"
+			expectedErr := "spec.sources: Required value"
 			Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr)))
 		})
 
@@ -202,24 +202,6 @@ var _ = Describe("Bundle Validation", func() {
 				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"not-trust-manager.io/bundle": "bundle"}}}}, false),
 		)
 
-		DescribeTable("should require target key",
-			func(target trustapi.BundleTarget, wantErr bool) {
-				bundle.Spec.Target = target
-				if wantErr {
-					Expect(cl.Create(ctx, bundle)).Should(MatchError(
-						SatisfyAny(
-							ContainSubstring("spec.target.configMap.key: Invalid value: \"\": spec.target.configMap.key in body should be at least 1 chars long"),
-							ContainSubstring("spec.target.secret.key: Invalid value: \"\": spec.target.secret.key in body should be at least 1 chars long"),
-						),
-					))
-				} else {
-					Expect(cl.Create(ctx, bundle)).To(Succeed())
-				}
-			},
-			Entry("for configmap", trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: ""}}, true),
-			Entry("for secret", trustapi.BundleTarget{Secret: &trustapi.TargetTemplate{Key: ""}}, true),
-		)
-
 		type TargetKeySpec struct {
 			ConfigMapKey string
 			SecretKey    string
@@ -296,8 +278,8 @@ var _ = Describe("Bundle Validation", func() {
 			It("should require target key", func() {
 				bundle.Spec.Target = trustapi.BundleTarget{}
 				selectorAccessor(&trustapi.TargetTemplate{})
-				expectedErr := "spec.target.%s.key: Invalid value: \"\": spec.target.%s.key in body should be at least 1 chars long"
-				Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr, field, field)))
+				expectedErr := "spec.target.%s.key: Required value"
+				Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr, field)))
 			})
 		}
 

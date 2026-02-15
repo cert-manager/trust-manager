@@ -67,7 +67,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
 				}
 			},
-			Entry("when unset", "", "spec.sourceRefs[0].key: Invalid value: \"\": spec.sourceRefs[0].key in body should be at least 1 chars long"),
+			Entry("when unset", "", "spec.sourceRefs[0].key: Required value"),
 			Entry("when given", "ca.crt", ""),
 			Entry("when using simple wildcard to include some keys", "*.crt", ""),
 			Entry("when using simple wildcard to include all keys", "*", ""),
@@ -86,7 +86,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
 				}
 			},
-			Entry("when kind unset", trustmanagerapi.SourceReference{Name: "ca"}, "spec.sourceRefs[0].kind: Unsupported value: \"\": supported values: \"ConfigMap\", \"Secret\""),
+			Entry("when kind unset", trustmanagerapi.SourceReference{Name: "ca"}, "spec.sourceRefs[0].kind: Required value"),
 			Entry("when kind ConfigMap", trustmanagerapi.SourceReference{Kind: trustmanagerapi.ConfigMapKind, Name: "ca"}, ""),
 			Entry("when kind Secret", trustmanagerapi.SourceReference{Kind: trustmanagerapi.SecretKind, Name: "ca"}, ""),
 			Entry("when kind unknown", trustmanagerapi.SourceReference{Kind: "OtherKind", Name: "ca"}, "spec.sourceRefs[0].kind: Unsupported value: \"OtherKind\": supported values: \"ConfigMap\", \"Secret\""),
@@ -158,14 +158,14 @@ var _ = Describe("ClusterBundle Validation", func() {
 						}},
 					})
 					if matchErr != "" {
-						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, targetField, targetField)))
+						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, targetField)))
 					} else {
 						Expect(cl.Create(ctx, bundle)).To(Succeed())
 					}
 				},
-				Entry("when unset", "", "spec.target.%s.data[0].key: Invalid value: \"\": spec.target.%s.data[0].key in body should be at least 1 chars long"),
+				Entry("when unset", "", "spec.target.%s.data[0].key: Required value"),
 				Entry("when given", "ca.crt", ""),
-				Entry("when using wildcard", "*.crt", "spec.target.%s.data[0].key: Invalid value: \"*.crt\": spec.target.%s.data[0].key in body should match '^[0-9A-Za-z_.\\-]+$"),
+				Entry("when using wildcard", "*.crt", "spec.target.%[1]s.data[0].key: Invalid value: \"*.crt\": spec.target.%[1]s.data[0].key in body should match '^[0-9A-Za-z_.\\-]+$"),
 			)
 
 			It("should require unique keys", func() {

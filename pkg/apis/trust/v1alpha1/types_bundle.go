@@ -46,7 +46,7 @@ type Bundle struct {
 
 	// spec represents the desired state of the Bundle resource.
 	// +required
-	Spec BundleSpec `json:"spec"`
+	Spec BundleSpec `json:"spec,omitzero"`
 
 	// status of the Bundle. This is set and managed automatically.
 	// +optional
@@ -68,7 +68,7 @@ type BundleSpec struct {
 	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
-	Sources []BundleSource `json:"sources"`
+	Sources []BundleSource `json:"sources,omitempty"`
 
 	// target is the target location in all namespaces to sync source data to.
 	// +optional
@@ -240,7 +240,7 @@ type TargetTemplate struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	Key string `json:"key"`
+	Key string `json:"key,omitempty"`
 
 	// metadata is an optional set of labels and annotations to be copied to the target.
 	// +optional
@@ -269,7 +269,7 @@ type KeySelector struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	Key string `json:"key"`
+	Key string `json:"key,omitempty"`
 }
 
 // TargetMetadata defines the default labels and annotations
