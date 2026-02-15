@@ -18,20 +18,19 @@ package gen
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
-	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 )
 
 // BundleModifier is used to modify a Bundle object in-line. Intended for
 // testing.
-type BundleModifier func(*trustapi.Bundle)
+type BundleModifier func(bundle *trustmanagerapi.ClusterBundle)
 
 // Bundle constructs a Bundle object with BundleModifiers which can be defined
 // in-line. Intended for testing.
-func Bundle(name string, mods ...BundleModifier) *trustapi.Bundle {
-	bundle := &trustapi.Bundle{
-		TypeMeta: metav1.TypeMeta{Kind: "Bundle", APIVersion: "trust.cert-manager.io/v1alpha1"},
+func Bundle(name string, mods ...BundleModifier) *trustmanagerapi.ClusterBundle {
+	bundle := &trustmanagerapi.ClusterBundle{
+		TypeMeta: metav1.TypeMeta{Kind: "ClusterBundle", APIVersion: "trust-manager.io/v1alpha2"},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
 			Annotations: make(map[string]string),
@@ -46,7 +45,7 @@ func Bundle(name string, mods ...BundleModifier) *trustapi.Bundle {
 
 // BundleFrom deep copies a Bundle object and applies the given
 // BundleModifiers.
-func BundleFrom(bundle *trustapi.Bundle, mods ...BundleModifier) *trustapi.Bundle {
+func BundleFrom(bundle *trustmanagerapi.ClusterBundle, mods ...BundleModifier) *trustmanagerapi.ClusterBundle {
 	bundle = bundle.DeepCopy()
 	for _, mod := range mods {
 		mod(bundle)
@@ -55,22 +54,22 @@ func BundleFrom(bundle *trustapi.Bundle, mods ...BundleModifier) *trustapi.Bundl
 }
 
 // SetBundleStatus sets the Bundle object's status as a BundleModifier.
-func SetBundleStatus(status trustapi.BundleStatus) BundleModifier {
-	return func(bundle *trustapi.Bundle) {
+func SetBundleStatus(status trustmanagerapi.BundleStatus) BundleModifier {
+	return func(bundle *trustmanagerapi.ClusterBundle) {
 		bundle.Status = status
 	}
 }
 
-func SetBundleTargetAdditionalFormats(formats trustapi.AdditionalFormats) BundleModifier {
-	return func(bundle *trustapi.Bundle) {
-		bundle.Spec.Target.AdditionalFormats = &formats
+func SetBundleKeyValueTarget(keyValue trustmanagerapi.KeyValueTarget) BundleModifier {
+	return func(bundle *trustmanagerapi.ClusterBundle) {
+		bundle.Spec.Target.ConfigMap = &keyValue
 	}
 }
 
 // SetResourceVersion sets the Bundle object's resource version as a
 // BundleModifier.
 func SetBundleResourceVersion(resourceVersion string) BundleModifier {
-	return func(bundle *trustapi.Bundle) {
+	return func(bundle *trustmanagerapi.ClusterBundle) {
 		bundle.ResourceVersion = resourceVersion
 	}
 }
@@ -78,16 +77,18 @@ func SetBundleResourceVersion(resourceVersion string) BundleModifier {
 // SetBundleTargetNamespaceSelectorMatchLabels sets the Bundle object's spec
 // target namespace selector.
 func SetBundleTargetNamespaceSelectorMatchLabels(matchLabels map[string]string) BundleModifier {
-	return func(bundle *trustapi.Bundle) {
+	return func(bundle *trustmanagerapi.ClusterBundle) {
 		bundle.Spec.Target.NamespaceSelector = &metav1.LabelSelector{
 			MatchLabels: matchLabels,
 		}
 	}
 }
 
-// AppendBundleUsesDefaultPackage appends a source to the bundle which requests the default bundle package.
-func AppendBundleUsesDefaultPackage() BundleModifier {
-	return func(bundle *trustapi.Bundle) {
-		bundle.Spec.Sources = append(bundle.Spec.Sources, trustapi.BundleSource{UseDefaultCAs: ptr.To(true)})
+// IncludeDefaultCAs updates the bundle spec to include the default bundle package.
+func IncludeDefaultCAs() BundleModifier {
+	return func(bundle *trustmanagerapi.ClusterBundle) {
+		bundle.Spec.DefaultCAs = &trustmanagerapi.DefaultCAsSource{
+			Provider: trustmanagerapi.DefaultCAsProviderSystem,
+		}
 	}
 }

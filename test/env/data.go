@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//nolint:staticcheck // SA1019 staticcheck will warn about our use of the deprecated Bundle resource, but we still need to test it to people can migrate
 package env
 
 import (

@@ -1,0 +1,476 @@
+{{- if .Values.crds.enabled }}
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: "clusterbundles.trust-manager.io"
+  {{- if .Values.crds.keep }}
+  annotations:
+    helm.sh/resource-policy: keep
+  {{- end }}
+  labels:
+    {{- include "trust-manager.labels" . | nindent 4 }}
+spec:
+  group: trust-manager.io
+  names:
+    kind: ClusterBundle
+    listKind: ClusterBundleList
+    plural: clusterbundles
+    singular: clusterbundle
+  scope: Cluster
+  versions:
+    - additionalPrinterColumns:
+        - description: Bundle ConfigMap Target Key
+          jsonPath: .spec.target.configMap.key
+          name: ConfigMap Target
+          type: string
+        - description: Bundle Secret Target Key
+          jsonPath: .spec.target.secret.key
+          name: Secret Target
+          type: string
+        - description: Bundle has been synced
+          jsonPath: .status.conditions[?(@.type == "Synced")].status
+          name: Synced
+          type: string
+        - description: Reason Bundle has Synced status
+          jsonPath: .status.conditions[?(@.type == "Synced")].reason
+          name: Reason
+          type: string
+        - description: Timestamp Bundle was created
+          jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1alpha2
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: Desired state of the Bundle resource.
+              properties:
+                inLineCAs:
+                  description: InLine is a simple string to append as the source data.
+                  type: string
+                includeDefaultCAs:
+                  description: |-
+                    IncludeDefaultCAs, when true, requests the default CA bundle to be used as a source.
+                    Default CAs are available if trust-manager was installed via Helm
+                    or was otherwise set up to include a package-injecting init container by using the
+                    "--default-package-location" flag when starting the trust-manager controller.
+                    If default CAs were not configured at start-up, any request to use the default
+                    CAs will fail.
+                    The version of the default CA package which is used for a Bundle is stored in the
+                    defaultCAPackageVersion field of the Bundle's status field.
+                  type: boolean
+                sources:
+                  description: Sources is a set of references to data whose data will sync to the target.
+                  items:
+                    description: |-
+                      BundleSource is the set of sources whose data will be appended and synced to
+                      the BundleTarget in all Namespaces.
+                    properties:
+                      key:
+                        description: |-
+                          Key(s) of the entry in the object's `data` field to be used.
+                          Wildcards "*" in Key matches any sequence characters.
+                          A Key containing only "*" will match all data fields.
+                        minLength: 1
+                        pattern: ^[0-9A-Za-z_.\-*]+$
+                        type: string
+                      kind:
+                        description: Kind is the kind of the source object.
+                        enum:
+                          - ConfigMap
+                          - Secret
+                        type: string
+                      name:
+                        description: |-
+                          Name is the name of the source object in the trust Namespace.
+                          This field must be left empty when `selector` is set
+                        maxLength: 253
+                        minLength: 1
+                        type: string
+                      selector:
+                        description: |-
+                          Selector is the label selector to use to fetch a list of objects. Must not be set
+                          when `Name` is set.
+                        properties:
+                          matchExpressions:
+                            description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                            items:
+                              description: |-
+                                A label selector requirement is a selector that contains values, a key, and an operator that
+                                relates the key and values.
+                              properties:
+                                key:
+                                  description: key is the label key that the selector applies to.
+                                  type: string
+                                operator:
+                                  description: |-
+                                    operator represents a key's relationship to a set of values.
+                                    Valid operators are In, NotIn, Exists and DoesNotExist.
+                                  type: string
+                                values:
+                                  description: |-
+                                    values is an array of string values. If the operator is In or NotIn,
+                                    the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                    the values array must be empty. This array is replaced during a strategic
+                                    merge patch.
+                                  items:
+                                    type: string
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                              required:
+                                - key
+                                - operator
+                              type: object
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: |-
+                              matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                              map is equivalent to an element of matchExpressions, whose key field is "key", the
+                              operator is "In", and the values array contains only "value". The requirements are ANDed.
+                            type: object
+                        type: object
+                        x-kubernetes-map-type: atomic
+                    required:
+                      - key
+                      - kind
+                    type: object
+                    x-kubernetes-map-type: atomic
+                    x-kubernetes-validations:
+                      - message: 'exactly one of the following fields must be provided: [name, selector]'
+                        rule: '[has(self.name), has(self.selector)].exists_one(x,x)'
+                  maxItems: 100
+                  minItems: 0
+                  type: array
+                  x-kubernetes-list-type: atomic
+                target:
+                  description: Target is the target location in all namespaces to sync source data to.
+                  properties:
+                    configMap:
+                      description: ConfigMap is the target ConfigMap in Namespaces that all Bundle source data will be synced to.
+                      properties:
+                        data:
+                          description: Data is the specification of the object's `data` field.
+                          items:
+                            description: TargetKeyValue is the specification of a key with value in a key-value target resource.
+                            properties:
+                              format:
+                                description: |-
+                                  Format defines the format of the target value.
+                                  The default format is PEM.
+                                enum:
+                                  - PEM
+                                  - PKCS12
+                                type: string
+                              key:
+                                description: Key is the key of the entry in the object's `data` field to be used.
+                                minLength: 1
+                                pattern: ^[0-9A-Za-z_.\-]+$
+                                type: string
+                              password:
+                                description: |-
+                                  Password for PKCS12 trust store.
+                                  By default, no password is used (password-less PKCS#12).
+                                maxLength: 128
+                                type: string
+                              profile:
+                                description: |-
+                                  Profile specifies the certificate encryption algorithms and the HMAC algorithm
+                                  used to create the PKCS12 trust store.
+
+                                  If provided, allowed values are:
+                                  `LegacyRC2`: Deprecated. Not supported by default in OpenSSL 3 or Java 20.
+                                  `LegacyDES`: Less secure algorithm. Use this option for maximal compatibility.
+                                  `Modern2023`: Secure algorithm. Use this option in case you have to always use secure algorithms (e.g. because of company policy).
+
+                                  Default value is `LegacyDES`.
+                                enum:
+                                  - LegacyRC2
+                                  - LegacyDES
+                                  - Modern2023
+                                type: string
+                            required:
+                              - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                            x-kubernetes-validations:
+                              - fieldPath: .password
+                                message: may only be set when format is 'PKCS12'
+                                reason: FieldValueForbidden
+                                rule: '!has(self.password) || (has(self.format) && self.format == ''PKCS12'')'
+                              - fieldPath: .profile
+                                message: may only be set when format is 'PKCS12'
+                                reason: FieldValueForbidden
+                                rule: '!has(self.profile) || (has(self.format) && self.format == ''PKCS12'')'
+                          maxItems: 10
+                          minItems: 1
+                          type: array
+                          x-kubernetes-list-map-keys:
+                            - key
+                          x-kubernetes-list-type: map
+                        metadata:
+                          description: Metadata is an optional set of labels and annotations to be copied to the target.
+                          properties:
+                            annotations:
+                              additionalProperties:
+                                type: string
+                              description: Annotations is a key value map to be copied to the target.
+                              type: object
+                              x-kubernetes-validations:
+                                - message: must not use forbidden domains as prefixes (e.g., trust-manager.io)
+                                  reason: FieldValueForbidden
+                                  rule: self.all(k, !k.startsWith('trust-manager.io/'))
+                            labels:
+                              additionalProperties:
+                                type: string
+                              description: Labels is a key value map to be copied to the target.
+                              type: object
+                              x-kubernetes-validations:
+                                - message: must not use forbidden domains as prefixes (e.g., trust-manager.io)
+                                  reason: FieldValueForbidden
+                                  rule: self.all(k, !k.startsWith('trust-manager.io/'))
+                          type: object
+                      required:
+                        - data
+                      type: object
+                    namespaceSelector:
+                      description: NamespaceSelector specifies the namespaces where target resources will be synced.
+                      properties:
+                        matchExpressions:
+                          description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                          items:
+                            description: |-
+                              A label selector requirement is a selector that contains values, a key, and an operator that
+                              relates the key and values.
+                            properties:
+                              key:
+                                description: key is the label key that the selector applies to.
+                                type: string
+                              operator:
+                                description: |-
+                                  operator represents a key's relationship to a set of values.
+                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                type: string
+                              values:
+                                description: |-
+                                  values is an array of string values. If the operator is In or NotIn,
+                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                  the values array must be empty. This array is replaced during a strategic
+                                  merge patch.
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            required:
+                              - key
+                              - operator
+                            type: object
+                          type: array
+                          x-kubernetes-list-type: atomic
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                          type: object
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    secret:
+                      description: |-
+                        Secret is the target Secret in Namespaces that all Bundle source data will be synced to.
+                        Using Secrets as targets is only supported if enabled at trust-manager startup.
+                        By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
+                      properties:
+                        data:
+                          description: Data is the specification of the object's `data` field.
+                          items:
+                            description: TargetKeyValue is the specification of a key with value in a key-value target resource.
+                            properties:
+                              format:
+                                description: |-
+                                  Format defines the format of the target value.
+                                  The default format is PEM.
+                                enum:
+                                  - PEM
+                                  - PKCS12
+                                type: string
+                              key:
+                                description: Key is the key of the entry in the object's `data` field to be used.
+                                minLength: 1
+                                pattern: ^[0-9A-Za-z_.\-]+$
+                                type: string
+                              password:
+                                description: |-
+                                  Password for PKCS12 trust store.
+                                  By default, no password is used (password-less PKCS#12).
+                                maxLength: 128
+                                type: string
+                              profile:
+                                description: |-
+                                  Profile specifies the certificate encryption algorithms and the HMAC algorithm
+                                  used to create the PKCS12 trust store.
+
+                                  If provided, allowed values are:
+                                  `LegacyRC2`: Deprecated. Not supported by default in OpenSSL 3 or Java 20.
+                                  `LegacyDES`: Less secure algorithm. Use this option for maximal compatibility.
+                                  `Modern2023`: Secure algorithm. Use this option in case you have to always use secure algorithms (e.g. because of company policy).
+
+                                  Default value is `LegacyDES`.
+                                enum:
+                                  - LegacyRC2
+                                  - LegacyDES
+                                  - Modern2023
+                                type: string
+                            required:
+                              - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                            x-kubernetes-validations:
+                              - fieldPath: .password
+                                message: may only be set when format is 'PKCS12'
+                                reason: FieldValueForbidden
+                                rule: '!has(self.password) || (has(self.format) && self.format == ''PKCS12'')'
+                              - fieldPath: .profile
+                                message: may only be set when format is 'PKCS12'
+                                reason: FieldValueForbidden
+                                rule: '!has(self.profile) || (has(self.format) && self.format == ''PKCS12'')'
+                          maxItems: 10
+                          minItems: 1
+                          type: array
+                          x-kubernetes-list-map-keys:
+                            - key
+                          x-kubernetes-list-type: map
+                        metadata:
+                          description: Metadata is an optional set of labels and annotations to be copied to the target.
+                          properties:
+                            annotations:
+                              additionalProperties:
+                                type: string
+                              description: Annotations is a key value map to be copied to the target.
+                              type: object
+                              x-kubernetes-validations:
+                                - message: must not use forbidden domains as prefixes (e.g., trust-manager.io)
+                                  reason: FieldValueForbidden
+                                  rule: self.all(k, !k.startsWith('trust-manager.io/'))
+                            labels:
+                              additionalProperties:
+                                type: string
+                              description: Labels is a key value map to be copied to the target.
+                              type: object
+                              x-kubernetes-validations:
+                                - message: must not use forbidden domains as prefixes (e.g., trust-manager.io)
+                                  reason: FieldValueForbidden
+                                  rule: self.all(k, !k.startsWith('trust-manager.io/'))
+                          type: object
+                      required:
+                        - data
+                      type: object
+                  required:
+                    - namespaceSelector
+                  type: object
+                  x-kubernetes-validations:
+                    - message: 'any of the following fields must be provided: [configMap, secret]'
+                      rule: '[has(self.configMap), has(self.secret)].exists(x,x)'
+              type: object
+            status:
+              description: Status of the Bundle. This is set and managed automatically.
+              properties:
+                conditions:
+                  description: |-
+                    List of status conditions to indicate the status of the Bundle.
+                    Known condition types are `Bundle`.
+                  items:
+                    description: Condition contains details for one aspect of the current state of this API Resource.
+                    properties:
+                      lastTransitionTime:
+                        description: |-
+                          lastTransitionTime is the last time the condition transitioned from one status to another.
+                          This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description: |-
+                          message is a human readable message indicating details about the transition.
+                          This may be an empty string.
+                        maxLength: 32768
+                        type: string
+                      observedGeneration:
+                        description: |-
+                          observedGeneration represents the .metadata.generation that the condition was set based upon.
+                          For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                          with respect to the current state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description: |-
+                          reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                          Producers of specific condition types may define expected values and meanings for this field,
+                          and whether the values are considered a guaranteed API.
+                          The value should be a CamelCase string.
+                          This field may not be empty.
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False, Unknown.
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                        type: string
+                      type:
+                        description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                    type: object
+                  type: array
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+                defaultCAVersion:
+                  description: |-
+                    DefaultCAPackageVersion, if set and non-empty, indicates the version information
+                    which was retrieved when the set of default CAs was requested in the bundle
+                    source. This should only be set if useDefaultCAs was set to "true" on a source,
+                    and will be the same for the same version of a bundle with identical certificates.
+                  type: string
+              type: object
+          required:
+            - spec
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+{{- end }}

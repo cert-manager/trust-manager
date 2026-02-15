@@ -36,6 +36,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/source"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/ssa_client"
@@ -83,12 +84,12 @@ func (b *bundle) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, 
 	return ctrl.Result{}, resultErr
 }
 
-func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusPatch *trustapi.BundleStatus, returnedErr error) {
+func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusPatch *trustmanagerapi.BundleStatus, returnedErr error) {
 	log := logf.FromContext(ctx).WithValues("bundle", req.NamespacedName.Name)
 	ctx = logf.IntoContext(ctx, log)
 	log.V(2).Info("syncing bundle")
 
-	var bundle trustapi.Bundle
+	var bundle trustmanagerapi.ClusterBundle
 	err := b.client.Get(ctx, req.NamespacedName, &bundle)
 	if apierrors.IsNotFound(err) {
 		log.V(2).Info("bundle no longer exists, ignoring")
@@ -102,10 +103,10 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 
 	// Initialize patch with current status field values, except conditions.
 	// This is done to ensure information is not lost in patch if exiting early.
-	statusPatch = &trustapi.BundleStatus{
+	statusPatch = &trustmanagerapi.BundleStatus{
 		DefaultCAPackageVersion: bundle.Status.DefaultCAPackageVersion,
 	}
-	resolvedBundle, err := b.bundleBuilder.BuildBundle(ctx, bundle.Spec.Sources)
+	resolvedBundle, err := b.bundleBuilder.BuildBundle(ctx, bundle.Spec)
 
 	if err != nil {
 		var reason, message string
@@ -222,7 +223,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 		}
 		err := b.targetReconciler.Cache.List(ctx, targetList, &client.ListOptions{
 			LabelSelector: labels.SelectorFromSet(map[string]string{
-				trustapi.BundleLabelKey: bundle.Name,
+				trustmanagerapi.BundleLabelKey: bundle.Name,
 			}),
 		})
 		if err != nil {
@@ -338,7 +339,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 	return statusPatch, nil
 }
 
-func (b *bundle) bundleTargetNamespaceSelector(bundleObj *trustapi.Bundle) (labels.Selector, error) {
+func (b *bundle) bundleTargetNamespaceSelector(bundleObj *trustmanagerapi.ClusterBundle) (labels.Selector, error) {
 	nsSelector := bundleObj.Spec.Target.NamespaceSelector
 
 	// LabelSelectorAsSelector returns a Selector selecting nothing if LabelSelector is nil,
