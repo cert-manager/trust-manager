@@ -38,6 +38,9 @@ spec:
       {{- if hasKey .Values "automountServiceAccountToken" }}
       automountServiceAccountToken: {{ .Values.automountServiceAccountToken }}
       {{- end }}
+      {{- if .Values.app.podSecurityContext }}
+      securityContext: {{ toYaml .Values.app.podSecurityContext | nindent 8 }}
+      {{- end }}
       {{- if .Values.defaultPackage.enabled }}
       initContainers:
       - name: cert-manager-package-debian
