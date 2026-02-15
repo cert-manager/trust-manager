@@ -74,7 +74,7 @@ type BundleSpec struct {
 
 	// defaultCAs configures the use of a default CA bundle as a trust source.
 	// +optional
-	DefaultCAs *DefaultCAsSource `json:"defaultCAs,omitempty"`
+	DefaultCAs DefaultCAsSource `json:"defaultCAs,omitzero"`
 
 	// inLineCAs is a simple string to append as the source data.
 	// +optional
@@ -130,13 +130,13 @@ type DefaultCAsSource struct {
 type BundleTarget struct {
 	// configMap is the target ConfigMap in Namespaces that all Bundle source data will be synced to.
 	// +optional
-	ConfigMap *KeyValueTarget `json:"configMap,omitempty"`
+	ConfigMap KeyValueTarget `json:"configMap,omitzero"`
 
 	// secret is the target Secret in Namespaces that all Bundle source data will be synced to.
 	// Using Secrets as targets is only supported if enabled at trust-manager startup.
 	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
 	// +optional
-	Secret *KeyValueTarget `json:"secret,omitempty"`
+	Secret KeyValueTarget `json:"secret,omitzero"`
 
 	// namespaceSelector specifies the namespaces where target resources will be synced.
 	// +required

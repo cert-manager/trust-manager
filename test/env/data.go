@@ -126,18 +126,18 @@ func newTestBundle(ctx context.Context, cl client.Client, trustNamespace string,
 					InLine: &td.Sources.InLine.Data,
 				},
 			},
-			Target: trustapi.BundleTarget{
-				ConfigMap: &td.Target,
+			Target: &trustapi.BundleTarget{
+				ConfigMap: td.Target,
 			},
 		},
 	}
 	if targetType == "ConfigMap" {
-		bundle.Spec.Target = trustapi.BundleTarget{
-			ConfigMap: &td.Target,
+		bundle.Spec.Target = &trustapi.BundleTarget{
+			ConfigMap: td.Target,
 		}
 	} else if targetType == "Secret" {
-		bundle.Spec.Target = trustapi.BundleTarget{
-			Secret: &td.Target,
+		bundle.Spec.Target = &trustapi.BundleTarget{
+			Secret: td.Target,
 		}
 	}
 	Expect(cl.Create(ctx, &bundle)).NotTo(HaveOccurred())
@@ -163,13 +163,13 @@ func checkBundleSyncedInternal(ctx context.Context, cl client.Client, bundleName
 
 	var gotData string
 	switch {
-	case bundle.Spec.Target.ConfigMap != nil:
+	case bundle.Spec.Target.ConfigMap.Key != "":
 		var configMap corev1.ConfigMap
 		if err := cl.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bundle.Name}, &configMap); err != nil {
 			return fmt.Errorf("failed to get configMap %s/%s when checking bundle sync: %w", namespace, bundle.Name, err)
 		}
 		gotData = configMap.Data[bundle.Spec.Target.ConfigMap.Key]
-	case bundle.Spec.Target.Secret != nil:
+	case bundle.Spec.Target.Secret.Key != "":
 		var secret corev1.Secret
 		if err := cl.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bundle.Name}, &secret); err != nil {
 			return fmt.Errorf("failed to get secret %s/%s when checking bundle sync: %w", namespace, bundle.Name, err)

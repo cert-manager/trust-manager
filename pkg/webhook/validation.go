@@ -142,10 +142,21 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 		))
 	}
 
-	if target := bundle.Spec.Target.ConfigMap; target != nil {
+	if bundle.Spec.Target != nil {
+		el = append(el, validateTarget(bundle, path)...)
+	}
+
+	return warnings, el.ToAggregate()
+
+}
+
+func validateTarget(bundle *trustapi.Bundle, path *field.Path) field.ErrorList {
+	el := field.ErrorList{}
+
+	if key := bundle.Spec.Target.ConfigMap.Key; key != "" {
 		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
-			if source.ConfigMap != nil && source.ConfigMap.Name == bundle.Name && source.ConfigMap.Key == target.Key {
+			if source.ConfigMap != nil && source.ConfigMap.Name == bundle.Name && source.ConfigMap.Key == key {
 				el = append(el, field.Forbidden(
 					path.Index(i).Child("configMap", source.ConfigMap.Name, source.ConfigMap.Key),
 					"cannot define the same source as target",
@@ -154,10 +165,10 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 		}
 	}
 
-	if target := bundle.Spec.Target.Secret; target != nil {
+	if key := bundle.Spec.Target.Secret.Key; key != "" {
 		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
-			if source.Secret != nil && source.Secret.Name == bundle.Name && source.Secret.Key == target.Key {
+			if source.Secret != nil && source.Secret.Name == bundle.Name && source.Secret.Key == key {
 				el = append(el, field.Forbidden(
 					path.Index(i).Child("secret", source.Secret.Name, source.Secret.Key),
 					"cannot define the same source as target",
@@ -171,10 +182,10 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 		secret := bundle.Spec.Target.Secret
 
 		targetKeys := map[string]struct{}{}
-		if configMap != nil {
+		if configMap.Key != "" {
 			targetKeys[configMap.Key] = struct{}{}
 		}
-		if secret != nil {
+		if secret.Key != "" {
 			targetKeys[secret.Key] = struct{}{}
 		}
 
@@ -184,10 +195,10 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 		}
 		var formats []formatSpec
 
-		if bundle.Spec.Target.AdditionalFormats.JKS != nil {
+		if bundle.Spec.Target.AdditionalFormats.JKS.Key != "" {
 			formats = append(formats, formatSpec{name: "jks", key: bundle.Spec.Target.AdditionalFormats.JKS.Key})
 		}
-		if bundle.Spec.Target.AdditionalFormats.PKCS12 != nil {
+		if bundle.Spec.Target.AdditionalFormats.PKCS12.Key != "" {
 			formats = append(formats, formatSpec{name: "pkcs12", key: bundle.Spec.Target.AdditionalFormats.PKCS12.Key})
 		}
 
@@ -203,20 +214,13 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 		}
 	}
 
-	if bundle.Spec.Target.ConfigMap != nil {
-		errs := validateTargetMetadata(bundle.Spec.Target.ConfigMap.Metadata, path.Child("target", "configMap", "metadata"))
-		el = append(el, errs...)
-	}
-	if bundle.Spec.Target.Secret != nil {
-		errs := validateTargetMetadata(bundle.Spec.Target.Secret.Metadata, path.Child("target", "secret", "metadata"))
-		el = append(el, errs...)
-	}
+	el = append(el, validateTargetMetadata(bundle.Spec.Target.ConfigMap.Metadata, path.Child("target", "configMap", "metadata"))...)
+	el = append(el, validateTargetMetadata(bundle.Spec.Target.Secret.Metadata, path.Child("target", "secret", "metadata"))...)
 
 	errs := validation.ValidateLabelSelector(bundle.Spec.Target.NamespaceSelector, validation.LabelSelectorValidationOptions{}, path.Child("target", "namespaceSelector"))
 	el = append(el, errs...)
 
-	return warnings, el.ToAggregate()
-
+	return el
 }
 
 // validateAnnotationsLabelsTemplate Validates that the target template annotations and labels are both valid and that they do not contain reserved keys.
