@@ -113,17 +113,17 @@ func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSourceRef(in *BundleSource,
 		}
 	}
 
-	if in.InLine != nil {
+	if in.InLine != "" {
 		obj := scope.Meta().Context.(*trustv1alpha2.ClusterBundle)
-		if obj.Spec.InLineCAs == nil {
+		if obj.Spec.InLineCAs == "" {
 			obj.Spec.InLineCAs = in.InLine
 		} else {
 			// The following logic is not pretty, but is required as we allow multiple inline sources
 			// in the Bundle sources array.
 			// It breaks the round-trippable conversion Bundle->ClusterBundle->Bundle,
 			// but works for converting Bundle->ClusterBundle, and that's what we need for the migration.
-			cas := strings.TrimSuffix(*obj.Spec.InLineCAs, "\n") + "\n" + *in.InLine
-			obj.Spec.InLineCAs = &cas
+			cas := strings.TrimSuffix(obj.Spec.InLineCAs, "\n") + "\n" + in.InLine
+			obj.Spec.InLineCAs = cas
 		}
 	}
 	if in.UseDefaultCAs != nil {
@@ -256,7 +256,7 @@ func Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *trustv1alpha2.Bundle
 		out.Sources = nil
 	}
 
-	if in.InLineCAs != nil {
+	if in.InLineCAs != "" {
 		out.Sources = append(out.Sources, BundleSource{InLine: in.InLineCAs})
 	}
 	if in.DefaultCAs != (trustv1alpha2.DefaultCAsSource{}) {

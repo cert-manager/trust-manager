@@ -123,7 +123,7 @@ func newTestBundle(ctx context.Context, cl client.Client, trustNamespace string,
 				},
 
 				{
-					InLine: &td.Sources.InLine.Data,
+					InLine: td.Sources.InLine.Data,
 				},
 			},
 			Target: &trustapi.BundleTarget{

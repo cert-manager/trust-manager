@@ -80,7 +80,7 @@ type BundleSpec struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1048576
-	InLineCAs *string `json:"inLineCAs,omitempty"`
+	InLineCAs string `json:"inLineCAs,omitempty"`
 
 	// target is the target location in all namespaces to sync source data to.
 	// +optional

@@ -110,7 +110,7 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 			el = append(el, errs...)
 		}
 
-		if source.InLine != nil {
+		if source.InLine != "" {
 			sourceCount++
 			unionCount++
 		}

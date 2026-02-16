@@ -163,7 +163,7 @@ var _ = Describe("Integration", func() {
 		newInLine := dummy.TestCertificate4
 
 		Expect(komega.Update(testBundle, func() {
-			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{InLine: &newInLine})
+			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{InLine: newInLine})
 		})()).To(Succeed())
 
 		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3)
@@ -418,7 +418,7 @@ var _ = Describe("Integration", func() {
 		newInLine := dummy.TestCertificate4
 
 		Expect(komega.Update(testBundle, func() {
-			testBundle.Spec.Sources[2].InLine = &newInLine
+			testBundle.Spec.Sources[2].InLine = newInLine
 		})()).To(Succeed())
 
 		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4)

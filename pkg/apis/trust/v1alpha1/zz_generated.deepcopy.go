@@ -114,11 +114,6 @@ func (in *BundleSource) DeepCopyInto(out *BundleSource) {
 		*out = new(SourceObjectKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.InLine != nil {
-		in, out := &in.InLine, &out.InLine
-		*out = new(string)
-		**out = **in
-	}
 	if in.UseDefaultCAs != nil {
 		in, out := &in.UseDefaultCAs, &out.UseDefaultCAs
 		*out = new(bool)

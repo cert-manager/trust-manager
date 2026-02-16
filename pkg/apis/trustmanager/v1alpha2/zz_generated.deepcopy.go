@@ -52,11 +52,6 @@ func (in *BundleSpec) DeepCopyInto(out *BundleSpec) {
 		}
 	}
 	out.DefaultCAs = in.DefaultCAs
-	if in.InLineCAs != nil {
-		in, out := &in.InLineCAs, &out.InLineCAs
-		*out = new(string)
-		**out = **in
-	}
 	in.Target.DeepCopyInto(&out.Target)
 }
 

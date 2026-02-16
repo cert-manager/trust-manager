@@ -94,7 +94,7 @@ type BundleSource struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1048576
-	InLine *string `json:"inLine,omitempty"`
+	InLine string `json:"inLine,omitempty"`
 
 	// useDefaultCAs indicates whether the default CA bundle should be used as a source.
 	// The default CA bundle is available only if trust-manager was installed with
