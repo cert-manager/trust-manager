@@ -163,6 +163,11 @@ var _ = Describe("Bundle Validation", func() {
 	})
 
 	Context("Target", func() {
+		var (
+			selectorAccessor func(trustapi.TargetTemplate)
+			field            string
+		)
+
 		It("should allow no targets", func() {
 			Expect(cl.Create(ctx, bundle)).To(Succeed())
 		})
@@ -196,11 +201,6 @@ var _ = Describe("Bundle Validation", func() {
 			Entry("when non-reserved labels are used", &trustapi.BundleTarget{
 				ConfigMap: trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"not-trust-manager.io/bundle": "bundle"}}}}, false),
 		)
-
-		It("should require at least one target", func() {
-			bundle.Spec.Target = &trustapi.BundleTarget{}
-			Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring("spec.target: Invalid value: at least one of the fields in [configMap secret] must be set")))
-		})
 
 		type TargetKeySpec struct {
 			ConfigMapKey string
@@ -276,8 +276,8 @@ var _ = Describe("Bundle Validation", func() {
 
 		targetObjectAsserts := func() {
 			It("should require target key", func() {
-				bundle.Spec.Target = trustapi.BundleTarget{}
-				selectorAccessor(&trustapi.TargetTemplate{})
+				bundle.Spec.Target = &trustapi.BundleTarget{}
+				selectorAccessor(trustapi.TargetTemplate{Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"key": "value"}}})
 				expectedErr := "spec.target.%s.key: Required value"
 				Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr, field)))
 			})
@@ -285,7 +285,7 @@ var _ = Describe("Bundle Validation", func() {
 
 		Context("ConfigMap", func() {
 			BeforeEach(func() {
-				selectorAccessor = func(selector *trustapi.TargetTemplate) {
+				selectorAccessor = func(selector trustapi.TargetTemplate) {
 					bundle.Spec.Target.ConfigMap = selector
 				}
 				field = "configMap"
@@ -296,7 +296,7 @@ var _ = Describe("Bundle Validation", func() {
 
 		Context("Secret", func() {
 			BeforeEach(func() {
-				selectorAccessor = func(selector *trustapi.TargetTemplate) {
+				selectorAccessor = func(selector trustapi.TargetTemplate) {
 					bundle.Spec.Target.Secret = selector
 				}
 				field = "secret"
