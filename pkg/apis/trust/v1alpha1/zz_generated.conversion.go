@@ -125,7 +125,7 @@ func autoConvert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *v1alpha2.BundleS
 
 func autoConvert_v1alpha1_BundleStatus_To_v1alpha2_BundleStatus(in *BundleStatus, out *v1alpha2.BundleStatus, s conversion.Scope) error {
 	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.DefaultCAPackageVersion = (*string)(unsafe.Pointer(in.DefaultCAPackageVersion))
+	out.DefaultCAPackageVersion = in.DefaultCAPackageVersion
 	return nil
 }
 
@@ -136,7 +136,7 @@ func Convert_v1alpha1_BundleStatus_To_v1alpha2_BundleStatus(in *BundleStatus, ou
 
 func autoConvert_v1alpha2_BundleStatus_To_v1alpha1_BundleStatus(in *v1alpha2.BundleStatus, out *BundleStatus, s conversion.Scope) error {
 	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	out.DefaultCAPackageVersion = (*string)(unsafe.Pointer(in.DefaultCAPackageVersion))
+	out.DefaultCAPackageVersion = in.DefaultCAPackageVersion
 	return nil
 }
 

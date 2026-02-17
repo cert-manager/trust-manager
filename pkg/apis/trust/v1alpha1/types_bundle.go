@@ -306,7 +306,7 @@ type BundleStatus struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	DefaultCAPackageVersion *string `json:"defaultCAVersion,omitempty"`
+	DefaultCAPackageVersion string `json:"defaultCAVersion,omitempty"`
 }
 
 const (
