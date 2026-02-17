@@ -335,7 +335,7 @@ func Test_validate(t *testing.T) {
 					Target: &trustapi.BundleTarget{
 						ConfigMap: trustapi.TargetTemplate{
 							Key: "test-1",
-							Metadata: &trustapi.TargetMetadata{
+							Metadata: trustapi.TargetMetadata{
 								Labels: map[string]string{
 									"app.kubernetes.io/part-of": "service-a",
 								},
@@ -374,7 +374,7 @@ func Test_validate(t *testing.T) {
 					Target: &trustapi.BundleTarget{
 						ConfigMap: trustapi.TargetTemplate{
 							Key: "test-1",
-							Metadata: &trustapi.TargetMetadata{
+							Metadata: trustapi.TargetMetadata{
 								Annotations: map[string]string{
 									"trust-manager.io/hash": "hash",
 								},

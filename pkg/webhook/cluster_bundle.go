@@ -92,11 +92,7 @@ func (webhook *ClusterBundle) validateTarget(target trustmanagerapi.BundleTarget
 }
 
 // validateTargetMetadata validates that the target template annotations and labels are both valid and that they do not contain reserved keys.
-func (webhook *ClusterBundle) validateTargetMetadata(targetMetadata *trustmanagerapi.TargetMetadata, fldPath *field.Path) field.ErrorList {
-	if targetMetadata == nil {
-		return nil
-	}
-
+func (webhook *ClusterBundle) validateTargetMetadata(targetMetadata trustmanagerapi.TargetMetadata, fldPath *field.Path) field.ErrorList {
 	var el field.ErrorList
 
 	el = append(el, apivalidation.ValidateAnnotations(targetMetadata.Annotations, fldPath.Child("annotations"))...)

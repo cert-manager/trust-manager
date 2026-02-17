@@ -192,11 +192,8 @@ func Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(in *TargetTempla
 	if in.Key != "" {
 		out.Data = []trustv1alpha2.TargetKeyValue{{Key: in.Key}}
 	}
-	if in.Metadata != nil {
-		out.Metadata = &trustv1alpha2.TargetMetadata{}
-		if err := Convert_v1alpha1_TargetMetadata_To_v1alpha2_TargetMetadata(in.Metadata, out.Metadata, scope); err != nil {
-			return err
-		}
+	if err := Convert_v1alpha1_TargetMetadata_To_v1alpha2_TargetMetadata(&in.Metadata, &out.Metadata, scope); err != nil {
+		return err
 	}
 	return nil
 }
@@ -346,11 +343,8 @@ func Convert_v1alpha2_KeyValueTarget_To_v1alpha1_TargetTemplate(in *trustv1alpha
 			break
 		}
 	}
-	if in.Metadata != nil {
-		out.Metadata = &TargetMetadata{}
-		if err := Convert_v1alpha2_TargetMetadata_To_v1alpha1_TargetMetadata(in.Metadata, out.Metadata, scope); err != nil {
-			return err
-		}
+	if err := Convert_v1alpha2_TargetMetadata_To_v1alpha1_TargetMetadata(&in.Metadata, &out.Metadata, scope); err != nil {
+		return err
 	}
 	return nil
 }

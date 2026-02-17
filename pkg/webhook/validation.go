@@ -224,11 +224,7 @@ func validateTarget(bundle *trustapi.Bundle, path *field.Path) field.ErrorList {
 }
 
 // validateAnnotationsLabelsTemplate Validates that the target template annotations and labels are both valid and that they do not contain reserved keys.
-func validateTargetMetadata(targetMetadata *trustapi.TargetMetadata, fldPath *field.Path) field.ErrorList {
-	if targetMetadata == nil {
-		return nil
-	}
-
+func validateTargetMetadata(targetMetadata trustapi.TargetMetadata, fldPath *field.Path) field.ErrorList {
 	el := field.ErrorList{}
 
 	templateAnnotationsPath := fldPath.Child("annotations")

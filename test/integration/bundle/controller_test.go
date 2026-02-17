@@ -614,7 +614,7 @@ var _ = Describe("Integration", func() {
 
 	It("should add target annotations when added to a bundle", func() {
 		Expect(komega.Update(testBundle, func() {
-			testBundle.Spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{
+			testBundle.Spec.Target.ConfigMap.Metadata = trustapi.TargetMetadata{
 				Annotations: map[string]string{
 					"test1": "test1",
 				},

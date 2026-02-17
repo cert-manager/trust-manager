@@ -222,12 +222,12 @@ type KeyValueTarget struct {
 
 	// metadata is an optional set of labels and annotations to be copied to the target.
 	// +optional
-	Metadata *TargetMetadata `json:"metadata,omitempty"`
+	Metadata TargetMetadata `json:"metadata,omitzero"`
 }
 
 // GetAnnotations returns the annotations to be copied to the target or an empty map if there are no annotations.
 func (t *KeyValueTarget) GetAnnotations() map[string]string {
-	if t == nil || t.Metadata == nil {
+	if t == nil {
 		return nil
 	}
 	return t.Metadata.Annotations
@@ -235,7 +235,7 @@ func (t *KeyValueTarget) GetAnnotations() map[string]string {
 
 // GetLabels returns the labels to be copied to the target or an empty map if there are no labels.
 func (t *KeyValueTarget) GetLabels() map[string]string {
-	if t == nil || t.Metadata == nil {
+	if t == nil {
 		return nil
 	}
 	return t.Metadata.Labels

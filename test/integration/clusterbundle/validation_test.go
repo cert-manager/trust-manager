@@ -101,7 +101,8 @@ var _ = Describe("ClusterBundle Validation", func() {
 	Context("Target", func() {
 		var (
 			targetField string
-			setTarget   func(*trustmanagerapi.KeyValueTarget)
+			target      *trustmanagerapi.KeyValueTarget
+			setTarget   func([]trustmanagerapi.TargetKeyValue)
 		)
 
 		BeforeEach(func() {
@@ -152,11 +153,9 @@ var _ = Describe("ClusterBundle Validation", func() {
 		targetObjectAsserts := func() {
 			DescribeTable("should validate key",
 				func(key string, matchErr string) {
-					setTarget(&trustmanagerapi.KeyValueTarget{
-						Data: []trustmanagerapi.TargetKeyValue{{
-							Key: key,
-						}},
-					})
+					setTarget([]trustmanagerapi.TargetKeyValue{{
+						Key: key,
+					}})
 					if matchErr != "" {
 						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, targetField)))
 					} else {
@@ -169,42 +168,33 @@ var _ = Describe("ClusterBundle Validation", func() {
 			)
 
 			It("should require unique keys", func() {
-				setTarget(&trustmanagerapi.KeyValueTarget{
-					Data: []trustmanagerapi.TargetKeyValue{{
-						Key: "foo",
-					}, {
-						Key: "foo",
-					}},
-				})
+				setTarget([]trustmanagerapi.TargetKeyValue{{
+					Key: "foo",
+				}, {
+					Key: "foo",
+				}})
 				matchErr := "spec.target.%s.data[1]: Duplicate value: {\"key\":\"foo\"}"
 				Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, targetField)))
 
-				setTarget(&trustmanagerapi.KeyValueTarget{
-					Data: []trustmanagerapi.TargetKeyValue{{
-						Key: "foo",
-					}, {
-						Key: "bar",
-					}},
-				})
+				setTarget([]trustmanagerapi.TargetKeyValue{{
+					Key: "foo",
+				}, {
+					Key: "bar",
+				}})
 				Expect(cl.Create(ctx, bundle)).To(Succeed())
 			})
 
 			Context("Metadata", func() {
 				var (
 					metadataField      string
-					metadata           *trustmanagerapi.TargetMetadata
 					setMetadata        func(map[string]string)
 					expValueValidation bool
 				)
 
 				BeforeEach(func() {
-					metadata = &trustmanagerapi.TargetMetadata{}
-					setTarget(&trustmanagerapi.KeyValueTarget{
-						Metadata: metadata,
-						Data: []trustmanagerapi.TargetKeyValue{{
-							Key: "ca-bundle.crt",
-						}},
-					})
+					setTarget([]trustmanagerapi.TargetKeyValue{{
+						Key: "ca-bundle.crt",
+					}})
 				})
 
 				metadataAsserts := func() {
@@ -244,7 +234,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 					BeforeEach(func() {
 						metadataField = "annotations"
 						setMetadata = func(m map[string]string) {
-							metadata.Annotations = m
+							target.Metadata.Annotations = m
 						}
 						expValueValidation = false
 					})
@@ -256,7 +246,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 					BeforeEach(func() {
 						metadataField = "labels"
 						setMetadata = func(m map[string]string) {
-							metadata.Labels = m
+							target.Metadata.Labels = m
 						}
 						expValueValidation = true
 					})
@@ -267,12 +257,10 @@ var _ = Describe("ClusterBundle Validation", func() {
 
 			DescribeTable("should validate format",
 				func(format trustmanagerapi.BundleFormat, matchErr string) {
-					setTarget(&trustmanagerapi.KeyValueTarget{
-						Data: []trustmanagerapi.TargetKeyValue{{
-							Key:    "ca-bundle",
-							Format: format,
-						}},
-					})
+					setTarget([]trustmanagerapi.TargetKeyValue{{
+						Key:    "ca-bundle",
+						Format: format,
+					}})
 					if matchErr != "" {
 						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, targetField)))
 					} else {
@@ -300,9 +288,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 							Format: format,
 							PKCS12: pkcs12,
 						}
-						setTarget(&trustmanagerapi.KeyValueTarget{
-							Data: []trustmanagerapi.TargetKeyValue{targetKeyValue},
-						})
+						setTarget([]trustmanagerapi.TargetKeyValue{targetKeyValue})
 
 						if wantErr {
 							matchErr := "spec.target.%s.data[0].%s: Forbidden: may only be set when format is 'PKCS12'"
@@ -339,8 +325,9 @@ var _ = Describe("ClusterBundle Validation", func() {
 		Context("ConfigMap", func() {
 			BeforeEach(func() {
 				targetField = "configMap"
-				setTarget = func(selector *trustmanagerapi.KeyValueTarget) {
-					bundle.Spec.Target.ConfigMap = *selector
+				setTarget = func(data []trustmanagerapi.TargetKeyValue) {
+					bundle.Spec.Target.ConfigMap = trustmanagerapi.KeyValueTarget{Data: data}
+					target = &bundle.Spec.Target.ConfigMap
 				}
 			})
 
@@ -350,8 +337,9 @@ var _ = Describe("ClusterBundle Validation", func() {
 		Context("Secret", func() {
 			BeforeEach(func() {
 				targetField = "secret"
-				setTarget = func(selector *trustmanagerapi.KeyValueTarget) {
-					bundle.Spec.Target.Secret = *selector
+				setTarget = func(data []trustmanagerapi.TargetKeyValue) {
+					bundle.Spec.Target.Secret = trustmanagerapi.KeyValueTarget{Data: data}
+					target = &bundle.Spec.Target.Secret
 				}
 			})
 

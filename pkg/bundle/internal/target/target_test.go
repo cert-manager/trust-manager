@@ -495,15 +495,9 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				}
 			}
 			if tt.withTargetAnnotation {
-				if spec.Target.ConfigMap.Metadata == nil {
-					spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{}
-				}
 				spec.Target.ConfigMap.Metadata.Annotations = map[string]string{targetAnnotation: "true"}
 			}
 			if tt.withTargetLabel {
-				if spec.Target.ConfigMap.Metadata == nil {
-					spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{}
-				}
 				spec.Target.ConfigMap.Metadata.Labels = map[string]string{targetLabel: "true"}
 			}
 
@@ -1051,7 +1045,7 @@ func Test_TrustBundleHash(t *testing.T) {
 				data:              []byte("data"),
 				additionalFormats: &trustapi.AdditionalFormats{},
 				targetTemplate: &trustapi.TargetTemplate{
-					Metadata: &trustapi.TargetMetadata{
+					Metadata: trustapi.TargetMetadata{
 						Annotations: map[string]string{"annotation1": "value1"},
 						Labels:      map[string]string{"annotation1": "value1"},
 					},
@@ -1062,7 +1056,7 @@ func Test_TrustBundleHash(t *testing.T) {
 					data:              []byte("data"),
 					additionalFormats: &trustapi.AdditionalFormats{},
 					targetTemplate: &trustapi.TargetTemplate{
-						Metadata: &trustapi.TargetMetadata{
+						Metadata: trustapi.TargetMetadata{
 							Annotations: map[string]string{"annotation1": "value1"},
 							Labels:      map[string]string{"annotation1": "value1"},
 						},
@@ -1074,7 +1068,7 @@ func Test_TrustBundleHash(t *testing.T) {
 					data:              []byte("data"),
 					additionalFormats: &trustapi.AdditionalFormats{},
 					targetTemplate: &trustapi.TargetTemplate{
-						Metadata: &trustapi.TargetMetadata{
+						Metadata: trustapi.TargetMetadata{
 							Annotations: map[string]string{"annotation1": "value1"},
 						},
 					},
@@ -1083,7 +1077,7 @@ func Test_TrustBundleHash(t *testing.T) {
 					data:              []byte("data"),
 					additionalFormats: &trustapi.AdditionalFormats{},
 					targetTemplate: &trustapi.TargetTemplate{
-						Metadata: &trustapi.TargetMetadata{
+						Metadata: trustapi.TargetMetadata{
 							Labels: map[string]string{"annotation1": "value1"},
 						},
 					},
@@ -1092,7 +1086,7 @@ func Test_TrustBundleHash(t *testing.T) {
 					data:              []byte("data"),
 					additionalFormats: &trustapi.AdditionalFormats{},
 					targetTemplate: &trustapi.TargetTemplate{
-						Metadata: &trustapi.TargetMetadata{
+						Metadata: trustapi.TargetMetadata{
 							Annotations: map[string]string{"annotation1": "value2"},
 							Labels:      map[string]string{"annotation1": "value1"},
 						},
@@ -1102,7 +1096,7 @@ func Test_TrustBundleHash(t *testing.T) {
 					data:              []byte("data"),
 					additionalFormats: &trustapi.AdditionalFormats{},
 					targetTemplate: &trustapi.TargetTemplate{
-						Metadata: &trustapi.TargetMetadata{
+						Metadata: trustapi.TargetMetadata{
 							Annotations: map[string]string{"annotation1": "value1"},
 							Labels:      map[string]string{"annotation1": "value2"},
 						},
