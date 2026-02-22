@@ -8,6 +8,9 @@ on:
 jobs:
   upgrade:
     uses: ./.github/workflows/trust-package-upgrade.yaml
+    permissions:
+      contents: write
+      pull-requests: write
     with:
       distro: bullseye
     secrets: inherit
