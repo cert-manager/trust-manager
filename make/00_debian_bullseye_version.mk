@@ -15,7 +15,7 @@
 # WARNING: Changing this file triggers a build and release of the Debian trust package for Bullseye (Debian 11)
 #
 # This file is used to store the latest version of the debian trust package and the DEBIAN_BULLSEYE_BUNDLE_VERSION
-# variable is automatically updated by the `upgrade-debian-bullseye-trust-package-version` target and cron GH action.
+# variable is automatically updated by Renovate using the Debian deb datasource.
 
-DEBIAN_BULLSEYE_BUNDLE_VERSION := 20210119.4
+DEBIAN_BULLSEYE_BUNDLE_VERSION := 20210119
 DEBIAN_BULLSEYE_BUNDLE_SOURCE_IMAGE=docker.io/library/debian:11-slim

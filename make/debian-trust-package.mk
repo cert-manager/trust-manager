@@ -12,12 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# see https://stackoverflow.com/a/53408233
-sed_inplace := sed -i''
-ifeq ($(HOST_OS),darwin)
-	sed_inplace := sed -i ''
-endif
-
 # Define targets for a Debian trust package distribution.
 #
 # $(1) = distro codename in lowercase (e.g., bullseye, bookworm)
@@ -41,23 +35,12 @@ $$(debian_$(1)_package_layer)/debian-package:
 
 $$(debian_$(1)_package_json): | $$(bin_dir)/bin/validate-trust-package $$(debian_$(1)_package_layer)/debian-package
 	BIN_VALIDATE_TRUST_PACKAGE=$$(bin_dir)/bin/validate-trust-package \
-		./make/debian-trust-package-fetch.sh exact $$(DEBIAN_$(2)_BUNDLE_SOURCE_IMAGE) $$@ $$(DEBIAN_$(2)_BUNDLE_VERSION) $$(package_name_$(1))
+		./make/debian-trust-package-fetch.sh $$(DEBIAN_$(2)_BUNDLE_SOURCE_IMAGE) $$@ $$(DEBIAN_$(2)_BUNDLE_VERSION) $$(package_name_$(1))
 
 # Make sure to build the package json file when building the OCI image.
 # This will ensure that the $$(debian_$(1)_package_layer) folder has the desired contents.
 oci-build-package_debian_$(1): $$(debian_$(1)_package_json)
 oci-build-package_debian_$(1)__local: $$(debian_$(1)_package_json)
-
-.PHONY: upgrade-debian-$(1)-trust-package-version
-upgrade-debian-$(1)-trust-package-version: | $$(bin_dir)/bin/validate-trust-package $$(bin_dir)/scratch
-	$$(eval temp_out := $$(bin_dir)/scratch/debian-$(1)-trust-package.temp.json)
-	rm -rf $$(temp_out)
-
-	BIN_VALIDATE_TRUST_PACKAGE=$$(bin_dir)/bin/validate-trust-package \
-		./make/debian-trust-package-fetch.sh latest $$(DEBIAN_$(2)_BUNDLE_SOURCE_IMAGE) $$(temp_out) $$(DEBIAN_$(2)_BUNDLE_VERSION) $$(package_name_$(1))
-
-	latest_version=$$$$(jq -r '.version' $$(temp_out)); \
-		$$(sed_inplace) "s/DEBIAN_$(2)_BUNDLE_VERSION := .*/DEBIAN_$(2)_BUNDLE_VERSION := $$$$latest_version/" make/00_debian_$(1)_version.mk
 
 .PHONY: scan-debian-$(1)-trust-package
 ## Scan the latest Debian $(1) trust package OCI image with Trivy
