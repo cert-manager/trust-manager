@@ -33,8 +33,7 @@ smoke:
 	$(MAKE) test-smoke
 
 include make/validate-trust-package.mk
-include make/debian-bullseye-trust-package.mk
-include make/debian-bookworm-trust-package.mk
+include make/debian-trust-package.mk
 
 .PHONY: prerelease-scan
 ## Perform security scans on the codebase with govulncheck and on released trust packages
@@ -59,24 +58,6 @@ release:
 	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_TAG=$(oci_package_debian_bookworm_image_tag)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_HELM_CHART_IMAGE=$(helm_chart_image_name)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_HELM_CHART_VERSION=$(helm_chart_version)" >> "$(GITHUB_OUTPUT)"
-
-	@echo "Release complete!"
-
-.PHONY: release-debian-bullseye-trust-package
-release-debian-bullseye-trust-package:
-	$(MAKE) oci-maybe-push-package_debian_bullseye
-
-	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BULLSEYE_IMAGE=$(oci_package_debian_bullseye_image_name)" >> "$(GITHUB_OUTPUT)"
-	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BULLSEYE_TAG=$(oci_package_debian_bullseye_image_tag)" >> "$(GITHUB_OUTPUT)"
-
-	@echo "Release complete!"
-
-.PHONY: release-debian-bookworm-trust-package
-release-debian-bookworm-trust-package: | $(NEEDS_CRANE)
-	$(MAKE) oci-maybe-push-package_debian_bookworm
-
-	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_IMAGE=$(oci_package_debian_bookworm_image_name)" >> "$(GITHUB_OUTPUT)"
-	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_TAG=$(oci_package_debian_bookworm_image_tag)" >> "$(GITHUB_OUTPUT)"
 
 	@echo "Release complete!"
 

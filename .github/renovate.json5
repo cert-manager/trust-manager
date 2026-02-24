@@ -3,4 +3,32 @@
   extends: [
     'github>cert-manager/makefile-modules:renovate-config.json5',
   ],
+  customManagers: [
+    {
+      // Track the ca-certificates package version for Debian Bullseye (Debian 11) using the deb datasource.
+      // When a new version is available, Renovate will update make/00_debian_bullseye_version.mk,
+      // which triggers a build and release of the Debian Bullseye trust package OCI image.
+      customType: 'regex',
+      fileMatch: ['^make/00_debian_bullseye_version\\.mk$'],
+      matchStrings: [
+        'DEBIAN_BULLSEYE_BUNDLE_VERSION\\s*:=\\s*(?<currentValue>\\S+)',
+      ],
+      datasourceTemplate: 'deb',
+      depNameTemplate: 'ca-certificates',
+      registryUrlTemplate: 'http://deb.debian.org/debian bullseye main',
+    },
+    {
+      // Track the ca-certificates package version for Debian Bookworm (Debian 12) using the deb datasource.
+      // When a new version is available, Renovate will update make/00_debian_bookworm_version.mk,
+      // which triggers a build and release of the Debian Bookworm trust package OCI image.
+      customType: 'regex',
+      fileMatch: ['^make/00_debian_bookworm_version\\.mk$'],
+      matchStrings: [
+        'DEBIAN_BOOKWORM_BUNDLE_VERSION\\s*:=\\s*(?<currentValue>\\S+)',
+      ],
+      datasourceTemplate: 'deb',
+      depNameTemplate: 'ca-certificates',
+      registryUrlTemplate: 'http://deb.debian.org/debian bookworm main',
+    },
+  ],
 }
