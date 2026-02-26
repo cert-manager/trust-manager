@@ -37,7 +37,7 @@ go_package_debian_bullseye_mod_dir := ./trust-packages/debian
 go_package_debian_bullseye_ldflags :=
 oci_package_debian_bullseye_base_image_flavor := static
 oci_package_debian_bullseye_image_name := quay.io/jetstack/cert-manager-package-debian
-oci_package_debian_bullseye_image_tag := $(shell echo $(DEBIAN_BULLSEYE_BUNDLE_VERSION) | tr '+' '-')
+oci_package_debian_bullseye_image_tag := $(shell echo $(DEBIAN_BULLSEYE_CA_CERTS_VERSION) | tr '+' '-').$(DEBIAN_BULLSEYE_BUNDLE_RELEASE)
 oci_package_debian_bullseye_image_name_development := cert-manager.local/trust-pkg-debian-bullseye
 debian_bullseye_package_layer := $(bin_dir)/scratch/debian-bullseye-trust-package
 oci_package_debian_bullseye_additional_layers += $(debian_bullseye_package_layer)
@@ -50,7 +50,7 @@ go_package_debian_bookworm_ldflags :=
 oci_package_debian_bookworm_base_image_flavor := static
 oci_package_debian_bookworm_image_name := quay.io/jetstack/trust-pkg-debian-bookworm
 # '+' characters are not valid in docker image names. Transform it to a '.' for images
-oci_package_debian_bookworm_image_tag := $(shell echo $(DEBIAN_BOOKWORM_BUNDLE_VERSION) | tr '+' '-')
+oci_package_debian_bookworm_image_tag := $(shell echo $(DEBIAN_BOOKWORM_CA_CERTS_VERSION) | tr '+' '-').$(DEBIAN_BOOKWORM_BUNDLE_RELEASE)
 oci_package_debian_bookworm_image_name_development := cert-manager.local/trust-pkg-debian-bookworm
 debian_bookworm_package_layer := $(bin_dir)/scratch/debian-bookworm-trust-package
 oci_package_debian_bookworm_additional_layers += $(debian_bookworm_package_layer)

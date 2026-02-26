@@ -14,8 +14,12 @@
 
 # WARNING: Changing this file triggers a build and release of the Debian trust package for Bookworm (Debian 12)
 #
-# This file is used to store the latest version of the debian trust package and the DEBIAN_BOOKWORM_BUNDLE_VERSION
-# variable is automatically updated by Renovate using the Debian deb datasource.
+# DEBIAN_BOOKWORM_CA_CERTS_VERSION stores the ca-certificates apt package version and is
+# automatically updated by Renovate using the Debian deb datasource.
+# DEBIAN_BOOKWORM_BUNDLE_RELEASE can be incremented to re-release the trust bundle with the
+# same ca-certificates version (e.g. to fix a packaging issue) without overwriting existing
+# OCI image tags. Reset to 0 when the ca-certificates version changes.
 
-DEBIAN_BOOKWORM_BUNDLE_VERSION := 20230311+deb12u1
+DEBIAN_BOOKWORM_CA_CERTS_VERSION := 20230311+deb12u1
+DEBIAN_BOOKWORM_BUNDLE_RELEASE := 0
 DEBIAN_BOOKWORM_BUNDLE_SOURCE_IMAGE=docker.io/library/debian:12-slim

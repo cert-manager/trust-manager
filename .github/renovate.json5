@@ -11,7 +11,7 @@
       customType: 'regex',
       fileMatch: ['^make/00_debian_bullseye_version\\.mk$'],
       matchStrings: [
-        'DEBIAN_BULLSEYE_BUNDLE_VERSION\\s*:=\\s*(?<currentValue>\\S+)',
+        'DEBIAN_BULLSEYE_CA_CERTS_VERSION\\s*:=\\s*(?<currentValue>\\S+)',
       ],
       datasourceTemplate: 'deb',
       depNameTemplate: 'ca-certificates',
@@ -24,11 +24,27 @@
       customType: 'regex',
       fileMatch: ['^make/00_debian_bookworm_version\\.mk$'],
       matchStrings: [
-        'DEBIAN_BOOKWORM_BUNDLE_VERSION\\s*:=\\s*(?<currentValue>\\S+)',
+        'DEBIAN_BOOKWORM_CA_CERTS_VERSION\\s*:=\\s*(?<currentValue>\\S+)',
       ],
       datasourceTemplate: 'deb',
       depNameTemplate: 'ca-certificates',
       registryUrlTemplate: 'http://deb.debian.org/debian bookworm main',
+    },
+  ],
+  packageRules: [
+    {
+      // When Renovate bumps the ca-certificates version, reset the bundle release counter to 0.
+      matchFileNames: [
+        'make/00_debian_bullseye_version.mk',
+        'make/00_debian_bookworm_version.mk',
+      ],
+      postUpgradeTasks: {
+        commands: [
+          "sed -i 's/DEBIAN_BULLSEYE_BUNDLE_RELEASE := .*/DEBIAN_BULLSEYE_BUNDLE_RELEASE := 0/' make/00_debian_bullseye_version.mk",
+          "sed -i 's/DEBIAN_BOOKWORM_BUNDLE_RELEASE := .*/DEBIAN_BOOKWORM_BUNDLE_RELEASE := 0/' make/00_debian_bookworm_version.mk",
+        ],
+        executionMode: 'branch',
+      },
     },
   ],
 }

@@ -18,7 +18,7 @@
 # $(2) = distro variable prefix in UPPERCASE (e.g., BULLSEYE, BOOKWORM)
 #
 # Relies on the following variables being set before this macro is evaluated:
-#   DEBIAN_$(2)_BUNDLE_VERSION
+#   DEBIAN_$(2)_CA_CERTS_VERSION
 #   DEBIAN_$(2)_BUNDLE_SOURCE_IMAGE
 #   debian_$(1)_package_layer
 #   oci_package_debian_$(1)_image_name
@@ -35,7 +35,7 @@ $$(debian_$(1)_package_layer)/debian-package:
 
 $$(debian_$(1)_package_json): | $$(bin_dir)/bin/validate-trust-package $$(debian_$(1)_package_layer)/debian-package
 	BIN_VALIDATE_TRUST_PACKAGE=$$(bin_dir)/bin/validate-trust-package \
-		./make/debian-trust-package-fetch.sh $$(DEBIAN_$(2)_BUNDLE_SOURCE_IMAGE) $$@ $$(DEBIAN_$(2)_BUNDLE_VERSION) $$(package_name_$(1))
+		./make/debian-trust-package-fetch.sh $$(DEBIAN_$(2)_BUNDLE_SOURCE_IMAGE) $$@ $$(DEBIAN_$(2)_CA_CERTS_VERSION) $$(package_name_$(1))
 
 # Make sure to build the package json file when building the OCI image.
 # This will ensure that the $$(debian_$(1)_package_layer) folder has the desired contents.
