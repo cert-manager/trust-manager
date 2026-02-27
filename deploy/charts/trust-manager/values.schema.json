@@ -45,8 +45,14 @@
         "image": {
           "$ref": "#/$defs/helm-values.image"
         },
+        "imageNamespace": {
+          "$ref": "#/$defs/helm-values.imageNamespace"
+        },
         "imagePullSecrets": {
           "$ref": "#/$defs/helm-values.imagePullSecrets"
+        },
+        "imageRegistry": {
+          "$ref": "#/$defs/helm-values.imageRegistry"
         },
         "nameOverride": {
           "$ref": "#/$defs/helm-values.nameOverride"
@@ -587,8 +593,14 @@
     "helm-values.defaultPackageImage": {
       "additionalProperties": false,
       "properties": {
+        "_defaultReference": {
+          "$ref": "#/$defs/helm-values.defaultPackageImage._defaultReference"
+        },
         "digest": {
           "$ref": "#/$defs/helm-values.defaultPackageImage.digest"
+        },
+        "name": {
+          "$ref": "#/$defs/helm-values.defaultPackageImage.name"
         },
         "pullPolicy": {
           "$ref": "#/$defs/helm-values.defaultPackageImage.pullPolicy"
@@ -605,8 +617,18 @@
       },
       "type": "object"
     },
+    "helm-values.defaultPackageImage._defaultReference": {
+      "default": ":v0.0.0",
+      "description": "WARNING: For internal use only, is overwritten before releasing the chart.",
+      "type": "string"
+    },
     "helm-values.defaultPackageImage.digest": {
       "description": "Target image digest. Override any tag, if set.\nFor example:\ndigest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20",
+      "type": "string"
+    },
+    "helm-values.defaultPackageImage.name": {
+      "default": "trust-pkg-debian-bookworm",
+      "description": "The image name for trust-manager.\nThis is used (together with `imageRegistry` and `imageNamespace`) to construct the full image reference.",
       "type": "string"
     },
     "helm-values.defaultPackageImage.pullPolicy": {
@@ -615,12 +637,12 @@
       "type": "string"
     },
     "helm-values.defaultPackageImage.registry": {
-      "description": "Target image registry. This value is prepended to the target image repository, if set.\nFor example:\nregistry: quay.io\nrepository: jetstack/cert-manager-package-debian",
+      "description": "Target image registry. This value is prepended to the target image repository, if set.\nFor example:\nregistry: quay.io\nrepository: jetstack/cert-manager-package-debian\nDeprecated: per-component registry prefix.\n\nIf set, this value is *prepended* to the image repository that the chart would otherwise render. This applies both when `image.repository` is set and when the repository is computed from\n`imageRegistry` + `imageNamespace` + `image.name`.\n\nThis can produce \"double registry\" style references such as\n`legacy.example.io/quay.io/jetstack/...`. Prefer using the global\n`imageRegistry`/`imageNamespace` values.",
       "type": "string"
     },
     "helm-values.defaultPackageImage.repository": {
-      "default": "quay.io/jetstack/trust-pkg-debian-bookworm",
-      "description": "The repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles.",
+      "default": "",
+      "description": "Full repository override (takes precedence over `imageRegistry`, `imageNamespace`, and `image.name`).\nExample: quay.io/jetstack/trust-manager",
       "type": "string"
     },
     "helm-values.defaultPackageImage.tag": {
@@ -694,6 +716,9 @@
         "digest": {
           "$ref": "#/$defs/helm-values.image.digest"
         },
+        "name": {
+          "$ref": "#/$defs/helm-values.image.name"
+        },
         "pullPolicy": {
           "$ref": "#/$defs/helm-values.image.pullPolicy"
         },
@@ -713,22 +738,32 @@
       "description": "Target image digest. Override any tag, if set.\nFor example:\ndigest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20",
       "type": "string"
     },
+    "helm-values.image.name": {
+      "default": "trust-manager",
+      "description": "The image name for trust-manager.\nThis is used (together with `imageRegistry` and `imageNamespace`) to construct the full image reference.",
+      "type": "string"
+    },
     "helm-values.image.pullPolicy": {
       "default": "IfNotPresent",
       "description": "Kubernetes imagePullPolicy on Deployment.",
       "type": "string"
     },
     "helm-values.image.registry": {
-      "description": "Target image registry. This value is prepended to the target image repository, if set.\nFor example:\nregistry: quay.io\nrepository: jetstack/trust-manager",
+      "description": "Target image registry. This value is prepended to the target image repository, if set.\nFor example:\nregistry: legacy.example.io\nDeprecated: per-component registry prefix.\n\nIf set, this value is *prepended* to the image repository that the chart would otherwise render. This applies both when `image.repository` is set and when the repository is computed from\n`imageRegistry` + `imageNamespace` + `image.name`.\n\nThis can produce \"double registry\" style references such as\n`legacy.example.io/quay.io/jetstack/...`. Prefer using the global\n`imageRegistry`/`imageNamespace` values.",
       "type": "string"
     },
     "helm-values.image.repository": {
-      "default": "quay.io/jetstack/trust-manager",
-      "description": "Target image repository.",
+      "default": "",
+      "description": "Full repository override (takes precedence over `imageRegistry`, `imageNamespace`, and `image.name`).\nExample: quay.io/jetstack/trust-manager",
       "type": "string"
     },
     "helm-values.image.tag": {
       "description": "Override the image tag to deploy by setting this variable. If no value is set, the chart's appVersion is used.",
+      "type": "string"
+    },
+    "helm-values.imageNamespace": {
+      "default": "jetstack",
+      "description": "The repository namespace used for trust-manager images by default.\nExamples:\n- jetstack\n- cert-manager",
       "type": "string"
     },
     "helm-values.imagePullSecrets": {
@@ -736,6 +771,11 @@
       "description": "For Private docker registries, authentication is needed. Registry secrets are applied to the service account.",
       "items": {},
       "type": "array"
+    },
+    "helm-values.imageRegistry": {
+      "default": "quay.io",
+      "description": "The container registry used for trust-manager images by default. This can include path prefixes (e.g. \"artifactory.example.com/docker\").",
+      "type": "string"
     },
     "helm-values.nameOverride": {
       "default": "",

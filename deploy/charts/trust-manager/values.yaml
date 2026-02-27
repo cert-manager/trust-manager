@@ -50,16 +50,45 @@ namespace: ""
 # For Private docker registries, authentication is needed. Registry secrets are applied to the service account.
 imagePullSecrets: []
 
+# The container registry used for trust-manager images by default.
+# This can include path prefixes (e.g. "artifactory.example.com/docker").
+# +docs:property
+imageRegistry: quay.io
+
+# The repository namespace used for trust-manager images by default.
+# Examples:
+# - jetstack
+# - cert-manager
+# +docs:property
+imageNamespace: jetstack
+
 image:
   # Target image registry. This value is prepended to the target image repository, if set.
   # For example:
-  #   registry: quay.io
-  #   repository: jetstack/trust-manager
+  #   registry: legacy.example.io
+  # Deprecated: per-component registry prefix.
+  #
+  # If set, this value is *prepended* to the image repository that the chart would otherwise render.
+  # This applies both when `image.repository` is set and when the repository is computed from
+  # `imageRegistry` + `imageNamespace` + `image.name`.
+  #
+  # This can produce "double registry" style references such as
+  # `legacy.example.io/quay.io/jetstack/...`. Prefer using the global
+  # `imageRegistry`/`imageNamespace` values.
   # +docs:property
   # registry: quay.io
 
-  # Target image repository.
-  repository: quay.io/jetstack/trust-manager
+  # Full repository override (takes precedence over `imageRegistry`, `imageNamespace`,
+  # and `image.name`).
+  # Example: quay.io/jetstack/trust-manager
+  # +docs:property
+  repository: ""
+
+  # The image name for trust-manager.
+  # This is used (together with `imageRegistry` and `imageNamespace`) to construct the full
+  # image reference.
+  # +docs:property
+  name: trust-manager
 
   # Override the image tag to deploy by setting this variable.
   # If no value is set, the chart's appVersion is used.
@@ -95,11 +124,29 @@ defaultPackageImage:
   # For example:
   #   registry: quay.io
   #   repository: jetstack/cert-manager-package-debian
+  # Deprecated: per-component registry prefix.
+  #
+  # If set, this value is *prepended* to the image repository that the chart would otherwise render.
+  # This applies both when `image.repository` is set and when the repository is computed from
+  # `imageRegistry` + `imageNamespace` + `image.name`.
+  #
+  # This can produce "double registry" style references such as
+  # `legacy.example.io/quay.io/jetstack/...`. Prefer using the global
+  # `imageRegistry`/`imageNamespace` values.
   # +docs:property
   # registry: quay.io
 
-  # The repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles.
-  repository: quay.io/jetstack/trust-pkg-debian-bookworm
+  # Full repository override (takes precedence over `imageRegistry`, `imageNamespace`,
+  # and `image.name`).
+  # Example: quay.io/jetstack/trust-manager
+  # +docs:property
+  repository: ""
+
+  # The image name for trust-manager.
+  # This is used (together with `imageRegistry` and `imageNamespace`) to construct the full
+  # image reference.
+  # +docs:property
+  name: trust-pkg-debian-bookworm
 
   # Override the image tag of the default package image.
   # Is set at chart build time to the version specified in ./make/00_debian_bookworm_version.mk.
@@ -111,6 +158,10 @@ defaultPackageImage:
   #   digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
   # +docs:property
   # digest: sha256:...
+
+  # WARNING: For internal use only, is overwritten before releasing the chart.
+  # +docs:hidden
+  _defaultReference: :v0.0.0
 
   # imagePullPolicy for the default package image.
   pullPolicy: IfNotPresent
