@@ -1,0 +1,39 @@
+{{- if .Values.startupapicheck.enabled -}}
+{{- if .Values.global.rbac.create -}}
+{{- $ann := dict "helm.sh/hook" "post-install,post-upgrade" "helm.sh/hook-weight" "-5" "helm.sh/hook-delete-policy" "before-hook-creation,hook-succeeded" -}}
+{{- with .Values.startupapicheck.rbac.annotations -}}
+{{- $ann = merge $ann . -}}
+{{- end -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "trust-manager.startupapicheck.name" . }}
+  labels:
+    app: {{ include "trust-manager.startupapicheck.name" . }}
+{{- include "trust-manager.labels" . | nindent 4 }}
+  annotations:
+{{- toYaml $ann | nindent 4 }}
+rules:
+  - apiGroups: ["trust.cert-manager.io"]
+    resources: ["bundles"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "trust-manager.startupapicheck.name" . }}
+  labels:
+    app: {{ include "trust-manager.startupapicheck.name" . }}
+{{- include "trust-manager.labels" . | nindent 4 }}
+  annotations:
+{{- toYaml $ann | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "trust-manager.startupapicheck.name" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "trust-manager.startupapicheck.serviceAccountName" . }}
+    namespace: {{ include "trust-manager.namespace" . }}
+{{- end }}
+{{- end }}

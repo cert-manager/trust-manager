@@ -160,3 +160,16 @@ Namespaced resources rules
   {{- end }}
 {{- end }}
 {{- end -}}
+
+{{/* Startup API check helpers */}}
+{{- define "trust-manager.startupapicheck.name" -}}
+{{- printf "%s-startupapicheck" (include "trust-manager.name" .) -}}
+{{- end -}}
+
+{{- define "trust-manager.startupapicheck.serviceAccountName" -}}
+{{- if .Values.startupapicheck.serviceAccount.create -}}
+{{- default (include "trust-manager.startupapicheck.name" .) .Values.startupapicheck.serviceAccount.name -}}
+{{- else -}}
+{{- default "default" .Values.startupapicheck.serviceAccount.name -}}
+{{- end -}}
+{{- end -}}
