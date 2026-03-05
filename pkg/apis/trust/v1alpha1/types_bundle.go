@@ -116,13 +116,13 @@ type BundleTarget struct {
 	// configMap is the target ConfigMap in Namespaces that all Bundle source
 	// data will be synced to.
 	// +optional
-	ConfigMap *TargetTemplate `json:"configMap,omitempty"`
+	ConfigMap *ConfigMapTarget `json:"configMap,omitempty"`
 
 	// secret is the target Secret that all Bundle source data will be synced to.
 	// Using Secrets as targets is only supported if enabled at trust-manager startup.
 	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
 	// +optional
-	Secret *TargetTemplate `json:"secret,omitempty"`
+	Secret *SecretTarget `json:"secret,omitempty"`
 
 	// additionalFormats specifies any additional formats to write to the target
 	// +optional
@@ -235,8 +235,42 @@ type SourceObjectKeySelector struct {
 	IncludeAllKeys *bool `json:"includeAllKeys,omitempty"`
 }
 
-// TargetTemplate defines the form of the Kubernetes Secret or ConfigMap bundle targets.
-type TargetTemplate struct {
+// ConfigMapTarget defines the form of the Kubernetes ConfigMap bundle target.
+type ConfigMapTarget struct {
+	// key is the key of the entry in the object's `data` field to be used.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	Key string `json:"key,omitempty"`
+
+	// metadata is an optional set of labels and annotations to be copied to the target.
+	// +optional
+	Metadata *TargetMetadata `json:"metadata,omitempty"`
+}
+
+// GetAnnotations returns the annotations to be copied to the target or an empty map if there are no annotations.
+func (t *ConfigMapTarget) GetAnnotations() map[string]string {
+	if t == nil || t.Metadata == nil {
+		return nil
+	}
+	return t.Metadata.Annotations
+}
+
+// GetLabels returns the labels to be copied to the target or an empty map if there are no labels.
+func (t *ConfigMapTarget) GetLabels() map[string]string {
+	if t == nil || t.Metadata == nil {
+		return nil
+	}
+	return t.Metadata.Labels
+}
+
+// GetSecretType always returns empty string for ConfigMapTarget.
+func (t *ConfigMapTarget) GetSecretType() corev1.SecretType {
+	return ""
+}
+
+// SecretTarget defines the form of the Kubernetes Secret bundle target.
+type SecretTarget struct {
 	// key is the key of the entry in the object's `data` field to be used.
 	// +required
 	// +kubebuilder:validation:MinLength=1
@@ -247,14 +281,14 @@ type TargetTemplate struct {
 	// +optional
 	Metadata *TargetMetadata `json:"metadata,omitempty"`
 
-	// type is the type of the target Secret. Only applicable when the target is a Secret.
+	// type is the type of the target Secret.
 	// If not set, defaults to Opaque.
 	// +optional
 	Type corev1.SecretType `json:"type,omitempty"`
 }
 
 // GetAnnotations returns the annotations to be copied to the target or an empty map if there are no annotations.
-func (t *TargetTemplate) GetAnnotations() map[string]string {
+func (t *SecretTarget) GetAnnotations() map[string]string {
 	if t == nil || t.Metadata == nil {
 		return nil
 	}
@@ -262,11 +296,19 @@ func (t *TargetTemplate) GetAnnotations() map[string]string {
 }
 
 // GetLabels returns the labels to be copied to the target or an empty map if there are no labels.
-func (t *TargetTemplate) GetLabels() map[string]string {
+func (t *SecretTarget) GetLabels() map[string]string {
 	if t == nil || t.Metadata == nil {
 		return nil
 	}
 	return t.Metadata.Labels
+}
+
+// GetSecretType returns the type of the target Secret.
+func (t *SecretTarget) GetSecretType() corev1.SecretType {
+	if t == nil {
+		return ""
+	}
+	return t.Type
 }
 
 // KeySelector is a reference to a key for some map data object.

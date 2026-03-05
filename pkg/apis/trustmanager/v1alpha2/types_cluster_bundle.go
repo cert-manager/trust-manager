@@ -128,17 +128,16 @@ type DefaultCAsSource struct {
 // BundleTarget is the target resource that the Bundle will sync all source
 // data to.
 // +kubebuilder:validation:AtLeastOneOf=configMap;secret
-// +kubebuilder:validation:XValidation:rule="!has(self.configMap) || !has(self.configMap.type)",message="type may only be set on secret targets"
 type BundleTarget struct {
 	// configMap is the target ConfigMap in Namespaces that all Bundle source data will be synced to.
 	// +optional
-	ConfigMap *KeyValueTarget `json:"configMap,omitempty"`
+	ConfigMap *ConfigMapTarget `json:"configMap,omitempty"`
 
 	// secret is the target Secret in Namespaces that all Bundle source data will be synced to.
 	// Using Secrets as targets is only supported if enabled at trust-manager startup.
 	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
 	// +optional
-	Secret *KeyValueTarget `json:"secret,omitempty"`
+	Secret *SecretTarget `json:"secret,omitempty"`
 
 	// namespaceSelector specifies the namespaces where target resources will be synced.
 	// +required
@@ -212,8 +211,39 @@ type SourceReference struct {
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 }
 
-// KeyValueTarget is the specification of key value target resources as ConfigMaps and Secrets.
-type KeyValueTarget struct {
+// ConfigMapTarget is the specification of ConfigMap target resources.
+type ConfigMapTarget struct {
+	// data is the specification of the object's `data` field.
+	// +required
+	// +listType=map
+	// +listMapKey=key
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
+	Data []TargetKeyValue `json:"data,omitempty"`
+
+	// metadata is an optional set of labels and annotations to be copied to the target.
+	// +optional
+	Metadata *TargetMetadata `json:"metadata,omitempty"`
+}
+
+// GetAnnotations returns the annotations to be copied to the target or an empty map if there are no annotations.
+func (t *ConfigMapTarget) GetAnnotations() map[string]string {
+	if t == nil || t.Metadata == nil {
+		return nil
+	}
+	return t.Metadata.Annotations
+}
+
+// GetLabels returns the labels to be copied to the target or an empty map if there are no labels.
+func (t *ConfigMapTarget) GetLabels() map[string]string {
+	if t == nil || t.Metadata == nil {
+		return nil
+	}
+	return t.Metadata.Labels
+}
+
+// SecretTarget is the specification of Secret target resources.
+type SecretTarget struct {
 	// data is the specification of the object's `data` field.
 	// +required
 	// +listType=map
@@ -226,14 +256,14 @@ type KeyValueTarget struct {
 	// +optional
 	Metadata *TargetMetadata `json:"metadata,omitempty"`
 
-	// type is the type of the target Secret. Only applicable when the target is a Secret.
+	// type is the type of the target Secret.
 	// If not set, defaults to Opaque.
 	// +optional
 	Type corev1.SecretType `json:"type,omitempty"`
 }
 
 // GetAnnotations returns the annotations to be copied to the target or an empty map if there are no annotations.
-func (t *KeyValueTarget) GetAnnotations() map[string]string {
+func (t *SecretTarget) GetAnnotations() map[string]string {
 	if t == nil || t.Metadata == nil {
 		return nil
 	}
@@ -241,7 +271,7 @@ func (t *KeyValueTarget) GetAnnotations() map[string]string {
 }
 
 // GetLabels returns the labels to be copied to the target or an empty map if there are no labels.
-func (t *KeyValueTarget) GetLabels() map[string]string {
+func (t *SecretTarget) GetLabels() map[string]string {
 	if t == nil || t.Metadata == nil {
 		return nil
 	}

@@ -429,7 +429,7 @@ var _ = Describe("Integration", func() {
 	It("should delete old targets and update to new ones when the Spec.Target is modified", func() {
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Target = trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "changed-target-key"},
+				ConfigMap: &trustapi.ConfigMapTarget{Key: "changed-target-key"},
 			}
 		})()).To(Succeed())
 
@@ -455,7 +455,7 @@ var _ = Describe("Integration", func() {
 	It("should delete old targets and update to new ones when a JKS file is requested in the target", func() {
 		Expect(komega.Update(testBundle, func() {
 			testBundle.Spec.Target = trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: testData.Target.Key},
+				ConfigMap: &trustapi.ConfigMapTarget{Key: testData.TargetKey},
 				AdditionalFormats: &trustapi.AdditionalFormats{
 					JKS: &trustapi.JKS{
 						KeySelector: trustapi.KeySelector{
@@ -512,18 +512,18 @@ var _ = Describe("Integration", func() {
 		var configMap corev1.ConfigMap
 		Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
 
-		configMap.Data[testData.Target.Key] = "CHANGED DATA"
+		configMap.Data[testData.TargetKey] = "CHANGED DATA"
 		Expect(cl.Update(ctx, &configMap)).ToNot(HaveOccurred())
 
 		Eventually(func() bool {
 			Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
 
-			return apiequality.Semantic.DeepEqual(configMap.Data, map[string]string{testData.Target.Key: dummy.DefaultJoinedCerts()})
+			return apiequality.Semantic.DeepEqual(configMap.Data, map[string]string{testData.TargetKey: dummy.DefaultJoinedCerts()})
 		}, eventuallyTimeout, eventuallyPollInterval).Should(BeTrue(), "checking that the data is written back to the target")
 
 		Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
 
-		delete(configMap.Data, testData.Target.Key)
+		delete(configMap.Data, testData.TargetKey)
 
 		Expect(cl.Update(ctx, &configMap)).ToNot(HaveOccurred())
 
@@ -531,7 +531,7 @@ var _ = Describe("Integration", func() {
 			var configMap corev1.ConfigMap
 			Expect(cl.Get(ctx, client.ObjectKey{Namespace: "kube-system", Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
 
-			return apiequality.Semantic.DeepEqual(configMap.Data, map[string]string{testData.Target.Key: dummy.DefaultJoinedCerts()})
+			return apiequality.Semantic.DeepEqual(configMap.Data, map[string]string{testData.TargetKey: dummy.DefaultJoinedCerts()})
 		}, eventuallyTimeout, eventuallyPollInterval).Should(BeTrue(), "checking that the data is written back to the target")
 	})
 

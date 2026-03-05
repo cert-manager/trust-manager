@@ -204,9 +204,6 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 	}
 
 	if bundle.Spec.Target.ConfigMap != nil {
-		if bundle.Spec.Target.ConfigMap.Type != "" {
-			el = append(el, field.Forbidden(path.Child("target", "configMap", "type"), "type may only be set on secret targets"))
-		}
 		errs := validateTargetMetadata(bundle.Spec.Target.ConfigMap.Metadata, path.Child("target", "configMap", "metadata"))
 		el = append(el, errs...)
 	}

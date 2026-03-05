@@ -287,11 +287,6 @@ spec:
                               reason: FieldValueForbidden
                               rule: self.all(k, !k.startsWith('trust-manager.io/'))
                         type: object
-                      type:
-                        description: |-
-                          type is the type of the target Secret. Only applicable when the target is a Secret.
-                          If not set, defaults to Opaque.
-                        type: string
                     required:
                     - data
                     type: object
@@ -447,7 +442,7 @@ spec:
                         type: object
                       type:
                         description: |-
-                          type is the type of the target Secret. Only applicable when the target is a Secret.
+                          type is the type of the target Secret.
                           If not set, defaults to Opaque.
                         type: string
                     required:
@@ -457,8 +452,6 @@ spec:
                 - namespaceSelector
                 type: object
                 x-kubernetes-validations:
-                - message: type may only be set on secret targets
-                  rule: '!has(self.configMap) || !has(self.configMap.type)'
                 - message: at least one of the fields in [configMap secret] must be
                     set
                   rule: '[has(self.configMap),has(self.secret)].filter(x,x==true).size()

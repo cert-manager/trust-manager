@@ -473,7 +473,7 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 
 			spec := trustapi.BundleSpec{
 				Target: trustapi.BundleTarget{
-					ConfigMap:         &trustapi.TargetTemplate{Key: key},
+					ConfigMap:         &trustapi.ConfigMapTarget{Key: key},
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
@@ -568,10 +568,14 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 
 	tests := map[string]struct {
 		object runtime.Object
+		// Set the secret type to custom value "trustmanager.io/custom"
+		withType bool
 		// Add JKS to AdditionalFormats
 		withJKS bool
 		// Add PKCS12 to AdditionalFormats
 		withPKCS12 bool
+		// Expect the secret type to be set to our custom value
+		expType bool
 		// Expect JKS to exist in the secret at the end of the sync.
 		expJKS bool
 		// Expect PKCS12 to exist in the secret at the end of the sync.
@@ -807,6 +811,53 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 			},
 			expNeedsUpdate: false,
 		},
+		"if object exists without type, expect update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   namespace,
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string][]byte{key: []byte(data)},
+			},
+			withType:       true,
+			expNeedsUpdate: true,
+		},
+		"if object exists with incorrect type, expect update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   namespace,
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: bundleHash},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         ptr.To(true),
+							BlockOwnerDeletion: ptr.To(true),
+						},
+					},
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
+				},
+				Data: map[string][]byte{key: []byte(data)},
+				Type: "incorrect/type",
+			},
+			withType:       true,
+			expNeedsUpdate: true,
+		},
 		"if object exists without JKS, expect update": {
 			object: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -925,9 +976,12 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 
 			spec := trustapi.BundleSpec{
 				Target: trustapi.BundleTarget{
-					Secret:            &trustapi.TargetTemplate{Key: key},
+					Secret:            &trustapi.SecretTarget{Key: key},
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
+			}
+			if tt.withType {
+				spec.Target.Secret.Type = "trustmanager.io/custom"
 			}
 			resolvedBundle := source.BundleData{CertPool: certPool}
 			if tt.withJKS {
@@ -981,6 +1035,10 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				binData, jksExists := secret.Data[jksKey]
 				assert.Equal(t, tt.expJKS, jksExists)
 
+				if tt.expType {
+					assert.Equal(t, "trustmanater.io/custom", secret.Type)
+				}
+
 				if tt.expJKS {
 					assertJKSData(t, binData, trustapi.DefaultJKSPassword)
 				}
@@ -996,86 +1054,11 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 	}
 }
 
-func Test_ApplyTarget_Secret_Type(t *testing.T) {
-	tests := map[string]struct {
-		secretType     corev1.SecretType
-		expTypeInPatch bool
-	}{
-		"empty type should not set type in patch": {
-			secretType:     "",
-			expTypeInPatch: false,
-		},
-		"kubernetes.io/tls type should be set in patch": {
-			secretType:     corev1.SecretTypeTLS,
-			expTypeInPatch: true,
-		},
-		"Opaque type should be set in patch": {
-			secretType:     corev1.SecretTypeOpaque,
-			expTypeInPatch: true,
-		},
-	}
-
-	for name, tt := range tests {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			fakeClient := fake.NewClientBuilder().
-				WithReturnManagedFields().
-				WithScheme(test.Scheme).
-				Build()
-
-			var resourcePatches []any
-			r := &Reconciler{
-				Client: fakeClient,
-				Cache:  fakeClient,
-				PatchResourceOverwrite: func(ctx context.Context, obj any) error {
-					resourcePatches = append(resourcePatches, obj)
-					return nil
-				},
-			}
-
-			certPool := util.NewCertPool()
-			err := certPool.AddCertsFromPEM([]byte(data))
-			assert.NoError(t, err)
-
-			spec := trustapi.BundleSpec{
-				Target: trustapi.BundleTarget{
-					Secret: &trustapi.TargetTemplate{
-						Key:  key,
-						Type: tt.secretType,
-					},
-				},
-			}
-
-			_, ctx := ktesting.NewTestContext(t)
-			needsUpdate, err := r.ApplyTarget(ctx, Resource{
-				Kind:           KindSecret,
-				NamespacedName: types.NamespacedName{Name: bundleName, Namespace: namespace},
-			}, &trustapi.Bundle{
-				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
-				Spec:       spec,
-			}, source.BundleData{CertPool: certPool})
-			assert.NoError(t, err)
-			assert.True(t, needsUpdate)
-
-			if assert.Len(t, resourcePatches, 1) {
-				secret := resourcePatches[0].(*coreapplyconfig.SecretApplyConfiguration)
-				if tt.expTypeInPatch {
-					assert.NotNil(t, secret.Type)
-					assert.Equal(t, tt.secretType, *secret.Type)
-				} else {
-					assert.Nil(t, secret.Type)
-				}
-			}
-		})
-	}
-}
-
 func Test_TrustBundleHash(t *testing.T) {
 	type inputArgs struct {
 		data              []byte
 		additionalFormats *trustapi.AdditionalFormats
-		targetTemplate    *trustapi.TargetTemplate
+		target            TargetSpec
 	}
 	tests := map[string]struct {
 		input      inputArgs
@@ -1130,7 +1113,7 @@ func Test_TrustBundleHash(t *testing.T) {
 			input: inputArgs{
 				data:              []byte("data"),
 				additionalFormats: &trustapi.AdditionalFormats{},
-				targetTemplate: &trustapi.TargetTemplate{
+				target: &trustapi.ConfigMapTarget{
 					Metadata: &trustapi.TargetMetadata{
 						Annotations: map[string]string{"annotation1": "value1"},
 						Labels:      map[string]string{"annotation1": "value1"},
@@ -1141,7 +1124,7 @@ func Test_TrustBundleHash(t *testing.T) {
 				{
 					data:              []byte("data"),
 					additionalFormats: &trustapi.AdditionalFormats{},
-					targetTemplate: &trustapi.TargetTemplate{
+					target: &trustapi.ConfigMapTarget{
 						Metadata: &trustapi.TargetMetadata{
 							Annotations: map[string]string{"annotation1": "value1"},
 							Labels:      map[string]string{"annotation1": "value1"},
@@ -1153,7 +1136,7 @@ func Test_TrustBundleHash(t *testing.T) {
 				{
 					data:              []byte("data"),
 					additionalFormats: &trustapi.AdditionalFormats{},
-					targetTemplate: &trustapi.TargetTemplate{
+					target: &trustapi.ConfigMapTarget{
 						Metadata: &trustapi.TargetMetadata{
 							Annotations: map[string]string{"annotation1": "value1"},
 						},
@@ -1162,7 +1145,7 @@ func Test_TrustBundleHash(t *testing.T) {
 				{
 					data:              []byte("data"),
 					additionalFormats: &trustapi.AdditionalFormats{},
-					targetTemplate: &trustapi.TargetTemplate{
+					target: &trustapi.ConfigMapTarget{
 						Metadata: &trustapi.TargetMetadata{
 							Labels: map[string]string{"annotation1": "value1"},
 						},
@@ -1171,7 +1154,7 @@ func Test_TrustBundleHash(t *testing.T) {
 				{
 					data:              []byte("data"),
 					additionalFormats: &trustapi.AdditionalFormats{},
-					targetTemplate: &trustapi.TargetTemplate{
+					target: &trustapi.ConfigMapTarget{
 						Metadata: &trustapi.TargetMetadata{
 							Annotations: map[string]string{"annotation1": "value2"},
 							Labels:      map[string]string{"annotation1": "value1"},
@@ -1181,7 +1164,7 @@ func Test_TrustBundleHash(t *testing.T) {
 				{
 					data:              []byte("data"),
 					additionalFormats: &trustapi.AdditionalFormats{},
-					targetTemplate: &trustapi.TargetTemplate{
+					target: &trustapi.ConfigMapTarget{
 						Metadata: &trustapi.TargetMetadata{
 							Annotations: map[string]string{"annotation1": "value1"},
 							Labels:      map[string]string{"annotation1": "value2"},
@@ -1193,26 +1176,26 @@ func Test_TrustBundleHash(t *testing.T) {
 		"secret type changes hash": {
 			input: inputArgs{
 				data: []byte("data"),
-				targetTemplate: &trustapi.TargetTemplate{
+				target: &trustapi.SecretTarget{
 					Type: corev1.SecretTypeTLS,
 				},
 			},
 			matches: []inputArgs{
 				{
 					data: []byte("data"),
-					targetTemplate: &trustapi.TargetTemplate{
+					target: &trustapi.SecretTarget{
 						Type: corev1.SecretTypeTLS,
 					},
 				},
 			},
 			mismatches: []inputArgs{
 				{
-					data:           []byte("data"),
-					targetTemplate: &trustapi.TargetTemplate{},
+					data:   []byte("data"),
+					target: &trustapi.SecretTarget{},
 				},
 				{
 					data: []byte("data"),
-					targetTemplate: &trustapi.TargetTemplate{
+					target: &trustapi.SecretTarget{
 						Type: corev1.SecretTypeOpaque,
 					},
 				},
@@ -1224,14 +1207,14 @@ func Test_TrustBundleHash(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			inputHash := TrustBundleHash(test.input.data, test.input.additionalFormats, test.input.targetTemplate)
+			inputHash := TrustBundleHash(test.input.data, test.input.additionalFormats, test.input.target)
 			for _, match := range test.matches {
-				matchHash := TrustBundleHash(match.data, match.additionalFormats, match.targetTemplate)
+				matchHash := TrustBundleHash(match.data, match.additionalFormats, match.target)
 				assert.Equal(t, inputHash, matchHash)
 			}
 
 			for _, mismatch := range test.mismatches {
-				mismatchHash := TrustBundleHash(mismatch.data, mismatch.additionalFormats, mismatch.targetTemplate)
+				mismatchHash := TrustBundleHash(mismatch.data, mismatch.additionalFormats, mismatch.target)
 				assert.NotEqual(t, inputHash, mismatchHash)
 			}
 		})

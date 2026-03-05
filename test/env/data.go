@@ -59,7 +59,7 @@ type TestData struct {
 		}
 	}
 
-	Target trustapi.TargetTemplate
+	TargetKey string
 }
 
 // DefaultTrustData returns a well-known set of default data for a test.
@@ -71,7 +71,7 @@ func DefaultTrustData() TestData {
 	td.Sources.Secret.Key = "secret-key"
 	td.Sources.Secret.Data = dummy.TestCertificate2
 	td.Sources.InLine.Data = dummy.TestCertificate3
-	td.Target.Key = "target-key"
+	td.TargetKey = "target-key"
 	return td
 }
 
@@ -126,18 +126,15 @@ func newTestBundle(ctx context.Context, cl client.Client, trustNamespace string,
 					InLine: &td.Sources.InLine.Data,
 				},
 			},
-			Target: trustapi.BundleTarget{
-				ConfigMap: &td.Target,
-			},
 		},
 	}
 	if targetType == "ConfigMap" {
 		bundle.Spec.Target = trustapi.BundleTarget{
-			ConfigMap: &td.Target,
+			ConfigMap: &trustapi.ConfigMapTarget{Key: td.TargetKey},
 		}
 	} else if targetType == "Secret" {
 		bundle.Spec.Target = trustapi.BundleTarget{
-			Secret: &td.Target,
+			Secret: &trustapi.SecretTarget{Key: td.TargetKey},
 		}
 	}
 	Expect(cl.Create(ctx, &bundle)).NotTo(HaveOccurred())
