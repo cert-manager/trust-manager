@@ -468,7 +468,7 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 			}
 
 			certPool := util.NewCertPool()
-			err := certPool.AddCertsFromPEM([]byte(data))
+			err := certPool.AddCertsFromPEM([]byte(data), util.InlineKind, "", "")
 			assert.NoError(t, err)
 
 			spec := trustapi.BundleSpec{
@@ -914,7 +914,7 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 			}
 
 			certPool := util.NewCertPool()
-			err := certPool.AddCertsFromPEM([]byte(data))
+			err := certPool.AddCertsFromPEM([]byte(data), util.InlineKind, "", "")
 			assert.NoError(t, err)
 
 			spec := trustapi.BundleSpec{

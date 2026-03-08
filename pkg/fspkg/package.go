@@ -67,7 +67,7 @@ func (p *Package) Validate() error {
 
 	certPool := util.NewCertPool(util.WithFilteredExpiredCerts(false))
 
-	if err := certPool.AddCertsFromPEM([]byte(p.Bundle)); err != nil {
+	if err := certPool.AddCertsFromPEM([]byte(p.Bundle), util.DefaultCAKind, "", ""); err != nil {
 		return fmt.Errorf("package bundle failed validation: %w", err)
 	}
 

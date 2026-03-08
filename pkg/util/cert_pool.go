@@ -32,13 +32,27 @@ import (
 
 // CertPool is a set of certificates.
 type CertPool struct {
-	certificates map[[32]byte]*x509.Certificate
+	certificates map[[32]byte]*CertificateData
 
 	filterExpired bool
 
 	filterNonCACerts bool
 
 	logger logr.Logger
+}
+
+type Kind string
+
+var ConfigMapKind Kind = "ConfigMap"
+var SecretKind Kind = "Secret"
+var InlineKind Kind = "InLine"
+var DefaultCAKind Kind = "DefaultCAs"
+
+type CertificateData struct {
+	Cert       *x509.Certificate
+	SourceKind Kind
+	SourceName string
+	SourceKey  string
 }
 
 type Option func(*CertPool)
@@ -66,7 +80,7 @@ func WithLogger(logger logr.Logger) Option {
 // Optionally, it can filter out expired certificates.
 func NewCertPool(options ...Option) *CertPool {
 	certPool := &CertPool{
-		certificates: make(map[[32]byte]*x509.Certificate),
+		certificates: make(map[[32]byte]*CertificateData),
 
 		logger: logr.Discard(),
 	}
@@ -98,7 +112,7 @@ func NewCertPool(options ...Option) *CertPool {
 // https://www.rfc-editor.org/rfc/rfc7468
 //
 // Additionally, if the input PEM bundle contains no non-expired certificates, an error is returned.
-func (cp *CertPool) AddCertsFromPEM(pemData []byte) error {
+func (cp *CertPool) AddCertsFromPEM(pemData []byte, kind Kind, name, key string) error {
 	if pemData == nil {
 		return fmt.Errorf("certificate data can't be nil")
 	}
@@ -138,13 +152,13 @@ func (cp *CertPool) AddCertsFromPEM(pemData []byte) error {
 			return fmt.Errorf("failed appending a certificate: certificate is nil")
 		}
 
-		cp.AddCert(certificate)
+		cp.AddCert(certificate, kind, name, key)
 	}
 
 	return nil
 }
 
-func (cp *CertPool) AddCert(certificate *x509.Certificate) bool {
+func (cp *CertPool) AddCert(certificate *x509.Certificate, kind Kind, name, key string) bool {
 	if cp.filterExpired && time.Now().After(certificate.NotAfter) {
 		cp.logger.Info("ignoring expired certificate", "certificate", certificate.Subject)
 		return false
@@ -156,7 +170,16 @@ func (cp *CertPool) AddCert(certificate *x509.Certificate) bool {
 	}
 
 	hash := sha256.Sum256(certificate.Raw)
-	cp.certificates[hash] = certificate
+	if kind == DefaultCAKind || kind == InlineKind {
+		name = fmt.Sprintf("%x", hash)
+	}
+
+	cp.certificates[hash] = &CertificateData{
+		Cert:       certificate,
+		SourceKind: kind,
+		SourceName: name,
+		SourceKey:  key,
+	}
 	return true
 }
 
@@ -207,8 +230,26 @@ func (certPool *CertPool) Certificates() []*x509.Certificate {
 
 	orderedCertificates := make([]*x509.Certificate, 0, len(certPool.certificates))
 	for _, hash := range hashes {
-		orderedCertificates = append(orderedCertificates, certPool.certificates[hash])
+		orderedCertificates = append(orderedCertificates, certPool.certificates[hash].Cert)
 	}
 
 	return orderedCertificates
+}
+
+func (certPool *CertPool) Sources() []*CertificateData {
+	hashes := make([][32]byte, 0, len(certPool.certificates))
+	for hash := range certPool.certificates {
+		hashes = append(hashes, hash)
+	}
+
+	slices.SortFunc(hashes, func(i, j [32]byte) int {
+		return bytes.Compare(i[:], j[:])
+	})
+
+	data := make([]*CertificateData, 0, len(certPool.certificates))
+	for _, hash := range hashes {
+		data = append(data, certPool.certificates[hash])
+	}
+
+	return data
 }

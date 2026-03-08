@@ -48,7 +48,7 @@ func Test_Java_keytool_can_read_JKS(t *testing.T) {
 	bundle := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3)
 
 	certPool := util.NewCertPool()
-	if err := certPool.AddCertsFromPEM([]byte(bundle)); err != nil {
+	if err := certPool.AddCertsFromPEM([]byte(bundle), util.InlineKind, "", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -143,7 +143,7 @@ func Test_Java_can_use_JKS(t *testing.T) {
 	}
 
 	certPool := util.NewCertPool()
-	certPool.AddCert(cert)
+	certPool.AddCert(cert, util.InlineKind, "", "")
 	encoder := NewJKSEncoder(v1alpha1.DefaultJKSPassword)
 	store, err := encoder.Encode(certPool)
 	if err != nil {

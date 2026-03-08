@@ -49,11 +49,11 @@ import (
 	"github.com/cert-manager/trust-manager/test/gen"
 )
 
-func testEncodePKCS12(t *testing.T, data string) []byte {
+func testEncodePKCS12(t *testing.T, data string, kind util.Kind, name string) []byte {
 	t.Helper()
 
 	certPool := util.NewCertPool()
-	if err := certPool.AddCertsFromPEM([]byte(data)); err != nil {
+	if err := certPool.AddCertsFromPEM([]byte(data), kind, name, "target-key"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -515,17 +515,17 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "trust-namespace", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
-					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts(), util.ConfigMapKind, baseBundle.Name),
 				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
-					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts(), util.ConfigMapKind, baseBundle.Name),
 				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
-					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts(), util.ConfigMapKind, baseBundle.Name),
 				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
@@ -581,17 +581,17 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "trust-namespace", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
-					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts(), util.ConfigMapKind, baseBundle.Name),
 				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
-					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts(), util.ConfigMapKind, baseBundle.Name),
 				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
 				configMapPatch(baseBundle.Name, "ns-2", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
-					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts(), util.ConfigMapKind, baseBundle.Name),
 				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
 			},
 			expBundlePatch: &trustapi.BundleStatus{
@@ -617,7 +617,7 @@ func Test_Reconcile(t *testing.T) {
 						targetKey: dummy.DefaultJoinedCerts(),
 					},
 					map[string][]byte{
-						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts(), util.ConfigMapKind, sourceConfigMapKey),
 					},
 					ptr.To(targetKey),
 					true, &pkcs12DefaultAdditionalFormats,
@@ -628,7 +628,7 @@ func Test_Reconcile(t *testing.T) {
 						targetKey: dummy.DefaultJoinedCerts(),
 					},
 					map[string][]byte{
-						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts(), util.ConfigMapKind, sourceConfigMapKey),
 					},
 					ptr.To(targetKey),
 					true, &pkcs12DefaultAdditionalFormats,
@@ -639,7 +639,7 @@ func Test_Reconcile(t *testing.T) {
 						targetKey: dummy.DefaultJoinedCerts(),
 					},
 					map[string][]byte{
-						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts(), util.ConfigMapKind, sourceConfigMapKey),
 					},
 					ptr.To(targetKey),
 					true, &pkcs12DefaultAdditionalFormats,
@@ -676,7 +676,7 @@ func Test_Reconcile(t *testing.T) {
 						targetKey: dummy.DefaultJoinedCerts(),
 					},
 					map[string][]byte{
-						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts(), util.ConfigMapKind, sourceConfigMapKey),
 					},
 					ptr.To(targetKey),
 					true, &pkcs12DefaultAdditionalFormatsOldPassword,
@@ -687,7 +687,7 @@ func Test_Reconcile(t *testing.T) {
 						targetKey: dummy.DefaultJoinedCerts(),
 					},
 					map[string][]byte{
-						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts(), util.ConfigMapKind, sourceConfigMapKey),
 					},
 					ptr.To(targetKey),
 					true, &pkcs12DefaultAdditionalFormatsOldPassword,
@@ -698,7 +698,7 @@ func Test_Reconcile(t *testing.T) {
 						targetKey: dummy.DefaultJoinedCerts(),
 					},
 					map[string][]byte{
-						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+						"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts(), util.ConfigMapKind, sourceConfigMapKey),
 					},
 					ptr.To(targetKey),
 					true, &pkcs12DefaultAdditionalFormats,
@@ -715,12 +715,12 @@ func Test_Reconcile(t *testing.T) {
 				configMapPatch(baseBundle.Name, "trust-namespace", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
-					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts(), util.ConfigMapKind, baseBundle.Name),
 				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
 				configMapPatch(baseBundle.Name, "ns-1", map[string]string{
 					targetKey: dummy.DefaultJoinedCerts(),
 				}, map[string][]byte{
-					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts()),
+					"target.p12": testEncodePKCS12(t, dummy.DefaultJoinedCerts(), util.ConfigMapKind, baseBundle.Name),
 				}, ptr.To(targetKey), &pkcs12DefaultAdditionalFormats),
 			},
 			expBundlePatch: &trustapi.BundleStatus{

@@ -354,7 +354,7 @@ func CheckJKSFileSynced(jksData []byte, expectedPassword string, expectedCertPEM
 		return err
 	}
 
-	err = certPool.AddCertsFromPEM([]byte(expectedCertPEMData))
+	err = certPool.AddCertsFromPEM([]byte(expectedCertPEMData), util.InlineKind, "", "")
 	if err != nil {
 		return fmt.Errorf("invalid PEM data passed to CheckJKSFileSynced: %s", err)
 	}

@@ -116,7 +116,7 @@ type inlineBundleSource struct {
 }
 
 func (s inlineBundleSource) addToCertPool(_ context.Context, pool *util.CertPool) error {
-	if err := pool.AddCertsFromPEM([]byte(s.pemData)); err != nil {
+	if err := pool.AddCertsFromPEM([]byte(s.pemData), util.InlineKind, "", ""); err != nil {
 		return InvalidPEMError{fmt.Errorf("inline source contains invalid PEM data: %w", err)}
 	}
 	return nil
@@ -127,7 +127,7 @@ type defaultCAsBundleSource struct {
 }
 
 func (s defaultCAsBundleSource) addToCertPool(_ context.Context, pool *util.CertPool) error {
-	if err := pool.AddCertsFromPEM([]byte(s.pemData)); err != nil {
+	if err := pool.AddCertsFromPEM([]byte(s.pemData), util.DefaultCAKind, "", ""); err != nil {
 		return InvalidPEMError{fmt.Errorf("default package contains invalid PEM data: %w", err)}
 	}
 	return nil
@@ -182,12 +182,12 @@ func (b configMapBundleSource) addToCertPool(ctx context.Context, pool *util.Cer
 			if !ok {
 				return NotFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, b.ref.Key)}
 			}
-			if err := pool.AddCertsFromPEM([]byte(data)); err != nil {
+			if err := pool.AddCertsFromPEM([]byte(data), util.ConfigMapKind, cm.Name, b.ref.Key); err != nil {
 				return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, b.ref.Key, err)}
 			}
 		} else if ptr.Deref(b.ref.IncludeAllKeys, false) {
 			for key, data := range cm.Data {
-				if err := pool.AddCertsFromPEM([]byte(data)); err != nil {
+				if err := pool.AddCertsFromPEM([]byte(data), util.ConfigMapKind, cm.Name, key); err != nil {
 					return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, key, err)}
 				}
 			}
@@ -245,7 +245,7 @@ func (b secretBundleSource) addToCertPool(ctx context.Context, pool *util.CertPo
 			if !ok {
 				return NotFoundError{fmt.Errorf("no data found in Secret %s/%s at key %q", secret.Namespace, secret.Name, b.ref.Key)}
 			}
-			if err := pool.AddCertsFromPEM(data); err != nil {
+			if err := pool.AddCertsFromPEM(data, util.SecretKind, secret.Name, b.ref.Key); err != nil {
 				return InvalidPEMError{fmt.Errorf("invalid PEM data in Secret %s/%s at key %q: %w", secret.Namespace, secret.Name, b.ref.Key, err)}
 			}
 		} else if ptr.Deref(b.ref.IncludeAllKeys, false) {
@@ -255,7 +255,7 @@ func (b secretBundleSource) addToCertPool(ctx context.Context, pool *util.CertPo
 			}
 
 			for key, data := range secret.Data {
-				if err := pool.AddCertsFromPEM(data); err != nil {
+				if err := pool.AddCertsFromPEM(data, util.SecretKind, secret.Name, key); err != nil {
 					return InvalidPEMError{fmt.Errorf("invalid PEM data in Secret %s/%s at key %q: %w", secret.Namespace, secret.Name, key, err)}
 				}
 			}
