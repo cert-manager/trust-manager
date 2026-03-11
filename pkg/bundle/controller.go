@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	ctrlsource "sigs.k8s.io/controller-runtime/pkg/source"
 
-	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	"github.com/cert-manager/trust-manager/pkg/bundle/controller"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/source"
 	"github.com/cert-manager/trust-manager/pkg/bundle/internal/target"
@@ -54,8 +54,8 @@ func CacheOpts(opts controller.Options) cache.Options {
 		ReaderFailOnMissingInformer: true,
 		DefaultNamespaces:           ctrCacheNamespaces,
 		ByObject: map[client.Object]cache.ByObject{
-			&trustapi.Bundle{}:  {},
-			&corev1.Namespace{}: {},
+			&trustmanagerapi.ClusterBundle{}: {},
+			&corev1.Namespace{}:              {},
 			&corev1.ConfigMap{}: {
 				// Only cache full ConfigMaps in the "watched" namespace.
 				// Target ConfigMaps have a dedicated cache
@@ -80,7 +80,7 @@ func SetupWithManager(
 	mgr ctrl.Manager,
 	opts controller.Options,
 ) error {
-	targetRequirement, err := labels.NewRequirement(trustapi.BundleLabelKey, selection.Exists, nil)
+	targetRequirement, err := labels.NewRequirement(trustmanagerapi.BundleLabelKey, selection.Exists, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create target label requirement: %w", err)
 	}
@@ -112,6 +112,10 @@ func SetupWithManager(
 	// Add Bundle controller to manager.
 	if err := addBundleController(ctx, mgr, opts, targetCache); err != nil {
 		return fmt.Errorf("failed to register Bundle controller: %w", err)
+	}
+
+	if err := (&controller.BundleReconciler{Client: mgr.GetClient()}).SetupWithManager(mgr); err != nil {
+		return fmt.Errorf("failed to register Bundle migration controller: %w", err)
 	}
 
 	return nil
@@ -174,7 +178,7 @@ func addBundleController(
 				handler.TypedEnqueueRequestForOwner[*metav1.PartialObjectMetadata](
 					mgr.GetScheme(),
 					mgr.GetRESTMapper(),
-					&trustapi.Bundle{},
+					&trustmanagerapi.ClusterBundle{},
 					handler.OnlyControllerOwner(),
 				),
 			),
@@ -190,7 +194,7 @@ func addBundleController(
 				handler.TypedEnqueueRequestForOwner[*metav1.PartialObjectMetadata](
 					mgr.GetScheme(),
 					mgr.GetRESTMapper(),
-					&trustapi.Bundle{},
+					&trustmanagerapi.ClusterBundle{},
 					handler.OnlyControllerOwner(),
 				),
 			),
@@ -200,12 +204,12 @@ func addBundleController(
 	////// Sources //////
 
 	// Reconcile trust.cert-manager.io Bundles
-	controller.Watches(&trustapi.Bundle{}, &handler.EnqueueRequestForObject{}).
+	controller.Watches(&trustmanagerapi.ClusterBundle{}, &handler.EnqueueRequestForObject{}).
 
 		// Watch all Namespaces. Cache whole Namespaces to include Phase Status.
 		// Reconcile all Bundles on a Namespace change.
 		Watches(&corev1.Namespace{}, b.enqueueRequestsFromBundleFunc(
-			func(obj client.Object, bundle trustapi.Bundle) bool {
+			func(obj client.Object, bundle trustmanagerapi.ClusterBundle) bool {
 				namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
 				if err != nil {
 					// We have an invalid selector, so we can skip this Bundle.
@@ -218,9 +222,9 @@ func addBundleController(
 		// Watch ConfigMaps in trust Namespace.
 		// Reconcile Bundles who reference a modified source ConfigMap.
 		Watches(&corev1.ConfigMap{}, b.enqueueRequestsFromBundleFunc(
-			func(obj client.Object, bundle trustapi.Bundle) bool {
-				for _, s := range bundle.Spec.Sources {
-					if sourceSelectsObject(s.ConfigMap, obj) {
+			func(obj client.Object, bundle trustmanagerapi.ClusterBundle) bool {
+				for _, s := range bundle.Spec.SourceRefs {
+					if sourceSelectsObject(s, trustmanagerapi.ConfigMapKind, obj) {
 						return true
 					}
 				}
@@ -230,9 +234,9 @@ func addBundleController(
 		// Watch Secrets in trust Namespace.
 		// Reconcile Bundles who reference a modified source Secret.
 		Watches(&corev1.Secret{}, b.enqueueRequestsFromBundleFunc(
-			func(obj client.Object, bundle trustapi.Bundle) bool {
-				for _, s := range bundle.Spec.Sources {
-					if sourceSelectsObject(s.Secret, obj) {
+			func(obj client.Object, bundle trustmanagerapi.ClusterBundle) bool {
+				for _, s := range bundle.Spec.SourceRefs {
+					if sourceSelectsObject(s, trustmanagerapi.SecretKind, obj) {
 						return true
 					}
 				}
@@ -250,7 +254,7 @@ func addBundleController(
 // enqueueRequestsFromBundleFunc returns an event handler for watching Bundle dependants.
 // It will invoke the provided function for all Bundles and trigger a Bundle reconcile if the
 // functions returns true.
-func (b *bundle) enqueueRequestsFromBundleFunc(fn func(obj client.Object, bundle trustapi.Bundle) bool) handler.EventHandler {
+func (b *bundle) enqueueRequestsFromBundleFunc(fn func(obj client.Object, bundle trustmanagerapi.ClusterBundle) bool) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
 		func(ctx context.Context, obj client.Object) []reconcile.Request {
 			// If an error happens here, and we do nothing, we run the risk of
@@ -273,8 +277,8 @@ func (b *bundle) enqueueRequestsFromBundleFunc(fn func(obj client.Object, bundle
 
 // mustBundleList will return a BundleList of all Bundles in the cluster. If an
 // error occurs, will exit error the program.
-func (b *bundle) mustBundleList(ctx context.Context) *trustapi.BundleList {
-	var bundleList trustapi.BundleList
+func (b *bundle) mustBundleList(ctx context.Context) *trustmanagerapi.ClusterBundleList {
+	var bundleList trustmanagerapi.ClusterBundleList
 	if err := b.client.List(ctx, &bundleList); err != nil {
 		logf.FromContext(ctx).Error(err, "failed to list all Bundles, exiting error")
 		os.Exit(-1)
@@ -291,16 +295,16 @@ func inNamespacePredicate(namespace string) predicate.Predicate {
 }
 
 // sourceSelectsObject returns true if source selector selects obj and false otherwise
-func sourceSelectsObject(selector *trustapi.SourceObjectKeySelector, obj client.Object) bool {
-	if selector == nil {
+func sourceSelectsObject(source trustmanagerapi.BundleSourceRef, kind string, obj client.Object) bool {
+	if source.Kind != kind {
 		return false
 	}
 
-	if labelsMatchSelector(obj.GetLabels(), selector.Selector) {
+	if labelsMatchSelector(obj.GetLabels(), source.Selector) {
 		return true
 	}
 
-	if selector.Name == obj.GetName() {
+	if source.Name == obj.GetName() {
 		return true
 	}
 
