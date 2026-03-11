@@ -17,27 +17,27 @@ limitations under the License.
 
 package v1alpha2
 
-// KeyValueTargetApplyConfiguration represents a declarative configuration of the KeyValueTarget type for use
+// ConfigMapTargetApplyConfiguration represents a declarative configuration of the ConfigMapTarget type for use
 // with apply.
 //
-// KeyValueTarget is the specification of key value target resources as ConfigMaps and Secrets.
-type KeyValueTargetApplyConfiguration struct {
+// ConfigMapTarget is the specification of ConfigMap target resources.
+type ConfigMapTargetApplyConfiguration struct {
 	// data is the specification of the object's `data` field.
 	Data []TargetKeyValueApplyConfiguration `json:"data,omitempty"`
 	// metadata is an optional set of labels and annotations to be copied to the target.
 	Metadata *TargetMetadataApplyConfiguration `json:"metadata,omitempty"`
 }
 
-// KeyValueTargetApplyConfiguration constructs a declarative configuration of the KeyValueTarget type for use with
+// ConfigMapTargetApplyConfiguration constructs a declarative configuration of the ConfigMapTarget type for use with
 // apply.
-func KeyValueTarget() *KeyValueTargetApplyConfiguration {
-	return &KeyValueTargetApplyConfiguration{}
+func ConfigMapTarget() *ConfigMapTargetApplyConfiguration {
+	return &ConfigMapTargetApplyConfiguration{}
 }
 
 // WithData adds the given value to the Data field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Data field.
-func (b *KeyValueTargetApplyConfiguration) WithData(values ...*TargetKeyValueApplyConfiguration) *KeyValueTargetApplyConfiguration {
+func (b *ConfigMapTargetApplyConfiguration) WithData(values ...*TargetKeyValueApplyConfiguration) *ConfigMapTargetApplyConfiguration {
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithData")
@@ -50,7 +50,7 @@ func (b *KeyValueTargetApplyConfiguration) WithData(values ...*TargetKeyValueApp
 // WithMetadata sets the Metadata field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Metadata field is set to the value of the last call.
-func (b *KeyValueTargetApplyConfiguration) WithMetadata(value *TargetMetadataApplyConfiguration) *KeyValueTargetApplyConfiguration {
+func (b *ConfigMapTargetApplyConfiguration) WithMetadata(value *TargetMetadataApplyConfiguration) *ConfigMapTargetApplyConfiguration {
 	b.Metadata = value
 	return b
 }

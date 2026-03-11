@@ -17,27 +17,34 @@ limitations under the License.
 
 package v1alpha1
 
-// TargetTemplateApplyConfiguration represents a declarative configuration of the TargetTemplate type for use
+import (
+	v1 "k8s.io/api/core/v1"
+)
+
+// SecretTargetApplyConfiguration represents a declarative configuration of the SecretTarget type for use
 // with apply.
 //
-// TargetTemplate defines the form of the Kubernetes Secret or ConfigMap bundle targets.
-type TargetTemplateApplyConfiguration struct {
+// SecretTarget defines the form of the Kubernetes Secret bundle target.
+type SecretTargetApplyConfiguration struct {
 	// key is the key of the entry in the object's `data` field to be used.
 	Key *string `json:"key,omitempty"`
 	// metadata is an optional set of labels and annotations to be copied to the target.
 	Metadata *TargetMetadataApplyConfiguration `json:"metadata,omitempty"`
+	// type is the type of the target Secret.
+	// If not set, defaults to Opaque.
+	Type *v1.SecretType `json:"type,omitempty"`
 }
 
-// TargetTemplateApplyConfiguration constructs a declarative configuration of the TargetTemplate type for use with
+// SecretTargetApplyConfiguration constructs a declarative configuration of the SecretTarget type for use with
 // apply.
-func TargetTemplate() *TargetTemplateApplyConfiguration {
-	return &TargetTemplateApplyConfiguration{}
+func SecretTarget() *SecretTargetApplyConfiguration {
+	return &SecretTargetApplyConfiguration{}
 }
 
 // WithKey sets the Key field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Key field is set to the value of the last call.
-func (b *TargetTemplateApplyConfiguration) WithKey(value string) *TargetTemplateApplyConfiguration {
+func (b *SecretTargetApplyConfiguration) WithKey(value string) *SecretTargetApplyConfiguration {
 	b.Key = &value
 	return b
 }
@@ -45,7 +52,15 @@ func (b *TargetTemplateApplyConfiguration) WithKey(value string) *TargetTemplate
 // WithMetadata sets the Metadata field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Metadata field is set to the value of the last call.
-func (b *TargetTemplateApplyConfiguration) WithMetadata(value *TargetMetadataApplyConfiguration) *TargetTemplateApplyConfiguration {
+func (b *SecretTargetApplyConfiguration) WithMetadata(value *TargetMetadataApplyConfiguration) *SecretTargetApplyConfiguration {
 	b.Metadata = value
+	return b
+}
+
+// WithType sets the Type field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Type field is set to the value of the last call.
+func (b *SecretTargetApplyConfiguration) WithType(value v1.SecretType) *SecretTargetApplyConfiguration {
+	b.Type = &value
 	return b
 }

@@ -180,12 +180,8 @@ func hubDefaultCAsFuzzer(obj *trustmanagerapi.DefaultCAsSource, c randfill.Conti
 func hubBundleTargetFuzzer(obj *trustmanagerapi.BundleTarget, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
-	normalizeTarget := func(target *trustmanagerapi.KeyValueTarget) *trustmanagerapi.KeyValueTarget {
-		if target == nil {
-			return nil
-		}
-
-		target.Data = slices.DeleteFunc(target.Data, func(tkv trustmanagerapi.TargetKeyValue) bool {
+	normalizeTargetData := func(data []trustmanagerapi.TargetKeyValue) []trustmanagerapi.TargetKeyValue {
+		data = slices.DeleteFunc(data, func(tkv trustmanagerapi.TargetKeyValue) bool {
 			if tkv.Key == "" {
 				// Key is a mandatory field
 				return true
@@ -194,8 +190,7 @@ func hubBundleTargetFuzzer(obj *trustmanagerapi.BundleTarget, c randfill.Continu
 		})
 
 		var pemFound bool
-		for i, tkv := range target.Data {
-
+		for i, tkv := range data {
 			switch {
 			case tkv.Password != nil:
 				tkv.Format = trustmanagerapi.BundleFormatPKCS12
@@ -205,16 +200,18 @@ func hubBundleTargetFuzzer(obj *trustmanagerapi.BundleTarget, c randfill.Continu
 
 				pemFound = true
 			}
-			target.Data[i] = tkv
+			data[i] = tkv
 		}
-
 		if !pemFound {
-			// No default format (PEM) keys found, which is not supported by v1alpha1 targets
 			return nil
 		}
-		return target
+		return data
 	}
 
-	obj.ConfigMap = normalizeTarget(obj.ConfigMap)
-	obj.Secret = normalizeTarget(obj.Secret)
+	if obj.ConfigMap != nil {
+		obj.ConfigMap.Data = normalizeTargetData(obj.ConfigMap.Data)
+	}
+	if obj.Secret != nil {
+		obj.Secret.Data = normalizeTargetData(obj.Secret.Data)
+	}
 }

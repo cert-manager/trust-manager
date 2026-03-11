@@ -440,6 +440,11 @@ spec:
                               reason: FieldValueForbidden
                               rule: self.all(k, !k.startsWith('trust-manager.io/'))
                         type: object
+                      type:
+                        description: |-
+                          type is the type of the target Secret.
+                          If not set, defaults to Opaque.
+                        type: string
                     required:
                     - data
                     type: object

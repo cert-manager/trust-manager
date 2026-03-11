@@ -117,7 +117,7 @@ func Test_Reconcile(t *testing.T) {
 					{Secret: &trustapi.SourceObjectKeySelector{Name: sourceSecretName, Key: sourceSecretKey}},
 					{InLine: ptr.To(dummy.TestCertificate3)},
 				},
-				Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: targetKey}},
+				Target: trustapi.BundleTarget{ConfigMap: &trustapi.ConfigMapTarget{Key: targetKey}},
 			},
 		}
 
@@ -452,8 +452,11 @@ func Test_Reconcile(t *testing.T) {
 					func(b *trustapi.Bundle) {
 						// swap target configmap for secret
 						keySelector := b.Spec.Target.ConfigMap
+						b.Spec.Target.Secret = &trustapi.SecretTarget{
+							Key:      keySelector.Key,
+							Metadata: keySelector.Metadata,
+						}
 						b.Spec.Target.ConfigMap = nil
-						b.Spec.Target.Secret = keySelector
 					},
 				),
 			},
@@ -744,7 +747,10 @@ func Test_Reconcile(t *testing.T) {
 			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
 				func(b *trustapi.Bundle) {
 					// copy configmap target to secret target
-					b.Spec.Target.Secret = b.Spec.Target.ConfigMap
+					b.Spec.Target.Secret = &trustapi.SecretTarget{
+						Key:      b.Spec.Target.ConfigMap.Key,
+						Metadata: b.Spec.Target.ConfigMap.Metadata,
+					}
 				},
 			)},
 			expError: false,
@@ -1327,8 +1333,11 @@ func Test_Reconcile(t *testing.T) {
 				func(b *trustapi.Bundle) {
 					// swap target configmap for secret
 					keySelector := b.Spec.Target.ConfigMap
+					b.Spec.Target.Secret = &trustapi.SecretTarget{
+						Key:      keySelector.Key,
+						Metadata: keySelector.Metadata,
+					}
 					b.Spec.Target.ConfigMap = nil
-					b.Spec.Target.Secret = keySelector
 				},
 				gen.SetBundleStatus(trustapi.BundleStatus{
 					Conditions: []metav1.Condition{
@@ -1377,7 +1386,11 @@ func Test_Reconcile(t *testing.T) {
 			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
 				func(b *trustapi.Bundle) {
 					// copy configmap target to secret target
-					b.Spec.Target.Secret = b.Spec.Target.ConfigMap
+					keySelector := b.Spec.Target.ConfigMap
+					b.Spec.Target.Secret = &trustapi.SecretTarget{
+						Key:      keySelector.Key,
+						Metadata: keySelector.Metadata,
+					}
 				},
 				gen.SetBundleStatus(trustapi.BundleStatus{
 					Conditions: []metav1.Condition{

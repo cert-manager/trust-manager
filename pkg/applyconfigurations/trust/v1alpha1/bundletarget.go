@@ -29,11 +29,11 @@ import (
 type BundleTargetApplyConfiguration struct {
 	// configMap is the target ConfigMap in Namespaces that all Bundle source
 	// data will be synced to.
-	ConfigMap *TargetTemplateApplyConfiguration `json:"configMap,omitempty"`
+	ConfigMap *ConfigMapTargetApplyConfiguration `json:"configMap,omitempty"`
 	// secret is the target Secret that all Bundle source data will be synced to.
 	// Using Secrets as targets is only supported if enabled at trust-manager startup.
 	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
-	Secret *TargetTemplateApplyConfiguration `json:"secret,omitempty"`
+	Secret *SecretTargetApplyConfiguration `json:"secret,omitempty"`
 	// additionalFormats specifies any additional formats to write to the target
 	AdditionalFormats *AdditionalFormatsApplyConfiguration `json:"additionalFormats,omitempty"`
 	// namespaceSelector will, if set, only sync the target resource in
@@ -50,7 +50,7 @@ func BundleTarget() *BundleTargetApplyConfiguration {
 // WithConfigMap sets the ConfigMap field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ConfigMap field is set to the value of the last call.
-func (b *BundleTargetApplyConfiguration) WithConfigMap(value *TargetTemplateApplyConfiguration) *BundleTargetApplyConfiguration {
+func (b *BundleTargetApplyConfiguration) WithConfigMap(value *ConfigMapTargetApplyConfiguration) *BundleTargetApplyConfiguration {
 	b.ConfigMap = value
 	return b
 }
@@ -58,7 +58,7 @@ func (b *BundleTargetApplyConfiguration) WithConfigMap(value *TargetTemplateAppl
 // WithSecret sets the Secret field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Secret field is set to the value of the last call.
-func (b *BundleTargetApplyConfiguration) WithSecret(value *TargetTemplateApplyConfiguration) *BundleTargetApplyConfiguration {
+func (b *BundleTargetApplyConfiguration) WithSecret(value *SecretTargetApplyConfiguration) *BundleTargetApplyConfiguration {
 	b.Secret = value
 	return b
 }

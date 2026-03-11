@@ -24,6 +24,7 @@ import (
 	unsafe "unsafe"
 
 	v1alpha2 "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -76,13 +77,18 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*ConfigMapTarget)(nil), (*v1alpha2.ConfigMapTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ConfigMapTarget_To_v1alpha2_ConfigMapTarget(a.(*ConfigMapTarget), b.(*v1alpha2.ConfigMapTarget), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*PKCS12)(nil), (*v1alpha2.PKCS12)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_PKCS12_To_v1alpha2_PKCS12(a.(*PKCS12), b.(*v1alpha2.PKCS12), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*TargetTemplate)(nil), (*v1alpha2.KeyValueTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(a.(*TargetTemplate), b.(*v1alpha2.KeyValueTarget), scope)
+	if err := s.AddConversionFunc((*SecretTarget)(nil), (*v1alpha2.SecretTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_SecretTarget_To_v1alpha2_SecretTarget(a.(*SecretTarget), b.(*v1alpha2.SecretTarget), scope)
 	}); err != nil {
 		return err
 	}
@@ -101,8 +107,13 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1alpha2.KeyValueTarget)(nil), (*TargetTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_KeyValueTarget_To_v1alpha1_TargetTemplate(a.(*v1alpha2.KeyValueTarget), b.(*TargetTemplate), scope)
+	if err := s.AddConversionFunc((*v1alpha2.ConfigMapTarget)(nil), (*ConfigMapTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha2_ConfigMapTarget_To_v1alpha1_ConfigMapTarget(a.(*v1alpha2.ConfigMapTarget), b.(*ConfigMapTarget), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1alpha2.SecretTarget)(nil), (*SecretTarget)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha2_SecretTarget_To_v1alpha1_SecretTarget(a.(*v1alpha2.SecretTarget), b.(*SecretTarget), scope)
 	}); err != nil {
 		return err
 	}
@@ -152,8 +163,8 @@ func Convert_v1alpha2_BundleStatus_To_v1alpha1_BundleStatus(in *v1alpha2.BundleS
 func autoConvert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, out *v1alpha2.BundleTarget, s conversion.Scope) error {
 	if in.ConfigMap != nil {
 		in, out := &in.ConfigMap, &out.ConfigMap
-		*out = new(v1alpha2.KeyValueTarget)
-		if err := Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(*in, *out, s); err != nil {
+		*out = new(v1alpha2.ConfigMapTarget)
+		if err := Convert_v1alpha1_ConfigMapTarget_To_v1alpha2_ConfigMapTarget(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -161,8 +172,8 @@ func autoConvert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget
 	}
 	if in.Secret != nil {
 		in, out := &in.Secret, &out.Secret
-		*out = new(v1alpha2.KeyValueTarget)
-		if err := Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(*in, *out, s); err != nil {
+		*out = new(v1alpha2.SecretTarget)
+		if err := Convert_v1alpha1_SecretTarget_To_v1alpha2_SecretTarget(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -176,8 +187,8 @@ func autoConvert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget
 func autoConvert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *v1alpha2.BundleTarget, out *BundleTarget, s conversion.Scope) error {
 	if in.ConfigMap != nil {
 		in, out := &in.ConfigMap, &out.ConfigMap
-		*out = new(TargetTemplate)
-		if err := Convert_v1alpha2_KeyValueTarget_To_v1alpha1_TargetTemplate(*in, *out, s); err != nil {
+		*out = new(ConfigMapTarget)
+		if err := Convert_v1alpha2_ConfigMapTarget_To_v1alpha1_ConfigMapTarget(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
@@ -185,14 +196,26 @@ func autoConvert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *v1alpha2.Bun
 	}
 	if in.Secret != nil {
 		in, out := &in.Secret, &out.Secret
-		*out = new(TargetTemplate)
-		if err := Convert_v1alpha2_KeyValueTarget_To_v1alpha1_TargetTemplate(*in, *out, s); err != nil {
+		*out = new(SecretTarget)
+		if err := Convert_v1alpha2_SecretTarget_To_v1alpha1_SecretTarget(*in, *out, s); err != nil {
 			return err
 		}
 	} else {
 		out.Secret = nil
 	}
 	out.NamespaceSelector = (*v1.LabelSelector)(unsafe.Pointer(in.NamespaceSelector))
+	return nil
+}
+
+func autoConvert_v1alpha1_ConfigMapTarget_To_v1alpha2_ConfigMapTarget(in *ConfigMapTarget, out *v1alpha2.ConfigMapTarget, s conversion.Scope) error {
+	// WARNING: in.Key requires manual conversion: does not exist in peer-type
+	out.Metadata = (*v1alpha2.TargetMetadata)(unsafe.Pointer(in.Metadata))
+	return nil
+}
+
+func autoConvert_v1alpha2_ConfigMapTarget_To_v1alpha1_ConfigMapTarget(in *v1alpha2.ConfigMapTarget, out *ConfigMapTarget, s conversion.Scope) error {
+	// WARNING: in.Data requires manual conversion: does not exist in peer-type
+	out.Metadata = (*TargetMetadata)(unsafe.Pointer(in.Metadata))
 	return nil
 }
 
@@ -212,6 +235,20 @@ func autoConvert_v1alpha2_PKCS12_To_v1alpha1_PKCS12(in *v1alpha2.PKCS12, out *PK
 // Convert_v1alpha2_PKCS12_To_v1alpha1_PKCS12 is an autogenerated conversion function.
 func Convert_v1alpha2_PKCS12_To_v1alpha1_PKCS12(in *v1alpha2.PKCS12, out *PKCS12, s conversion.Scope) error {
 	return autoConvert_v1alpha2_PKCS12_To_v1alpha1_PKCS12(in, out, s)
+}
+
+func autoConvert_v1alpha1_SecretTarget_To_v1alpha2_SecretTarget(in *SecretTarget, out *v1alpha2.SecretTarget, s conversion.Scope) error {
+	// WARNING: in.Key requires manual conversion: does not exist in peer-type
+	out.Metadata = (*v1alpha2.TargetMetadata)(unsafe.Pointer(in.Metadata))
+	out.Type = corev1.SecretType(in.Type)
+	return nil
+}
+
+func autoConvert_v1alpha2_SecretTarget_To_v1alpha1_SecretTarget(in *v1alpha2.SecretTarget, out *SecretTarget, s conversion.Scope) error {
+	// WARNING: in.Data requires manual conversion: does not exist in peer-type
+	out.Metadata = (*TargetMetadata)(unsafe.Pointer(in.Metadata))
+	out.Type = corev1.SecretType(in.Type)
+	return nil
 }
 
 func autoConvert_v1alpha1_TargetMetadata_To_v1alpha2_TargetMetadata(in *TargetMetadata, out *v1alpha2.TargetMetadata, s conversion.Scope) error {

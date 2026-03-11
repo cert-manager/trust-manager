@@ -192,14 +192,30 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 	return nil
 }
 
-func Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(in *TargetTemplate, out *trustv1alpha2.KeyValueTarget, scope apimachineryconversion.Scope) error {
-	out.Data = []trustv1alpha2.TargetKeyValue{{Key: in.Key}}
+func Convert_v1alpha1_ConfigMapTarget_To_v1alpha2_ConfigMapTarget(in *ConfigMapTarget, out *trustv1alpha2.ConfigMapTarget, scope apimachineryconversion.Scope) error {
+	if in.Key != "" {
+		out.Data = []trustv1alpha2.TargetKeyValue{{Key: in.Key}}
+	}
 	if in.Metadata != nil {
 		out.Metadata = &trustv1alpha2.TargetMetadata{}
 		if err := Convert_v1alpha1_TargetMetadata_To_v1alpha2_TargetMetadata(in.Metadata, out.Metadata, scope); err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+func Convert_v1alpha1_SecretTarget_To_v1alpha2_SecretTarget(in *SecretTarget, out *trustv1alpha2.SecretTarget, scope apimachineryconversion.Scope) error {
+	if in.Key != "" {
+		out.Data = []trustv1alpha2.TargetKeyValue{{Key: in.Key}}
+	}
+	if in.Metadata != nil {
+		out.Metadata = &trustv1alpha2.TargetMetadata{}
+		if err := Convert_v1alpha1_TargetMetadata_To_v1alpha2_TargetMetadata(in.Metadata, out.Metadata, scope); err != nil {
+			return err
+		}
+	}
+	out.Type = in.Type
 	return nil
 }
 
@@ -340,7 +356,7 @@ func Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *trustv1alpha2.Bu
 	return nil
 }
 
-func Convert_v1alpha2_KeyValueTarget_To_v1alpha1_TargetTemplate(in *trustv1alpha2.KeyValueTarget, out *TargetTemplate, scope apimachineryconversion.Scope) error {
+func Convert_v1alpha2_ConfigMapTarget_To_v1alpha1_ConfigMapTarget(in *trustv1alpha2.ConfigMapTarget, out *ConfigMapTarget, scope apimachineryconversion.Scope) error {
 	for _, tkv := range in.Data {
 		if tkv.Format == "" || tkv.Format == trustv1alpha2.BundleFormatPEM {
 			out.Key = tkv.Key
@@ -353,5 +369,22 @@ func Convert_v1alpha2_KeyValueTarget_To_v1alpha1_TargetTemplate(in *trustv1alpha
 			return err
 		}
 	}
+	return nil
+}
+
+func Convert_v1alpha2_SecretTarget_To_v1alpha1_SecretTarget(in *trustv1alpha2.SecretTarget, out *SecretTarget, scope apimachineryconversion.Scope) error {
+	for _, tkv := range in.Data {
+		if tkv.Format == "" || tkv.Format == trustv1alpha2.BundleFormatPEM {
+			out.Key = tkv.Key
+			break
+		}
+	}
+	if in.Metadata != nil {
+		out.Metadata = &TargetMetadata{}
+		if err := Convert_v1alpha2_TargetMetadata_To_v1alpha1_TargetMetadata(in.Metadata, out.Metadata, scope); err != nil {
+			return err
+		}
+	}
+	out.Type = in.Type
 	return nil
 }

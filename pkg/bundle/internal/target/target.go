@@ -233,6 +233,10 @@ func (r *Reconciler) applySecret(
 		WithLabels(bundleTarget.Secret.GetLabels()).
 		WithData(data)
 
+	if bundleTarget.Secret.Type != "" {
+		patch = patch.WithType(bundleTarget.Secret.Type)
+	}
+
 	if _, err = r.patchSecret(ctx, patch); err != nil {
 		return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
 	}
@@ -397,7 +401,14 @@ type Resource struct {
 	types.NamespacedName
 }
 
-func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats, target *trustapi.TargetTemplate) string {
+// TargetSpec is an interface that both ConfigMapTarget and SecretTarget satisfy.
+type TargetSpec interface {
+	GetAnnotations() map[string]string
+	GetLabels() map[string]string
+	GetSecretType() corev1.SecretType
+}
+
+func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats, target TargetSpec) string {
 	hash := sha256.New()
 
 	_, _ = hash.Write(data)
@@ -409,12 +420,19 @@ func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats,
 		_, _ = hash.Write([]byte(*additionalFormats.PKCS12.Password))
 	}
 
-	// Add Target annotations and labels to the hash so it becomes aware of changes and triggers an update.
-	for k, v := range target.GetAnnotations() {
-		_, _ = hash.Write([]byte(k + v))
-	}
-	for k, v := range target.GetLabels() {
-		_, _ = hash.Write([]byte(k + v))
+	if target != nil {
+		// Add Target annotations and labels to the hash so it becomes aware of changes and triggers an update.
+		for k, v := range target.GetAnnotations() {
+			_, _ = hash.Write([]byte(k + v))
+		}
+		for k, v := range target.GetLabels() {
+			_, _ = hash.Write([]byte(k + v))
+		}
+
+		// Add Target type if it has one
+		if secretType := target.GetSecretType(); secretType != "" {
+			_, _ = hash.Write([]byte(secretType))
+		}
 	}
 
 	hashValue := [32]byte{}

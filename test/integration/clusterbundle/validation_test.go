@@ -20,6 +20,7 @@ import (
 	"context"
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2/ktesting"
 	"k8s.io/utils/ptr"
@@ -101,7 +102,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 	Context("Target", func() {
 		var (
 			targetField string
-			setTarget   func(*trustmanagerapi.KeyValueTarget)
+			setTarget   func(data []trustmanagerapi.TargetKeyValue, metadata *trustmanagerapi.TargetMetadata)
 		)
 
 		BeforeEach(func() {
@@ -113,7 +114,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 		DescribeTable("should validate namespace selector",
 			func(selector *metav1.LabelSelector, matchErr string) {
 				bundle.Spec.Target.NamespaceSelector = selector
-				bundle.Spec.Target.ConfigMap = &trustmanagerapi.KeyValueTarget{
+				bundle.Spec.Target.ConfigMap = &trustmanagerapi.ConfigMapTarget{
 					Data: []trustmanagerapi.TargetKeyValue{{
 						Key: "ca-bundle.crt",
 					}},
@@ -136,12 +137,12 @@ var _ = Describe("ClusterBundle Validation", func() {
 		})
 
 		It("should allow both configmap and secret targets", func() {
-			bundle.Spec.Target.ConfigMap = &trustmanagerapi.KeyValueTarget{
+			bundle.Spec.Target.ConfigMap = &trustmanagerapi.ConfigMapTarget{
 				Data: []trustmanagerapi.TargetKeyValue{{
 					Key: "ca-bundle.crt",
 				}},
 			}
-			bundle.Spec.Target.Secret = &trustmanagerapi.KeyValueTarget{
+			bundle.Spec.Target.Secret = &trustmanagerapi.SecretTarget{
 				Data: []trustmanagerapi.TargetKeyValue{{
 					Key: "ca-bundle.crt",
 				}},
@@ -152,11 +153,9 @@ var _ = Describe("ClusterBundle Validation", func() {
 		targetObjectAsserts := func() {
 			DescribeTable("should validate key",
 				func(key string, matchErr string) {
-					setTarget(&trustmanagerapi.KeyValueTarget{
-						Data: []trustmanagerapi.TargetKeyValue{{
-							Key: key,
-						}},
-					})
+					setTarget([]trustmanagerapi.TargetKeyValue{{
+						Key: key,
+					}}, nil)
 					if matchErr != "" {
 						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, targetField)))
 					} else {
@@ -169,23 +168,19 @@ var _ = Describe("ClusterBundle Validation", func() {
 			)
 
 			It("should require unique keys", func() {
-				setTarget(&trustmanagerapi.KeyValueTarget{
-					Data: []trustmanagerapi.TargetKeyValue{{
-						Key: "foo",
-					}, {
-						Key: "foo",
-					}},
-				})
+				setTarget([]trustmanagerapi.TargetKeyValue{{
+					Key: "foo",
+				}, {
+					Key: "foo",
+				}}, nil)
 				matchErr := "spec.target.%s.data[1]: Duplicate value: {\"key\":\"foo\"}"
 				Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, targetField)))
 
-				setTarget(&trustmanagerapi.KeyValueTarget{
-					Data: []trustmanagerapi.TargetKeyValue{{
-						Key: "foo",
-					}, {
-						Key: "bar",
-					}},
-				})
+				setTarget([]trustmanagerapi.TargetKeyValue{{
+					Key: "foo",
+				}, {
+					Key: "bar",
+				}}, nil)
 				Expect(cl.Create(ctx, bundle)).To(Succeed())
 			})
 
@@ -199,12 +194,9 @@ var _ = Describe("ClusterBundle Validation", func() {
 
 				BeforeEach(func() {
 					metadata = &trustmanagerapi.TargetMetadata{}
-					setTarget(&trustmanagerapi.KeyValueTarget{
-						Metadata: metadata,
-						Data: []trustmanagerapi.TargetKeyValue{{
-							Key: "ca-bundle.crt",
-						}},
-					})
+					setTarget([]trustmanagerapi.TargetKeyValue{{
+						Key: "ca-bundle.crt",
+					}}, metadata)
 				})
 
 				metadataAsserts := func() {
@@ -267,12 +259,10 @@ var _ = Describe("ClusterBundle Validation", func() {
 
 			DescribeTable("should validate format",
 				func(format trustmanagerapi.BundleFormat, matchErr string) {
-					setTarget(&trustmanagerapi.KeyValueTarget{
-						Data: []trustmanagerapi.TargetKeyValue{{
-							Key:    "ca-bundle",
-							Format: format,
-						}},
-					})
+					setTarget([]trustmanagerapi.TargetKeyValue{{
+						Key:    "ca-bundle",
+						Format: format,
+					}}, nil)
 					if matchErr != "" {
 						Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(matchErr, targetField)))
 					} else {
@@ -300,9 +290,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 							Format: format,
 							PKCS12: pkcs12,
 						}
-						setTarget(&trustmanagerapi.KeyValueTarget{
-							Data: []trustmanagerapi.TargetKeyValue{targetKeyValue},
-						})
+						setTarget([]trustmanagerapi.TargetKeyValue{targetKeyValue}, nil)
 
 						if wantErr {
 							matchErr := "spec.target.%s.data[0].%s: Forbidden: may only be set when format is 'PKCS12'"
@@ -339,8 +327,11 @@ var _ = Describe("ClusterBundle Validation", func() {
 		Context("ConfigMap", func() {
 			BeforeEach(func() {
 				targetField = "configMap"
-				setTarget = func(selector *trustmanagerapi.KeyValueTarget) {
-					bundle.Spec.Target.ConfigMap = selector
+				setTarget = func(data []trustmanagerapi.TargetKeyValue, metadata *trustmanagerapi.TargetMetadata) {
+					bundle.Spec.Target.ConfigMap = &trustmanagerapi.ConfigMapTarget{
+						Data:     data,
+						Metadata: metadata,
+					}
 				}
 			})
 
@@ -350,12 +341,25 @@ var _ = Describe("ClusterBundle Validation", func() {
 		Context("Secret", func() {
 			BeforeEach(func() {
 				targetField = "secret"
-				setTarget = func(selector *trustmanagerapi.KeyValueTarget) {
-					bundle.Spec.Target.Secret = selector
+				setTarget = func(data []trustmanagerapi.TargetKeyValue, metadata *trustmanagerapi.TargetMetadata) {
+					bundle.Spec.Target.Secret = &trustmanagerapi.SecretTarget{
+						Data:     data,
+						Metadata: metadata,
+					}
 				}
 			})
 
 			targetObjectAsserts()
+		})
+
+		It("should accept type on secret target", func() {
+			bundle.Spec.Target.Secret = &trustmanagerapi.SecretTarget{
+				Data: []trustmanagerapi.TargetKeyValue{{
+					Key: "ca-bundle.crt",
+				}},
+				Type: corev1.SecretTypeTLS,
+			}
+			Expect(cl.Create(ctx, bundle)).To(Succeed())
 		})
 	})
 })
