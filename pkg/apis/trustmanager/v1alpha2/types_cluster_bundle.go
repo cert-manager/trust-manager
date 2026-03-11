@@ -74,13 +74,13 @@ type BundleSpec struct {
 
 	// defaultCAs configures the use of a default CA bundle as a trust source.
 	// +optional
-	DefaultCAs *DefaultCAsSource `json:"defaultCAs,omitempty"`
+	DefaultCAs DefaultCAsSource `json:"defaultCAs,omitzero"`
 
 	// inLineCAs is a simple string to append as the source data.
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1048576
-	InLineCAs *string `json:"inLineCAs,omitempty"`
+	InLineCAs string `json:"inLineCAs,omitempty"`
 
 	// target is the target location in all namespaces to sync source data to.
 	// +optional
@@ -130,13 +130,13 @@ type DefaultCAsSource struct {
 type BundleTarget struct {
 	// configMap is the target ConfigMap in Namespaces that all Bundle source data will be synced to.
 	// +optional
-	ConfigMap *KeyValueTarget `json:"configMap,omitempty"`
+	ConfigMap KeyValueTarget `json:"configMap,omitzero"`
 
 	// secret is the target Secret in Namespaces that all Bundle source data will be synced to.
 	// Using Secrets as targets is only supported if enabled at trust-manager startup.
 	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
 	// +optional
-	Secret *KeyValueTarget `json:"secret,omitempty"`
+	Secret KeyValueTarget `json:"secret,omitzero"`
 
 	// namespaceSelector specifies the namespaces where target resources will be synced.
 	// +required
@@ -222,12 +222,12 @@ type KeyValueTarget struct {
 
 	// metadata is an optional set of labels and annotations to be copied to the target.
 	// +optional
-	Metadata *TargetMetadata `json:"metadata,omitempty"`
+	Metadata TargetMetadata `json:"metadata,omitzero"`
 }
 
 // GetAnnotations returns the annotations to be copied to the target or an empty map if there are no annotations.
 func (t *KeyValueTarget) GetAnnotations() map[string]string {
-	if t == nil || t.Metadata == nil {
+	if t == nil {
 		return nil
 	}
 	return t.Metadata.Annotations
@@ -235,7 +235,7 @@ func (t *KeyValueTarget) GetAnnotations() map[string]string {
 
 // GetLabels returns the labels to be copied to the target or an empty map if there are no labels.
 func (t *KeyValueTarget) GetLabels() map[string]string {
-	if t == nil || t.Metadata == nil {
+	if t == nil {
 		return nil
 	}
 	return t.Metadata.Labels
@@ -310,7 +310,7 @@ type BundleStatus struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	DefaultCAPackageVersion *string `json:"defaultCAVersion,omitempty"`
+	DefaultCAPackageVersion string `json:"defaultCAVersion,omitempty"`
 }
 
 const (

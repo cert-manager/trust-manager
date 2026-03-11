@@ -140,7 +140,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 	}
 
 	// Detect if we have a bundle with Secret targets but the feature is disabled.
-	if !b.Options.SecretTargetsEnabled && bundle.Spec.Target.Secret != nil {
+	if !b.Options.SecretTargetsEnabled && bundle.Spec.Target != nil && bundle.Spec.Target.Secret.Key != "" {
 
 		log.Error(err, "bundle has Secret targets but the feature is disabled")
 		b.recorder.Eventf(&bundle, nil, corev1.EventTypeWarning, "SecretTargetsDisabled", "SyncFailed", "Bundle has Secret targets but the feature is disabled")
@@ -162,14 +162,14 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 
 	targetResources := map[target.Resource]struct{}{}
 
-	namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
+	namespaceSelector, err := b.bundleTargetNamespaceSelector(bundle.Spec.Target)
 	if err != nil {
 		b.recorder.Eventf(&bundle, nil, corev1.EventTypeWarning, "NamespaceSelectorError", "SyncFailed", "Failed to build namespace match labels selector: %s", err)
 		return nil, fmt.Errorf("failed to build NamespaceSelector: %w", err)
 	}
 
 	// Find all desired targetResources.
-	{
+	if bundle.Spec.Target != nil {
 		var namespaceList corev1.NamespaceList
 		if err := b.client.List(ctx, &namespaceList, &client.ListOptions{
 			LabelSelector: namespaceSelector,
@@ -199,10 +199,10 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 				Namespace: namespace.Name,
 			}
 
-			if bundle.Spec.Target.Secret != nil {
+			if bundle.Spec.Target.Secret.Key != "" {
 				targetResources[target.Resource{Kind: target.KindSecret, NamespacedName: namespacedName}] = struct{}{}
 			}
-			if bundle.Spec.Target.ConfigMap != nil {
+			if bundle.Spec.Target.ConfigMap.Key != "" {
 				targetResources[target.Resource{Kind: target.KindConfigMap, NamespacedName: namespacedName}] = struct{}{}
 			}
 		}
@@ -338,15 +338,13 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 	return statusPatch, nil
 }
 
-func (b *bundle) bundleTargetNamespaceSelector(bundleObj *trustapi.Bundle) (labels.Selector, error) {
-	nsSelector := bundleObj.Spec.Target.NamespaceSelector
-
+func (b *bundle) bundleTargetNamespaceSelector(bundleTarget *trustapi.BundleTarget) (labels.Selector, error) {
 	// LabelSelectorAsSelector returns a Selector selecting nothing if LabelSelector is nil,
 	// while our current default is to select everything. But this is subject to change.
 	// See https://github.com/cert-manager/trust-manager/issues/39
-	if nsSelector == nil {
+	if bundleTarget == nil || bundleTarget.NamespaceSelector == nil {
 		return labels.Everything(), nil
 	}
 
-	return metav1.LabelSelectorAsSelector(nsSelector)
+	return metav1.LabelSelectorAsSelector(bundleTarget.NamespaceSelector)
 }

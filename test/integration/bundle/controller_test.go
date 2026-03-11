@@ -163,7 +163,7 @@ var _ = Describe("Integration", func() {
 		newInLine := dummy.TestCertificate4
 
 		Expect(komega.Update(testBundle, func() {
-			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{InLine: &newInLine})
+			testBundle.Spec.Sources = append(testBundle.Spec.Sources, trustapi.BundleSource{InLine: newInLine})
 		})()).To(Succeed())
 
 		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4, dummy.TestCertificate3)
@@ -418,7 +418,7 @@ var _ = Describe("Integration", func() {
 		newInLine := dummy.TestCertificate4
 
 		Expect(komega.Update(testBundle, func() {
-			testBundle.Spec.Sources[2].InLine = &newInLine
+			testBundle.Spec.Sources[2].InLine = newInLine
 		})()).To(Succeed())
 
 		expectedData := dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate4)
@@ -428,8 +428,8 @@ var _ = Describe("Integration", func() {
 
 	It("should delete old targets and update to new ones when the Spec.Target is modified", func() {
 		Expect(komega.Update(testBundle, func() {
-			testBundle.Spec.Target = trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "changed-target-key"},
+			testBundle.Spec.Target = &trustapi.BundleTarget{
+				ConfigMap: trustapi.TargetTemplate{Key: "changed-target-key"},
 			}
 		})()).To(Succeed())
 
@@ -454,10 +454,10 @@ var _ = Describe("Integration", func() {
 
 	It("should delete old targets and update to new ones when a JKS file is requested in the target", func() {
 		Expect(komega.Update(testBundle, func() {
-			testBundle.Spec.Target = trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: testData.Target.Key},
+			testBundle.Spec.Target = &trustapi.BundleTarget{
+				ConfigMap: trustapi.TargetTemplate{Key: testData.Target.Key},
 				AdditionalFormats: &trustapi.AdditionalFormats{
-					JKS: &trustapi.JKS{
+					JKS: trustapi.JKS{
 						KeySelector: trustapi.KeySelector{
 							Key: "myfile.jks",
 						},
@@ -588,7 +588,7 @@ var _ = Describe("Integration", func() {
 		It("should have stable resourceVersion for JKS target", func() {
 			Expect(komega.Update(testBundle, func() {
 				testBundle.Spec.Target.AdditionalFormats = &trustapi.AdditionalFormats{
-					JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "target.jks"}}}
+					JKS: trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "target.jks"}}}
 			})()).To(Succeed())
 
 			configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "kube-system", Name: testBundle.Name}}
@@ -601,7 +601,7 @@ var _ = Describe("Integration", func() {
 		It("should have stable resourceVersion for PKCS12 target", func() {
 			Expect(komega.Update(testBundle, func() {
 				testBundle.Spec.Target.AdditionalFormats = &trustapi.AdditionalFormats{
-					PKCS12: &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "target.p12"}}}
+					PKCS12: trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "target.p12"}}}
 			})()).To(Succeed())
 
 			configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "kube-system", Name: testBundle.Name}}
@@ -614,7 +614,7 @@ var _ = Describe("Integration", func() {
 
 	It("should add target annotations when added to a bundle", func() {
 		Expect(komega.Update(testBundle, func() {
-			testBundle.Spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{
+			testBundle.Spec.Target.ConfigMap.Metadata = trustapi.TargetMetadata{
 				Annotations: map[string]string{
 					"test1": "test1",
 				},

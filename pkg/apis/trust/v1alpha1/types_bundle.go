@@ -72,7 +72,7 @@ type BundleSpec struct {
 
 	// target is the target location in all namespaces to sync source data to.
 	// +optional
-	Target BundleTarget `json:"target,omitzero"`
+	Target *BundleTarget `json:"target,omitempty"`
 }
 
 // BundleSource is the set of sources whose data will be appended and synced to
@@ -94,7 +94,7 @@ type BundleSource struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=1048576
-	InLine *string `json:"inLine,omitempty"`
+	InLine string `json:"inLine,omitempty"`
 
 	// useDefaultCAs indicates whether the default CA bundle should be used as a source.
 	// The default CA bundle is available only if trust-manager was installed with
@@ -115,13 +115,13 @@ type BundleTarget struct {
 	// configMap is the target ConfigMap in Namespaces that all Bundle source
 	// data will be synced to.
 	// +optional
-	ConfigMap *TargetTemplate `json:"configMap,omitempty"`
+	ConfigMap TargetTemplate `json:"configMap,omitzero"`
 
 	// secret is the target Secret that all Bundle source data will be synced to.
 	// Using Secrets as targets is only supported if enabled at trust-manager startup.
 	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
 	// +optional
-	Secret *TargetTemplate `json:"secret,omitempty"`
+	Secret TargetTemplate `json:"secret,omitzero"`
 
 	// additionalFormats specifies any additional formats to write to the target
 	// +optional
@@ -142,13 +142,13 @@ type AdditionalFormats struct {
 	// Format is deprecated: Writing JKS is subject for removal. Please migrate to PKCS12.
 	// PKCS#12 trust stores created by trust-manager are compatible with Java.
 	// +optional
-	JKS *JKS `json:"jks,omitempty"`
+	JKS JKS `json:"jks,omitzero"`
 	// pkcs12 requests a PKCS12-formatted binary trust bundle to be written to the target.
 	//
 	// The bundle is by default created without a password.
 	// For more information refer to this link https://cert-manager.io/docs/faq/#keystore-passwords
 	// +optional
-	PKCS12 *PKCS12 `json:"pkcs12,omitempty"`
+	PKCS12 PKCS12 `json:"pkcs12,omitzero"`
 }
 
 // JKS specifies additional target JKS files
@@ -162,7 +162,7 @@ type JKS struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
 	// +kubebuilder:default=changeit
-	Password *string `json:"password,omitempty"` // #nosec G117 -- field is exported for JSON serialization, not a hardcoded secret
+	Password string `json:"password,omitempty"` // #nosec G117 -- field is exported for JSON serialization, not a hardcoded secret
 }
 
 // PKCS12 specifies additional target PKCS#12 files
@@ -244,12 +244,12 @@ type TargetTemplate struct {
 
 	// metadata is an optional set of labels and annotations to be copied to the target.
 	// +optional
-	Metadata *TargetMetadata `json:"metadata,omitempty"`
+	Metadata TargetMetadata `json:"metadata,omitzero"`
 }
 
 // GetAnnotations returns the annotations to be copied to the target or an empty map if there are no annotations.
 func (t *TargetTemplate) GetAnnotations() map[string]string {
-	if t == nil || t.Metadata == nil {
+	if t == nil {
 		return nil
 	}
 	return t.Metadata.Annotations
@@ -257,7 +257,7 @@ func (t *TargetTemplate) GetAnnotations() map[string]string {
 
 // GetLabels returns the labels to be copied to the target or an empty map if there are no labels.
 func (t *TargetTemplate) GetLabels() map[string]string {
-	if t == nil || t.Metadata == nil {
+	if t == nil {
 		return nil
 	}
 	return t.Metadata.Labels
@@ -306,7 +306,7 @@ type BundleStatus struct {
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
-	DefaultCAPackageVersion *string `json:"defaultCAVersion,omitempty"`
+	DefaultCAPackageVersion string `json:"defaultCAVersion,omitempty"`
 }
 
 const (

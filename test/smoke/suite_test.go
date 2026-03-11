@@ -117,7 +117,7 @@ func testBundleCommon(ctx context.Context, cl client.Client, testBundle *trustap
 	By("Ensuring targets update when an InLine source is updated")
 	Expect(cl.Get(ctx, client.ObjectKey{Name: testBundle.Name}, testBundle)).NotTo(HaveOccurred())
 
-	testBundle.Spec.Sources[2].InLine = ptr.To(dummy.TestCertificate2)
+	testBundle.Spec.Sources[2].InLine = dummy.TestCertificate2
 
 	Expect(cl.Update(ctx, testBundle)).NotTo(HaveOccurred())
 
@@ -151,10 +151,10 @@ func testBundleCommon(ctx context.Context, cl client.Client, testBundle *trustap
 
 	Eventually(func() bool {
 		var err error
-		if testBundle.Spec.Target.Secret != nil {
+		if testBundle.Spec.Target.Secret.Key != "" {
 			var secret corev1.Secret
 			err = cl.Get(ctx, client.ObjectKey{Namespace: testNamespace.Name, Name: testBundle.Name}, &secret)
-		} else if testBundle.Spec.Target.ConfigMap != nil {
+		} else if testBundle.Spec.Target.ConfigMap.Key != "" {
 			var cm corev1.ConfigMap
 			err = cl.Get(ctx, client.ObjectKey{Namespace: testNamespace.Name, Name: testBundle.Name}, &cm)
 		}

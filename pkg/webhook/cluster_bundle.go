@@ -80,10 +80,10 @@ func (webhook *ClusterBundle) validateSourceRef(sourceRef trustmanagerapi.Bundle
 func (webhook *ClusterBundle) validateTarget(target trustmanagerapi.BundleTarget, fldPath *field.Path) field.ErrorList {
 	var el field.ErrorList
 
-	if target.ConfigMap != nil {
+	if len(target.ConfigMap.Data) > 0 {
 		el = append(el, webhook.validateTargetMetadata(target.ConfigMap.Metadata, fldPath.Child("configMap", "metadata"))...)
 	}
-	if target.Secret != nil {
+	if len(target.Secret.Data) > 0 {
 		el = append(el, webhook.validateTargetMetadata(target.Secret.Metadata, fldPath.Child("secret", "metadata"))...)
 	}
 	el = append(el, validation.ValidateLabelSelector(target.NamespaceSelector, validation.LabelSelectorValidationOptions{}, fldPath.Child("namespaceSelector"))...)
@@ -92,11 +92,7 @@ func (webhook *ClusterBundle) validateTarget(target trustmanagerapi.BundleTarget
 }
 
 // validateTargetMetadata validates that the target template annotations and labels are both valid and that they do not contain reserved keys.
-func (webhook *ClusterBundle) validateTargetMetadata(targetMetadata *trustmanagerapi.TargetMetadata, fldPath *field.Path) field.ErrorList {
-	if targetMetadata == nil {
-		return nil
-	}
-
+func (webhook *ClusterBundle) validateTargetMetadata(targetMetadata trustmanagerapi.TargetMetadata, fldPath *field.Path) field.ErrorList {
 	var el field.ErrorList
 
 	el = append(el, apivalidation.ValidateAnnotations(targetMetadata.Annotations, fldPath.Child("annotations"))...)

@@ -51,7 +51,7 @@ var _ = Describe("Bundle Validation", func() {
 		bundle.Spec.Sources = []trustapi.BundleSource{{
 			UseDefaultCAs: ptr.To(true),
 		}}
-		bundle.Spec.Target = trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt"}}
+		bundle.Spec.Target = &trustapi.BundleTarget{ConfigMap: trustapi.TargetTemplate{Key: "ca-bundle.crt"}}
 	})
 
 	Context("Sources", func() {
@@ -86,10 +86,10 @@ var _ = Describe("Bundle Validation", func() {
 			Entry("when none set", trustapi.BundleSource{}, "spec.sources[0]: Invalid value: exactly one of the fields in [configMap secret inLine useDefaultCAs] must be set"),
 			Entry("when configMap set", trustapi.BundleSource{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "ca", Key: "ca.crt"}}, ""),
 			Entry("when secret set", trustapi.BundleSource{Secret: &trustapi.SourceObjectKeySelector{Name: "ca", Key: "ca.crt"}}, ""),
-			Entry("when inLine set", trustapi.BundleSource{InLine: ptr.To("cert-placeholder")}, ""),
+			Entry("when inLine set", trustapi.BundleSource{InLine: "cert-placeholder"}, ""),
 			Entry("when useDefaultCAs=true set", trustapi.BundleSource{UseDefaultCAs: ptr.To(true)}, ""),
 			Entry("when useDefaultCAs=false set", trustapi.BundleSource{UseDefaultCAs: ptr.To(false)}, "spec.sources: Forbidden: must define at least one source"),
-			Entry("when multiple set", trustapi.BundleSource{InLine: ptr.To("cert-placeholder"), UseDefaultCAs: ptr.To(true)}, "spec.sources[0]: Invalid value: exactly one of the fields in [configMap secret inLine useDefaultCAs] must be set"),
+			Entry("when multiple set", trustapi.BundleSource{InLine: "cert-placeholder", UseDefaultCAs: ptr.To(true)}, "spec.sources[0]: Invalid value: exactly one of the fields in [configMap secret inLine useDefaultCAs] must be set"),
 		)
 	})
 
@@ -164,7 +164,7 @@ var _ = Describe("Bundle Validation", func() {
 
 	Context("Target", func() {
 		var (
-			selectorAccessor func(*trustapi.TargetTemplate)
+			selectorAccessor func(trustapi.TargetTemplate)
 			field            string
 		)
 
@@ -173,7 +173,7 @@ var _ = Describe("Bundle Validation", func() {
 		})
 
 		DescribeTable("should prevent annotations and labels with the trust manager prefixes",
-			func(target trustapi.BundleTarget, wantErr bool) {
+			func(target *trustapi.BundleTarget, wantErr bool) {
 				bundle.Spec.Target = target
 				if wantErr {
 					Expect(cl.Create(ctx, bundle)).Should(MatchError(
@@ -188,18 +188,18 @@ var _ = Describe("Bundle Validation", func() {
 					Expect(cl.Create(ctx, bundle)).To(Succeed())
 				}
 			},
-			Entry("when trust-manager.io annotations are used", trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"trust-manager.io/hash": "test"}}}}, true),
-			Entry("when trust.cert-manager.io annotations are used", trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"trust.cert-manager.io/hash": "test"}}}}, true),
-			Entry("when trust-manager.io labels are used", trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"trust-manager.io/bundle": "bundle"}}}}, true),
-			Entry("when trust.cert-manager.io labels are used", trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"trust.cert-manager.io/bundle": "bundle"}}}}, true),
-			Entry("when non-reserved annotations are used", trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"not-trust-manager.io/hash": "test"}}}}, false),
-			Entry("when non-reserved labels are used", trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"not-trust-manager.io/bundle": "bundle"}}}}, false),
+			Entry("when trust-manager.io annotations are used", &trustapi.BundleTarget{
+				ConfigMap: trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: trustapi.TargetMetadata{Annotations: map[string]string{"trust-manager.io/hash": "test"}}}}, true),
+			Entry("when trust.cert-manager.io annotations are used", &trustapi.BundleTarget{
+				ConfigMap: trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: trustapi.TargetMetadata{Annotations: map[string]string{"trust.cert-manager.io/hash": "test"}}}}, true),
+			Entry("when trust-manager.io labels are used", &trustapi.BundleTarget{
+				ConfigMap: trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: trustapi.TargetMetadata{Labels: map[string]string{"trust-manager.io/bundle": "bundle"}}}}, true),
+			Entry("when trust.cert-manager.io labels are used", &trustapi.BundleTarget{
+				ConfigMap: trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: trustapi.TargetMetadata{Labels: map[string]string{"trust.cert-manager.io/bundle": "bundle"}}}}, true),
+			Entry("when non-reserved annotations are used", &trustapi.BundleTarget{
+				ConfigMap: trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: trustapi.TargetMetadata{Annotations: map[string]string{"not-trust-manager.io/hash": "test"}}}}, false),
+			Entry("when non-reserved labels are used", &trustapi.BundleTarget{
+				ConfigMap: trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: trustapi.TargetMetadata{Labels: map[string]string{"not-trust-manager.io/bundle": "bundle"}}}}, false),
 		)
 
 		type TargetKeySpec struct {
@@ -213,24 +213,24 @@ var _ = Describe("Bundle Validation", func() {
 			func(keySpec TargetKeySpec, wantErr bool) {
 				target := trustapi.BundleTarget{}
 				if keySpec.ConfigMapKey != "" {
-					target.ConfigMap = &trustapi.TargetTemplate{Key: keySpec.ConfigMapKey}
+					target.ConfigMap = trustapi.TargetTemplate{Key: keySpec.ConfigMapKey}
 				}
 				if keySpec.SecretKey != "" {
-					target.Secret = &trustapi.TargetTemplate{Key: keySpec.SecretKey}
+					target.Secret = trustapi.TargetTemplate{Key: keySpec.SecretKey}
 				}
 				if keySpec.JKSKey != "" {
 					if target.AdditionalFormats == nil {
 						target.AdditionalFormats = &trustapi.AdditionalFormats{}
 					}
-					target.AdditionalFormats.JKS = &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: keySpec.JKSKey}}
+					target.AdditionalFormats.JKS = trustapi.JKS{KeySelector: trustapi.KeySelector{Key: keySpec.JKSKey}}
 				}
 				if keySpec.PKCS12Key != "" {
 					if target.AdditionalFormats == nil {
 						target.AdditionalFormats = &trustapi.AdditionalFormats{}
 					}
-					target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: keySpec.PKCS12Key}}
+					target.AdditionalFormats.PKCS12 = trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: keySpec.PKCS12Key}}
 				}
-				bundle.Spec.Target = target
+				bundle.Spec.Target = &target
 
 				if wantErr {
 					expectedErr := "key must be unique across all target output keys"
@@ -268,16 +268,16 @@ var _ = Describe("Bundle Validation", func() {
 				}
 			},
 			Entry("when none set", &trustapi.AdditionalFormats{}, "spec.target.additionalFormats: Invalid value: at least one of the fields in [jks pkcs12] must be set"),
-			Entry("when JKS key set", &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "trust.jks"}}}, ""),
-			Entry("when PKCS key set", &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "trust.p12"}}}, ""),
-			Entry("when both keys set, but different value", &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "trust.jks"}}, PKCS12: &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "trust.p12"}}}, ""),
-			Entry("when both keys set, same value", &trustapi.AdditionalFormats{JKS: &trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "cacerts"}}, PKCS12: &trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "cacerts"}}}, "Invalid value: \"cacerts\": key must be unique across all target output keys"),
+			Entry("when JKS key set", &trustapi.AdditionalFormats{JKS: trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "trust.jks"}}}, ""),
+			Entry("when PKCS key set", &trustapi.AdditionalFormats{PKCS12: trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "trust.p12"}}}, ""),
+			Entry("when both keys set, but different value", &trustapi.AdditionalFormats{JKS: trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "trust.jks"}}, PKCS12: trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "trust.p12"}}}, ""),
+			Entry("when both keys set, same value", &trustapi.AdditionalFormats{JKS: trustapi.JKS{KeySelector: trustapi.KeySelector{Key: "cacerts"}}, PKCS12: trustapi.PKCS12{KeySelector: trustapi.KeySelector{Key: "cacerts"}}}, "Invalid value: \"cacerts\": key must be unique across all target output keys"),
 		)
 
 		targetObjectAsserts := func() {
 			It("should require target key", func() {
-				bundle.Spec.Target = trustapi.BundleTarget{}
-				selectorAccessor(&trustapi.TargetTemplate{})
+				bundle.Spec.Target = &trustapi.BundleTarget{}
+				selectorAccessor(trustapi.TargetTemplate{Metadata: trustapi.TargetMetadata{Labels: map[string]string{"key": "value"}}})
 				expectedErr := "spec.target.%s.key: Required value"
 				Expect(cl.Create(ctx, bundle)).Should(MatchError(ContainSubstring(expectedErr, field)))
 			})
@@ -285,7 +285,7 @@ var _ = Describe("Bundle Validation", func() {
 
 		Context("ConfigMap", func() {
 			BeforeEach(func() {
-				selectorAccessor = func(selector *trustapi.TargetTemplate) {
+				selectorAccessor = func(selector trustapi.TargetTemplate) {
 					bundle.Spec.Target.ConfigMap = selector
 				}
 				field = "configMap"
@@ -296,7 +296,7 @@ var _ = Describe("Bundle Validation", func() {
 
 		Context("Secret", func() {
 			BeforeEach(func() {
-				selectorAccessor = func(selector *trustapi.TargetTemplate) {
+				selectorAccessor = func(selector trustapi.TargetTemplate) {
 					bundle.Spec.Target.Secret = selector
 				}
 				field = "secret"

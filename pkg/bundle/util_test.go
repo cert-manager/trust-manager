@@ -23,7 +23,6 @@ import (
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fakeclock "k8s.io/utils/clock/testing"
-	"k8s.io/utils/ptr"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 )
@@ -226,67 +225,47 @@ func Test_setBundleStatusDefaultCAVersion(t *testing.T) {
 	tests := map[string]struct {
 		inputBundle                     trustapi.Bundle
 		requiredID                      string
-		expectedDefaultCAPackageVersion *string
+		expectedDefaultCAPackageVersion string
 		expectUpdate                    bool
 	}{
 		"requiredID empty but status populated; should update": {
 			inputBundle: trustapi.Bundle{
 				Status: trustapi.BundleStatus{
-					DefaultCAPackageVersion: ptr.To("abc123"),
+					DefaultCAPackageVersion: "abc123",
 				},
 			},
 			requiredID:                      "",
-			expectedDefaultCAPackageVersion: nil,
+			expectedDefaultCAPackageVersion: "",
 			expectUpdate:                    true,
-		},
-		"requiredID empty but status populated but empty; should update": {
-			inputBundle: trustapi.Bundle{
-				Status: trustapi.BundleStatus{
-					DefaultCAPackageVersion: ptr.To(""),
-				},
-			},
-			requiredID:                      "",
-			expectedDefaultCAPackageVersion: nil,
-			expectUpdate:                    true,
-		},
-		"requiredID empty and status nil; should not update": {
-			inputBundle: trustapi.Bundle{
-				Status: trustapi.BundleStatus{
-					DefaultCAPackageVersion: nil,
-				},
-			},
-			requiredID:                      "",
-			expectedDefaultCAPackageVersion: nil,
-			expectUpdate:                    false,
 		},
 		"requiredID not empty and status nil; should update": {
 			inputBundle: trustapi.Bundle{
 				Status: trustapi.BundleStatus{
-					DefaultCAPackageVersion: nil,
+					DefaultCAPackageVersion: "",
 				},
 			},
 			requiredID:                      "abc123",
-			expectedDefaultCAPackageVersion: ptr.To("abc123"),
+			expectedDefaultCAPackageVersion: "abc123",
 			expectUpdate:                    true,
 		},
 		"requiredID not empty and status populated but incorrect; should update": {
 			inputBundle: trustapi.Bundle{
 				Status: trustapi.BundleStatus{
-					DefaultCAPackageVersion: ptr.To("def456"),
+					DefaultCAPackageVersion: "def456",
 				},
 			},
 			requiredID:                      "abc123",
-			expectedDefaultCAPackageVersion: ptr.To("abc123"),
+			expectedDefaultCAPackageVersion: "abc123",
 			expectUpdate:                    true,
 		},
 		"requiredID not empty and status populated currectly; should not update": {
 			inputBundle: trustapi.Bundle{
 				Status: trustapi.BundleStatus{
-					DefaultCAPackageVersion: ptr.To("abc123"),
+					DefaultCAPackageVersion: "abc123",
 				},
 			},
 			requiredID:                      "abc123",
-			expectedDefaultCAPackageVersion: ptr.To("abc123"),
+			expectedDefaultCAPackageVersion: "abc123",
 			expectUpdate:                    false,
 		},
 	}
