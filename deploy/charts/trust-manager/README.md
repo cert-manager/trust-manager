@@ -753,5 +753,139 @@ extraObjects:
        - toEntities:
            - kube-apiserver
 ```
+### Startup API Check
+
+
+Helm post-install/post-upgrade hook Job that waits until the API server can successfully admit a Bundle (CRD served + validating webhook reachable + CA bundle ready).
+#### **startupapicheck.enabled** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
+#### **startupapicheck.timeout** ~ `string`
+> Default value:
+> ```yaml
+> 1m
+> ```
+#### **startupapicheck.backoffLimit** ~ `number`
+> Default value:
+> ```yaml
+> 4
+> ```
+#### **startupapicheck.jobAnnotations** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+
+Extra annotations for the Job. (Helm hook annotations are applied in the template.)
+#### **startupapicheck.podAnnotations** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+#### **startupapicheck.podLabels** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+#### **startupapicheck.securityContext.runAsNonRoot** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
+#### **startupapicheck.securityContext.seccompProfile.type** ~ `string`
+> Default value:
+> ```yaml
+> RuntimeDefault
+> ```
+#### **startupapicheck.containerSecurityContext.allowPrivilegeEscalation** ~ `bool`
+> Default value:
+> ```yaml
+> false
+> ```
+#### **startupapicheck.containerSecurityContext.capabilities.drop[0]** ~ `string`
+> Default value:
+> ```yaml
+> ALL
+> ```
+#### **startupapicheck.containerSecurityContext.readOnlyRootFilesystem** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
+#### **startupapicheck.resources** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+#### **startupapicheck.nodeSelector** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+
+Keep empty by default to avoid schema pointer issues with "/" keys.  
+Template defaults to kubernetes.io/os=linux.
+#### **startupapicheck.affinity** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+#### **startupapicheck.tolerations** ~ `array`
+> Default value:
+> ```yaml
+> []
+> ```
+#### **startupapicheck.volumes** ~ `array`
+> Default value:
+> ```yaml
+> []
+> ```
+#### **startupapicheck.volumeMounts** ~ `array`
+> Default value:
+> ```yaml
+> []
+> ```
+#### **startupapicheck.rbac.annotations** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+#### **startupapicheck.serviceAccount.create** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
+#### **startupapicheck.serviceAccount.name** ~ `string`
+> Default value:
+> ```yaml
+> ""
+> ```
+#### **startupapicheck.serviceAccount.annotations** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+#### **startupapicheck.serviceAccount.labels** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+#### **startupapicheck.serviceAccount.automountServiceAccountToken** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
+#### **startupapicheck.automountServiceAccountToken** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
+#### **startupapicheck.enableServiceLinks** ~ `bool`
+> Default value:
+> ```yaml
+> false
+> ```
 
 <!-- /AUTO-GENERATED -->

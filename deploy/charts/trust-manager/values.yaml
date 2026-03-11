@@ -462,3 +462,53 @@ extraObjects: []
 # https://helm.sh/docs/chart_best_practices/dependencies/#conditions-and-tags
 # +docs:hidden
 enabled: true
+
+# +docs:section=Startup API Check
+# Helm post-install/post-upgrade hook Job that waits until the API server can successfully admit
+# a Bundle (CRD served + validating webhook reachable + CA bundle ready).
+startupapicheck:
+  enabled: true
+  timeout: 1m
+  backoffLimit: 4
+
+  # Extra annotations for the Job. (Helm hook annotations are applied in the template.)
+  jobAnnotations: {}
+
+  podAnnotations: {}
+  podLabels: {}
+
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+
+  resources: {}
+
+  # Keep empty by default to avoid schema pointer issues with "/" keys.
+  # Template defaults to kubernetes.io/os=linux.
+  nodeSelector: {}
+  affinity: {}
+  tolerations: []
+
+  volumes: []
+  volumeMounts: []
+
+  rbac:
+    annotations: {}
+
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+    labels: {}
+    automountServiceAccountToken: true
+
+  automountServiceAccountToken: true
+  enableServiceLinks: false

@@ -84,6 +84,9 @@
         "serviceAccount": {
           "$ref": "#/$defs/helm-values.serviceAccount"
         },
+        "startupapicheck": {
+          "$ref": "#/$defs/helm-values.startupapicheck"
+        },
         "tolerations": {
           "$ref": "#/$defs/helm-values.tolerations"
         },
@@ -896,6 +899,252 @@
     "helm-values.serviceAccount.name": {
       "description": "The name of the service account to use.\nIf not set and create is true, a name is generated using the fullname template.",
       "type": "string"
+    },
+    "helm-values.startupapicheck": {
+      "additionalProperties": false,
+      "properties": {
+        "affinity": {
+          "$ref": "#/$defs/helm-values.startupapicheck.affinity"
+        },
+        "automountServiceAccountToken": {
+          "$ref": "#/$defs/helm-values.startupapicheck.automountServiceAccountToken"
+        },
+        "backoffLimit": {
+          "$ref": "#/$defs/helm-values.startupapicheck.backoffLimit"
+        },
+        "containerSecurityContext": {
+          "$ref": "#/$defs/helm-values.startupapicheck.containerSecurityContext"
+        },
+        "enableServiceLinks": {
+          "$ref": "#/$defs/helm-values.startupapicheck.enableServiceLinks"
+        },
+        "enabled": {
+          "$ref": "#/$defs/helm-values.startupapicheck.enabled"
+        },
+        "jobAnnotations": {
+          "$ref": "#/$defs/helm-values.startupapicheck.jobAnnotations"
+        },
+        "nodeSelector": {
+          "$ref": "#/$defs/helm-values.startupapicheck.nodeSelector"
+        },
+        "podAnnotations": {
+          "$ref": "#/$defs/helm-values.startupapicheck.podAnnotations"
+        },
+        "podLabels": {
+          "$ref": "#/$defs/helm-values.startupapicheck.podLabels"
+        },
+        "rbac": {
+          "$ref": "#/$defs/helm-values.startupapicheck.rbac"
+        },
+        "resources": {
+          "$ref": "#/$defs/helm-values.startupapicheck.resources"
+        },
+        "securityContext": {
+          "$ref": "#/$defs/helm-values.startupapicheck.securityContext"
+        },
+        "serviceAccount": {
+          "$ref": "#/$defs/helm-values.startupapicheck.serviceAccount"
+        },
+        "timeout": {
+          "$ref": "#/$defs/helm-values.startupapicheck.timeout"
+        },
+        "tolerations": {
+          "$ref": "#/$defs/helm-values.startupapicheck.tolerations"
+        },
+        "volumeMounts": {
+          "$ref": "#/$defs/helm-values.startupapicheck.volumeMounts"
+        },
+        "volumes": {
+          "$ref": "#/$defs/helm-values.startupapicheck.volumes"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.startupapicheck.affinity": {
+      "default": {},
+      "type": "object"
+    },
+    "helm-values.startupapicheck.automountServiceAccountToken": {
+      "default": true,
+      "type": "boolean"
+    },
+    "helm-values.startupapicheck.backoffLimit": {
+      "default": 4,
+      "type": "number"
+    },
+    "helm-values.startupapicheck.containerSecurityContext": {
+      "additionalProperties": false,
+      "properties": {
+        "allowPrivilegeEscalation": {
+          "$ref": "#/$defs/helm-values.startupapicheck.containerSecurityContext.allowPrivilegeEscalation"
+        },
+        "capabilities": {
+          "$ref": "#/$defs/helm-values.startupapicheck.containerSecurityContext.capabilities"
+        },
+        "readOnlyRootFilesystem": {
+          "$ref": "#/$defs/helm-values.startupapicheck.containerSecurityContext.readOnlyRootFilesystem"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.startupapicheck.containerSecurityContext.allowPrivilegeEscalation": {
+      "default": false,
+      "type": "boolean"
+    },
+    "helm-values.startupapicheck.containerSecurityContext.capabilities": {
+      "additionalProperties": false,
+      "properties": {
+        "drop": {
+          "$ref": "#/$defs/helm-values.startupapicheck.containerSecurityContext.capabilities.drop"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.startupapicheck.containerSecurityContext.capabilities.drop": {
+      "items": {
+        "$ref": "#/$defs/helm-values.startupapicheck.containerSecurityContext.capabilities.drop[0]"
+      },
+      "type": "array"
+    },
+    "helm-values.startupapicheck.containerSecurityContext.capabilities.drop[0]": {
+      "default": "ALL",
+      "type": "string"
+    },
+    "helm-values.startupapicheck.containerSecurityContext.readOnlyRootFilesystem": {
+      "default": true,
+      "type": "boolean"
+    },
+    "helm-values.startupapicheck.enableServiceLinks": {
+      "default": false,
+      "type": "boolean"
+    },
+    "helm-values.startupapicheck.enabled": {
+      "default": true,
+      "type": "boolean"
+    },
+    "helm-values.startupapicheck.jobAnnotations": {
+      "default": {},
+      "description": "Extra annotations for the Job. (Helm hook annotations are applied in the template.)",
+      "type": "object"
+    },
+    "helm-values.startupapicheck.nodeSelector": {
+      "default": {},
+      "description": "Keep empty by default to avoid schema pointer issues with \"/\" keys.\nTemplate defaults to kubernetes.io/os=linux.",
+      "type": "object"
+    },
+    "helm-values.startupapicheck.podAnnotations": {
+      "default": {},
+      "type": "object"
+    },
+    "helm-values.startupapicheck.podLabels": {
+      "default": {},
+      "type": "object"
+    },
+    "helm-values.startupapicheck.rbac": {
+      "additionalProperties": false,
+      "properties": {
+        "annotations": {
+          "$ref": "#/$defs/helm-values.startupapicheck.rbac.annotations"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.startupapicheck.rbac.annotations": {
+      "default": {},
+      "type": "object"
+    },
+    "helm-values.startupapicheck.resources": {
+      "default": {},
+      "type": "object"
+    },
+    "helm-values.startupapicheck.securityContext": {
+      "additionalProperties": false,
+      "properties": {
+        "runAsNonRoot": {
+          "$ref": "#/$defs/helm-values.startupapicheck.securityContext.runAsNonRoot"
+        },
+        "seccompProfile": {
+          "$ref": "#/$defs/helm-values.startupapicheck.securityContext.seccompProfile"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.startupapicheck.securityContext.runAsNonRoot": {
+      "default": true,
+      "type": "boolean"
+    },
+    "helm-values.startupapicheck.securityContext.seccompProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/helm-values.startupapicheck.securityContext.seccompProfile.type"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.startupapicheck.securityContext.seccompProfile.type": {
+      "default": "RuntimeDefault",
+      "type": "string"
+    },
+    "helm-values.startupapicheck.serviceAccount": {
+      "additionalProperties": false,
+      "properties": {
+        "annotations": {
+          "$ref": "#/$defs/helm-values.startupapicheck.serviceAccount.annotations"
+        },
+        "automountServiceAccountToken": {
+          "$ref": "#/$defs/helm-values.startupapicheck.serviceAccount.automountServiceAccountToken"
+        },
+        "create": {
+          "$ref": "#/$defs/helm-values.startupapicheck.serviceAccount.create"
+        },
+        "labels": {
+          "$ref": "#/$defs/helm-values.startupapicheck.serviceAccount.labels"
+        },
+        "name": {
+          "$ref": "#/$defs/helm-values.startupapicheck.serviceAccount.name"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.startupapicheck.serviceAccount.annotations": {
+      "default": {},
+      "type": "object"
+    },
+    "helm-values.startupapicheck.serviceAccount.automountServiceAccountToken": {
+      "default": true,
+      "type": "boolean"
+    },
+    "helm-values.startupapicheck.serviceAccount.create": {
+      "default": true,
+      "type": "boolean"
+    },
+    "helm-values.startupapicheck.serviceAccount.labels": {
+      "default": {},
+      "type": "object"
+    },
+    "helm-values.startupapicheck.serviceAccount.name": {
+      "default": "",
+      "type": "string"
+    },
+    "helm-values.startupapicheck.timeout": {
+      "default": "1m",
+      "type": "string"
+    },
+    "helm-values.startupapicheck.tolerations": {
+      "default": [],
+      "items": {},
+      "type": "array"
+    },
+    "helm-values.startupapicheck.volumeMounts": {
+      "default": [],
+      "items": {},
+      "type": "array"
+    },
+    "helm-values.startupapicheck.volumes": {
+      "default": [],
+      "items": {},
+      "type": "array"
     },
     "helm-values.tolerations": {
       "default": [],
