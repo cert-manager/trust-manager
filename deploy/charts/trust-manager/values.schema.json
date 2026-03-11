@@ -66,6 +66,9 @@
         "podDisruptionBudget": {
           "$ref": "#/$defs/helm-values.podDisruptionBudget"
         },
+        "podSecurityContext": {
+          "$ref": "#/$defs/helm-values.podSecurityContext"
+        },
         "priorityClassName": {
           "$ref": "#/$defs/helm-values.priorityClassName"
         },
@@ -347,16 +350,67 @@
     "helm-values.app.securityContext": {
       "additionalProperties": false,
       "properties": {
-        "seccompProfileEnabled": {
-          "$ref": "#/$defs/helm-values.app.securityContext.seccompProfileEnabled"
+        "allowPrivilegeEscalation": {
+          "$ref": "#/$defs/helm-values.app.securityContext.allowPrivilegeEscalation"
+        },
+        "capabilities": {
+          "$ref": "#/$defs/helm-values.app.securityContext.capabilities"
+        },
+        "readOnlyRootFilesystem": {
+          "$ref": "#/$defs/helm-values.app.securityContext.readOnlyRootFilesystem"
+        },
+        "runAsNonRoot": {
+          "$ref": "#/$defs/helm-values.app.securityContext.runAsNonRoot"
+        },
+        "seccompProfile": {
+          "$ref": "#/$defs/helm-values.app.securityContext.seccompProfile"
         }
       },
       "type": "object"
     },
-    "helm-values.app.securityContext.seccompProfileEnabled": {
-      "default": true,
-      "description": "If false, disables the default seccomp profile, which might be required to run on certain platforms.",
+    "helm-values.app.securityContext.allowPrivilegeEscalation": {
+      "default": false,
       "type": "boolean"
+    },
+    "helm-values.app.securityContext.capabilities": {
+      "additionalProperties": false,
+      "properties": {
+        "drop": {
+          "$ref": "#/$defs/helm-values.app.securityContext.capabilities.drop"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.app.securityContext.capabilities.drop": {
+      "items": {
+        "$ref": "#/$defs/helm-values.app.securityContext.capabilities.drop[0]"
+      },
+      "type": "array"
+    },
+    "helm-values.app.securityContext.capabilities.drop[0]": {
+      "default": "ALL",
+      "type": "string"
+    },
+    "helm-values.app.securityContext.readOnlyRootFilesystem": {
+      "default": true,
+      "type": "boolean"
+    },
+    "helm-values.app.securityContext.runAsNonRoot": {
+      "default": true,
+      "type": "boolean"
+    },
+    "helm-values.app.securityContext.seccompProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/helm-values.app.securityContext.seccompProfile.type"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.app.securityContext.seccompProfile.type": {
+      "default": "RuntimeDefault",
+      "type": "string"
     },
     "helm-values.app.targetNamespaces": {
       "description": "List of target namespaces that trust-manager can write to. By default, trust-manager can write targets in any namespace.",
@@ -576,6 +630,9 @@
         },
         "resources": {
           "$ref": "#/$defs/helm-values.defaultPackage.resources"
+        },
+        "securityContext": {
+          "$ref": "#/$defs/helm-values.defaultPackage.securityContext"
         }
       },
       "type": "object"
@@ -589,6 +646,71 @@
       "default": {},
       "description": "Kubernetes pod resource limits for default package init container.\n\nFor example:\nresources:\n  limits:\n    cpu: 100m\n    memory: 128Mi\n  requests:\n    cpu: 100m\n    memory: 128Mi",
       "type": "object"
+    },
+    "helm-values.defaultPackage.securityContext": {
+      "additionalProperties": false,
+      "properties": {
+        "allowPrivilegeEscalation": {
+          "$ref": "#/$defs/helm-values.defaultPackage.securityContext.allowPrivilegeEscalation"
+        },
+        "capabilities": {
+          "$ref": "#/$defs/helm-values.defaultPackage.securityContext.capabilities"
+        },
+        "readOnlyRootFilesystem": {
+          "$ref": "#/$defs/helm-values.defaultPackage.securityContext.readOnlyRootFilesystem"
+        },
+        "runAsNonRoot": {
+          "$ref": "#/$defs/helm-values.defaultPackage.securityContext.runAsNonRoot"
+        },
+        "seccompProfile": {
+          "$ref": "#/$defs/helm-values.defaultPackage.securityContext.seccompProfile"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.defaultPackage.securityContext.allowPrivilegeEscalation": {
+      "default": false,
+      "type": "boolean"
+    },
+    "helm-values.defaultPackage.securityContext.capabilities": {
+      "additionalProperties": false,
+      "properties": {
+        "drop": {
+          "$ref": "#/$defs/helm-values.defaultPackage.securityContext.capabilities.drop"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.defaultPackage.securityContext.capabilities.drop": {
+      "items": {
+        "$ref": "#/$defs/helm-values.defaultPackage.securityContext.capabilities.drop[0]"
+      },
+      "type": "array"
+    },
+    "helm-values.defaultPackage.securityContext.capabilities.drop[0]": {
+      "default": "ALL",
+      "type": "string"
+    },
+    "helm-values.defaultPackage.securityContext.readOnlyRootFilesystem": {
+      "default": true,
+      "type": "boolean"
+    },
+    "helm-values.defaultPackage.securityContext.runAsNonRoot": {
+      "default": true,
+      "type": "boolean"
+    },
+    "helm-values.defaultPackage.securityContext.seccompProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/helm-values.defaultPackage.securityContext.seccompProfile.type"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.defaultPackage.securityContext.seccompProfile.type": {
+      "default": "RuntimeDefault",
+      "type": "string"
     },
     "helm-values.defaultPackageImage": {
       "additionalProperties": false,
@@ -818,6 +940,11 @@
     },
     "helm-values.podDisruptionBudget.minAvailable": {
       "description": "This configures the minimum available pods for disruptions. It can either be set to an integer (e.g. 1) or a percentage value (e.g. 25%).\nIt cannot be used if `maxUnavailable` is set."
+    },
+    "helm-values.podSecurityContext": {
+      "default": {},
+      "description": "Security Context to be set on the trust-manager Pod. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).",
+      "type": "object"
     },
     "helm-values.priorityClassName": {
       "default": "",
