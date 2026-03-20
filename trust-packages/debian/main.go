@@ -73,66 +73,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	stderrLogger.Printf("reading from %s", inputDir)
-	stderrLogger.Printf("writing to   %s", destinationDir)
-
-	if err := dirOrError(inputDir); err != nil {
-		stderrLogger.Fatalf("couldn't confirm that input path is a directory that exists: %s", err.Error())
-	}
-
-	if err := dirOrError(destinationDir); err != nil {
-		stderrLogger.Fatalf("couldn't confirm that output path is a directory that exists: %s", err.Error())
-	}
-
-	walkErr := filepath.Walk(inputDir, func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if filepath.Ext(path) != ".json" {
-			return nil
-		}
-
-		var input *os.File
-		var target *os.File
-
-		input, err = os.Open(path)
-		if err != nil {
-			return fmt.Errorf("failed to open file %q for reading: %w", path, err)
-		}
-
-		defer func() {
-			err := input.Close()
-			if err != nil {
-				stderrLogger.Printf("failed to close input file: %s", err.Error())
-			}
-		}()
-
-		destinationFile := filepath.Join(destinationDir, filepath.Base(path))
-
-		target, err = os.OpenFile(destinationFile, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0o664)
-		if err != nil {
-			return fmt.Errorf("failed to open file %q for writing: %w", destinationFile, err)
-		}
-
-		defer func() {
-			err := target.Close()
-			if err != nil {
-				stderrLogger.Printf("failed to close output file: %s", err.Error())
-			}
-		}()
-
-		if _, err := io.Copy(target, input); err != nil {
-			return fmt.Errorf("failed to copy source %q to destination %q: %w", path, destinationFile, err)
-		}
-
-		stderrLogger.Printf("successfully copied %s to %s", path, destinationFile)
-
-		return nil
-	})
-
-	if walkErr != nil {
-		stderrLogger.Fatalf("failed to walk input dir %q: %s", inputDir, walkErr.Error())
+	if err := copyInputToOutput(stderrLogger, inputDir, destinationDir); err != nil {
+		stderrLogger.Fatal(err)
 	}
 
 	if *waitFlag {
@@ -149,15 +91,69 @@ func main() {
 	}
 }
 
-func dirOrError(name string) error {
-	info, err := os.Stat(name)
+func copyInputToOutput(stderrLogger *log.Logger, srcPath, dstPath string) error {
+	stderrLogger.Printf("reading from %s", srcPath)
+	stderrLogger.Printf("writing to   %s", dstPath)
+
+	closeWithLog := func(f io.Closer) {
+		if err := f.Close(); err != nil {
+			stderrLogger.Printf("error: failed to close: %s", err.Error())
+		}
+	}
+
+	srcRoot, err := os.OpenRoot(srcPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("couldn't confirm that input path is a directory that exists: %w", err)
 	}
+	defer closeWithLog(srcRoot)
 
-	if !info.IsDir() {
-		return fmt.Errorf("%q is not a directory", name)
+	dstRoot, err := os.OpenRoot(dstPath)
+	if err != nil {
+		return fmt.Errorf("couldn't confirm that output path is a directory that exists: %w", err)
 	}
+	defer closeWithLog(dstRoot)
 
-	return nil
+	return fs.WalkDir(srcRoot.FS(), ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// For logging purposes, we want to report the real paths
+		realSrcPath := filepath.Join(srcPath, path)
+		realDstPath := filepath.Join(dstPath, path)
+
+		if d.IsDir() {
+			return dstRoot.MkdirAll(path, 0o755)
+		}
+
+		if !d.Type().IsRegular() {
+			return nil // skip non-regular files (e.g. symlinks, devices)
+		}
+
+		if filepath.Ext(path) != ".json" {
+			return nil
+		}
+
+		r, err := srcRoot.Open(path)
+		if err != nil {
+			return fmt.Errorf("failed to open file %q for reading: %w", realSrcPath, err)
+		}
+		defer closeWithLog(r)
+
+		// Flatten the directory structure
+		flatPath := filepath.Base(path)
+		w, err := dstRoot.OpenFile(flatPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
+		if err != nil {
+			return fmt.Errorf("failed to open file %q for writing: %w", realDstPath, err)
+		}
+		defer closeWithLog(w)
+
+		if _, err := io.Copy(w, r); err != nil {
+			return fmt.Errorf("failed to copy source %q to destination %q: %w", realSrcPath, realDstPath, err)
+		}
+
+		stderrLogger.Printf("successfully copied %s to %s", realSrcPath, realDstPath)
+
+		return nil
+	})
 }
