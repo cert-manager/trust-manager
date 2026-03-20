@@ -53,7 +53,7 @@ test-unit-negativeserial: | $(NEEDS_GOTESTSUM) $(ARTIFACTS)
 ## @category Testing
 test-unit-trust-packages: | $(NEEDS_GOTESTSUM) $(ARTIFACTS)
 	cd trust-packages/debian && $(GOTESTSUM) \
-		--junitfile=../../$(ARTIFACTS)/junit-go-unit-trust-packages-debian.xml \
+		--junitfile=$(abspath $(ARTIFACTS))/junit-go-unit-trust-packages-debian.xml \
 		-- \
 		./... \
 		-- \
