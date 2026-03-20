@@ -15,7 +15,7 @@
 .PHONY: test-unit
 ## Run all unit tests for trust-manager
 ## @category Testing
-test-unit: test-unit-standard test-unit-negativeserial
+test-unit: test-unit-standard test-unit-negativeserial test-unit-trust-packages
 
 
 .PHONY: test-unit-standard
@@ -46,4 +46,15 @@ test-unit-negativeserial: | $(NEEDS_GOTESTSUM) $(ARTIFACTS)
 		./pkg/compat/... \
 		-- \
 		-ldflags $(go_manager_ldflags) \
+		-test.timeout 2m
+
+.PHONY: test-unit-trust-packages
+## Unit tests for trust-packages (separate Go modules)
+## @category Testing
+test-unit-trust-packages: | $(NEEDS_GOTESTSUM) $(ARTIFACTS)
+	cd trust-packages/debian && $(GOTESTSUM) \
+		--junitfile=../../$(ARTIFACTS)/junit-go-unit-trust-packages-debian.xml \
+		-- \
+		./... \
+		-- \
 		-test.timeout 2m
