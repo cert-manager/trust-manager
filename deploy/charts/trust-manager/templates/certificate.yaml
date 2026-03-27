@@ -46,7 +46,7 @@ spec:
 
 ---
 
-{{- if .Values.app.webhook.tls.approverPolicy.enabled -}}
+{{- if .Values.app.webhook.tls.approverPolicy.enabled }}
 
 apiVersion: policy.cert-manager.io/v1alpha1
 kind: CertificateRequestPolicy
