@@ -35,7 +35,7 @@ func TestCopyInputToOutput_Table(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name: "copies only json files and preserves dirs",
+			name: "copies only json files and flattens directory structure",
 			setup: func(src string) error {
 				if err := os.WriteFile(filepath.Join(src, "a.json"), []byte("one"), 0o600); err != nil {
 					return err
@@ -56,8 +56,8 @@ func TestCopyInputToOutput_Table(t *testing.T) {
 				return nil
 			},
 			wantFiles: map[string]string{
-				"a.json":     "one",
-				"sub/c.json": "three",
+				"a.json": "one",
+				"c.json": "three",
 			},
 			wantErr: false,
 		},
