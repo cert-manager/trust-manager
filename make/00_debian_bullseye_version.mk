@@ -14,8 +14,12 @@
 
 # WARNING: Changing this file triggers a build and release of the Debian trust package for Bullseye (Debian 11)
 #
-# This file is used to store the latest version of the debian trust package and the DEBIAN_BULLSEYE_BUNDLE_VERSION
-# variable is automatically updated by the `upgrade-debian-bullseye-trust-package-version` target and cron GH action.
+# DEBIAN_BULLSEYE_CA_CERTS_VERSION stores the ca-certificates apt package version and is
+# automatically updated by Renovate using the Debian deb datasource.
+# DEBIAN_BULLSEYE_BUNDLE_RELEASE can be incremented to re-release the trust bundle with the
+# same ca-certificates version (e.g. to fix a packaging issue) without overwriting existing
+# OCI image tags. Reset to 0 when the ca-certificates version changes.
 
-DEBIAN_BULLSEYE_BUNDLE_VERSION := 20230311+deb12u1~deb11u1.1
+DEBIAN_BULLSEYE_CA_CERTS_VERSION := 20230311+deb12u1~deb11u1
+DEBIAN_BULLSEYE_BUNDLE_RELEASE := 1
 DEBIAN_BULLSEYE_BUNDLE_SOURCE_IMAGE=docker.io/library/debian:11-slim

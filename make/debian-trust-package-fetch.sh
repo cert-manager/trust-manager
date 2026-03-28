@@ -18,24 +18,19 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# This script uses a container to install the latest ca-certificates package, and then
-# checks to see if the installed version of that package matches the latest available
-# debian trust package image in our container registry.
-
-# If we installed a newer version in the local container, we build a new image container
-# and push it upstream
+# This script uses a container to install the ca-certificates package at the
+# specified version and extracts the bundle for use in a trust package OCI image.
 
 CTR=${CTR:-docker}
 BIN_VALIDATE_TRUST_PACKAGE=${BIN_VALIDATE_TRUST_PACKAGE:-}
 
-ACTION=${1:-}
-DEBIAN_SOURCE_IMAGE=${2:-}
-DESTINATION_FILE=${3:-}
-TARGET_DEBIAN_BUNDLE_VERSION=${4:-}
-PACKAGE_NAME=${5:-}
+DEBIAN_SOURCE_IMAGE=${1:-}
+DESTINATION_FILE=${2:-}
+TARGET_DEBIAN_BUNDLE_VERSION=${3:-}
+PACKAGE_NAME=${4:-}
 
 function print_usage() {
-	echo "usage: $0 <latest|exact> <debian-source-image> <destination file> <target version> <package name>"
+	echo "usage: $0 <debian-source-image> <destination file> <target version> <package name>"
 }
 
 if ! command -v "$CTR" &>/dev/null; then
@@ -49,16 +44,6 @@ fi
 if [[ -z $BIN_VALIDATE_TRUST_PACKAGE ]]; then
 	print_usage
 	echo "BIN_VALIDATE_TRUST_PACKAGE must be set to the path of the validate-trust-package binary"
-	exit 1
-fi
-
-if [[ -z $ACTION ]]; then
-	print_usage
-	echo "ACTION must be set to either 'latest' or 'exact'"
-	exit 1
-elif [[ $ACTION != "latest" && $ACTION != "exact" ]]; then
-	print_usage
-	echo "ACTION must be set to either 'latest' or 'exact'"
 	exit 1
 fi
 
@@ -85,34 +70,19 @@ if [[ -z $TARGET_DEBIAN_BUNDLE_VERSION ]]; then
 	echo "target version must be specified"
 	exit 1
 fi
-target_ca_certificates_version="${TARGET_DEBIAN_BUNDLE_VERSION%.*}"
 
-echo "+++ fetching latest version of ca-certificates package"
-echo "+++ target version of ca-certificates is '$target_ca_certificates_version'"
+echo "+++ fetching ca-certificates package version '$TARGET_DEBIAN_BUNDLE_VERSION'"
 
 TMP_DIR=$(mktemp -d)
 
 # register the cleanup function to be called on the EXIT signal
 trap 'rm -rf -- "$TMP_DIR"' EXIT
 
-# Install the latest version of ca-certificates in a fresh container and print the
-# installed version
+# Install the specified version of ca-certificates in a fresh container and
+# extract the bundle.
 
-# There are several commands for querying remote repos (e.g. apt-cache madison) but
-# it's not clear that these commands are guaranteed to return installable versions
-# in order or in a parseable format
-
-# We specifically only want to query the latest version and without a guarantee on
-# output ordering it's safest to install what apt thinks is the latest version and
-# then see what we got.
-
-# NB: It's also very difficult to make 'apt-get' stay quiet when installing packages
-# so we just let it be loud and then only take the last line of output
-
-install_target="ca-certificates"
-if [[ "$ACTION" == "exact" ]]; then
-	install_target="${install_target}=${target_ca_certificates_version}"
-fi
+# NB: It's also very difficult to make 'apt-get' stay quiet when installing
+# packages so we just let it be loud and then only take the last line of output
 
 cat << EOF > "$TMP_DIR/run.sh"
 #!/usr/bin/env bash
@@ -124,7 +94,7 @@ set -o pipefail
 apt-get -y update
 
 DEBIAN_FRONTEND=noninteractive \
-apt-get install -y --no-install-recommends ${install_target}
+apt-get install -y --no-install-recommends ca-certificates=${TARGET_DEBIAN_BUNDLE_VERSION}
 
 dpkg-query --show --showformat="\\\${Version}" ca-certificates | tail -n 1 > /workdir/version.txt
 
@@ -134,17 +104,11 @@ EOF
 $CTR run --rm --mount type=bind,source="$TMP_DIR",target=/workdir "$DEBIAN_SOURCE_IMAGE" /bin/bash /workdir/run.sh
 
 installed_version=$(cat "$TMP_DIR/version.txt")
-version_suffix=".0"
-
-if [[ "$ACTION" == "latest" && "$installed_version" == "$target_ca_certificates_version" ]]; then
-	version_suffix=".${TARGET_DEBIAN_BUNDLE_VERSION##*.}"
-	echo "+++ installed version matches target version; reusing the current suffix '$version_suffix'"
-fi
 
 echo "{}" | jq \
 	--rawfile bundle $TMP_DIR/ca-certificates.crt \
 	--arg name "$PACKAGE_NAME" \
-	--arg version "$installed_version$version_suffix" \
+	--arg version "$installed_version" \
 	'.name = $name | .bundle = $bundle | .version = $version' \
 	> "$DESTINATION_FILE"
 

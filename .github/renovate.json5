@@ -3,4 +3,48 @@
   extends: [
     'github>cert-manager/makefile-modules:renovate-config.json5',
   ],
+  customManagers: [
+    {
+      // Track the ca-certificates package version for Debian Bullseye (Debian 11) using the deb datasource.
+      // When a new version is available, Renovate will update make/00_debian_bullseye_version.mk,
+      // which triggers a build and release of the Debian Bullseye trust package OCI image.
+      customType: 'regex',
+      fileMatch: ['^make/00_debian_bullseye_version\\.mk$'],
+      matchStrings: [
+        'DEBIAN_BULLSEYE_CA_CERTS_VERSION\\s*:=\\s*(?<currentValue>\\S+)',
+      ],
+      datasourceTemplate: 'deb',
+      depNameTemplate: 'ca-certificates',
+      registryUrlTemplate: 'http://deb.debian.org/debian bullseye main',
+    },
+    {
+      // Track the ca-certificates package version for Debian Bookworm (Debian 12) using the deb datasource.
+      // When a new version is available, Renovate will update make/00_debian_bookworm_version.mk,
+      // which triggers a build and release of the Debian Bookworm trust package OCI image.
+      customType: 'regex',
+      fileMatch: ['^make/00_debian_bookworm_version\\.mk$'],
+      matchStrings: [
+        'DEBIAN_BOOKWORM_CA_CERTS_VERSION\\s*:=\\s*(?<currentValue>\\S+)',
+      ],
+      datasourceTemplate: 'deb',
+      depNameTemplate: 'ca-certificates',
+      registryUrlTemplate: 'http://deb.debian.org/debian bookworm main',
+    },
+  ],
+  packageRules: [
+    {
+      // When Renovate bumps the ca-certificates version, reset the bundle release counter to 0.
+      matchFileNames: [
+        'make/00_debian_bullseye_version.mk',
+        'make/00_debian_bookworm_version.mk',
+      ],
+      postUpgradeTasks: {
+        commands: [
+          "sed -i 's/DEBIAN_BULLSEYE_BUNDLE_RELEASE := .*/DEBIAN_BULLSEYE_BUNDLE_RELEASE := 0/' make/00_debian_bullseye_version.mk",
+          "sed -i 's/DEBIAN_BOOKWORM_BUNDLE_RELEASE := .*/DEBIAN_BOOKWORM_BUNDLE_RELEASE := 0/' make/00_debian_bookworm_version.mk",
+        ],
+        executionMode: 'branch',
+      },
+    },
+  ],
 }

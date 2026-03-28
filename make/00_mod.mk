@@ -38,10 +38,12 @@ go_package_debian_bullseye_ldflags :=
 oci_package_debian_bullseye_base_image_flavor := static
 oci_package_debian_bullseye_image_name := quay.io/jetstack/cert-manager-package-debian
 # '+' and '~' characters are not valid in docker image tags. Transform them to '-' for image tags.
-oci_package_debian_bullseye_image_tag := $(shell echo $(DEBIAN_BULLSEYE_BUNDLE_VERSION) | tr '+~' '-')
+oci_package_debian_bullseye_image_tag := $(shell echo $(DEBIAN_BULLSEYE_CA_CERTS_VERSION) | tr '+~' '-').$(DEBIAN_BULLSEYE_BUNDLE_RELEASE)
 oci_package_debian_bullseye_image_name_development := cert-manager.local/trust-pkg-debian-bullseye
 debian_bullseye_package_layer := $(bin_dir)/scratch/debian-bullseye-trust-package
 oci_package_debian_bullseye_additional_layers += $(debian_bullseye_package_layer)
+# No tag filter needed for Debian Bullseye
+debian_bullseye_tag_filter :=
 
 go_package_debian_bookworm_main_dir := .
 go_package_debian_bookworm_mod_dir := ./trust-packages/debian
@@ -49,11 +51,15 @@ go_package_debian_bookworm_ldflags :=
 oci_package_debian_bookworm_base_image_flavor := static
 oci_package_debian_bookworm_image_name := quay.io/jetstack/trust-pkg-debian-bookworm
 # '+' and '~' characters are not valid in docker image tags. Transform them to '-' for image tags.
-oci_package_debian_bookworm_image_tag := $(shell echo $(DEBIAN_BOOKWORM_BUNDLE_VERSION) | tr '+~' '-')
+oci_package_debian_bookworm_image_tag := $(shell echo $(DEBIAN_BOOKWORM_CA_CERTS_VERSION) | tr '+~' '-').$(DEBIAN_BOOKWORM_BUNDLE_RELEASE)
 oci_package_debian_bookworm_image_name_development := cert-manager.local/trust-pkg-debian-bookworm
 debian_bookworm_package_layer := $(bin_dir)/scratch/debian-bookworm-trust-package
 oci_package_debian_bookworm_additional_layers += $(debian_bookworm_package_layer)
-
+# We explicitly exclude the tag "20230311.0" for bookworm because it breaks version comparisons with "sort -V"
+# and compares as newer than the other tags. Even with that tag excluded, this is brittle; the current format
+# used for the tag doesn't allow us to easily answer the question "which tag is latest" without more custom
+# logic. For now, this works but for future trust packages it might be worth considering our own version format.
+debian_bookworm_tag_filter := grep -v "20230311.0" |
 
 deploy_name := trust-manager
 deploy_namespace := cert-manager
