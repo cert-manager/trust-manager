@@ -3,4 +3,17 @@
   extends: [
     'github>cert-manager/makefile-modules:renovate-config.json5',
   ],
+  customManagers: [
+    {
+      customType: 'jsonata',
+      managerFilePatterns: [
+        '.custom-gcl.yml'
+      ],
+      matchStrings: [
+        'plugins.{"depName": module, "currentValue": version }'
+      ],
+      datasourceTemplate: 'go',
+      versioningTemplate: 'go',
+    }
+  ]
 }
