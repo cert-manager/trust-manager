@@ -52,7 +52,7 @@ func Test_BuildBundle(t *testing.T) {
 		},
 		"if single InLine source defined with newlines, should trim and return": {
 			sources: []trustapi.BundleSource{
-				{InLine: ptr.To(dummy.TestCertificate1 + "\n" + dummy.TestCertificate2 + "\n")},
+				{InLine: dummy.TestCertificate1 + "\n" + dummy.TestCertificate2 + "\n"},
 			},
 			expData: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1),
 		},
@@ -147,7 +147,7 @@ func Test_BuildBundle(t *testing.T) {
 		"if ConfigMap and InLine source, return concatenated data": {
 			sources: []trustapi.BundleSource{
 				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
-				{InLine: ptr.To(dummy.TestCertificate2)},
+				{InLine: dummy.TestCertificate2},
 			},
 			objects: []runtime.Object{&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
@@ -205,7 +205,7 @@ func Test_BuildBundle(t *testing.T) {
 		"if Secret and InLine source, return concatenated data": {
 			sources: []trustapi.BundleSource{
 				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", Key: "key"}},
-				{InLine: ptr.To(dummy.TestCertificate1)},
+				{InLine: dummy.TestCertificate1},
 			},
 			objects: []runtime.Object{&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
@@ -216,7 +216,7 @@ func Test_BuildBundle(t *testing.T) {
 		"if Secret, ConfigMap and InLine source, return concatenated data": {
 			sources: []trustapi.BundleSource{
 				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
-				{InLine: ptr.To(dummy.TestCertificate3)},
+				{InLine: dummy.TestCertificate3},
 				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", Key: "key"}},
 			},
 			objects: []runtime.Object{
@@ -304,7 +304,7 @@ func Test_BuildBundle(t *testing.T) {
 		"if has any non-expired certificate, return data": {
 			sources: []trustapi.BundleSource{
 				// The first in-line source contains an expired certificate (only)
-				{InLine: ptr.To(dummy.TestExpiredCertificate)},
+				{InLine: dummy.TestExpiredCertificate},
 				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
 			},
 			filterExpired: true,

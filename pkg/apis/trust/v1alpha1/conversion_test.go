@@ -43,21 +43,21 @@ func TestBundle_Conversion(t *testing.T) {
 			src: Bundle{
 				Spec: BundleSpec{
 					Sources: []BundleSource{
-						{InLine: ptr.To(dummy.TestCertificate1)},
-						{InLine: ptr.To(dummy.TestCertificate2)},
+						{InLine: dummy.TestCertificate1},
+						{InLine: dummy.TestCertificate2},
 					},
 				},
 			},
 			exp: trustmanagerapi.ClusterBundle{
 				Spec: trustmanagerapi.BundleSpec{
-					InLineCAs: ptr.To(dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2)),
+					InLineCAs: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2),
 				},
 			},
 			// This asserts that the conversion is NOT round-trippable, but equivalent
 			expSrc: Bundle{
 				Spec: BundleSpec{
 					Sources: []BundleSource{
-						{InLine: ptr.To(dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2))},
+						{InLine: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2)},
 					},
 				},
 			},
@@ -110,7 +110,7 @@ func spokeBundleSpecFuzzer(obj *BundleSpec, c randfill.Continue) {
 		if bs.Secret != nil {
 			sourceCount++
 		}
-		if bs.InLine != nil {
+		if bs.InLine != "" {
 			sourceCount++
 		}
 		if bs.UseDefaultCAs != nil {
