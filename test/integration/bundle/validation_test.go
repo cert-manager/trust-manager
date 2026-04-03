@@ -86,10 +86,10 @@ var _ = Describe("Bundle Validation", func() {
 			Entry("when none set", trustapi.BundleSource{}, "spec.sources[0]: Invalid value: exactly one of the fields in [configMap secret inLine useDefaultCAs] must be set"),
 			Entry("when configMap set", trustapi.BundleSource{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "ca", Key: "ca.crt"}}, ""),
 			Entry("when secret set", trustapi.BundleSource{Secret: &trustapi.SourceObjectKeySelector{Name: "ca", Key: "ca.crt"}}, ""),
-			Entry("when inLine set", trustapi.BundleSource{InLine: ptr.To("cert-placeholder")}, ""),
+			Entry("when inLine set", trustapi.BundleSource{InLine: "cert-placeholder"}, ""),
 			Entry("when useDefaultCAs=true set", trustapi.BundleSource{UseDefaultCAs: ptr.To(true)}, ""),
 			Entry("when useDefaultCAs=false set", trustapi.BundleSource{UseDefaultCAs: ptr.To(false)}, "spec.sources: Forbidden: must define at least one source"),
-			Entry("when multiple set", trustapi.BundleSource{InLine: ptr.To("cert-placeholder"), UseDefaultCAs: ptr.To(true)}, "spec.sources[0]: Invalid value: exactly one of the fields in [configMap secret inLine useDefaultCAs] must be set"),
+			Entry("when multiple set", trustapi.BundleSource{InLine: "cert-placeholder", UseDefaultCAs: ptr.To(true)}, "spec.sources[0]: Invalid value: exactly one of the fields in [configMap secret inLine useDefaultCAs] must be set"),
 		)
 	})
 
@@ -189,17 +189,17 @@ var _ = Describe("Bundle Validation", func() {
 				}
 			},
 			Entry("when trust-manager.io annotations are used", trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"trust-manager.io/hash": "test"}}}}, true),
+				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: trustapi.TargetMetadata{Annotations: map[string]string{"trust-manager.io/hash": "test"}}}}, true),
 			Entry("when trust.cert-manager.io annotations are used", trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"trust.cert-manager.io/hash": "test"}}}}, true),
+				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: trustapi.TargetMetadata{Annotations: map[string]string{"trust.cert-manager.io/hash": "test"}}}}, true),
 			Entry("when trust-manager.io labels are used", trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"trust-manager.io/bundle": "bundle"}}}}, true),
+				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: trustapi.TargetMetadata{Labels: map[string]string{"trust-manager.io/bundle": "bundle"}}}}, true),
 			Entry("when trust.cert-manager.io labels are used", trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"trust.cert-manager.io/bundle": "bundle"}}}}, true),
+				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: trustapi.TargetMetadata{Labels: map[string]string{"trust.cert-manager.io/bundle": "bundle"}}}}, true),
 			Entry("when non-reserved annotations are used", trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Annotations: map[string]string{"not-trust-manager.io/hash": "test"}}}}, false),
+				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: trustapi.TargetMetadata{Annotations: map[string]string{"not-trust-manager.io/hash": "test"}}}}, false),
 			Entry("when non-reserved labels are used", trustapi.BundleTarget{
-				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: &trustapi.TargetMetadata{Labels: map[string]string{"not-trust-manager.io/bundle": "bundle"}}}}, false),
+				ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt", Metadata: trustapi.TargetMetadata{Labels: map[string]string{"not-trust-manager.io/bundle": "bundle"}}}}, false),
 		)
 
 		type TargetKeySpec struct {

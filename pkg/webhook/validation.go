@@ -110,7 +110,7 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 			el = append(el, errs...)
 		}
 
-		if source.InLine != nil {
+		if source.InLine != "" {
 			sourceCount++
 			unionCount++
 		}
@@ -220,11 +220,7 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 }
 
 // validateAnnotationsLabelsTemplate Validates that the target template annotations and labels are both valid and that they do not contain reserved keys.
-func validateTargetMetadata(targetMetadata *trustapi.TargetMetadata, fldPath *field.Path) field.ErrorList {
-	if targetMetadata == nil {
-		return nil
-	}
-
+func validateTargetMetadata(targetMetadata trustapi.TargetMetadata, fldPath *field.Path) field.ErrorList {
 	el := field.ErrorList{}
 
 	templateAnnotationsPath := fldPath.Child("annotations")
