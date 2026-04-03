@@ -105,7 +105,7 @@ type BundleSource struct {
 	// The version of the default CA package used for this Bundle is reported in
 	// status.defaultCAVersion.
 	// +optional
-	UseDefaultCAs *bool `json:"useDefaultCAs,omitempty"`
+	UseDefaultCAs *bool `json:"useDefaultCAs,omitempty"` //nolint:kubeapilinter // Migrating away from bool would be a breaking change
 }
 
 // BundleTarget is the target resource that the Bundle will sync all source
@@ -231,7 +231,7 @@ type SourceObjectKeySelector struct {
 	// includeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
 	// This field must not be true when `key` is set.
 	// +optional
-	IncludeAllKeys *bool `json:"includeAllKeys,omitempty"`
+	IncludeAllKeys *bool `json:"includeAllKeys,omitempty"` //nolint:kubeapilinter // Migrating away from bool would be a breaking change
 }
 
 // TargetTemplate defines the form of the Kubernetes Secret or ConfigMap bundle targets.
