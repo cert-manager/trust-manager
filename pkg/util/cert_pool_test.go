@@ -78,7 +78,7 @@ func TestAppendCertFromPEM(t *testing.T) {
 
 			certPool := NewCertPool(WithFilteredExpiredCerts(test.filterExpired))
 
-			err := certPool.AddCertsFromPEM([]byte(test.pemData), InlineKind, "", "")
+			err := certPool.AddCertsFromPEM([]byte(test.pemData))
 			if test.expError != "" {
 				assert.Error(t, err, test.expError)
 			} else {
@@ -114,7 +114,7 @@ func TestAppendCACertFromPEM(t *testing.T) {
 
 			certPool := NewCertPool(WithFilteredNonCaCerts(true))
 
-			err := certPool.AddCertsFromPEM([]byte(test.pemData), InlineKind, "", "")
+			err := certPool.AddCertsFromPEM([]byte(test.pemData))
 			if test.expError != "" {
 				assert.Error(t, err, test.expError)
 			} else {

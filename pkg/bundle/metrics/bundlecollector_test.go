@@ -137,7 +137,7 @@ func Test_BundleCollector_Collect(t *testing.T) {
 				},
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To(dummy.TestCertificate1)},
+						{InLine: dummy.TestCertificate1},
 					},
 				},
 			},
@@ -271,7 +271,7 @@ func Test_BundleCollector_Collect(t *testing.T) {
 				},
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To(dummy.TestCertificate1)},
+						{InLine: dummy.TestCertificate1},
 						{Secret: &trustapi.SourceObjectKeySelector{
 							Name: "my-secret",
 							Key:  "ca.crt",

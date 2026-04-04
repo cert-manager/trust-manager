@@ -63,7 +63,7 @@ func Test_Encoder_Deterministic(t *testing.T) {
 			bundle := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3)
 
 			certPool := util.NewCertPool()
-			if err := certPool.AddCertsFromPEM([]byte(bundle), util.InlineKind, "", ""); err != nil {
+			if err := certPool.AddCertsFromPEM([]byte(bundle)); err != nil {
 				t.Fatalf("didn't expect an error but got: %s", err)
 			}
 
@@ -95,7 +95,7 @@ func Test_encodeJKSAliases(t *testing.T) {
 	bundle := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2)
 
 	certPool := util.NewCertPool()
-	if err := certPool.AddCertsFromPEM([]byte(bundle), util.InlineKind, "", ""); err != nil {
+	if err := certPool.AddCertsFromPEM([]byte(bundle)); err != nil {
 		t.Fatal(err)
 	}
 

@@ -113,7 +113,7 @@ func TestAddCertsFromPEM(t *testing.T) {
 
 			inputBundle := []byte(strings.Join(test.parts, "\n"))
 
-			err := certPool.AddCertsFromPEM(inputBundle, InlineKind, "", "")
+			err := certPool.AddCertsFromPEM(inputBundle)
 
 			if test.expectErr != (err != nil) {
 				t.Fatalf("AddCertsFromPEM: expectErr: %v | err: %v", test.expectErr, err)

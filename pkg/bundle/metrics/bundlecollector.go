@@ -41,8 +41,8 @@ type BundleCollector struct {
 	opts                 controller.Options
 	client               client.Client
 	pkg                  *fspkg.Package
-	caSSlNotBeforeMetric *prometheus.Desc
-	caSSlNotAfterMetric  *prometheus.Desc
+	caSSLNotBeforeMetric *prometheus.Desc
+	caSSLNotAfterMetric  *prometheus.Desc
 }
 
 func NewBundleCollector(log logr.Logger, opts controller.Options, client client.Client, pkg *fspkg.Package) prometheus.Collector {
@@ -51,14 +51,14 @@ func NewBundleCollector(log logr.Logger, opts controller.Options, client client.
 		opts:                 opts,
 		client:               client,
 		pkg:                  pkg,
-		caSSlNotBeforeMetric: caSSLNotBefore,
-		caSSlNotAfterMetric:  caSSLNotAfter,
+		caSSLNotBeforeMetric: caSSLNotBefore,
+		caSSLNotAfterMetric:  caSSLNotAfter,
 	}
 }
 
 func (bc BundleCollector) Describe(desc chan<- *prometheus.Desc) {
-	desc <- bc.caSSlNotBeforeMetric
-	desc <- bc.caSSlNotAfterMetric
+	desc <- bc.caSSLNotBeforeMetric
+	desc <- bc.caSSLNotAfterMetric
 }
 
 func (bc BundleCollector) Collect(ch chan<- prometheus.Metric) {
@@ -68,7 +68,7 @@ func (bc BundleCollector) Collect(ch chan<- prometheus.Metric) {
 
 	err := bc.client.List(ctx, &bundles)
 	if err != nil {
-		bc.logger.Error(err, "failed to list bundles")
+		bc.logger.V(5).Error(err, "failed to list bundles")
 		return
 	}
 
@@ -85,16 +85,21 @@ func (bc BundleCollector) reportBundleMetrics(ctx context.Context, ch chan<- pro
 		}
 		bundleData, err := builder.BuildBundle(ctx, bundle.Spec.Sources)
 		if err != nil {
-			bc.logger.Error(err, "failed to build bundle")
+			bc.logger.V(5).Error(err, "failed to build bundle")
 			continue
 		}
 
-		sources := bundleData.CertPool.Sources()
+		certificates := bundleData.CertPool.Certificates()
+		metrics := make([]prometheus.Metric, 0, len(certificates)*2)
 
-		metrics := make([]prometheus.Metric, 0, len(sources)*2)
-		for j := range sources {
-			s := sources[j]
-			metrics = append(metrics, buildMetric(s.Cert, bundle.Name, string(s.SourceKind), s.SourceName, s.SourceKey)...)
+		for j := range certificates {
+			s := certificates[j]
+			meta, err := bundleData.GetMetadata(s)
+			if err != nil {
+				bc.logger.Error(err, "failed to get metadata")
+				continue
+			}
+			metrics = append(metrics, buildMetric(s, bundle.Name, string(meta.Kind), meta.Name, meta.Key)...)
 		}
 
 		for _, metric := range metrics {

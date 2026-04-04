@@ -427,7 +427,7 @@ func TestBundlesDeduplication(t *testing.T) {
 			t.Parallel()
 
 			certPool := util.NewCertPool()
-			err := certPool.AddCertsFromPEM([]byte(strings.Join(test.bundle, "\n")), util.InlineKind, "", "")
+			err := certPool.AddCertsFromPEM([]byte(strings.Join(test.bundle, "\n")))
 			if test.expError != "" {
 				assert.Error(t, err, test.expError)
 			} else {
@@ -468,7 +468,7 @@ func TestFilterNonCACerts(t *testing.T) {
 			t.Parallel()
 
 			certPool := util.NewCertPool(util.WithFilteredNonCaCerts(true))
-			err := certPool.AddCertsFromPEM([]byte(strings.Join(test.bundle, "\n")), util.InlineKind, "", "")
+			err := certPool.AddCertsFromPEM([]byte(strings.Join(test.bundle, "\n")))
 			if test.expError != "" {
 				assert.Error(t, err, test.expError)
 			} else {
