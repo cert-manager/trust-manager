@@ -8,7 +8,7 @@
       customType: 'jsonata',
       fileFormat: 'yaml',
       managerFilePatterns: [
-        '^\\.custom-gcl\\.yml$'
+        '.custom-gcl.yml'
       ],
       matchStrings: [
         'plugins.{"depName": module, "currentValue": version }'
