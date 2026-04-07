@@ -17,7 +17,6 @@ annotations:
   artifacthub.io/category: security
   artifacthub.io/recommendations: |
     - url: https://artifacthub.io/packages/helm/cert-manager/cert-manager
-  artifacthub.io/prerelease: "false"
 maintainers:
 - name: cert-manager-maintainers
   email: cert-manager-maintainers@googlegroups.com
