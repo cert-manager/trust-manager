@@ -26,8 +26,6 @@ var BundleLabelKey = "trust-manager.io/bundle"
 var BundleHashAnnotationKey = "trust-manager.io/hash"
 
 // +kubebuilder:object:root=true
-// +kubebuilder:printcolumn:name="ConfigMap Target",type="string",JSONPath=".spec.target.configMap.key",description="Bundle ConfigMap Target Key"
-// +kubebuilder:printcolumn:name="Secret Target",type="string",JSONPath=".spec.target.secret.key",description="Bundle Secret Target Key"
 // +kubebuilder:printcolumn:name="Synced",type="string",JSONPath=`.status.conditions[?(@.type == "Synced")].status`,description="Bundle has been synced"
 // +kubebuilder:printcolumn:name="Reason",type="string",JSONPath=`.status.conditions[?(@.type == "Synced")].reason`,description="Reason Bundle has Synced status"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Timestamp Bundle was created"
@@ -304,7 +302,7 @@ type BundleStatus struct {
 
 	// defaultCAVersion is the version of the default CA package used for this ClusterBundle
 	// when resolving default CAs, if applicable.
-	// This field is populated only when spec.includeDefaultCAs is set to true.
+	// This field is populated only when default CAs are configured via spec.defaultCAs.
 	// ClusterBundles resolved from identical sets of default CA certificates will report
 	// the same defaultCAVersion value.
 	// +optional
