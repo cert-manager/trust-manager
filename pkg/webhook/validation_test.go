@@ -458,6 +458,97 @@ func Test_validate(t *testing.T) {
 			},
 			expErr: nil,
 		},
+		"keepCertHistory with selector should fail": {
+			bundle: &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle"},
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{Secret: &trustapi.SourceObjectKeySelector{
+							Selector:        &metav1.LabelSelector{MatchLabels: map[string]string{"app": "test"}},
+							Key:             "ca.crt",
+							KeepCertHistory: true,
+						}},
+					},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "bundle.pem"}},
+				},
+			},
+			expErr: field.ErrorList{
+				field.Invalid(field.NewPath("spec", "sources").Index(0).Child("secret", "keepCertHistory"), true, "keepCertHistory is not supported with label selector sources"),
+			},
+		},
+		"keepCertHistory with includeAllKeys should fail": {
+			bundle: &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle"},
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{ConfigMap: &trustapi.SourceObjectKeySelector{
+							Name:            "my-ca",
+							IncludeAllKeys:  ptr.To(true),
+							KeepCertHistory: true,
+						}},
+					},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "bundle.pem"}},
+				},
+			},
+			expErr: field.ErrorList{
+				field.Required(field.NewPath("spec", "sources").Index(0).Child("configMap", "key"), "key is required when keepCertHistory is enabled"),
+				field.Invalid(field.NewPath("spec", "sources").Index(0).Child("configMap", "keepCertHistory"), true, "keepCertHistory is not supported with includeAllKeys"),
+			},
+		},
+		"certHistoryLimit below 1 should fail": {
+			bundle: &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle"},
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{Secret: &trustapi.SourceObjectKeySelector{
+							Name:             "my-ca",
+							Key:              "ca.crt",
+							KeepCertHistory:  true,
+							CertHistoryLimit: ptr.To(int32(0)),
+						}},
+					},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "bundle.pem"}},
+				},
+			},
+			expErr: field.ErrorList{
+				field.Invalid(field.NewPath("spec", "sources").Index(0).Child("secret", "certHistoryLimit"), int32(0), "certHistoryLimit must be at least 1"),
+			},
+		},
+		"keepCertHistory without key should fail": {
+			bundle: &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle"},
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{Secret: &trustapi.SourceObjectKeySelector{
+							Name:            "my-ca",
+							KeepCertHistory: true,
+						}},
+					},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "bundle.pem"}},
+				},
+			},
+			expErr: field.ErrorList{
+				field.Invalid(field.NewPath("spec", "sources").Index(0).Child("secret"), "key: ' ', includeAllKeys: false", "source secret key must be defined when includeAllKeys is false"),
+				field.Required(field.NewPath("spec", "sources").Index(0).Child("secret", "key"), "key is required when keepCertHistory is enabled"),
+			},
+		},
+		"valid keepCertHistory": {
+			bundle: &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle"},
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{Secret: &trustapi.SourceObjectKeySelector{
+							Name:             "my-ca",
+							Key:              "ca.crt",
+							KeepCertHistory:  true,
+							CertHistoryLimit: ptr.To(int32(3)),
+						}},
+					},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "bundle.pem"}},
+				},
+			},
+			expErr: nil,
+		},
 		"valid Bundle including all keys": {
 			bundle: &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle-1"},

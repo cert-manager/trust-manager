@@ -289,6 +289,61 @@ type TargetMetadata struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
+// CertHistoryEntry holds a single historical CA certificate for a source.
+type CertHistoryEntry struct {
+	// pem is the PEM-encoded certificate.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=65536
+	PEM string `json:"pem,omitempty"`
+
+	// notAfter is the expiry time parsed from the certificate.
+	// +optional
+	NotAfter metav1.Time `json:"notAfter,omitempty"`
+
+	// addedAt is when this entry was recorded by trust-manager.
+	// +optional
+	AddedAt metav1.Time `json:"addedAt,omitempty"`
+
+	// fingerprint is the SHA-256 of the DER-encoded cert, hex-encoded.
+	// Used to detect duplicates across reconcile cycles.
+	// +required
+	// +kubebuilder:validation:MinLength=64
+	// +kubebuilder:validation:MaxLength=64
+	Fingerprint string `json:"fingerprint,omitempty"`
+}
+
+// SourceCertHistory tracks the current and historical certificates for a source
+// with keepCertHistory enabled.
+type SourceCertHistory struct {
+	// sourceKey is a stable identifier for this source (e.g. "secret/my-ca/ca.crt").
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	SourceKey string `json:"sourceKey,omitempty"`
+
+	// lastSeenFingerprint is the SHA-256 fingerprint of the most recently observed
+	// current certificate from this source. Used to detect when rotation has occurred.
+	// +required
+	// +kubebuilder:validation:MinLength=64
+	// +kubebuilder:validation:MaxLength=64
+	LastSeenFingerprint string `json:"lastSeenFingerprint,omitempty"`
+
+	// lastSeenPEM is the PEM-encoded form of the most recently observed
+	// current certificate. Stored so it can be moved to entries on rotation.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=65536
+	LastSeenPEM string `json:"lastSeenPEM,omitempty"`
+
+	// entries is the list of historical (replaced) certificates, most recent first.
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=0
+	// +kubebuilder:validation:MaxItems=20
+	Entries []CertHistoryEntry `json:"entries,omitempty"`
+}
+
 // BundleStatus defines the observed state of the Bundle.
 // +kubebuilder:validation:MinProperties=1
 type BundleStatus struct {
@@ -309,6 +364,14 @@ type BundleStatus struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	DefaultCAPackageVersion string `json:"defaultCAVersion,omitempty"`
+
+	// certHistory tracks historical certificates for sources with keepCertHistory enabled.
+	// +optional
+	// +listType=map
+	// +listMapKey=sourceKey
+	// +kubebuilder:validation:MinItems=0
+	// +kubebuilder:validation:MaxItems=100
+	CertHistory []SourceCertHistory `json:"certHistory,omitempty"`
 }
 
 const (
