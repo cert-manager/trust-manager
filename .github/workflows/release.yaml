@@ -36,6 +36,14 @@ jobs:
       - id: release
         run: make release
 
+      - name: Upload rendered CRD artifact for github_release job
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: trust-manager-crds
+          path: ${{ steps.release.outputs.RELEASE_CRDS_ARTIFACT }}
+          if-no-files-found: error
+          retention-days: 1
+
     outputs:
       RELEASE_OCI_MANAGER_IMAGE: ${{ steps.release.outputs.RELEASE_OCI_MANAGER_IMAGE }}
       RELEASE_OCI_MANAGER_TAG: ${{ steps.release.outputs.RELEASE_OCI_MANAGER_TAG }}
@@ -63,6 +71,12 @@ jobs:
           echo "HELM_CHART_IMAGE: ${{ needs.build_and_push.outputs.RELEASE_HELM_CHART_IMAGE }}" >> .notes-file
           echo "HELM_CHART_VERSION: ${{ needs.build_and_push.outputs.RELEASE_HELM_CHART_VERSION }}" >> .notes-file
 
+      - name: Download rendered CRD artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: trust-manager-crds
+          path: release-assets
+
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -71,4 +85,5 @@ jobs:
             --title="${VERSION}" \
             --draft \
             --verify-tag \
-            --notes-file .notes-file
+            --notes-file .notes-file \
+            release-assets/trust-manager.crds.yaml
