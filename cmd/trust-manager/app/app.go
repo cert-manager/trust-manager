@@ -37,6 +37,7 @@ import (
 	"github.com/cert-manager/trust-manager/pkg/bundle"
 	bundleMetrics "github.com/cert-manager/trust-manager/pkg/bundle/metrics"
 	"github.com/cert-manager/trust-manager/pkg/fspkg"
+	pkgMetrics "github.com/cert-manager/trust-manager/pkg/metrics"
 	"github.com/cert-manager/trust-manager/pkg/webhook"
 )
 
@@ -108,7 +109,12 @@ func NewCommand() *cobra.Command {
 				log.Info("successfully loaded default package from filesystem", "id", pkg.StringID(), "path", opts.Bundle.DefaultPackageLocation)
 			}
 
-			metrics.Registry.MustRegister(bundleMetrics.NewBundleCollector(log, opts.Bundle, mgr.GetClient(), pkg))
+			m := pkgMetrics.NewRegistrator(metrics.Registry)
+			m.Add(bundleMetrics.NewBundleCollector(log, opts.Bundle, mgr.GetClient(), pkg))
+
+			if err := mgr.Add(m); err != nil {
+				return fmt.Errorf("failed to add metrics: %w", err)
+			}
 
 			if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
 				return fmt.Errorf("failed to add webhook ready check: %v", err)
