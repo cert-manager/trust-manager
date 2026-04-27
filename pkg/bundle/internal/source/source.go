@@ -145,7 +145,7 @@ func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.Bund
 			panic(fmt.Sprintf("don't know how to process source: %+v", source))
 		}
 
-		if err := certSource.addToBundle(ctx, resolvedBundle); err != nil {
+		if err := certSource.addToBundle(ctx, &resolvedBundle); err != nil {
 			return BundleData{}, err
 		}
 	}
@@ -159,14 +159,14 @@ func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.Bund
 }
 
 type bundleSource interface {
-	addToBundle(context.Context, BundleData) error
+	addToBundle(context.Context, *BundleData) error
 }
 
 type inlineBundleSource struct {
 	pemData string
 }
 
-func (s inlineBundleSource) addToBundle(_ context.Context, bundle BundleData) error {
+func (s inlineBundleSource) addToBundle(_ context.Context, bundle *BundleData) error {
 	if err := bundle.AddFromPem([]byte(s.pemData), InlineKind, "", ""); err != nil {
 		return InvalidPEMError{fmt.Errorf("inline source contains invalid PEM data: %w", err)}
 	}
@@ -177,7 +177,7 @@ type defaultCAsBundleSource struct {
 	pemData string
 }
 
-func (s defaultCAsBundleSource) addToBundle(_ context.Context, bundle BundleData) error {
+func (s defaultCAsBundleSource) addToBundle(_ context.Context, bundle *BundleData) error {
 	if err := bundle.AddFromPem([]byte(s.pemData), DefaultCAKind, "", ""); err != nil {
 		return InvalidPEMError{fmt.Errorf("default package contains invalid PEM data: %w", err)}
 	}
@@ -190,7 +190,7 @@ type configMapBundleSource struct {
 	ref       *trustapi.SourceObjectKeySelector
 }
 
-func (b configMapBundleSource) addToBundle(ctx context.Context, bundle BundleData) error {
+func (b configMapBundleSource) addToBundle(ctx context.Context, bundle *BundleData) error {
 	// this slice will contain a single ConfigMap if we fetch by name
 	// or potentially multiple ConfigMaps if we fetch by label selector
 	var configMaps []corev1.ConfigMap
@@ -253,7 +253,7 @@ type secretBundleSource struct {
 	ref       *trustapi.SourceObjectKeySelector
 }
 
-func (b secretBundleSource) addToBundle(ctx context.Context, bundle BundleData) error {
+func (b secretBundleSource) addToBundle(ctx context.Context, bundle *BundleData) error {
 	// this slice will contain a single Secret if we fetch by name
 	// or potentially multiple Secrets if we fetch by label selector
 	var secrets []corev1.Secret
