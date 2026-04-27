@@ -97,20 +97,20 @@ func (b *bundle) setBundleStatusDefaultCAVersion(
 	currentVersion := bundleStatus.DefaultCAPackageVersion
 
 	// If both are empty, we don't need to update
-	if len(requiredID) == 0 && currentVersion == nil {
+	if len(requiredID) == 0 && currentVersion == "" {
 		return false
 	}
 
 	// If requiredID is empty, we need to update if currentVersion is not
-	if len(requiredID) == 0 && currentVersion != nil {
-		bundleStatus.DefaultCAPackageVersion = nil
+	if len(requiredID) == 0 && currentVersion != "" {
+		bundleStatus.DefaultCAPackageVersion = ""
 		return true
 	}
 
 	// If requiredID is not empty, we need to update if currentVersion is empty or
 	// if currentVersion is not equal to requiredID
-	if currentVersion == nil || *currentVersion != requiredID {
-		bundleStatus.DefaultCAPackageVersion = &requiredID
+	if currentVersion == "" || currentVersion != requiredID {
+		bundleStatus.DefaultCAPackageVersion = requiredID
 		return true
 	}
 

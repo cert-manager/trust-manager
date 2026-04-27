@@ -15,18 +15,18 @@ linters:
               - minlength # Checks for minimum length constraints on strings, arrays, maps and structs
               - statusoptional # Ensures status fields are marked as optional
               - statussubresource # Validates status subresource configuration
-            # Linters that are not enabled by default, but recommended
-            #  - nobools # Prevents usage of boolean types
+              - nobools # Prevents usage of boolean types
             disable:
-              - arrayofstruct # Ensures arrays of structs have at least one required field
-              - nonpointerstructs # Ensures non-pointer structs are marked correctly with required/optional markers
-              - optionalfields # Validates optional field conventions
+              - nonpointerstructs # Not intended for CRDs
           lintersConfig:
             conditions:
               useProtobuf: Forbid
               usePatchStrategy: Forbid
             defaults:
               preferredDefaultMarker: kubebuilder:default
+            optionalfields:
+              pointers:
+                preference: WhenRequired
   exclusions:
     generated: strict
     paths-except:

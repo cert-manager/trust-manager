@@ -162,7 +162,7 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 
 	targetResources := map[target.Resource]struct{}{}
 
-	namespaceSelector, err := b.bundleTargetNamespaceSelector(&bundle)
+	namespaceSelector, err := b.bundleTargetNamespaceSelector(bundle.Spec.Target)
 	if err != nil {
 		b.recorder.Eventf(&bundle, nil, corev1.EventTypeWarning, "NamespaceSelectorError", "SyncFailed", "Failed to build namespace match labels selector: %s", err)
 		return nil, fmt.Errorf("failed to build NamespaceSelector: %w", err)
@@ -338,8 +338,8 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 	return statusPatch, nil
 }
 
-func (b *bundle) bundleTargetNamespaceSelector(bundleObj *trustapi.Bundle) (labels.Selector, error) {
-	nsSelector := bundleObj.Spec.Target.NamespaceSelector
+func (b *bundle) bundleTargetNamespaceSelector(bundleTarget trustapi.BundleTarget) (labels.Selector, error) {
+	nsSelector := bundleTarget.NamespaceSelector
 
 	// LabelSelectorAsSelector returns a Selector selecting nothing if LabelSelector is nil,
 	// while our current default is to select everything. But this is subject to change.
