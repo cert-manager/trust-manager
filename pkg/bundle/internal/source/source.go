@@ -78,8 +78,8 @@ func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.Bund
 		case source.Secret != nil:
 			certSource = &secretBundleSource{b.Reader, b.Namespace, source.Secret}
 
-		case source.InLine != nil:
-			certSource = &inlineBundleSource{*source.InLine}
+		case source.InLine != "":
+			certSource = &inlineBundleSource{source.InLine}
 
 		case source.UseDefaultCAs != nil:
 			if !*source.UseDefaultCAs {

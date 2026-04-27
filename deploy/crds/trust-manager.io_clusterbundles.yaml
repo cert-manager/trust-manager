@@ -15,14 +15,6 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - description: Bundle ConfigMap Target Key
-      jsonPath: .spec.target.configMap.key
-      name: ConfigMap Target
-      type: string
-    - description: Bundle Secret Target Key
-      jsonPath: .spec.target.secret.key
-      name: Secret Target
-      type: string
     - description: Bundle has been synced
       jsonPath: .status.conditions[?(@.type == "Synced")].status
       name: Synced
@@ -523,7 +515,7 @@ spec:
                 description: |-
                   defaultCAVersion is the version of the default CA package used for this ClusterBundle
                   when resolving default CAs, if applicable.
-                  This field is populated only when spec.includeDefaultCAs is set to true.
+                  This field is populated only when default CAs are configured via spec.defaultCAs.
                   ClusterBundles resolved from identical sets of default CA certificates will report
                   the same defaultCAVersion value.
                 maxLength: 253
