@@ -23,7 +23,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2/ktesting"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
@@ -84,7 +83,7 @@ func Test_validate(t *testing.T) {
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
 						{
-							UseDefaultCAs: ptr.To(false),
+							UseDefaultCAs: new(false),
 						},
 					},
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "test"}},
@@ -99,10 +98,10 @@ func Test_validate(t *testing.T) {
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
 						{
-							UseDefaultCAs: ptr.To(true),
+							UseDefaultCAs: new(true),
 						},
 						{
-							UseDefaultCAs: ptr.To(true),
+							UseDefaultCAs: new(true),
 						},
 					},
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "test"}},
@@ -117,13 +116,13 @@ func Test_validate(t *testing.T) {
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
 						{
-							UseDefaultCAs: ptr.To(true),
+							UseDefaultCAs: new(true),
 						},
 						{
-							UseDefaultCAs: ptr.To(false),
+							UseDefaultCAs: new(false),
 						},
 						{
-							UseDefaultCAs: ptr.To(true),
+							UseDefaultCAs: new(true),
 						},
 					},
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "test"}},
@@ -171,9 +170,9 @@ func Test_validate(t *testing.T) {
 			bundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "some-config-map", Key: "test", IncludeAllKeys: ptr.To(true)}},
+						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "some-config-map", Key: "test", IncludeAllKeys: new(true)}},
 						{InLine: "test"},
-						{Secret: &trustapi.SourceObjectKeySelector{Name: "some-secret", Key: "test", IncludeAllKeys: ptr.To(true)}},
+						{Secret: &trustapi.SourceObjectKeySelector{Name: "some-secret", Key: "test", IncludeAllKeys: new(true)}},
 					},
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "test"}},
 				},
@@ -463,8 +462,8 @@ func Test_validate(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle-1"},
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "some-config-map", IncludeAllKeys: ptr.To(true)}},
-						{Secret: &trustapi.SourceObjectKeySelector{Name: "some-secret", IncludeAllKeys: ptr.To(true)}},
+						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "some-config-map", IncludeAllKeys: new(true)}},
+						{Secret: &trustapi.SourceObjectKeySelector{Name: "some-secret", IncludeAllKeys: new(true)}},
 					},
 					Target: trustapi.BundleTarget{
 						ConfigMap: &trustapi.TargetTemplate{Key: "test-1"},

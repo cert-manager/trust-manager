@@ -128,7 +128,7 @@ func spokeSourceObjectKeySelectorFuzzer(obj *SourceObjectKeySelector, c randfill
 	case ptr.Deref(obj.IncludeAllKeys, false):
 		obj.Key = ""
 	case obj.Key == "":
-		obj.IncludeAllKeys = ptr.To(true)
+		obj.IncludeAllKeys = new(true)
 	default:
 		obj.IncludeAllKeys = nil
 	}

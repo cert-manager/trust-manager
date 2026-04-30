@@ -21,7 +21,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2/ktesting"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
@@ -49,7 +48,7 @@ var _ = Describe("Bundle Validation", func() {
 		bundle = &trustapi.Bundle{}
 		bundle.GenerateName = "validation-"
 		bundle.Spec.Sources = []trustapi.BundleSource{{
-			UseDefaultCAs: ptr.To(true),
+			UseDefaultCAs: new(true),
 		}}
 		bundle.Spec.Target = trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "ca-bundle.crt"}}
 	})
@@ -64,8 +63,8 @@ var _ = Describe("Bundle Validation", func() {
 
 		It("should require at most one useDefaultCAs source", func() {
 			bundle.Spec.Sources = []trustapi.BundleSource{
-				{UseDefaultCAs: ptr.To(true)},
-				{UseDefaultCAs: ptr.To(true)},
+				{UseDefaultCAs: new(true)},
+				{UseDefaultCAs: new(true)},
 			}
 
 			expectedErr := "spec.sources: Forbidden: must request default CAs either once or not at all but got 2 requests"
@@ -87,9 +86,9 @@ var _ = Describe("Bundle Validation", func() {
 			Entry("when configMap set", trustapi.BundleSource{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "ca", Key: "ca.crt"}}, ""),
 			Entry("when secret set", trustapi.BundleSource{Secret: &trustapi.SourceObjectKeySelector{Name: "ca", Key: "ca.crt"}}, ""),
 			Entry("when inLine set", trustapi.BundleSource{InLine: "cert-placeholder"}, ""),
-			Entry("when useDefaultCAs=true set", trustapi.BundleSource{UseDefaultCAs: ptr.To(true)}, ""),
-			Entry("when useDefaultCAs=false set", trustapi.BundleSource{UseDefaultCAs: ptr.To(false)}, "spec.sources: Forbidden: must define at least one source"),
-			Entry("when multiple set", trustapi.BundleSource{InLine: "cert-placeholder", UseDefaultCAs: ptr.To(true)}, "spec.sources[0]: Invalid value: exactly one of the fields in [configMap secret inLine useDefaultCAs] must be set"),
+			Entry("when useDefaultCAs=true set", trustapi.BundleSource{UseDefaultCAs: new(true)}, ""),
+			Entry("when useDefaultCAs=false set", trustapi.BundleSource{UseDefaultCAs: new(false)}, "spec.sources: Forbidden: must define at least one source"),
+			Entry("when multiple set", trustapi.BundleSource{InLine: "cert-placeholder", UseDefaultCAs: new(true)}, "spec.sources[0]: Invalid value: exactly one of the fields in [configMap secret inLine useDefaultCAs] must be set"),
 		)
 	})
 
@@ -133,9 +132,9 @@ var _ = Describe("Bundle Validation", func() {
 				},
 				Entry("when none set", &trustapi.SourceObjectKeySelector{}, "Invalid value: \"key: ' ', includeAllKeys: false\": source %s key must be defined when includeAllKeys is false"),
 				Entry("when key set", &trustapi.SourceObjectKeySelector{Key: "ca.crt"}, ""),
-				Entry("when includeAllKeys set to true", &trustapi.SourceObjectKeySelector{IncludeAllKeys: ptr.To(true)}, ""),
-				Entry("when includeAllKeys set to false", &trustapi.SourceObjectKeySelector{IncludeAllKeys: ptr.To(false)}, "Invalid value: \"key: ' ', includeAllKeys: false\": source %s key must be defined when includeAllKeys is false"),
-				Entry("when both set", &trustapi.SourceObjectKeySelector{Key: "ca.crt", IncludeAllKeys: ptr.To(true)}, "Invalid value: \"key: ca.crt, includeAllKeys: true\": source %s key cannot be defined when includeAllKeys is true"),
+				Entry("when includeAllKeys set to true", &trustapi.SourceObjectKeySelector{IncludeAllKeys: new(true)}, ""),
+				Entry("when includeAllKeys set to false", &trustapi.SourceObjectKeySelector{IncludeAllKeys: new(false)}, "Invalid value: \"key: ' ', includeAllKeys: false\": source %s key must be defined when includeAllKeys is false"),
+				Entry("when both set", &trustapi.SourceObjectKeySelector{Key: "ca.crt", IncludeAllKeys: new(true)}, "Invalid value: \"key: ca.crt, includeAllKeys: true\": source %s key cannot be defined when includeAllKeys is true"),
 			)
 		}
 

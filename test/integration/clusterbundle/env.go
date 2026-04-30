@@ -50,7 +50,7 @@ var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
 	env = &envtest.Environment{
-		UseExistingCluster: ptr.To(false),
+		UseExistingCluster: new(false),
 		CRDDirectoryPaths: []string{
 			path.Join("..", "..", "..", "deploy", "crds"),
 		},
@@ -130,7 +130,7 @@ func clusterBundleValidatingWebhook() admissionv1.ValidatingWebhook {
 			Service: &admissionv1.ServiceReference{
 				Namespace: "cert-manager",
 				Name:      "trust-manager",
-				Path:      ptr.To("/validate-trust-manager-io-v1alpha2-clusterbundle"),
+				Path:      new("/validate-trust-manager-io-v1alpha2-clusterbundle"),
 			},
 		},
 	}

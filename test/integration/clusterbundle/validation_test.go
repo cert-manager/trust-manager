@@ -22,7 +22,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2/ktesting"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
@@ -306,7 +305,7 @@ var _ = Describe("ClusterBundle Validation", func() {
 			Context("Password", func() {
 				BeforeEach(func() {
 					pkcs12Field = "password"
-					pkcs12 = trustmanagerapi.PKCS12{Password: ptr.To("my-password")}
+					pkcs12 = trustmanagerapi.PKCS12{Password: new("my-password")}
 				})
 
 				pkcs12Asserts()
