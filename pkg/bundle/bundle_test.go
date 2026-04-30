@@ -154,7 +154,7 @@ func Test_Reconcile(t *testing.T) {
 				KeySelector: trustapi.KeySelector{
 					Key: "target.p12",
 				},
-				Password: ptr.To("OLD PASSWORD"),
+				Password: new("OLD PASSWORD"),
 			},
 		}
 
@@ -386,7 +386,7 @@ func Test_Reconcile(t *testing.T) {
 						"old-target": "foo",
 					},
 					nil,
-					ptr.To("old-target"),
+					new("old-target"),
 					true, nil,
 				),
 				targetConfigMap(
@@ -396,7 +396,7 @@ func Test_Reconcile(t *testing.T) {
 						"old-target": "foo",
 					},
 					nil,
-					ptr.To("old-target"),
+					new("old-target"),
 					true, nil,
 				),
 			},
@@ -434,7 +434,7 @@ func Test_Reconcile(t *testing.T) {
 						"A":          "B",
 						"old-target": "foo",
 					},
-					ptr.To("old-target"),
+					new("old-target"),
 					true, nil,
 				),
 				targetSecret(
@@ -443,7 +443,7 @@ func Test_Reconcile(t *testing.T) {
 						"A":          "B",
 						"old-target": "foo",
 					},
-					ptr.To("old-target"),
+					new("old-target"),
 					true, nil,
 				),
 			},
@@ -489,7 +489,7 @@ func Test_Reconcile(t *testing.T) {
 					map[string][]byte{
 						"target.p12": []byte("foo"),
 					},
-					ptr.To("old-target"),
+					new("old-target"),
 					true, &pkcs12DefaultAdditionalFormats,
 				),
 				targetConfigMap(
@@ -501,7 +501,7 @@ func Test_Reconcile(t *testing.T) {
 					map[string][]byte{
 						"target.p12": []byte("foo"),
 					},
-					ptr.To("old-target"),
+					new("old-target"),
 					true, &pkcs12DefaultAdditionalFormats,
 				),
 			},

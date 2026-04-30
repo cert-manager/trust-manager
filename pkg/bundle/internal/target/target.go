@@ -34,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
 	metav1applyconfig "k8s.io/client-go/applyconfigurations/meta/v1"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/structured-merge-diff/v6/fieldpath"
@@ -298,14 +297,14 @@ func listManagedProperties(configmap *metav1.PartialObjectMetadata, fieldManager
 
 		// Decode the managed field.
 		var fieldset fieldpath.Set
-		if err := fieldset.FromJSON(bytes.NewReader(managedField.FieldsV1.Raw)); err != nil {
+		if err := fieldset.FromJSON(bytes.NewReader(managedField.FieldsV1.GetRawBytes())); err != nil {
 			return nil, err
 		}
 
 		for _, fieldName := range fieldNames {
 			// Extract the labels and annotations of the managed fields.
 			configmapData := fieldset.Children.Descend(fieldpath.PathElement{
-				FieldName: ptr.To(fieldName),
+				FieldName: new(fieldName),
 			})
 
 			// Gather the properties on the managed fields. Remove the '.'

@@ -255,7 +255,7 @@ func Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *trustv1alpha2.Bundle
 		out.Sources = append(out.Sources, BundleSource{InLine: in.InLineCAs})
 	}
 	if in.DefaultCAs != (trustv1alpha2.DefaultCAsSource{}) {
-		out.Sources = append(out.Sources, BundleSource{UseDefaultCAs: ptr.To(in.DefaultCAs.Provider == trustv1alpha2.DefaultCAsProviderSystem)})
+		out.Sources = append(out.Sources, BundleSource{UseDefaultCAs: new(in.DefaultCAs.Provider == trustv1alpha2.DefaultCAsProviderSystem)})
 	}
 
 	return nil
@@ -266,7 +266,7 @@ func Convert_v1alpha2_BundleSourceRef_To_v1alpha1_BundleSource(in *trustv1alpha2
 	var includeAllKeys *bool
 	if in.Key == "*" {
 		key = ""
-		includeAllKeys = ptr.To(true)
+		includeAllKeys = new(true)
 	}
 	sourceObjectKeySelector := &SourceObjectKeySelector{
 		Name:           in.Name,

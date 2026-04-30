@@ -105,8 +105,8 @@ var _ = Describe("ClusterBundle Migration", func() {
 			Kind:               "Bundle",
 			Name:               bundle.Name,
 			UID:                bundle.UID,
-			Controller:         ptr.To(true),
-			BlockOwnerDeletion: ptr.To(true),
+			Controller:         new(true),
+			BlockOwnerDeletion: new(true),
 		}}))
 	})
 

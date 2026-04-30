@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
@@ -57,7 +56,7 @@ func Test_BuildBundle(t *testing.T) {
 			expData: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1),
 		},
 		"if single DefaultPackage source defined, should return": {
-			sources: []trustapi.BundleSource{{UseDefaultCAs: ptr.To(true)}},
+			sources: []trustapi.BundleSource{{UseDefaultCAs: new(true)}},
 			expData: dummy.JoinCerts(dummy.TestCertificate5),
 		},
 		"if single ConfigMap source which doesn't exist, return NotFoundError": {
@@ -87,7 +86,7 @@ func Test_BuildBundle(t *testing.T) {
 		},
 		"if single ConfigMap source including all keys, return data": {
 			sources: []trustapi.BundleSource{
-				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", IncludeAllKeys: ptr.To(true)}},
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", IncludeAllKeys: new(true)}},
 			},
 			objects: []runtime.Object{&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
@@ -126,7 +125,7 @@ func Test_BuildBundle(t *testing.T) {
 		},
 		"if selects at least one ConfigMap source including all keys, return data": {
 			sources: []trustapi.BundleSource{
-				{ConfigMap: &trustapi.SourceObjectKeySelector{IncludeAllKeys: ptr.To(true), Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"trust-bundle.certs": "includes"}}}},
+				{ConfigMap: &trustapi.SourceObjectKeySelector{IncludeAllKeys: new(true), Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"trust-bundle.certs": "includes"}}}},
 			},
 			objects: []runtime.Object{
 				&corev1.ConfigMap{
@@ -172,7 +171,7 @@ func Test_BuildBundle(t *testing.T) {
 		},
 		"if single Secret source of type TLS including all keys, return InvalidSecretError": {
 			sources: []trustapi.BundleSource{
-				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", IncludeAllKeys: ptr.To(true)}},
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", IncludeAllKeys: new(true)}},
 			},
 			objects: []runtime.Object{&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
@@ -194,7 +193,7 @@ func Test_BuildBundle(t *testing.T) {
 		},
 		"if single Secret source including all keys, return data": {
 			sources: []trustapi.BundleSource{
-				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", IncludeAllKeys: ptr.To(true)}},
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", IncludeAllKeys: new(true)}},
 			},
 			objects: []runtime.Object{&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
@@ -261,7 +260,7 @@ func Test_BuildBundle(t *testing.T) {
 		},
 		"if selects at least one Secret source including all keys, return data": {
 			sources: []trustapi.BundleSource{
-				{Secret: &trustapi.SourceObjectKeySelector{IncludeAllKeys: ptr.To(true), Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"trust-bundle.certs": "includes"}}}},
+				{Secret: &trustapi.SourceObjectKeySelector{IncludeAllKeys: new(true), Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"trust-bundle.certs": "includes"}}}},
 			},
 			objects: []runtime.Object{
 				&corev1.Secret{
@@ -281,7 +280,7 @@ func Test_BuildBundle(t *testing.T) {
 		},
 		"if selects at least one Secret source of type TLS including all keys, return InvalidSecretError": {
 			sources: []trustapi.BundleSource{
-				{Secret: &trustapi.SourceObjectKeySelector{IncludeAllKeys: ptr.To(true), Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"trust-bundle.certs": "includes"}}}},
+				{Secret: &trustapi.SourceObjectKeySelector{IncludeAllKeys: new(true), Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"trust-bundle.certs": "includes"}}}},
 			},
 			objects: []runtime.Object{
 				&corev1.Secret{
