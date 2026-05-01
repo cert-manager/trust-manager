@@ -1,0 +1,68 @@
+{{- if .Values.startupapicheck.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "trust-manager.name" . }}-startupapicheck
+  namespace: {{ include "trust-manager.namespace" . }}
+  labels:
+    app: {{ include "trust-manager.name" . }}-startupapicheck
+    {{- include "trust-manager.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  backoffLimit: 4
+  template:
+    metadata:
+      labels:
+        app: {{ include "trust-manager.name" . }}-startupapicheck
+        {{- include "trust-manager.labels" . | nindent 8 }}
+        {{- with .Values.startupapicheck.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.startupapicheck.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: OnFailure
+      {{- if .Values.startupapicheck.serviceAccount.create }}
+      serviceAccountName: {{ include "trust-manager.startupapicheck.serviceAccountName" . }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: startupapicheck
+          image: "{{ template "image" (tuple .Values.startupapicheck.image .Values.imageRegistry .Values.imageNamespace (printf ":%s" $.Chart.AppVersion)) }}"
+          imagePullPolicy: {{ .Values.startupapicheck.image.pullPolicy }}
+          {{- if .Values.startupapicheck.resources }}
+          resources:
+            {{- toYaml .Values.startupapicheck.resources | nindent 12 }}
+          {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            {{- if .Values.app.securityContext.seccompProfileEnabled }}
+            seccompProfile:
+              type: RuntimeDefault
+            {{- end }}
+      {{- with .Values.startupapicheck.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.startupapicheck.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.startupapicheck.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
