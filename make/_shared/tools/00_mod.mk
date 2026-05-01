@@ -88,7 +88,7 @@ tools += vault=v2.0.0
 tools += azwi=v1.5.1
 # https://github.com/kyverno/kyverno/releases
 # renovate: datasource=github-releases packageName=kyverno/kyverno
-tools += kyverno=v1.17.2
+tools += kyverno=v1.18.0
 # https://github.com/mikefarah/yq/releases
 # renovate: datasource=github-releases packageName=mikefarah/yq
 tools += yq=v4.53.2
@@ -172,7 +172,7 @@ tools += helm-tool=v0.5.3
 tools += image-tool=v0.1.0
 # https://github.com/cert-manager/cmctl/releases
 # renovate: datasource=github-releases packageName=cert-manager/cmctl
-tools += cmctl=v2.4.1
+tools += cmctl=v2.5.0
 # https://pkg.go.dev/github.com/cert-manager/release/cmd/cmrel?tab=versions
 # renovate: datasource=go packageName=github.com/cert-manager/release
 tools += cmrel=v1.12.15-0.20241121151736-e3cbe5171488
@@ -187,7 +187,7 @@ tools += govulncheck=v1.3.0
 tools += operator-sdk=v1.42.2
 # https://pkg.go.dev/github.com/cli/cli/v2?tab=versions
 # renovate: datasource=go packageName=github.com/cli/cli/v2
-tools += gh=v2.91.0
+tools += gh=v2.92.0
 # https://github.com/redhat-openshift-ecosystem/openshift-preflight/releases
 # renovate: datasource=github-releases packageName=redhat-openshift-ecosystem/openshift-preflight
 tools += preflight=1.17.2
@@ -214,7 +214,7 @@ tools += defaulter-gen=$(K8S_CODEGEN_VERSION)
 tools += conversion-gen=$(K8S_CODEGEN_VERSION)
 # https://github.com/kubernetes/kube-openapi
 # renovate: datasource=go packageName=k8s.io/kube-openapi
-tools += openapi-gen=v0.0.0-20260427204847-8949caaa1199
+tools += openapi-gen=v0.0.0-20260430154526-c903c4073796
 
 # https://raw.githubusercontent.com/kubernetes-sigs/controller-tools/master/envtest-releases.yaml
 # FIXME: Find a way to configure Renovate to suggest upgrades
@@ -588,10 +588,10 @@ $(DOWNLOAD_DIR)/tools/kube-apiserver@$(KUBEBUILDER_ASSETS_VERSION)_$(HOST_OS)_$(
 	@source $(lock_script) $@; \
 		tar xfO $< controller-tools/envtest/kube-apiserver > $(outfile) && chmod 775 $(outfile)
 
-kyverno_linux_amd64_SHA256SUM=c8de49d2865b419a3f74f6755a11b381ebab23f96afab9bf6657ac2e832f2e0b
-kyverno_linux_arm64_SHA256SUM=789b3f97770769e19606f31d522f67b3a9bccf5f4d46b0cffba2de99ff23a56b
-kyverno_darwin_amd64_SHA256SUM=ede1dfeb68a1dfc419fcc5222995915b0bf57206c0de763e0a9bdb09cafe980b
-kyverno_darwin_arm64_SHA256SUM=3852bb355dcc69251ddd3d2de9bbb1d6a7e6726bfa979f56ec06e3c546930d9a
+kyverno_linux_amd64_SHA256SUM=3aa7b7aa68732fd6bc5732f1030d0ed12e1b0ffe7dbac5f5aa21fd8695718904
+kyverno_linux_arm64_SHA256SUM=37697771e1cc92daf73bebde4eb304691af09e07a4278cc82062e829c8475cec
+kyverno_darwin_amd64_SHA256SUM=35f4884e98e32e87223f1591e4ca0f82f9136f1cc9e9ba6482c441fdb00611d5
+kyverno_darwin_arm64_SHA256SUM=9b3d02f999c2b12e315b70b8d5b2db569b08e16f70449a23991515ed390e9268
 
 .PRECIOUS: $(DOWNLOAD_DIR)/tools/kyverno@$(KYVERNO_VERSION)_$(HOST_OS)_$(HOST_ARCH)
 $(DOWNLOAD_DIR)/tools/kyverno@$(KYVERNO_VERSION)_$(HOST_OS)_$(HOST_ARCH): | $(DOWNLOAD_DIR)/tools
