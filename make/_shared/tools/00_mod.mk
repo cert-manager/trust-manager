@@ -106,7 +106,7 @@ tools += trivy=v0.70.0
 tools += ytt=v0.54.0
 # https://github.com/rclone/rclone/releases
 # renovate: datasource=github-releases packageName=rclone/rclone
-tools += rclone=v1.73.5
+tools += rclone=v1.74.0
 # https://github.com/istio/istio/releases
 # renovate: datasource=github-releases packageName=istio/istio
 tools += istioctl=1.29.2
@@ -163,7 +163,7 @@ tools += klone=v0.2.0
 tools += goreleaser=v2.15.4
 # https://pkg.go.dev/github.com/anchore/syft/cmd/syft?tab=versions
 # renovate: datasource=go packageName=github.com/anchore/syft
-tools += syft=v1.43.0
+tools += syft=v1.44.0
 # https://github.com/cert-manager/helm-tool/releases
 # renovate: datasource=github-releases packageName=cert-manager/helm-tool
 tools += helm-tool=v0.5.3
@@ -178,7 +178,7 @@ tools += cmctl=v2.5.0
 tools += cmrel=v1.12.15-0.20241121151736-e3cbe5171488
 # https://pkg.go.dev/github.com/golangci/golangci-lint/v2/cmd/golangci-lint?tab=versions
 # renovate: datasource=go packageName=github.com/golangci/golangci-lint/v2
-tools += golangci-lint=v2.11.4
+tools += golangci-lint=v2.12.1
 # https://pkg.go.dev/golang.org/x/vuln?tab=versions
 # renovate: datasource=go packageName=golang.org/x/vuln
 tools += govulncheck=v1.3.0
@@ -214,7 +214,7 @@ tools += defaulter-gen=$(K8S_CODEGEN_VERSION)
 tools += conversion-gen=$(K8S_CODEGEN_VERSION)
 # https://github.com/kubernetes/kube-openapi
 # renovate: datasource=go packageName=k8s.io/kube-openapi
-tools += openapi-gen=v0.0.0-20260430154526-c903c4073796
+tools += openapi-gen=v0.0.0-20260501160325-927ab1f70cd6
 
 # https://raw.githubusercontent.com/kubernetes-sigs/controller-tools/master/envtest-releases.yaml
 # FIXME: Find a way to configure Renovate to suggest upgrades
@@ -683,10 +683,10 @@ $(DOWNLOAD_DIR)/tools/ytt@$(YTT_VERSION)_$(HOST_OS)_$(HOST_ARCH): | $(DOWNLOAD_D
 		$(checkhash_script) $(outfile) $(ytt_$(HOST_OS)_$(HOST_ARCH)_SHA256SUM); \
 		chmod +x $(outfile)
 
-rclone_linux_amd64_SHA256SUM=932cf4b7484de74d82b4875488e0009469fd21f9904673385184520fe11a1bf0
-rclone_linux_arm64_SHA256SUM=8d465c921d95b2f54c5f2e79b24c97742ebc2082a0b8709a686361bed5ba7932
-rclone_darwin_amd64_SHA256SUM=19c709563e455d8f8e343d5521e741afa7a77e37c6552ad8f7b03034f8bc214b
-rclone_darwin_arm64_SHA256SUM=b9e265eb7a098743d0726c05c73fe207d355950fb8481e0b226c0c00173da1e8
+rclone_linux_amd64_SHA256SUM=61de0a78d8776fe3e080f8385ebe96d817f2ee6a6003fe36b2d9f3b49d3e36ea
+rclone_linux_arm64_SHA256SUM=c28148f72e82e16953a9f7eedbe610736968240318ff33872f90bfdd689cc72f
+rclone_darwin_amd64_SHA256SUM=e47ce2c488fe097119f219018e97f6806766540238f126dcdc510da9ffc0f0eb
+rclone_darwin_arm64_SHA256SUM=965b79b0bee24280a787e1f0f0a3e62347516e81cb6a40e5cc8ea4995b1ba917
 
 .PRECIOUS: $(DOWNLOAD_DIR)/tools/rclone@$(RCLONE_VERSION)_$(HOST_OS)_$(HOST_ARCH)
 $(DOWNLOAD_DIR)/tools/rclone@$(RCLONE_VERSION)_$(HOST_OS)_$(HOST_ARCH): | $(DOWNLOAD_DIR)/tools
