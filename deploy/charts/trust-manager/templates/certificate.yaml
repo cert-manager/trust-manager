@@ -39,6 +39,7 @@ spec:
   privateKey:
     rotationPolicy: Always
   revisionHistoryLimit: 1
+  duration: {{ .Values.app.webhook.tls.certificate.duration }}
   issuerRef:
     name: {{ include "trust-manager.name" . }}
     kind: Issuer

@@ -509,6 +509,9 @@
       "properties": {
         "secretTemplate": {
           "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.secretTemplate"
+        },
+        "duration": {
+          "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.duration"
         }
       },
       "type": "object"
@@ -516,6 +519,10 @@
     "helm-values.app.webhook.tls.certificate.secretTemplate": {
       "default": {},
       "type": "object"
+    },
+    "helm-values.app.webhook.tls.certificate.duration": {
+      "default": "2160h",
+      "type": "string"
     },
     "helm-values.app.webhook.tls.helmCert": {
       "additionalProperties": false,
