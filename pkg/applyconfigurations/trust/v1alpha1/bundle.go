@@ -18,8 +18,11 @@ limitations under the License.
 package v1alpha1
 
 import (
+	trustv1alpha1 "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	internal "github.com/cert-manager/trust-manager/pkg/applyconfigurations/internal"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
+	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
@@ -44,6 +47,46 @@ func Bundle(name string) *BundleApplyConfiguration {
 	b.WithKind("Bundle")
 	b.WithAPIVersion("trust.cert-manager.io/v1alpha1")
 	return b
+}
+
+// ExtractBundleFrom extracts the applied configuration owned by fieldManager from
+// bundle for the specified subresource. Pass an empty string for subresource to extract
+// the main resource. Common subresources include "status", "scale", etc.
+// bundle must be a unmodified Bundle API object that was retrieved from the Kubernetes API.
+// ExtractBundleFrom provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractBundleFrom(bundle *trustv1alpha1.Bundle, fieldManager string, subresource string) (*BundleApplyConfiguration, error) {
+	b := &BundleApplyConfiguration{}
+	err := managedfields.ExtractInto(bundle, internal.Parser().Type("com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.Bundle"), fieldManager, b, subresource)
+	if err != nil {
+		return nil, err
+	}
+	b.WithName(bundle.Name)
+
+	b.WithKind("Bundle")
+	b.WithAPIVersion("trust.cert-manager.io/v1alpha1")
+	return b, nil
+}
+
+// ExtractBundle extracts the applied configuration owned by fieldManager from
+// bundle. If no managedFields are found in bundle for fieldManager, a
+// BundleApplyConfiguration is returned with only the Name, Namespace (if applicable),
+// APIVersion and Kind populated. It is possible that no managed fields were found for because other
+// field managers have taken ownership of all the fields previously owned by fieldManager, or because
+// the fieldManager never owned fields any fields.
+// bundle must be a unmodified Bundle API object that was retrieved from the Kubernetes API.
+// ExtractBundle provides a way to perform a extract/modify-in-place/apply workflow.
+// Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
+// applied if another fieldManager has updated or force applied any of the previously applied fields.
+func ExtractBundle(bundle *trustv1alpha1.Bundle, fieldManager string) (*BundleApplyConfiguration, error) {
+	return ExtractBundleFrom(bundle, fieldManager, "")
+}
+
+// ExtractBundleStatus extracts the applied configuration owned by fieldManager from
+// bundle for the status subresource.
+func ExtractBundleStatus(bundle *trustv1alpha1.Bundle, fieldManager string) (*BundleApplyConfiguration, error) {
+	return ExtractBundleFrom(bundle, fieldManager, "status")
 }
 
 func (b BundleApplyConfiguration) IsApplyConfiguration() {}
