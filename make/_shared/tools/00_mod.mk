@@ -32,7 +32,7 @@ export GOVENDOR_DIR ?= $(default_shared_dir)/go_vendor
 
 # https://go.dev/dl/
 # renovate: datasource=golang-version packageName=go
-VENDORED_GO_VERSION := 1.26.2
+VENDORED_GO_VERSION := 1.26.3
 
 $(bin_dir)/tools $(DOWNLOAD_DIR)/tools:
 	@mkdir -p $@
@@ -114,7 +114,7 @@ tools += istioctl=1.29.2
 ### go packages
 # https://pkg.go.dev/sigs.k8s.io/controller-tools/cmd/controller-gen?tab=versions
 # renovate: datasource=go packageName=sigs.k8s.io/controller-tools
-tools += controller-gen=v0.20.1
+tools += controller-gen=v0.21.0
 # https://pkg.go.dev/golang.org/x/tools/cmd/goimports?tab=versions
 # renovate: datasource=go packageName=golang.org/x/tools
 tools += goimports=v0.44.0
@@ -178,7 +178,7 @@ tools += cmctl=v2.5.0
 tools += cmrel=v1.12.15-0.20241121151736-e3cbe5171488
 # https://pkg.go.dev/github.com/golangci/golangci-lint/v2/cmd/golangci-lint?tab=versions
 # renovate: datasource=go packageName=github.com/golangci/golangci-lint/v2
-tools += golangci-lint=v2.12.1
+tools += golangci-lint=v2.12.2
 # https://pkg.go.dev/golang.org/x/vuln?tab=versions
 # renovate: datasource=go packageName=golang.org/x/vuln
 tools += govulncheck=v1.3.0
@@ -214,7 +214,7 @@ tools += defaulter-gen=$(K8S_CODEGEN_VERSION)
 tools += conversion-gen=$(K8S_CODEGEN_VERSION)
 # https://github.com/kubernetes/kube-openapi
 # renovate: datasource=go packageName=k8s.io/kube-openapi
-tools += openapi-gen=v0.0.0-20260501160325-927ab1f70cd6
+tools += openapi-gen=v0.0.0-20260505163821-33341827b392
 
 # https://raw.githubusercontent.com/kubernetes-sigs/controller-tools/master/envtest-releases.yaml
 # FIXME: Find a way to configure Renovate to suggest upgrades
@@ -471,10 +471,10 @@ $(call for_each_kv,go_dependency,$(go_dependencies))
 # File downloads #
 ##################
 
-go_linux_amd64_SHA256SUM=990e6b4bbba816dc3ee129eaeaf4b42f17c2800b88a2166c265ac1a200262282
-go_linux_arm64_SHA256SUM=c958a1fe1b361391db163a485e21f5f228142d6f8b584f6bef89b26f66dc5b23
-go_darwin_amd64_SHA256SUM=bc3f1500d9968c36d705442d90ba91addf9271665033748b82532682e90a7966
-go_darwin_arm64_SHA256SUM=32af1522bf3e3ff3975864780a429cc0b41d190ec7bf90faa661d6d64566e7af
+go_linux_amd64_SHA256SUM=2b2cfc7148493da5e73981bffbf3353af381d5f93e789c82c79aff64962eb556
+go_linux_arm64_SHA256SUM=9d89a3ea57d141c2b22d70083f2c8459ba3890f2d9e818e7e933b75614936565
+go_darwin_amd64_SHA256SUM=278d580b32e299fe4a9c990fcf2d02acfe538c7e551a6ee18f9c7164573d2c63
+go_darwin_arm64_SHA256SUM=875cf54a15311eee2c99b9dd67c68c4a49351d489ab622bf2cfd28c8f2078d3c
 
 .PRECIOUS: $(DOWNLOAD_DIR)/tools/go@$(VENDORED_GO_VERSION)_$(HOST_OS)_$(HOST_ARCH).tar.gz
 $(DOWNLOAD_DIR)/tools/go@$(VENDORED_GO_VERSION)_$(HOST_OS)_$(HOST_ARCH).tar.gz: | $(DOWNLOAD_DIR)/tools
