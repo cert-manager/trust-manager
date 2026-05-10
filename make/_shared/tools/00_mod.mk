@@ -106,7 +106,7 @@ tools += trivy=v0.70.0
 tools += ytt=v0.54.0
 # https://github.com/rclone/rclone/releases
 # renovate: datasource=github-releases packageName=rclone/rclone
-tools += rclone=v1.74.0
+tools += rclone=v1.74.1
 # https://github.com/istio/istio/releases
 # renovate: datasource=github-releases packageName=istio/istio
 tools += istioctl=1.29.2
@@ -214,7 +214,7 @@ tools += defaulter-gen=$(K8S_CODEGEN_VERSION)
 tools += conversion-gen=$(K8S_CODEGEN_VERSION)
 # https://github.com/kubernetes/kube-openapi
 # renovate: datasource=go packageName=k8s.io/kube-openapi
-tools += openapi-gen=v0.0.0-20260505163821-33341827b392
+tools += openapi-gen=v0.0.0-20260507235316-19c3011e7fa0
 
 # https://raw.githubusercontent.com/kubernetes-sigs/controller-tools/master/envtest-releases.yaml
 # FIXME: Find a way to configure Renovate to suggest upgrades
@@ -683,10 +683,10 @@ $(DOWNLOAD_DIR)/tools/ytt@$(YTT_VERSION)_$(HOST_OS)_$(HOST_ARCH): | $(DOWNLOAD_D
 		$(checkhash_script) $(outfile) $(ytt_$(HOST_OS)_$(HOST_ARCH)_SHA256SUM); \
 		chmod +x $(outfile)
 
-rclone_linux_amd64_SHA256SUM=61de0a78d8776fe3e080f8385ebe96d817f2ee6a6003fe36b2d9f3b49d3e36ea
-rclone_linux_arm64_SHA256SUM=c28148f72e82e16953a9f7eedbe610736968240318ff33872f90bfdd689cc72f
-rclone_darwin_amd64_SHA256SUM=e47ce2c488fe097119f219018e97f6806766540238f126dcdc510da9ffc0f0eb
-rclone_darwin_arm64_SHA256SUM=965b79b0bee24280a787e1f0f0a3e62347516e81cb6a40e5cc8ea4995b1ba917
+rclone_linux_amd64_SHA256SUM=67df3059a6233b6e32e604bcd637654bb294ff86291b65ede77123e94818d911
+rclone_linux_arm64_SHA256SUM=c816ed0e568de4dd1bba1a4d0cd47523d3dd54337dd5fde73f1b068857ecf877
+rclone_darwin_amd64_SHA256SUM=4f10d7845422d8568e187a0f6813f124bca9b657ac7becd8bdf8508fa968a336
+rclone_darwin_arm64_SHA256SUM=98c04f5f678fe87d435d6f4b1fe204103c5906b151357e631ba0111410691213
 
 .PRECIOUS: $(DOWNLOAD_DIR)/tools/rclone@$(RCLONE_VERSION)_$(HOST_OS)_$(HOST_ARCH)
 $(DOWNLOAD_DIR)/tools/rclone@$(RCLONE_VERSION)_$(HOST_OS)_$(HOST_ARCH): | $(DOWNLOAD_DIR)/tools
