@@ -593,6 +593,12 @@ The name of cert-manager's Service Account. Only used if `app.webhook.tls.approv
 > ```yaml
 > {}
 > ```
+
+Certificate duration, if unset the default from cert-manager will be used
+
+```yaml
+duration: 2160h
+```
 #### **app.webhook.hostNetwork** ~ `bool`
 > Default value:
 > ```yaml
