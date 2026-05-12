@@ -356,8 +356,8 @@ app:
 
       # Configure certificate duration and add labels/annotations to secrets created by Certificate resources when using cert-manager provisioned TLS certificate.
       certificate:
-        # Certificate duration, if unset the default from cert-manager will be used
-        # duration: 2160h
+        # Certificate duration, if unset/empty the default from cert-manager will be used. Example configuration to set 1 year: duration: 8766h
+        duration: ""
         secretTemplate: {}
           # For example:
           #   annotations:

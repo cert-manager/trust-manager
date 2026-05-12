@@ -588,17 +588,18 @@ The namespace in which cert-manager was installed. Only used if `app.webhook.tls
 > ```
 
 The name of cert-manager's Service Account. Only used if `app.webhook.tls.approverPolicy.enabled` is true.
+#### **app.webhook.tls.certificate.duration** ~ `string`
+> Default value:
+> ```yaml
+> ""
+> ```
+
+Certificate duration, if unset/empty the default from cert-manager will be used. Example configuration to set 1 year: duration: 8766h
 #### **app.webhook.tls.certificate.secretTemplate** ~ `object`
 > Default value:
 > ```yaml
 > {}
 > ```
-
-Certificate duration, if unset the default from cert-manager will be used
-
-```yaml
-duration: 2160h
-```
 #### **app.webhook.hostNetwork** ~ `bool`
 > Default value:
 > ```yaml
