@@ -507,11 +507,19 @@
     "helm-values.app.webhook.tls.certificate": {
       "additionalProperties": false,
       "properties": {
+        "duration": {
+          "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.duration"
+        },
         "secretTemplate": {
           "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.secretTemplate"
         }
       },
       "type": "object"
+    },
+    "helm-values.app.webhook.tls.certificate.duration": {
+      "default": "",
+      "description": "Certificate duration, if unset/empty the default from cert-manager will be used. Example configuration to set 1 year: duration: 8766h",
+      "type": "string"
     },
     "helm-values.app.webhook.tls.certificate.secretTemplate": {
       "default": {},
