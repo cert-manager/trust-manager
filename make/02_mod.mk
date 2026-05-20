@@ -35,6 +35,7 @@ smoke:
 include make/validate-trust-package.mk
 include make/debian-bullseye-trust-package.mk
 include make/debian-bookworm-trust-package.mk
+include make/release-crds.mk
 
 .PHONY: prerelease-scan
 ## Perform security scans on the codebase with govulncheck and on released trust packages
@@ -43,13 +44,14 @@ include make/debian-bookworm-trust-package.mk
 prerelease-scan: verify-govulncheck scan-debian-bookworm-trust-package scan-debian-bullseye-trust-package | $(NEEDS_TRIVY) $(NEEDS_CRANE)
 
 .PHONY: release
-## Publish all release artifacts (image + helm chart)
+## Publish all release artifacts (image + helm chart + standalone CRD manifest)
 ## @category [shared] Release
 release:
 	$(MAKE) oci-push-manager
 	$(MAKE) helm-chart-oci-push
 	$(MAKE) oci-maybe-push-package_debian_bullseye
 	$(MAKE) oci-maybe-push-package_debian_bookworm
+	$(MAKE) render-crds
 
 	@echo "RELEASE_OCI_MANAGER_IMAGE=$(oci_manager_image_name)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_OCI_MANAGER_TAG=$(oci_manager_image_tag)" >> "$(GITHUB_OUTPUT)"
@@ -59,6 +61,7 @@ release:
 	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_TAG=$(oci_package_debian_bookworm_image_tag)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_HELM_CHART_IMAGE=$(helm_chart_image_name)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_HELM_CHART_VERSION=$(helm_chart_version)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_CRDS_ARTIFACT=$(crds_release_artifact)" >> "$(GITHUB_OUTPUT)"
 
 	@echo "Release complete!"
 
