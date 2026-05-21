@@ -33,8 +33,7 @@ smoke:
 	$(MAKE) test-smoke
 
 include make/validate-trust-package.mk
-include make/debian-bullseye-trust-package.mk
-include make/debian-bookworm-trust-package.mk
+include make/debian-trust-package.mk
 
 .PHONY: prerelease-scan
 ## Perform security scans on the codebase with govulncheck and on released trust packages

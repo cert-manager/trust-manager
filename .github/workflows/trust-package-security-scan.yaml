@@ -10,6 +10,11 @@ permissions:
 
 jobs:
   trust-package-security-scan:
+    strategy:
+      fail-fast: false
+      matrix:
+        release: [bullseye, bookworm]
+
     runs-on: ubuntu-latest
 
     if: github.repository == 'cert-manager/trust-manager'
@@ -21,5 +26,4 @@ jobs:
         # see https://github.com/actions/checkout/issues/701 for extra info about this option
         with: { fetch-depth: 0 }
 
-      - run: make scan-debian-bookworm-trust-package
-      - run: make scan-debian-bullseye-trust-package
+      - run: make scan-debian-${{ matrix.release }}-trust-package
