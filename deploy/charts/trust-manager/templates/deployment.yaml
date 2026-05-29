@@ -122,9 +122,11 @@ spec:
         - mountPath: /tls
           name: tls
           readOnly: true
+        {{- if .Values.defaultPackage.enabled }}
         - mountPath: /packages
           name: packages
           readOnly: true
+        {{- end }}
         {{- with .Values.volumeMounts }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -161,9 +163,11 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
+      {{- if .Values.defaultPackage.enabled }}
       - name: packages
         emptyDir:
           sizeLimit: 50M
+      {{- end }}
       - name: tls
         secret:
           defaultMode: 420
