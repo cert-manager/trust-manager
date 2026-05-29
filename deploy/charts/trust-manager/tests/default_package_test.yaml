@@ -1,0 +1,43 @@
+suite: Deployment defaultPackage behavior
+templates:
+  - templates/deployment.yaml
+release:
+  name: tm
+  namespace: trust
+tests:
+  - it: defaultPackage enabled renders packages mount, volume, and arg
+    set:
+      defaultPackage:
+        enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            mountPath: /packages
+            name: packages
+            readOnly: true
+      - equal:
+          path: spec.template.spec.volumes[0].name
+          value: packages
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --default-package-location=/packages/cert-manager-package-debian.json
+
+  - it: defaultPackage disabled does not render packages mount, volume, or arg
+    set:
+      defaultPackage:
+        enabled: false
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            mountPath: /packages
+            name: packages
+            readOnly: true
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: packages
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: --default-package-location=/packages/cert-manager-package-debian.json
