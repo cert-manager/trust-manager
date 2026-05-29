@@ -121,6 +121,17 @@ Create the name of the service account to use
 {{- end -}}
 
 {{/*
+Create the name of the startupapicheck service account to use
+*/}}
+{{- define "trust-manager.startupapicheck.serviceAccountName" -}}
+{{- if .Values.startupapicheck.serviceAccount.create -}}
+    {{ default (printf "%s-startupapicheck" (include "trust-manager.name" .)) .Values.startupapicheck.serviceAccount.name }}
+{{- else -}}
+    {{ default "default" .Values.startupapicheck.serviceAccount.name }}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Namespaced resources rules
 */}}
 {{- define "trust-manager.rbac.namespacedResourcesRules" -}}

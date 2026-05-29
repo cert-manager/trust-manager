@@ -22,7 +22,7 @@ repo_name := github.com/cert-manager/trust-manager
 kind_cluster_name := trust-manager
 kind_cluster_config := $(bin_dir)/scratch/kind_cluster.yaml
 
-build_names := manager package_debian_bullseye package_debian_bookworm
+build_names := manager startupapicheck package_debian_bullseye package_debian_bookworm
 
 go_manager_main_dir := ./cmd/trust-manager
 go_manager_mod_dir := .
@@ -31,6 +31,14 @@ oci_manager_base_image_flavor := static
 oci_manager_image_name := quay.io/jetstack/trust-manager
 oci_manager_image_tag := $(VERSION)
 oci_manager_image_name_development := cert-manager.local/trust-manager
+
+go_startupapicheck_main_dir := ./cmd/startupapicheck
+go_startupapicheck_mod_dir := .
+go_startupapicheck_ldflags :=
+oci_startupapicheck_base_image_flavor := static
+oci_startupapicheck_image_name := quay.io/jetstack/trust-manager-startupapicheck
+oci_startupapicheck_image_tag := $(VERSION)
+oci_startupapicheck_image_name_development := cert-manager.local/trust-manager-startupapicheck
 
 go_package_debian_bullseye_main_dir := .
 go_package_debian_bullseye_mod_dir := ./trust-packages/debian
