@@ -101,6 +101,9 @@ var _ = BeforeSuite(func() {
 	tmpFileName, err = writeDefaultPackage()
 	Expect(err).NotTo(HaveOccurred())
 
+	pkg, err := fspkg.LoadPackageFromFile(tmpFileName)
+	Expect(err).NotTo(HaveOccurred())
+
 	cl, err = client.New(env.Config, client.Options{
 		Scheme: test.Scheme,
 	})
@@ -119,7 +122,7 @@ var _ = BeforeSuite(func() {
 		Namespace:              namespace.Name,
 		DefaultPackageLocation: tmpFileName,
 	}
-	Expect(bundle.SetupWithManager(ctx, mgr, opts)).NotTo(HaveOccurred())
+	Expect(bundle.SetupWithManager(ctx, mgr, opts, &pkg)).NotTo(HaveOccurred())
 
 	go func() {
 		defer GinkgoRecover()

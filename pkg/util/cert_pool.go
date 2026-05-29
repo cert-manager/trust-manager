@@ -99,6 +99,12 @@ func NewCertPool(options ...Option) *CertPool {
 //
 // Additionally, if the input PEM bundle contains no non-expired certificates, an error is returned.
 func (cp *CertPool) AddCertsFromPEM(pemData []byte) error {
+	return cp.ParsePemData(pemData, func(cert *x509.Certificate) {
+		cp.AddCert(cert)
+	})
+}
+
+func (cp *CertPool) ParsePemData(pemData []byte, processCert func(cert *x509.Certificate)) error {
 	if pemData == nil {
 		return fmt.Errorf("certificate data can't be nil")
 	}
@@ -138,7 +144,7 @@ func (cp *CertPool) AddCertsFromPEM(pemData []byte) error {
 			return fmt.Errorf("failed appending a certificate: certificate is nil")
 		}
 
-		cp.AddCert(certificate)
+		processCert(certificate)
 	}
 
 	return nil
@@ -157,6 +163,7 @@ func (cp *CertPool) AddCert(certificate *x509.Certificate) bool {
 
 	hash := sha256.Sum256(certificate.Raw)
 	cp.certificates[hash] = certificate
+
 	return true
 }
 
