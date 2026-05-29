@@ -1,0 +1,70 @@
+suite: ServiceMonitor renders extra labels under metadata.labels
+templates:
+  - templates/metrics-servicemonitor.yaml
+release:
+  name: tm
+  namespace: trust
+tests:
+  - it: default labels render under metadata.labels
+    set:
+      app:
+        metrics:
+          service:
+            enabled: true
+            servicemonitor:
+              enabled: true
+              prometheusInstance: default
+    asserts:
+      - equal:
+          path: metadata.labels.app
+          value: trust-manager
+      - equal:
+          path: metadata.labels.prometheus
+          value: default
+
+  - it: extra servicemonitor.labels land under metadata.labels (not metadata or annotations)
+    set:
+      app:
+        metrics:
+          service:
+            enabled: true
+            servicemonitor:
+              enabled: true
+              prometheusInstance: default
+              labels:
+                tier: production
+                team: platform
+    asserts:
+      - equal:
+          path: metadata.labels.tier
+          value: production
+      - equal:
+          path: metadata.labels.team
+          value: platform
+      - notExists:
+          path: metadata.tier
+      - notExists:
+          path: metadata.annotations
+
+  - it: extra labels coexist with commonAnnotations without leaking into annotations
+    set:
+      commonAnnotations:
+        owner: trust-team
+      app:
+        metrics:
+          service:
+            enabled: true
+            servicemonitor:
+              enabled: true
+              prometheusInstance: default
+              labels:
+                tier: production
+    asserts:
+      - equal:
+          path: metadata.labels.tier
+          value: production
+      - equal:
+          path: metadata.annotations.owner
+          value: trust-team
+      - notExists:
+          path: metadata.annotations.tier
