@@ -18,6 +18,10 @@ package bundle
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/hex"
+	"encoding/pem"
 	"sync"
 	"testing"
 	"time"
@@ -63,6 +67,19 @@ func testEncodePKCS12(t *testing.T, data string) []byte {
 	}
 
 	return encoded
+}
+
+func testCertFingerprint(t *testing.T, pemData string) string {
+	t.Helper()
+	block, _ := pem.Decode([]byte(pemData))
+	if block == nil {
+		t.Fatal("failed to decode PEM block")
+	}
+	if _, err := x509.ParseCertificate(block.Bytes); err != nil {
+		t.Fatalf("failed to parse certificate: %v", err)
+	}
+	sum := sha256.Sum256(block.Bytes)
+	return hex.EncodeToString(sum[:])
 }
 
 func Test_Reconcile(t *testing.T) {
@@ -1505,6 +1522,42 @@ func Test_Reconcile(t *testing.T) {
 				},
 			},
 			expEvent: "Normal Synced Successfully synced Bundle to all allowed namespaces",
+		},
+		"if Bundle source has keepCertHistory enabled, status patch includes cert history": {
+			existingNamespaces: namespaces,
+			existingConfigMaps: []client.Object{sourceConfigMap},
+			existingSecrets:    []client.Object{sourceSecret},
+			existingBundles: []client.Object{gen.BundleFrom(baseBundle,
+				func(b *trustapi.Bundle) {
+					b.Spec.Sources[1].Secret.KeepCertHistory = true
+				},
+			)},
+			expError: false,
+			expPatches: []any{
+				configMapPatch(baseBundle.Name, trustNamespace, map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
+				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
+				configMapPatch(baseBundle.Name, "ns-2", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
+			},
+			expBundlePatch: &trustapi.BundleStatus{
+				CertHistory: []trustapi.SourceCertHistory{
+					{
+						SourceKey:           "secret/" + sourceSecretName + "/" + sourceSecretKey,
+						LastSeenFingerprint: testCertFingerprint(t, dummy.TestCertificate2),
+						LastSeenPEM:         dummy.TestCertificate2,
+					},
+				},
+				Conditions: []metav1.Condition{
+					{
+						Type:               trustapi.BundleConditionSynced,
+						Status:             metav1.ConditionTrue,
+						LastTransitionTime: fixedmetatime,
+						Reason:             "Synced",
+						Message:            "Successfully synced Bundle to all namespaces",
+						ObservedGeneration: bundleGeneration,
+					},
+				},
+			},
+			expEvent: "Normal Synced Successfully synced Bundle to all namespaces",
 		},
 		"if Bundle is configured to write to only a specific target namespaces and namespaceSelector is not empty, then write only to selected target namespaces": {
 			existingNamespaces: []client.Object{

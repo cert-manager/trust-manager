@@ -104,8 +104,9 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 	// This is done to ensure information is not lost in patch if exiting early.
 	statusPatch = &trustapi.BundleStatus{
 		DefaultCAPackageVersion: bundle.Status.DefaultCAPackageVersion,
+		CertHistory:             bundle.Status.CertHistory,
 	}
-	resolvedBundle, err := b.bundleBuilder.BuildBundle(ctx, bundle.Spec.Sources)
+	resolvedBundle, err := b.bundleBuilder.BuildBundle(ctx, bundle.Spec.Sources, bundle.Status.CertHistory, b.clock.Now())
 
 	if err != nil {
 		var reason, message string
@@ -137,6 +138,11 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 		b.recorder.Eventf(&bundle, nil, corev1.EventTypeWarning, reason, "SyncFailed", errMsg)
 
 		return statusPatch, returnedErr
+	}
+
+	// Update cert history in status patch.
+	if resolvedBundle.UpdatedCertHistory != nil {
+		statusPatch.CertHistory = source.PruneOrphanedHistory(resolvedBundle.UpdatedCertHistory, bundle.Spec.Sources)
 	}
 
 	// Detect if we have a bundle with Secret targets but the feature is disabled.
@@ -300,6 +306,10 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 		needsUpdate = true
 	}
 
+	if !certHistoryEqual(bundle.Status.CertHistory, statusPatch.CertHistory) {
+		needsUpdate = true
+	}
+
 	var message string
 	if len(b.Options.TargetNamespaces) > 0 {
 		message = "Successfully synced Bundle to all allowed namespaces"
@@ -336,6 +346,26 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 	b.recorder.Eventf(&bundle, nil, corev1.EventTypeNormal, "Synced", "Synced", message)
 
 	return statusPatch, nil
+}
+
+func certHistoryEqual(a, b []trustapi.SourceCertHistory) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].SourceKey != b[i].SourceKey ||
+			a[i].LastSeenFingerprint != b[i].LastSeenFingerprint ||
+			a[i].LastSeenPEM != b[i].LastSeenPEM ||
+			len(a[i].Entries) != len(b[i].Entries) {
+			return false
+		}
+		for j := range a[i].Entries {
+			if a[i].Entries[j].Fingerprint != b[i].Entries[j].Fingerprint {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (b *bundle) bundleTargetNamespaceSelector(bundleTarget trustapi.BundleTarget) (labels.Selector, error) {

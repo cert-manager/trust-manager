@@ -20,6 +20,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -38,12 +39,15 @@ import (
 func Test_BuildBundle(t *testing.T) {
 	tests := map[string]struct {
 		sources                     []trustapi.BundleSource
+		existingHistory             []trustapi.SourceCertHistory
+		now                         time.Time
 		filterExpired               bool
 		objects                     []runtime.Object
 		expData                     string
 		expError                    bool
 		expNotFoundError            bool
 		expInvalidSecretSourceError bool
+		expUpdatedCertHistory       []trustapi.SourceCertHistory
 	}{
 		"if no sources defined, should return NotFoundError": {
 			expError:         true,
@@ -317,6 +321,101 @@ func Test_BuildBundle(t *testing.T) {
 			expError:         false,
 			expNotFoundError: false,
 		},
+		"keepCertHistory first reconcile populates history": {
+			sources: []trustapi.BundleSource{
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", Key: "ca.crt", KeepCertHistory: true}},
+			},
+			objects: []runtime.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
+				Data:       map[string][]byte{"ca.crt": []byte(dummy.TestCertificate1)},
+			}},
+			now:     dummy.DummyInstant(),
+			expData: dummy.JoinCerts(dummy.TestCertificate1),
+			expUpdatedCertHistory: func() []trustapi.SourceCertHistory {
+				fp1, _, _ := certFingerprint([]byte(dummy.TestCertificate1))
+				return []trustapi.SourceCertHistory{
+					{
+						SourceKey:           "secret/secret/ca.crt",
+						LastSeenFingerprint: fp1,
+						LastSeenPEM:         dummy.TestCertificate1,
+					},
+				}
+			}(),
+		},
+		"keepCertHistory rotation includes historical cert in bundle": {
+			sources: []trustapi.BundleSource{
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", Key: "ca.crt", KeepCertHistory: true}},
+			},
+			existingHistory: func() []trustapi.SourceCertHistory {
+				fp1, _, _ := certFingerprint([]byte(dummy.TestCertificate1))
+				return []trustapi.SourceCertHistory{
+					{
+						SourceKey:           "secret/secret/ca.crt",
+						LastSeenFingerprint: fp1,
+						LastSeenPEM:         dummy.TestCertificate1,
+					},
+				}
+			}(),
+			objects: []runtime.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
+				Data:       map[string][]byte{"ca.crt": []byte(dummy.TestCertificate3)},
+			}},
+			now: dummy.DummyInstant(),
+			// Bundle should contain both the new cert AND the historical cert.
+			expData: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate3),
+		},
+		"keepCertHistory without rotation does not duplicate certs": {
+			sources: []trustapi.BundleSource{
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", Key: "ca.crt", KeepCertHistory: true}},
+			},
+			existingHistory: func() []trustapi.SourceCertHistory {
+				fp1, _, _ := certFingerprint([]byte(dummy.TestCertificate1))
+				return []trustapi.SourceCertHistory{
+					{
+						SourceKey:           "secret/secret/ca.crt",
+						LastSeenFingerprint: fp1,
+						LastSeenPEM:         dummy.TestCertificate1,
+					},
+				}
+			}(),
+			objects: []runtime.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
+				Data:       map[string][]byte{"ca.crt": []byte(dummy.TestCertificate1)},
+			}},
+			now:     dummy.DummyInstant(),
+			expData: dummy.JoinCerts(dummy.TestCertificate1),
+		},
+		"keepCertHistory respects certHistoryLimit": {
+			sources: []trustapi.BundleSource{
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", Key: "ca.crt", KeepCertHistory: true, CertHistoryLimit: ptr.To(int32(1))}},
+			},
+			existingHistory: func() []trustapi.SourceCertHistory {
+				fp3, _, _ := certFingerprint([]byte(dummy.TestCertificate3))
+				fp1, cert1, _ := certFingerprint([]byte(dummy.TestCertificate1))
+				return []trustapi.SourceCertHistory{
+					{
+						SourceKey:           "secret/secret/ca.crt",
+						LastSeenFingerprint: fp3,
+						LastSeenPEM:         dummy.TestCertificate3,
+						Entries: []trustapi.CertHistoryEntry{
+							{
+								PEM:         dummy.TestCertificate1,
+								NotAfter:    metav1.NewTime(cert1.NotAfter),
+								AddedAt:     metav1.NewTime(dummy.DummyInstant().Add(-1 * time.Hour)),
+								Fingerprint: fp1,
+							},
+						},
+					},
+				}
+			}(),
+			objects: []runtime.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
+				Data:       map[string][]byte{"ca.crt": []byte(dummy.TestCertificate4)},
+			}},
+			now: dummy.DummyInstant(),
+			// limit=1: only the most recent old cert (TestCertificate3) kept; TestCertificate1 evicted.
+			expData: dummy.JoinCerts(dummy.TestCertificate4, dummy.TestCertificate3),
+		},
 	}
 
 	for name, tt := range tests {
@@ -338,7 +437,12 @@ func Test_BuildBundle(t *testing.T) {
 				Options: controller.Options{FilterExpiredCerts: tt.filterExpired},
 			}
 
-			resolvedBundle, err := b.BuildBundle(t.Context(), tt.sources)
+			now := tt.now
+			if now.IsZero() {
+				now = time.Now()
+			}
+
+			resolvedBundle, err := b.BuildBundle(t.Context(), tt.sources, tt.existingHistory, now)
 
 			if (err != nil) != tt.expError {
 				t.Errorf("unexpected error, exp=%t got=%v", tt.expError, err)
@@ -353,6 +457,10 @@ func Test_BuildBundle(t *testing.T) {
 			data := resolvedBundle.CertPool.PEM()
 			if data != tt.expData {
 				t.Errorf("unexpected data, exp=%q got=%q", tt.expData, data)
+			}
+
+			if tt.expUpdatedCertHistory != nil {
+				assert.Equal(t, tt.expUpdatedCertHistory, resolvedBundle.UpdatedCertHistory)
 			}
 		})
 	}
