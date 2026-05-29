@@ -60,6 +60,7 @@ endef
 
 $(eval $(call debian-trust-package-targets,BULLSEYE,bullseye))
 $(eval $(call debian-trust-package-targets,BOOKWORM,bookworm))
+$(eval $(call debian-trust-package-targets,TRIXIE,trixie))
 
 ## Scan the latest Debian Bullseye trust package OCI image with Trivy
 ## @category [shared] Release
@@ -70,3 +71,8 @@ scan-debian-bullseye-trust-package: _scan-debian-bullseye-trust-package
 ## @category [shared] Release
 .PHONY: scan-debian-bookworm-trust-package
 scan-debian-bookworm-trust-package: _scan-debian-bookworm-trust-package
+
+## Scan the latest Debian Trixie trust package OCI image with Trivy
+## @category [shared] Release
+.PHONY: scan-debian-trixie-trust-package
+scan-debian-trixie-trust-package: _scan-debian-trixie-trust-package
