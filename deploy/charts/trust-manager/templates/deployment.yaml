@@ -51,17 +51,10 @@ spec:
         - mountPath: /packages
           name: packages
           readOnly: false
+        {{- with .Values.defaultPackage.securityContext }}
         securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-          readOnlyRootFilesystem: true
-          runAsNonRoot: true
-          {{- if .Values.app.securityContext.seccompProfileEnabled }}
-          seccompProfile:
-            type: RuntimeDefault
-          {{- end }}
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         {{- if .Values.defaultPackage.resources }}
         resources:
           {{- toYaml .Values.defaultPackage.resources | nindent 10 }}
@@ -130,17 +123,14 @@ spec:
         {{- end }}
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
+        {{- with .Values.app.securityContext }}
         securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-          readOnlyRootFilesystem: true
-          runAsNonRoot: true
-          {{- if .Values.app.securityContext.seccompProfileEnabled }}
-          seccompProfile:
-            type: RuntimeDefault
-          {{- end }}
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.priorityClassName }}
       priorityClassName: "{{ . }}"
       {{- end }}
