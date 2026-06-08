@@ -46,12 +46,15 @@ prerelease-scan: verify-govulncheck scan-debian-bookworm-trust-package scan-debi
 ## @category [shared] Release
 release:
 	$(MAKE) oci-push-manager
+	$(MAKE) oci-push-startupapicheck
 	$(MAKE) helm-chart-oci-push
 	$(MAKE) oci-maybe-push-package_debian_bullseye
 	$(MAKE) oci-maybe-push-package_debian_bookworm
 
 	@echo "RELEASE_OCI_MANAGER_IMAGE=$(oci_manager_image_name)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_OCI_MANAGER_TAG=$(oci_manager_image_tag)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_STARTUPAPICHECK_IMAGE=$(oci_startupapicheck_image_name)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_STARTUPAPICHECK_TAG=$(oci_startupapicheck_image_tag)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BULLSEYE_IMAGE=$(oci_package_debian_bullseye_image_name)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BULLSEYE_TAG=$(oci_package_debian_bullseye_image_tag)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_IMAGE=$(oci_package_debian_bookworm_image_name)" >> "$(GITHUB_OUTPUT)"

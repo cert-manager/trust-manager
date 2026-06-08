@@ -84,6 +84,9 @@
         "serviceAccount": {
           "$ref": "#/$defs/helm-values.serviceAccount"
         },
+        "startupapicheck": {
+          "$ref": "#/$defs/helm-values.startupapicheck"
+        },
         "tolerations": {
           "$ref": "#/$defs/helm-values.tolerations"
         },
@@ -904,6 +907,149 @@
     "helm-values.serviceAccount.name": {
       "description": "The name of the service account to use.\nIf not set and create is true, a name is generated using the fullname template.",
       "type": "string"
+    },
+    "helm-values.startupapicheck": {
+      "additionalProperties": false,
+      "properties": {
+        "affinity": {
+          "$ref": "#/$defs/helm-values.startupapicheck.affinity"
+        },
+        "enabled": {
+          "$ref": "#/$defs/helm-values.startupapicheck.enabled"
+        },
+        "image": {
+          "$ref": "#/$defs/helm-values.startupapicheck.image"
+        },
+        "nodeSelector": {
+          "$ref": "#/$defs/helm-values.startupapicheck.nodeSelector"
+        },
+        "podAnnotations": {
+          "$ref": "#/$defs/helm-values.startupapicheck.podAnnotations"
+        },
+        "podLabels": {
+          "$ref": "#/$defs/helm-values.startupapicheck.podLabels"
+        },
+        "resources": {
+          "$ref": "#/$defs/helm-values.startupapicheck.resources"
+        },
+        "serviceAccount": {
+          "$ref": "#/$defs/helm-values.startupapicheck.serviceAccount"
+        },
+        "tolerations": {
+          "$ref": "#/$defs/helm-values.startupapicheck.tolerations"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.startupapicheck.affinity": {
+      "default": {},
+      "description": "Kubernetes Affinity. For more information, see [Affinity v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core).",
+      "type": "object"
+    },
+    "helm-values.startupapicheck.enabled": {
+      "default": true,
+      "description": "Enables the startup API check Job.",
+      "type": "boolean"
+    },
+    "helm-values.startupapicheck.image": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/helm-values.startupapicheck.image.digest"
+        },
+        "name": {
+          "$ref": "#/$defs/helm-values.startupapicheck.image.name"
+        },
+        "pullPolicy": {
+          "$ref": "#/$defs/helm-values.startupapicheck.image.pullPolicy"
+        },
+        "registry": {
+          "$ref": "#/$defs/helm-values.startupapicheck.image.registry"
+        },
+        "repository": {
+          "$ref": "#/$defs/helm-values.startupapicheck.image.repository"
+        },
+        "tag": {
+          "$ref": "#/$defs/helm-values.startupapicheck.image.tag"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.startupapicheck.image.digest": {
+      "description": "Target image digest. Override any tag, if set.\nFor example:\ndigest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20",
+      "type": "string"
+    },
+    "helm-values.startupapicheck.image.name": {
+      "default": "trust-manager-startupapicheck",
+      "description": "The image name for the startupapicheck Job.",
+      "type": "string"
+    },
+    "helm-values.startupapicheck.image.pullPolicy": {
+      "default": "IfNotPresent",
+      "description": "Kubernetes imagePullPolicy for the startupapicheck Job.",
+      "type": "string"
+    },
+    "helm-values.startupapicheck.image.registry": {
+      "description": "Target image registry. This value is prepended to the target image repository, if set.\nDeprecated: per-component registry prefix.",
+      "type": "string"
+    },
+    "helm-values.startupapicheck.image.repository": {
+      "default": "",
+      "description": "Full repository override (takes precedence over `imageRegistry`, `imageNamespace`, and `image.name`).\nExample: quay.io/jetstack/trust-manager-startupapicheck",
+      "type": "string"
+    },
+    "helm-values.startupapicheck.image.tag": {
+      "description": "Override the image tag to deploy by setting this variable. If no value is set, the chart's appVersion is used.",
+      "type": "string"
+    },
+    "helm-values.startupapicheck.nodeSelector": {
+      "default": {
+        "kubernetes.io/os": "linux"
+      },
+      "description": "Configure the nodeSelector; defaults to any Linux node.",
+      "type": "object"
+    },
+    "helm-values.startupapicheck.podAnnotations": {
+      "default": {},
+      "description": "Pod annotations to add to the startupapicheck Job pod.",
+      "type": "object"
+    },
+    "helm-values.startupapicheck.podLabels": {
+      "default": {},
+      "description": "Pod labels to add to the startupapicheck Job pod.",
+      "type": "object"
+    },
+    "helm-values.startupapicheck.resources": {
+      "default": {},
+      "description": "Kubernetes pod resource limits for the startupapicheck Job.",
+      "type": "object"
+    },
+    "helm-values.startupapicheck.serviceAccount": {
+      "additionalProperties": false,
+      "properties": {
+        "create": {
+          "$ref": "#/$defs/helm-values.startupapicheck.serviceAccount.create"
+        },
+        "name": {
+          "$ref": "#/$defs/helm-values.startupapicheck.serviceAccount.name"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.startupapicheck.serviceAccount.create": {
+      "default": true,
+      "description": "Specifies whether a service account should be created for the startupapicheck Job.",
+      "type": "boolean"
+    },
+    "helm-values.startupapicheck.serviceAccount.name": {
+      "description": "The name of the service account to use for the startupapicheck Job.\nIf not set and create is true, a name is generated using the fullname template.",
+      "type": "string"
+    },
+    "helm-values.startupapicheck.tolerations": {
+      "default": [],
+      "description": "List of Kubernetes Tolerations. For more information, see [Toleration v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core).",
+      "items": {},
+      "type": "array"
     },
     "helm-values.tolerations": {
       "default": [],
