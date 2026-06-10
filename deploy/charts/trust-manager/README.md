@@ -225,7 +225,7 @@ Example: quay.io/jetstack/trust-manager
 #### **defaultPackageImage.name** ~ `string`
 > Default value:
 > ```yaml
-> trust-pkg-debian-bookworm
+> trust-pkg-debian-trixie
 > ```
 
 The image name for trust-manager.  

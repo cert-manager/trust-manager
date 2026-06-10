@@ -635,7 +635,7 @@
       "type": "string"
     },
     "helm-values.defaultPackageImage.name": {
-      "default": "trust-pkg-debian-bookworm",
+      "default": "trust-pkg-debian-trixie",
       "description": "The image name for trust-manager.\nThis is used (together with `imageRegistry` and `imageNamespace`) to construct the full image reference.",
       "type": "string"
     },
