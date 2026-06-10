@@ -146,7 +146,7 @@ defaultPackageImage:
   # This is used (together with `imageRegistry` and `imageNamespace`) to construct the full
   # image reference.
   # +docs:property
-  name: trust-pkg-debian-bookworm
+  name: trust-pkg-debian-trixie
 
   # Override the image tag of the default package image.
   # Is set at chart build time to the version specified in ./make/00_debian_bookworm_version.mk.
