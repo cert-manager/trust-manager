@@ -654,7 +654,7 @@
       "type": "string"
     },
     "helm-values.defaultPackageImage.tag": {
-      "description": "Override the image tag of the default package image. Is set at chart build time to the version specified in ./make/00_debian_bookworm_version.mk.",
+      "description": "Override the image tag of the default package image. Is set at chart build time to the version specified in ./make/00_debian_trixie_version.mk.",
       "type": "string"
     },
     "helm-values.enabled": {

@@ -81,6 +81,6 @@ golangci_lint_config := .golangci.yaml
 
 define helm_values_mutation_function
 $(YQ) \
-	'( .defaultPackageImage._defaultReference = ":$(oci_package_debian_bookworm_image_tag)" )' \
+	'( .defaultPackageImage._defaultReference = ":$(oci_package_debian_trixie_image_tag)" )' \
 	$1 --inplace
 endef
