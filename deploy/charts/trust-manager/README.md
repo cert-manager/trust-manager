@@ -233,7 +233,7 @@ This is used (together with `imageRegistry` and `imageNamespace`) to construct t
 
 #### **defaultPackageImage.tag** ~ `string`
 
-Override the image tag of the default package image. Is set at chart build time to the version specified in ./make/00_debian_bookworm_version.mk.
+Override the image tag of the default package image. Is set at chart build time to the version specified in ./make/00_debian_trixie_version.mk.
 
 #### **defaultPackageImage.digest** ~ `string`
 
