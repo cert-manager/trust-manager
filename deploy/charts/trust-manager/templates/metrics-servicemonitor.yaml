@@ -20,6 +20,7 @@ spec:
   selector:
     matchLabels:
       app: {{ include "trust-manager.name" . }}
+      app.kubernetes.io/component: metrics
   namespaceSelector:
     matchNames:
       - {{ include "trust-manager.namespace" . }}
