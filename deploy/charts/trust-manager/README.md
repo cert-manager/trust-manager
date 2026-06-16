@@ -15,6 +15,13 @@
 > ```
 
 Create required ClusterRoles, Roles, ClusterRoleBindings and RoleBindings for trust-manager.
+#### **global.rbac.aggregateClusterRoles** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
+
+Aggregate read access to Bundles into the "cluster-reader" ClusterRole, mirroring how cert-manager aggregates its cluster-scoped ClusterIssuers. Bundle is a cluster-scoped resource, so this only takes effect for subjects bound via a ClusterRoleBinding. For more information, see [User-facing roles](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#user-facing-roles).
 ### CRDs
 
 #### **crds.enabled** ~ `bool`
