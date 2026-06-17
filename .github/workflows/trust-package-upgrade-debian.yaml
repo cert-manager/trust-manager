@@ -1,12 +1,18 @@
-name: trust-package-upgrade-debian-bullseye
-concurrency: trust-package-upgrade-debian-bullseye
+name: trust-package-upgrade-debian
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '5 4 * * *'
 
 jobs:
-  debian-bullseye-trust-package-upgrade:
+  trust-package-upgrade-debian:
+    strategy:
+      fail-fast: false
+      matrix:
+        release: [bullseye, bookworm, trixie]
+
+    concurrency: trust-package-upgrade-debian-${{ matrix.release }}
+
     runs-on: ubuntu-latest
 
     permissions:
@@ -15,7 +21,7 @@ jobs:
 
     env:
       SOURCE_BRANCH: "${{ github.ref_name }}"
-      SELF_UPGRADE_BRANCH: "trust-package-upgrade-debian-bullseye-${{ github.ref_name }}"
+      SELF_UPGRADE_BRANCH: "trust-package-upgrade-debian-${{ matrix.release }}-${{ github.ref_name }}"
 
     steps:
       - name: Fail if branch is not head of branch.
@@ -24,25 +30,22 @@ jobs:
           echo "This workflow should not be run on a non-branch-head."
           exit 1
 
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         # Adding `fetch-depth: 0` makes sure tags are also fetched. We need
         # the tags so `git describe` returns a valid version.
         # see https://github.com/actions/checkout/issues/701 for extra info about this option
         with: { fetch-depth: 0 }
 
       - id: go-version
-        run: |
-          make print-go-version >> "$GITHUB_OUTPUT"
+        run: make print-go-version >> "$GITHUB_OUTPUT"
 
-      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version: ${{ steps.go-version.outputs.result }}
 
-      - run: |
-          git checkout -B "$SELF_UPGRADE_BRANCH"
+      - run: git checkout -B "$SELF_UPGRADE_BRANCH"
 
-      - run: |
-          make -j upgrade-debian-bullseye-trust-package-version
+      - run: make -j upgrade-debian-${{ matrix.release }}-trust-package-version
 
       - id: is-up-to-date
         shell: bash
@@ -50,9 +53,9 @@ jobs:
           git_status=$(git status -s)
           is_up_to_date="true"
           if [ -n "$git_status" ]; then
-              is_up_to_date="false"
-              echo "The following changes will be committed:"
-              echo "$git_status"
+            is_up_to_date="false"
+            echo "The following changes will be committed:"
+            echo "$git_status"
           fi
           echo "result=$is_up_to_date" >> "$GITHUB_OUTPUT"
 
@@ -60,13 +63,16 @@ jobs:
         run: |
           git config --global user.name "cert-manager-bot"
           git config --global user.email "cert-manager-bot@users.noreply.github.com"
-          git add -A && git commit -m "BOT: run 'make upgrade-debian-bullseye-trust-package-version'" --signoff
+          git add -A && git commit -m "BOT: run 'make upgrade-debian-${{ matrix.release }}-trust-package-version'" --signoff
           git push -f origin "$SELF_UPGRADE_BRANCH"
 
       - if: ${{ steps.is-up-to-date.outputs.result != 'true' }}
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          RELEASE: ${{ matrix.release }}
         with:
           script: |
+            const release = process.env.RELEASE;
             const { repo, owner } = context.repo;
             const pulls = await github.rest.pulls.list({
               owner: owner,
@@ -83,8 +89,6 @@ jobs:
                 repo: repo,
                 head: process.env.SELF_UPGRADE_BRANCH,
                 base: process.env.SOURCE_BRANCH,
-                body: [
-                  'This PR is auto-generated to bump the Debian Bullseye package version',
-                ].join('\n'),
+                body: `This PR is auto-generated to bump the Debian ${release.charAt(0).toUpperCase() + release.slice(1)} package version`,
               });
             }

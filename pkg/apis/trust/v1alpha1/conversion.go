@@ -111,26 +111,25 @@ func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSourceRef(in *BundleSource,
 		}
 	}
 
-	if in.InLine != nil {
+	if in.InLine != "" {
 		obj := scope.Meta().Context.(*trustv1alpha2.ClusterBundle)
-		if obj.Spec.InLineCAs == nil {
+		if obj.Spec.InLineCAs == "" {
 			obj.Spec.InLineCAs = in.InLine
 		} else {
 			// The following logic is not pretty, but is required as we allow multiple inline sources
 			// in the Bundle sources array.
 			// It breaks the round-trippable conversion Bundle->ClusterBundle->Bundle,
 			// but works for converting Bundle->ClusterBundle, and that's what we need for the migration.
-			cas := strings.TrimSuffix(*obj.Spec.InLineCAs, "\n") + "\n" + *in.InLine
-			obj.Spec.InLineCAs = &cas
+			cas := strings.TrimSuffix(obj.Spec.InLineCAs, "\n") + "\n" + in.InLine
+			obj.Spec.InLineCAs = cas
 		}
 	}
 	if in.UseDefaultCAs != nil {
 		obj := scope.Meta().Context.(*trustv1alpha2.ClusterBundle)
-		provider := trustv1alpha2.DefaultCAsProviderDisabled
+		obj.Spec.DefaultCAs.Provider = trustv1alpha2.DefaultCAsProviderDisabled
 		if *in.UseDefaultCAs {
-			provider = trustv1alpha2.DefaultCAsProviderSystem
+			obj.Spec.DefaultCAs.Provider = trustv1alpha2.DefaultCAsProviderSystem
 		}
-		obj.Spec.DefaultCAs = &trustv1alpha2.DefaultCAsSource{Provider: provider}
 	}
 
 	return nil
@@ -161,7 +160,7 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 				Key:    in.AdditionalFormats.JKS.Key,
 				Format: trustv1alpha2.BundleFormatPKCS12,
 				PKCS12: trustv1alpha2.PKCS12{
-					Password: in.AdditionalFormats.JKS.Password,
+					Password: &in.AdditionalFormats.JKS.Password,
 				},
 			}
 			appendTargetKV(targetKV)
@@ -194,11 +193,8 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 
 func Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(in *TargetTemplate, out *trustv1alpha2.KeyValueTarget, scope apimachineryconversion.Scope) error {
 	out.Data = []trustv1alpha2.TargetKeyValue{{Key: in.Key}}
-	if in.Metadata != nil {
-		out.Metadata = &trustv1alpha2.TargetMetadata{}
-		if err := Convert_v1alpha1_TargetMetadata_To_v1alpha2_TargetMetadata(in.Metadata, out.Metadata, scope); err != nil {
-			return err
-		}
+	if err := Convert_v1alpha1_TargetMetadata_To_v1alpha2_TargetMetadata(&in.Metadata, &out.Metadata, scope); err != nil {
+		return err
 	}
 	return nil
 }
@@ -255,11 +251,11 @@ func Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *trustv1alpha2.Bundle
 		out.Sources = nil
 	}
 
-	if in.InLineCAs != nil {
+	if in.InLineCAs != "" {
 		out.Sources = append(out.Sources, BundleSource{InLine: in.InLineCAs})
 	}
-	if in.DefaultCAs != nil {
-		out.Sources = append(out.Sources, BundleSource{UseDefaultCAs: ptr.To(in.DefaultCAs.Provider == trustv1alpha2.DefaultCAsProviderSystem)})
+	if in.DefaultCAs != (trustv1alpha2.DefaultCAsSource{}) {
+		out.Sources = append(out.Sources, BundleSource{UseDefaultCAs: new(in.DefaultCAs.Provider == trustv1alpha2.DefaultCAsProviderSystem)})
 	}
 
 	return nil
@@ -270,7 +266,7 @@ func Convert_v1alpha2_BundleSourceRef_To_v1alpha1_BundleSource(in *trustv1alpha2
 	var includeAllKeys *bool
 	if in.Key == "*" {
 		key = ""
-		includeAllKeys = ptr.To(true)
+		includeAllKeys = new(true)
 	}
 	sourceObjectKeySelector := &SourceObjectKeySelector{
 		Name:           in.Name,
@@ -309,7 +305,7 @@ func Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *trustv1alpha2.Bu
 			if k, ok := obj.Annotations[AnnotationKeyJKSKey]; ok && k == tkv.Key {
 				jks = &JKS{}
 				jks.Key = tkv.Key
-				jks.Password = tkv.PKCS12.Password
+				jks.Password = *tkv.PKCS12.Password
 			} else {
 				pkcs12 = &PKCS12{}
 				pkcs12.Key = tkv.Key
@@ -347,11 +343,8 @@ func Convert_v1alpha2_KeyValueTarget_To_v1alpha1_TargetTemplate(in *trustv1alpha
 			break
 		}
 	}
-	if in.Metadata != nil {
-		out.Metadata = &TargetMetadata{}
-		if err := Convert_v1alpha2_TargetMetadata_To_v1alpha1_TargetMetadata(in.Metadata, out.Metadata, scope); err != nil {
-			return err
-		}
+	if err := Convert_v1alpha2_TargetMetadata_To_v1alpha1_TargetMetadata(&in.Metadata, &out.Metadata, scope); err != nil {
+		return err
 	}
 	return nil
 }

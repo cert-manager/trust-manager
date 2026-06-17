@@ -131,8 +131,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 				},
@@ -151,8 +151,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
@@ -173,8 +173,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
@@ -197,8 +197,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
@@ -221,8 +221,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{"wrong key"}, nil),
@@ -243,8 +243,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, []string{"wrong key"}),
@@ -270,8 +270,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key, "wrong key"}, nil),
@@ -297,8 +297,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
@@ -319,8 +319,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
@@ -343,8 +343,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
@@ -367,15 +367,15 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 						{
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               "another-bundle",
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
@@ -399,8 +399,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
@@ -423,8 +423,8 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
@@ -483,7 +483,7 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 					KeySelector: trustapi.KeySelector{
 						Key: jksKey,
 					},
-					Password: ptr.To(trustapi.DefaultJKSPassword),
+					Password: trustapi.DefaultJKSPassword,
 				}
 			}
 			if tt.withPKCS12 {
@@ -495,15 +495,9 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				}
 			}
 			if tt.withTargetAnnotation {
-				if spec.Target.ConfigMap.Metadata == nil {
-					spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{}
-				}
 				spec.Target.ConfigMap.Metadata.Annotations = map[string]string{targetAnnotation: "true"}
 			}
 			if tt.withTargetLabel {
-				if spec.Target.ConfigMap.Metadata == nil {
-					spec.Target.ConfigMap.Metadata = &trustapi.TargetMetadata{}
-				}
 				spec.Target.ConfigMap.Metadata.Labels = map[string]string{targetLabel: "true"}
 			}
 
@@ -631,8 +625,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 				},
@@ -651,8 +645,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
@@ -673,8 +667,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
@@ -697,8 +691,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
@@ -721,8 +715,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{"wrong key"}, nil),
@@ -743,8 +737,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, []string{"wrong key"}),
@@ -770,8 +764,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key, "wrong key"}, nil),
@@ -797,8 +791,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
@@ -819,8 +813,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
@@ -843,8 +837,8 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
@@ -867,15 +861,15 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               bundleName,
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 						{
 							Kind:               "Bundle",
 							APIVersion:         "trust.cert-manager.io/v1alpha1",
 							Name:               "another-bundle",
-							Controller:         ptr.To(true),
-							BlockOwnerDeletion: ptr.To(true),
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
 						},
 					},
 					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, nil),
@@ -935,7 +929,7 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 					KeySelector: trustapi.KeySelector{
 						Key: jksKey,
 					},
-					Password: ptr.To(trustapi.DefaultJKSPassword),
+					Password: trustapi.DefaultJKSPassword,
 				}
 			}
 			if tt.withPKCS12 {
@@ -1015,16 +1009,16 @@ func Test_TrustBundleHash(t *testing.T) {
 				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{}}},
 				// NOTE: default passwords are applied by openapi, so the input arguments for the function
 				// will never have a password of "". And we don't have to account for it in the test.
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: ptr.To("")}}},
+				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: ""}}},
 				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{}}},
 				// NOTE: default passwords are applied by openapi, so the input arguments for the function
 				// will never have a password of "". And we don't have to account for it in the test.
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: ptr.To("")}}},
+				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: new("")}}},
 			},
 			mismatches: []inputArgs{
 				{data: []byte("data"), additionalFormats: nil},
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: ptr.To("nonempty")}}},
-				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: ptr.To("nonempty")}}},
+				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: "nonempty"}}},
+				{data: []byte{}, additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: new("nonempty")}}},
 			},
 		},
 		"non-empty data": {
@@ -1034,21 +1028,21 @@ func Test_TrustBundleHash(t *testing.T) {
 			},
 		},
 		"jks password": {
-			input: inputArgs{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: ptr.To("password")}}},
+			input: inputArgs{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: "password"}}},
 			matches: []inputArgs{
-				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: ptr.To("password")}}},
+				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: "password"}}},
 			},
 			mismatches: []inputArgs{
-				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: ptr.To("wrong")}}},
+				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{JKS: &trustapi.JKS{Password: "wrong"}}},
 			},
 		},
 		"pkcs12 password": {
-			input: inputArgs{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: ptr.To("password")}}},
+			input: inputArgs{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: new("password")}}},
 			matches: []inputArgs{
-				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: ptr.To("password")}}},
+				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: new("password")}}},
 			},
 			mismatches: []inputArgs{
-				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: ptr.To("wrong")}}},
+				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: new("wrong")}}},
 			},
 		},
 		"target metadata": {
@@ -1056,7 +1050,7 @@ func Test_TrustBundleHash(t *testing.T) {
 				data:              []byte("data"),
 				additionalFormats: &trustapi.AdditionalFormats{},
 				targetTemplate: &trustapi.TargetTemplate{
-					Metadata: &trustapi.TargetMetadata{
+					Metadata: trustapi.TargetMetadata{
 						Annotations: map[string]string{"annotation1": "value1"},
 						Labels:      map[string]string{"annotation1": "value1"},
 					},
@@ -1067,7 +1061,7 @@ func Test_TrustBundleHash(t *testing.T) {
 					data:              []byte("data"),
 					additionalFormats: &trustapi.AdditionalFormats{},
 					targetTemplate: &trustapi.TargetTemplate{
-						Metadata: &trustapi.TargetMetadata{
+						Metadata: trustapi.TargetMetadata{
 							Annotations: map[string]string{"annotation1": "value1"},
 							Labels:      map[string]string{"annotation1": "value1"},
 						},
@@ -1079,7 +1073,7 @@ func Test_TrustBundleHash(t *testing.T) {
 					data:              []byte("data"),
 					additionalFormats: &trustapi.AdditionalFormats{},
 					targetTemplate: &trustapi.TargetTemplate{
-						Metadata: &trustapi.TargetMetadata{
+						Metadata: trustapi.TargetMetadata{
 							Annotations: map[string]string{"annotation1": "value1"},
 						},
 					},
@@ -1088,7 +1082,7 @@ func Test_TrustBundleHash(t *testing.T) {
 					data:              []byte("data"),
 					additionalFormats: &trustapi.AdditionalFormats{},
 					targetTemplate: &trustapi.TargetTemplate{
-						Metadata: &trustapi.TargetMetadata{
+						Metadata: trustapi.TargetMetadata{
 							Labels: map[string]string{"annotation1": "value1"},
 						},
 					},
@@ -1097,7 +1091,7 @@ func Test_TrustBundleHash(t *testing.T) {
 					data:              []byte("data"),
 					additionalFormats: &trustapi.AdditionalFormats{},
 					targetTemplate: &trustapi.TargetTemplate{
-						Metadata: &trustapi.TargetMetadata{
+						Metadata: trustapi.TargetMetadata{
 							Annotations: map[string]string{"annotation1": "value2"},
 							Labels:      map[string]string{"annotation1": "value1"},
 						},
@@ -1107,7 +1101,7 @@ func Test_TrustBundleHash(t *testing.T) {
 					data:              []byte("data"),
 					additionalFormats: &trustapi.AdditionalFormats{},
 					targetTemplate: &trustapi.TargetTemplate{
-						Metadata: &trustapi.TargetMetadata{
+						Metadata: trustapi.TargetMetadata{
 							Annotations: map[string]string{"annotation1": "value1"},
 							Labels:      map[string]string{"annotation1": "value2"},
 						},

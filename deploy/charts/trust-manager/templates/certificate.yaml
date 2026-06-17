@@ -39,6 +39,9 @@ spec:
   privateKey:
     rotationPolicy: Always
   revisionHistoryLimit: 1
+  {{- if .Values.app.webhook.tls.certificate.duration }}
+  duration: {{ .Values.app.webhook.tls.certificate.duration }}
+  {{- end }}
   issuerRef:
     name: {{ include "trust-manager.name" . }}
     kind: Issuer
@@ -46,7 +49,7 @@ spec:
 
 ---
 
-{{- if .Values.app.webhook.tls.approverPolicy.enabled -}}
+{{- if .Values.app.webhook.tls.approverPolicy.enabled }}
 
 apiVersion: policy.cert-manager.io/v1alpha1
 kind: CertificateRequestPolicy

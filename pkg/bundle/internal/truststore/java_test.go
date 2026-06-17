@@ -68,7 +68,11 @@ func Test_Java_keytool_can_read_JKS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cmd := exec.CommandContext(t.Context(), keytool, "-list", "-keystore", f.Name(), "-storepass", v1alpha1.DefaultJKSPassword) // #nosec G204
+	cmd := exec.CommandContext(
+		t.Context(),
+		keytool,
+		"-list", "-keystore", f.Name(), "-storepass", v1alpha1.DefaultJKSPassword,
+	) // #nosec G204,G702 -- keytool path and keystore are trusted in test environment
 	out, err := cmd.CombinedOutput()
 	t.Logf("combined out:\n%s", string(out))
 	if err != nil {

@@ -8,18 +8,19 @@ metadata:
     app: {{ include "trust-manager.name" . }}
     {{- include "trust-manager.labels" . | nindent 4 }}
     prometheus: {{ .Values.app.metrics.service.servicemonitor.prometheusInstance }}
+    {{- with .Values.app.metrics.service.servicemonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- with .Values.commonAnnotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-{{- if .Values.app.metrics.service.servicemonitor.labels }}
-{{ toYaml .Values.app.metrics.service.servicemonitor.labels | indent 4}}
-{{- end }}
 spec:
   jobLabel: {{ include "trust-manager.name" . }}
   selector:
     matchLabels:
       app: {{ include "trust-manager.name" . }}
+      app.kubernetes.io/component: metrics
   namespaceSelector:
     matchNames:
       - {{ include "trust-manager.namespace" . }}
