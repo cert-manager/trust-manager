@@ -28,6 +28,13 @@ tests:
           path: spec.template.spec.containers[0].securityContext.appArmorProfile
           value:
             type: RuntimeDefault
+  - it: should allow disabling app security context
+    set:
+      app:
+        securityContext: null
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].securityContext
   - it: should use default defaultPackage security context
     asserts:
       - equal:
@@ -51,6 +58,13 @@ tests:
           path: spec.template.spec.initContainers[0].securityContext.appArmorProfile
           value:
             type: RuntimeDefault
+  - it: should allow disabling defaultPackage security context
+    set:
+      defaultPackage:
+        securityContext: null
+    asserts:
+      - notExists:
+          path: spec.template.spec.initContainers[0].securityContext
   - it: should render custom pod security context
     set:
       podSecurityContext:
