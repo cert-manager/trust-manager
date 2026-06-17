@@ -194,6 +194,21 @@ resources:
     cpu: 100m
     memory: 128Mi
 ```
+#### **defaultPackage.securityContext** ~ `object`
+> Default value:
+> ```yaml
+> allowPrivilegeEscalation: false
+> capabilities:
+>   drop:
+>     - ALL
+> readOnlyRootFilesystem: true
+> runAsNonRoot: true
+> seccompProfile:
+>   type: RuntimeDefault
+> ```
+
+Security Context to be set on the trust-manager default package init container. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).
+
 #### **defaultPackageImage.registry** ~ `string`
 
 Target image registry. This value is prepended to the target image repository, if set.  
@@ -334,6 +349,13 @@ resources:
     cpu: 100m
     memory: 128Mi
 ```
+#### **podSecurityContext** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+
+Security Context to be set on the trust-manager Pod. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).
 #### **priorityClassName** ~ `string`
 > Default value:
 > ```yaml
@@ -491,13 +513,21 @@ The namespace used as the trust source. Note that the namespace _must_ exist bef
 
 List of target namespaces that trust-manager can write to. By default, trust-manager can write targets in any namespace.
 
-#### **app.securityContext.seccompProfileEnabled** ~ `bool`
+#### **app.securityContext** ~ `object`
 > Default value:
 > ```yaml
-> true
+> allowPrivilegeEscalation: false
+> capabilities:
+>   drop:
+>     - ALL
+> readOnlyRootFilesystem: true
+> runAsNonRoot: true
+> seccompProfile:
+>   type: RuntimeDefault
 > ```
 
-If false, disables the default seccomp profile, which might be required to run on certain platforms.
+Security Context to be set on the trust-manager app container. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).
+
 #### **app.podLabels** ~ `object`
 > Default value:
 > ```yaml
