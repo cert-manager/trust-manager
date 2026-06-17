@@ -91,6 +91,7 @@ defaultPackage:
   resources: {}
 
   # Security Context to be set on the trust-manager default package init container. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).
+  # +docs:property
   securityContext:
     allowPrivilegeEscalation: false
     capabilities:
@@ -268,6 +269,7 @@ app:
   # targetNamespaces: ["ns-1", "ns-2"]
 
   # Security Context to be set on the trust-manager app container. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).
+  # +docs:property
   securityContext:
     allowPrivilegeEscalation: false
     capabilities:

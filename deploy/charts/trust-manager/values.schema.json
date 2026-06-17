@@ -342,69 +342,21 @@
       "type": "number"
     },
     "helm-values.app.securityContext": {
-      "additionalProperties": false,
-      "properties": {
-        "allowPrivilegeEscalation": {
-          "$ref": "#/$defs/helm-values.app.securityContext.allowPrivilegeEscalation"
-        },
+      "default": {
+        "allowPrivilegeEscalation": false,
         "capabilities": {
-          "$ref": "#/$defs/helm-values.app.securityContext.capabilities"
+          "drop": [
+            "ALL"
+          ]
         },
-        "readOnlyRootFilesystem": {
-          "$ref": "#/$defs/helm-values.app.securityContext.readOnlyRootFilesystem"
-        },
-        "runAsNonRoot": {
-          "$ref": "#/$defs/helm-values.app.securityContext.runAsNonRoot"
-        },
+        "readOnlyRootFilesystem": true,
+        "runAsNonRoot": true,
         "seccompProfile": {
-          "$ref": "#/$defs/helm-values.app.securityContext.seccompProfile"
+          "type": "RuntimeDefault"
         }
       },
+      "description": "Security Context to be set on the trust-manager app container. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).",
       "type": "object"
-    },
-    "helm-values.app.securityContext.allowPrivilegeEscalation": {
-      "default": false,
-      "type": "boolean"
-    },
-    "helm-values.app.securityContext.capabilities": {
-      "additionalProperties": false,
-      "properties": {
-        "drop": {
-          "$ref": "#/$defs/helm-values.app.securityContext.capabilities.drop"
-        }
-      },
-      "type": "object"
-    },
-    "helm-values.app.securityContext.capabilities.drop": {
-      "items": {
-        "$ref": "#/$defs/helm-values.app.securityContext.capabilities.drop[0]"
-      },
-      "type": "array"
-    },
-    "helm-values.app.securityContext.capabilities.drop[0]": {
-      "default": "ALL",
-      "type": "string"
-    },
-    "helm-values.app.securityContext.readOnlyRootFilesystem": {
-      "default": true,
-      "type": "boolean"
-    },
-    "helm-values.app.securityContext.runAsNonRoot": {
-      "default": true,
-      "type": "boolean"
-    },
-    "helm-values.app.securityContext.seccompProfile": {
-      "additionalProperties": false,
-      "properties": {
-        "type": {
-          "$ref": "#/$defs/helm-values.app.securityContext.seccompProfile.type"
-        }
-      },
-      "type": "object"
-    },
-    "helm-values.app.securityContext.seccompProfile.type": {
-      "default": "RuntimeDefault",
-      "type": "string"
     },
     "helm-values.app.targetNamespaces": {
       "description": "List of target namespaces that trust-manager can write to. By default, trust-manager can write targets in any namespace.",
@@ -642,69 +594,21 @@
       "type": "object"
     },
     "helm-values.defaultPackage.securityContext": {
-      "additionalProperties": false,
-      "properties": {
-        "allowPrivilegeEscalation": {
-          "$ref": "#/$defs/helm-values.defaultPackage.securityContext.allowPrivilegeEscalation"
-        },
+      "default": {
+        "allowPrivilegeEscalation": false,
         "capabilities": {
-          "$ref": "#/$defs/helm-values.defaultPackage.securityContext.capabilities"
+          "drop": [
+            "ALL"
+          ]
         },
-        "readOnlyRootFilesystem": {
-          "$ref": "#/$defs/helm-values.defaultPackage.securityContext.readOnlyRootFilesystem"
-        },
-        "runAsNonRoot": {
-          "$ref": "#/$defs/helm-values.defaultPackage.securityContext.runAsNonRoot"
-        },
+        "readOnlyRootFilesystem": true,
+        "runAsNonRoot": true,
         "seccompProfile": {
-          "$ref": "#/$defs/helm-values.defaultPackage.securityContext.seccompProfile"
+          "type": "RuntimeDefault"
         }
       },
+      "description": "Security Context to be set on the trust-manager default package init container. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).",
       "type": "object"
-    },
-    "helm-values.defaultPackage.securityContext.allowPrivilegeEscalation": {
-      "default": false,
-      "type": "boolean"
-    },
-    "helm-values.defaultPackage.securityContext.capabilities": {
-      "additionalProperties": false,
-      "properties": {
-        "drop": {
-          "$ref": "#/$defs/helm-values.defaultPackage.securityContext.capabilities.drop"
-        }
-      },
-      "type": "object"
-    },
-    "helm-values.defaultPackage.securityContext.capabilities.drop": {
-      "items": {
-        "$ref": "#/$defs/helm-values.defaultPackage.securityContext.capabilities.drop[0]"
-      },
-      "type": "array"
-    },
-    "helm-values.defaultPackage.securityContext.capabilities.drop[0]": {
-      "default": "ALL",
-      "type": "string"
-    },
-    "helm-values.defaultPackage.securityContext.readOnlyRootFilesystem": {
-      "default": true,
-      "type": "boolean"
-    },
-    "helm-values.defaultPackage.securityContext.runAsNonRoot": {
-      "default": true,
-      "type": "boolean"
-    },
-    "helm-values.defaultPackage.securityContext.seccompProfile": {
-      "additionalProperties": false,
-      "properties": {
-        "type": {
-          "$ref": "#/$defs/helm-values.defaultPackage.securityContext.seccompProfile.type"
-        }
-      },
-      "type": "object"
-    },
-    "helm-values.defaultPackage.securityContext.seccompProfile.type": {
-      "default": "RuntimeDefault",
-      "type": "string"
     },
     "helm-values.defaultPackageImage": {
       "additionalProperties": false,
