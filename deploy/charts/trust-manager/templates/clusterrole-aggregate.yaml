@@ -1,0 +1,25 @@
+{{- if .Values.global.rbac.create }}
+{{- if .Values.global.rbac.aggregateClusterRoles }}
+# Bundle is a cluster-scoped resource, so its read access is aggregated into
+# the "cluster-reader" ClusterRole (mirroring how cert-manager aggregates its
+# cluster-scoped ClusterIssuers), rather than into the namespaced
+# view/edit/admin roles.
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    {{- include "trust-manager.labels" . | nindent 4 }}
+    rbac.authorization.k8s.io/aggregate-to-cluster-reader: "true"
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  name: {{ include "trust-manager.name" . }}-cluster-view
+rules:
+- apiGroups:
+  - "trust.cert-manager.io"
+  resources:
+  - "bundles"
+  verbs: ["get", "list", "watch"]
+{{- end }}
+{{- end }}

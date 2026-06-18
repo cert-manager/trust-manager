@@ -733,11 +733,19 @@
     },
     "helm-values.global.rbac": {
       "properties": {
+        "aggregateClusterRoles": {
+          "$ref": "#/$defs/helm-values.global.rbac.aggregateClusterRoles"
+        },
         "create": {
           "$ref": "#/$defs/helm-values.global.rbac.create"
         }
       },
       "type": "object"
+    },
+    "helm-values.global.rbac.aggregateClusterRoles": {
+      "default": true,
+      "description": "Aggregate read access to Bundles into the \"cluster-reader\" ClusterRole, mirroring how cert-manager aggregates its cluster-scoped ClusterIssuers. Bundle is a cluster-scoped resource, so this only takes effect for subjects bound via a ClusterRoleBinding. For more information, see [User-facing roles](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#user-facing-roles).",
+      "type": "boolean"
     },
     "helm-values.global.rbac.create": {
       "default": true,
