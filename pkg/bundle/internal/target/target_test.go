@@ -1163,3 +1163,39 @@ func assertPKCS12Data(t *testing.T, binData []byte, password string) {
 	p, _ := pem.Decode([]byte(data))
 	assert.Equal(t, p.Bytes, cas[0].Raw)
 }
+
+func Test_TrustBundleHash_Deterministic(t *testing.T) {
+	// Regression test for #971: TrustBundleHash folded the target annotations and
+	// labels into the hash by iterating Go maps directly. With more than one key,
+	// Go's randomized map iteration order made the hash vary between calls, so
+	// needsUpdate() was always true and the controller rewrote the target on every
+	// reconcile. The hash must be stable across calls for the same input.
+	//
+	// Note: this needs multiple keys to expose the bug — a single annotation/label
+	// (as in the existing integration tests) cannot trigger the randomization.
+	target := &trustapi.TargetTemplate{
+		Metadata: trustapi.TargetMetadata{
+			Annotations: map[string]string{
+				"annotation1": "value1",
+				"annotation2": "value2",
+				"annotation3": "value3",
+				"annotation4": "value4",
+				"annotation5": "value5",
+			},
+			Labels: map[string]string{
+				"label1": "value1",
+				"label2": "value2",
+				"label3": "value3",
+				"label4": "value4",
+				"label5": "value5",
+			},
+		},
+	}
+
+	want := TrustBundleHash([]byte("data"), nil, target)
+	for i := range 1000 {
+		if got := TrustBundleHash([]byte("data"), nil, target); got != want {
+			t.Fatalf("TrustBundleHash must be deterministic, but iteration %d produced %q, want %q", i, got, want)
+		}
+	}
+}
