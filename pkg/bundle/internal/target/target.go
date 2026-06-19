@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"slices"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -408,12 +409,16 @@ func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats,
 		_, _ = hash.Write([]byte(*additionalFormats.PKCS12.Password))
 	}
 
-	// Add Target annotations and labels to the hash so it becomes aware of changes and triggers an update.
-	for k, v := range target.GetAnnotations() {
-		_, _ = hash.Write([]byte(k + v))
+	// Add Target annotations and labels to the hash so it becomes aware of changes
+	// and triggers an update. Iterate in sorted key order so the hash is stable
+	// regardless of Go's randomized map iteration order (#971).
+	annotations := target.GetAnnotations()
+	for _, k := range slices.Sorted(maps.Keys(annotations)) {
+		_, _ = hash.Write([]byte(k + annotations[k]))
 	}
-	for k, v := range target.GetLabels() {
-		_, _ = hash.Write([]byte(k + v))
+	labels := target.GetLabels()
+	for _, k := range slices.Sorted(maps.Keys(labels)) {
+		_, _ = hash.Write([]byte(k + labels[k]))
 	}
 
 	hashValue := [32]byte{}
