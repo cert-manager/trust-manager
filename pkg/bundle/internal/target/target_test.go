@@ -1193,8 +1193,9 @@ func Test_TrustBundleHash_Deterministic(t *testing.T) {
 	}
 
 	want := TrustBundleHash([]byte("data"), nil, target)
-	for i := 0; i < 1000; i++ {
-		assert.Equalf(t, want, TrustBundleHash([]byte("data"), nil, target),
-			"TrustBundleHash must be deterministic, but iteration %d differed", i)
+	for i := range 1000 {
+		if got := TrustBundleHash([]byte("data"), nil, target); got != want {
+			t.Fatalf("TrustBundleHash must be deterministic, but iteration %d produced %q, want %q", i, got, want)
+		}
 	}
 }
