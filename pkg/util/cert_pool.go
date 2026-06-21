@@ -34,24 +34,42 @@ import (
 type CertPool struct {
 	certificates map[[32]byte]*x509.Certificate
 
-	filterExpired bool
-
-	filterNonCACerts bool
+	filters []CertPoolFilterFunc
 
 	logger logr.Logger
 }
+
+// CertPoolFilterFunc is invoked for each certificate before it's added to the pool.
+// Return true to accept the certificate or false to reject it.
+type CertPoolFilterFunc func(*x509.Certificate) bool
 
 type Option func(*CertPool)
 
 func WithFilteredExpiredCerts(filterExpired bool) Option {
 	return func(cp *CertPool) {
-		cp.filterExpired = filterExpired
+		if filterExpired {
+			cp.AppendFilter(func(cert *x509.Certificate) bool {
+				if time.Now().After(cert.NotAfter) {
+					cp.Logger().Info("ignoring expired certificate", "certificate", cert.Subject)
+					return false
+				}
+				return true
+			})
+		}
 	}
 }
 
 func WithFilteredNonCaCerts(filterNonCACerts bool) Option {
 	return func(cp *CertPool) {
-		cp.filterNonCACerts = filterNonCACerts
+		if filterNonCACerts {
+			cp.AppendFilter(func(cert *x509.Certificate) bool {
+				if !cert.IsCA {
+					cp.Logger().Info("ignoring non-CA certificate", "certificate", cert.Subject)
+					return false
+				}
+				return true
+			})
+		}
 	}
 }
 
@@ -145,14 +163,10 @@ func (cp *CertPool) AddCertsFromPEM(pemData []byte) error {
 }
 
 func (cp *CertPool) AddCert(certificate *x509.Certificate) bool {
-	if cp.filterExpired && time.Now().After(certificate.NotAfter) {
-		cp.logger.Info("ignoring expired certificate", "certificate", certificate.Subject)
-		return false
-	}
-
-	if cp.filterNonCACerts && !certificate.IsCA {
-		cp.logger.Info("ignoring non-CA certificate", "certificate", certificate.Subject)
-		return false
+	for _, filter := range cp.filters {
+		if !filter(certificate) {
+			return false
+		}
 	}
 
 	hash := sha256.Sum256(certificate.Raw)
@@ -211,4 +225,16 @@ func (certPool *CertPool) Certificates() []*x509.Certificate {
 	}
 
 	return orderedCertificates
+}
+
+func (certPool *CertPool) AppendFilter(fn CertPoolFilterFunc) {
+	if fn == nil {
+		return
+	}
+	certPool.filters = append(certPool.filters, fn)
+}
+
+// Logger returns the logger set for the cert pool.
+func (certPool *CertPool) Logger() logr.Logger {
+	return certPool.logger
 }
