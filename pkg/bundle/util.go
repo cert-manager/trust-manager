@@ -51,7 +51,7 @@ func (b *bundle) setBundleCondition(
 	existingConditions []metav1.Condition,
 	patchConditions *[]metav1.Condition,
 	newCondition metav1.Condition,
-) metav1.Condition { // nolint:unparam
+) metav1.Condition { //nolint:unparam
 	newCondition.LastTransitionTime = metav1.Time{Time: b.clock.Now()}
 
 	// Reset the LastTransitionTime if the status hasn't changed
