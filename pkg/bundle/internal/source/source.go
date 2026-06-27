@@ -178,16 +178,31 @@ func (b configMapBundleSource) addToCertPool(ctx context.Context, pool *util.Cer
 
 	for _, cm := range configMaps {
 		if len(b.ref.Key) > 0 {
+			// ConfigMaps may store values under either the string Data field or
+			// the byte BinaryData field. Prefer Data, but fall back to
+			// BinaryData so base64-encoded CAs are also resolvable.
 			data, ok := cm.Data[b.ref.Key]
-			if !ok {
+			binaryData, binaryOk := cm.BinaryData[b.ref.Key]
+			switch {
+			case ok:
+				if err := pool.AddCertsFromPEM([]byte(data)); err != nil {
+					return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, b.ref.Key, err)}
+				}
+			case binaryOk:
+				if err := pool.AddCertsFromPEM(binaryData); err != nil {
+					return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, b.ref.Key, err)}
+				}
+			default:
 				return NotFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, b.ref.Key)}
-			}
-			if err := pool.AddCertsFromPEM([]byte(data)); err != nil {
-				return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, b.ref.Key, err)}
 			}
 		} else if ptr.Deref(b.ref.IncludeAllKeys, false) {
 			for key, data := range cm.Data {
 				if err := pool.AddCertsFromPEM([]byte(data)); err != nil {
+					return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, key, err)}
+				}
+			}
+			for key, data := range cm.BinaryData {
+				if err := pool.AddCertsFromPEM(data); err != nil {
 					return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, key, err)}
 				}
 			}
