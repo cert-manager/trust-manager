@@ -84,6 +84,51 @@ func Test_BuildBundle(t *testing.T) {
 			}},
 			expData: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1),
 		},
+		"if single ConfigMap source referencing single key stored in binaryData, return data": {
+			sources: []trustapi.BundleSource{
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
+			},
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				BinaryData: map[string][]byte{"key": []byte(dummy.TestCertificate1 + "\n" + dummy.TestCertificate2)},
+			}},
+			expData: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1),
+		},
+		"if single ConfigMap source with key in both data and binaryData, data takes precedence": {
+			sources: []trustapi.BundleSource{
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
+			},
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				Data:       map[string]string{"key": dummy.TestCertificate1},
+				BinaryData: map[string][]byte{"key": []byte(dummy.TestCertificate2)},
+			}},
+			expData: dummy.JoinCerts(dummy.TestCertificate1),
+		},
+		"if single ConfigMap source whose key is absent from both data and binaryData, return NotFoundError": {
+			sources: []trustapi.BundleSource{
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
+			},
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				Data:       map[string]string{"other": dummy.TestCertificate1},
+				BinaryData: map[string][]byte{"another": []byte(dummy.TestCertificate2)},
+			}},
+			expError:         true,
+			expNotFoundError: true,
+		},
+		"if single ConfigMap source with invalid PEM in binaryData, return error": {
+			sources: []trustapi.BundleSource{
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
+			},
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				// A complete PEM block whose contents are not a valid certificate,
+				// mirroring the invalid-PEM behaviour of the data field.
+				BinaryData: map[string][]byte{"key": []byte("-----BEGIN CERTIFICATE-----\naW52YWxpZA==\n-----END CERTIFICATE-----")},
+			}},
+			expError: true,
+		},
 		"if single ConfigMap source including all keys, return data": {
 			sources: []trustapi.BundleSource{
 				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", IncludeAllKeys: new(true)}},
@@ -93,6 +138,17 @@ func Test_BuildBundle(t *testing.T) {
 				Data:       map[string]string{"cert-1": dummy.TestCertificate1 + "\n" + dummy.TestCertificate2, "cert-2": dummy.TestCertificate3},
 			}},
 			expData: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3),
+		},
+		"if single ConfigMap source including all keys across data and binaryData, return data": {
+			sources: []trustapi.BundleSource{
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", IncludeAllKeys: new(true)}},
+			},
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				Data:       map[string]string{"cert-1": dummy.TestCertificate1},
+				BinaryData: map[string][]byte{"cert-2": []byte(dummy.TestCertificate2)},
+			}},
+			expData: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1),
 		},
 		"if single ConfigMap source, return data even when order changes": {
 			// Test uses the same data as the previous one but with different order
