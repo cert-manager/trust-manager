@@ -79,6 +79,7 @@ func SetupWithManager(
 	ctx context.Context,
 	mgr ctrl.Manager,
 	opts controller.Options,
+	pkg *fspkg.Package,
 ) error {
 	targetRequirement, err := labels.NewRequirement(trustapi.BundleLabelKey, selection.Exists, nil)
 	if err != nil {
@@ -110,7 +111,7 @@ func SetupWithManager(
 	}
 
 	// Add Bundle controller to manager.
-	if err := addBundleController(ctx, mgr, opts, targetCache); err != nil {
+	if err := addBundleController(ctx, mgr, opts, targetCache, pkg); err != nil {
 		return fmt.Errorf("failed to register Bundle controller: %w", err)
 	}
 
@@ -127,6 +128,7 @@ func addBundleController(
 	mgr manager.Manager,
 	opts controller.Options,
 	targetCache cache.Cache,
+	pkg *fspkg.Package,
 ) error {
 	b := &bundle{
 		client:   mgr.GetClient(),
@@ -134,8 +136,9 @@ func addBundleController(
 		clock:    clock.RealClock{},
 		Options:  opts,
 		bundleBuilder: &source.BundleBuilder{
-			Reader:  mgr.GetClient(),
-			Options: opts,
+			Reader:         mgr.GetClient(),
+			Options:        opts,
+			DefaultPackage: pkg,
 		},
 		targetReconciler: &target.Reconciler{
 			Client: mgr.GetClient(),
@@ -146,17 +149,6 @@ func addBundleController(
 	if len(b.Options.TargetNamespaces) > 0 {
 		logf.FromContext(ctx).Info("reconciler will skip namespaces outside targetlist",
 			"target-namespaces", b.Options.TargetNamespaces)
-	}
-
-	if b.Options.DefaultPackageLocation != "" {
-		pkg, err := fspkg.LoadPackageFromFile(b.Options.DefaultPackageLocation)
-		if err != nil {
-			return fmt.Errorf("must load default package successfully when default package location is set: %w", err)
-		}
-
-		b.bundleBuilder.DefaultPackage = &pkg
-
-		logf.FromContext(ctx).Info("successfully loaded default package from filesystem", "id", pkg.StringID(), "path", b.Options.DefaultPackageLocation)
 	}
 
 	// Only reconcile config maps that match the well known name
