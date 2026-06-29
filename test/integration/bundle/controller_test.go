@@ -18,6 +18,15 @@ package test
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"math/big"
+	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
@@ -684,5 +693,142 @@ var _ = Describe("Integration", func() {
 			Expect(cl.Get(ctx, client.ObjectKey{Namespace: namespace.Name, Name: testBundle.Name}, &configMap)).ToNot(HaveOccurred())
 			Expect(configMap.Annotations).To(HaveKeyWithValue("testKey", "testValue"), "Ensuring target contains additional annotations")
 		}
+	})
+})
+
+// generateShortLivedCA creates a self-signed CA certificate PEM with the given lifetime.
+func generateShortLivedCA(cn string, lifetime time.Duration) string {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	Expect(err).NotTo(HaveOccurred())
+
+	template := &x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: cn, Organization: []string{"cert-manager"}},
+		NotBefore:             time.Now().Add(-1 * time.Minute),
+		NotAfter:              time.Now().Add(lifetime),
+		IsCA:                  true,
+		BasicConstraintsValid: true,
+		KeyUsage:              x509.KeyUsageCertSign,
+	}
+
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	Expect(err).NotTo(HaveOccurred())
+
+	return strings.TrimSpace(string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})))
+}
+
+var _ = Describe("Integration keepCertHistory", func() {
+	var ctx context.Context
+
+	BeforeEach(func() {
+		_, ctx = ktesting.NewTestContext(GinkgoT())
+	})
+
+	It("should retain previous cert after rotation and prune after expiry", func() {
+		shortLivedCert := generateShortLivedCA("short-lived-ca", 30*time.Second)
+
+		By("Creating a Secret source with a short-lived CA cert")
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "history-source-",
+				Namespace:    trustNamespace,
+			},
+			Data: map[string][]byte{
+				"ca.crt": []byte(shortLivedCert),
+			},
+		}
+		Expect(cl.Create(ctx, secret)).NotTo(HaveOccurred())
+
+		By("Creating a Bundle with keepCertHistory enabled")
+		bundle := &trustapi.Bundle{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "history-bundle-",
+			},
+			Spec: trustapi.BundleSpec{
+				Sources: []trustapi.BundleSource{
+					{
+						Secret: &trustapi.SourceObjectKeySelector{
+							Name:            secret.Name,
+							Key:             "ca.crt",
+							KeepCertHistory: true,
+						},
+					},
+				},
+				Target: trustapi.BundleTarget{
+					ConfigMap: &trustapi.TargetTemplate{Key: "bundle.pem"},
+				},
+			},
+		}
+		Expect(cl.Create(ctx, bundle)).NotTo(HaveOccurred())
+		defer func() {
+			Expect(cl.Delete(ctx, bundle)).NotTo(HaveOccurred())
+		}()
+
+		By("Waiting for initial sync with the short-lived cert")
+		Eventually(func() error {
+			return testenv.CheckBundleSyncedAllNamespaces(ctx, cl, bundle.Name, shortLivedCert)
+		}, eventuallyTimeout, eventuallyPollInterval).Should(Succeed())
+
+		findHistory := func(history []trustapi.SourceCertHistory, key string) *trustapi.SourceCertHistory {
+			for i := range history {
+				if history[i].SourceKey == key {
+					return &history[i]
+				}
+			}
+			return nil
+		}
+
+		By("Verifying status has history tracking for the source")
+		Eventually(func() bool {
+			Expect(cl.Get(ctx, client.ObjectKey{Name: bundle.Name}, bundle)).NotTo(HaveOccurred())
+			key := "secret/" + secret.Name + "/ca.crt"
+			entry := findHistory(bundle.Status.CertHistory, key)
+			return entry != nil && entry.LastSeenFingerprint != "" && len(entry.Entries) == 0
+		}, eventuallyTimeout, eventuallyPollInterval).Should(BeTrue(), "status should have history with lastSeenFingerprint set and no entries yet")
+
+		By("Rotating the Secret to a new long-lived cert")
+		Expect(cl.Get(ctx, client.ObjectKey{Namespace: trustNamespace, Name: secret.Name}, secret)).NotTo(HaveOccurred())
+		secret.Data["ca.crt"] = []byte(dummy.TestCertificate4)
+		Expect(cl.Update(ctx, secret)).NotTo(HaveOccurred())
+
+		By("Verifying bundle contains both old and new certs after rotation")
+		Eventually(func() error {
+			return testenv.CheckBundleSyncedAllNamespacesContains(ctx, cl, bundle.Name, shortLivedCert)
+		}, eventuallyTimeout, eventuallyPollInterval).Should(Succeed(), "bundle should contain old short-lived cert")
+		Eventually(func() error {
+			return testenv.CheckBundleSyncedAllNamespacesContains(ctx, cl, bundle.Name, dummy.TestCertificate4)
+		}, eventuallyTimeout, eventuallyPollInterval).Should(Succeed(), "bundle should contain new cert")
+
+		By("Verifying status has the old cert in history entries")
+		Eventually(func() bool {
+			Expect(cl.Get(ctx, client.ObjectKey{Name: bundle.Name}, bundle)).NotTo(HaveOccurred())
+			key := "secret/" + secret.Name + "/ca.crt"
+			entry := findHistory(bundle.Status.CertHistory, key)
+			return entry != nil && len(entry.Entries) == 1
+		}, eventuallyTimeout, eventuallyPollInterval).Should(BeTrue(), "status should have one historical entry after rotation")
+
+		By("Waiting for the short-lived cert to expire")
+		time.Sleep(35 * time.Second)
+
+		By("Triggering reconcile by updating the Secret")
+		Expect(cl.Get(ctx, client.ObjectKey{Namespace: trustNamespace, Name: secret.Name}, secret)).NotTo(HaveOccurred())
+		if secret.Annotations == nil {
+			secret.Annotations = map[string]string{}
+		}
+		secret.Annotations["trust-manager.io/force-reconcile"] = time.Now().String()
+		Expect(cl.Update(ctx, secret)).NotTo(HaveOccurred())
+
+		By("Verifying expired cert is pruned from history and bundle")
+		Eventually(func() bool {
+			Expect(cl.Get(ctx, client.ObjectKey{Name: bundle.Name}, bundle)).NotTo(HaveOccurred())
+			key := "secret/" + secret.Name + "/ca.crt"
+			entry := findHistory(bundle.Status.CertHistory, key)
+			return entry != nil && len(entry.Entries) == 0
+		}, eventuallyTimeout, eventuallyPollInterval).Should(BeTrue(), "expired entry should be pruned from history")
+
+		By("Verifying bundle now only contains the new cert")
+		Eventually(func() error {
+			return testenv.CheckBundleSyncedAllNamespaces(ctx, cl, bundle.Name, dummy.TestCertificate4)
+		}, eventuallyTimeout, eventuallyPollInterval).Should(Succeed(), "bundle should only contain the new cert after expiry")
 	})
 })

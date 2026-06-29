@@ -86,6 +86,8 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 
 			errs := validation.ValidateLabelSelector(configMap.Selector, validation.LabelSelectorValidationOptions{}, path.Child("selector"))
 			el = append(el, errs...)
+
+			el = append(el, validateKeepCertHistory(configMap, path)...)
 		}
 
 		if secret := source.Secret; secret != nil {
@@ -108,6 +110,8 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 
 			errs := validation.ValidateLabelSelector(secret.Selector, validation.LabelSelectorValidationOptions{}, path.Child("selector"))
 			el = append(el, errs...)
+
+			el = append(el, validateKeepCertHistory(secret, path)...)
 		}
 
 		if source.InLine != "" {
@@ -217,6 +221,27 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 
 	return warnings, el.ToAggregate()
 
+}
+
+func validateKeepCertHistory(ref *trustapi.SourceObjectKeySelector, path *field.Path) field.ErrorList {
+	if !ref.KeepCertHistory {
+		return nil
+	}
+
+	var el field.ErrorList
+	if ref.Key == "" {
+		el = append(el, field.Required(path.Child("key"), "key is required when keepCertHistory is enabled"))
+	}
+	if ref.Selector != nil {
+		el = append(el, field.Invalid(path.Child("keepCertHistory"), true, "keepCertHistory is not supported with label selector sources"))
+	}
+	if ptr.Deref(ref.IncludeAllKeys, false) {
+		el = append(el, field.Invalid(path.Child("keepCertHistory"), true, "keepCertHistory is not supported with includeAllKeys"))
+	}
+	if ref.CertHistoryLimit != nil && *ref.CertHistoryLimit < 1 {
+		el = append(el, field.Invalid(path.Child("certHistoryLimit"), *ref.CertHistoryLimit, "certHistoryLimit must be at least 1"))
+	}
+	return el
 }
 
 // validateAnnotationsLabelsTemplate Validates that the target template annotations and labels are both valid and that they do not contain reserved keys.
