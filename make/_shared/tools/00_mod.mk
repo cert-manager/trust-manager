@@ -169,7 +169,7 @@ tools += syft=v1.46.0
 tools += helm-tool=v0.6.0
 # https://github.com/cert-manager/image-tool/releases
 # renovate: datasource=github-releases packageName=cert-manager/image-tool
-tools += image-tool=v0.1.0
+tools += image-tool=v0.2.0
 # https://github.com/cert-manager/cmctl/releases
 # renovate: datasource=github-releases packageName=cert-manager/cmctl
 tools += cmctl=v2.5.0
