@@ -28,12 +28,16 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	ctrlwebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/cert-manager/trust-manager/cmd/trust-manager/app/options"
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/pkg/bundle"
+	bundleMetrics "github.com/cert-manager/trust-manager/pkg/bundle/metrics"
+	"github.com/cert-manager/trust-manager/pkg/fspkg"
+	pkgMetrics "github.com/cert-manager/trust-manager/pkg/metrics"
 	"github.com/cert-manager/trust-manager/pkg/webhook"
 )
 
@@ -95,6 +99,23 @@ func NewCommand() *cobra.Command {
 				return fmt.Errorf("failed to create manager: %w", err)
 			}
 
+			var pkg *fspkg.Package
+			if opts.Bundle.DefaultPackageLocation != "" {
+				data, err := fspkg.LoadPackageFromFile(opts.Bundle.DefaultPackageLocation)
+				if err != nil {
+					return fmt.Errorf("must load default package successfully when default package location is set: %w", err)
+				}
+				pkg = &data
+				log.Info("successfully loaded default package from filesystem", "id", pkg.StringID(), "path", opts.Bundle.DefaultPackageLocation)
+			}
+
+			m := pkgMetrics.NewRegistrator(metrics.Registry)
+			m.Add(bundleMetrics.NewBundleCollector(log, opts.Bundle, mgr.GetClient(), pkg))
+
+			if err := mgr.Add(m); err != nil {
+				return fmt.Errorf("failed to add metrics: %w", err)
+			}
+
 			if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
 				return fmt.Errorf("failed to add webhook ready check: %v", err)
 			}
@@ -106,7 +127,7 @@ func NewCommand() *cobra.Command {
 			logf.IntoContext(ctx, log)
 
 			// Add Bundle controller to manager.
-			if err := bundle.SetupWithManager(ctx, mgr, opts.Bundle); err != nil {
+			if err := bundle.SetupWithManager(ctx, mgr, opts.Bundle, pkg); err != nil {
 				return fmt.Errorf("failed to register Bundle controller: %w", err)
 			}
 
