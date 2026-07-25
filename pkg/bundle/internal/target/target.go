@@ -174,7 +174,13 @@ func (r *Reconciler) applyConfigMap(
 		return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
 	}
 
-	logf.FromContext(ctx).V(2).Info("applied bundle to namespace")
+	// Log the applied keys to make it possible to tell from the logs which keys were
+	// written to the target, and to which field (additional formats are binary and
+	// end up in binaryData, which some UIs don't display).
+	logf.FromContext(ctx).V(2).Info("applied bundle to namespace",
+		"dataKeys", slices.Sorted(maps.Keys(data)),
+		"binaryDataKeys", slices.Sorted(maps.Keys(binData)),
+	)
 
 	return true, nil
 }
@@ -237,7 +243,11 @@ func (r *Reconciler) applySecret(
 		return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
 	}
 
-	logf.FromContext(ctx).V(2).Info("applied bundle to namespace")
+	// Log the applied keys to make it possible to tell from the logs which keys were
+	// written to the target (additional format keys are included in data for Secrets).
+	logf.FromContext(ctx).V(2).Info("applied bundle to namespace",
+		"dataKeys", slices.Sorted(maps.Keys(data)),
+	)
 
 	return true, nil
 }
