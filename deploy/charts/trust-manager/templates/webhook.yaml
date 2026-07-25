@@ -114,7 +114,7 @@ webhooks:
           - bundles
     admissionReviewVersions: ["v1"]
     timeoutSeconds: {{ .Values.app.webhook.timeoutSeconds }}
-    failurePolicy: Fail
+    failurePolicy: {{ .Values.app.webhook.failurePolicy }}
     sideEffects: None
     clientConfig:
 {{ if .Values.app.webhook.tls.helmCert.enabled }}

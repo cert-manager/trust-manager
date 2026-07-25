@@ -386,6 +386,9 @@
     "helm-values.app.webhook": {
       "additionalProperties": false,
       "properties": {
+        "failurePolicy": {
+          "$ref": "#/$defs/helm-values.app.webhook.failurePolicy"
+        },
         "host": {
           "$ref": "#/$defs/helm-values.app.webhook.host"
         },
@@ -406,6 +409,11 @@
         }
       },
       "type": "object"
+    },
+    "helm-values.app.webhook.failurePolicy": {
+      "default": "Fail",
+      "description": "The failure policy of the Bundle validating webhook. Accepted values are Fail and Ignore.\n\nSetting this to \"Ignore\" allows Bundles to be admitted while the webhook is unavailable, e.g. when Bundles are installed in the same Helm release as trust-manager itself (using\n`extraObjects`) and the webhook endpoints aren't ready yet. Bundles admitted while the\nwebhook is unavailable skip webhook validation; the CRD schema is still enforced by the\nKubernetes API server.",
+      "type": "string"
     },
     "helm-values.app.webhook.host": {
       "default": "0.0.0.0",
@@ -690,7 +698,7 @@
     },
     "helm-values.extraObjects": {
       "default": [],
-      "description": "Extra manifests to be deployed. This is useful for deploying additional resources that are not part of the chart.\nFor example:\nextraObjects:\n - apiVersion: cilium.io/v2\n   kind: CiliumNetworkPolicy\n   metadata:\n     name: trust-manager\n     namespace: trust-manager\n   spec:\n     endpointSelector:\n       matchLabels:\n         io.cilium.k8s.policy.serviceaccount: trust-manager\n     egress:\n       - toEntities:\n           - kube-apiserver",
+      "description": "Extra manifests to be deployed. This is useful for deploying additional resources that are not part of the chart. NOTE: Bundles deployed here are validated by the trust-manager webhook, which may not be ready when the objects are applied, causing the Helm install or upgrade to fail. Consider setting\n`app.webhook.failurePolicy` to \"Ignore\" or deploying Bundles separately from this chart.\nFor example:\nextraObjects:\n - apiVersion: cilium.io/v2\n   kind: CiliumNetworkPolicy\n   metadata:\n     name: trust-manager\n     namespace: trust-manager\n   spec:\n     endpointSelector:\n       matchLabels:\n         io.cilium.k8s.policy.serviceaccount: trust-manager\n     egress:\n       - toEntities:\n           - kube-apiserver",
       "items": {},
       "type": "array"
     },

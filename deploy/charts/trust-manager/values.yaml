@@ -350,6 +350,15 @@ app:
     # Timeout of webhook HTTP request.
     timeoutSeconds: 5
 
+    # The failure policy of the Bundle validating webhook. Accepted values are Fail and Ignore.
+    #
+    # Setting this to "Ignore" allows Bundles to be admitted while the webhook is unavailable,
+    # e.g. when Bundles are installed in the same Helm release as trust-manager itself (using
+    # `extraObjects`) and the webhook endpoints aren't ready yet. Bundles admitted while the
+    # webhook is unavailable skip webhook validation; the CRD schema is still enforced by the
+    # Kubernetes API server.
+    failurePolicy: Fail
+
     service:
       # The type of Kubernetes Service used by the Webhook.
       type: ClusterIP
@@ -468,6 +477,9 @@ commonLabels: {}
 # NOTE: These annotations won't be added to the CRDs.
 commonAnnotations: {}
 # Extra manifests to be deployed. This is useful for deploying additional resources that are not part of the chart.
+# NOTE: Bundles deployed here are validated by the trust-manager webhook, which may not be ready when
+# the objects are applied, causing the Helm install or upgrade to fail. Consider setting
+# `app.webhook.failurePolicy` to "Ignore" or deploying Bundles separately from this chart.
 # For example:
 # extraObjects:
 #  - apiVersion: cilium.io/v2

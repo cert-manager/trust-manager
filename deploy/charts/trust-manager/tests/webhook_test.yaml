@@ -1,0 +1,28 @@
+suite: ValidatingWebhookConfiguration failure policy
+templates:
+  - templates/webhook.yaml
+release:
+  name: tm
+  namespace: trust
+tests:
+  - it: defaults to failurePolicy Fail
+    documentSelector:
+      path: kind
+      value: ValidatingWebhookConfiguration
+    asserts:
+      - equal:
+          path: webhooks[0].failurePolicy
+          value: Fail
+
+  - it: renders the configured failurePolicy
+    set:
+      app:
+        webhook:
+          failurePolicy: Ignore
+    documentSelector:
+      path: kind
+      value: ValidatingWebhookConfiguration
+    asserts:
+      - equal:
+          path: webhooks[0].failurePolicy
+          value: Ignore

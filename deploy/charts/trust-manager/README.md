@@ -572,6 +572,18 @@ Port that the webhook listens on.
 > ```
 
 Timeout of webhook HTTP request.
+#### **app.webhook.failurePolicy** ~ `string`
+> Default value:
+> ```yaml
+> Fail
+> ```
+
+The failure policy of the Bundle validating webhook. Accepted values are Fail and Ignore.  
+  
+Setting this to "Ignore" allows Bundles to be admitted while the webhook is unavailable, e.g. when Bundles are installed in the same Helm release as trust-manager itself (using  
+`extraObjects`) and the webhook endpoints aren't ready yet. Bundles admitted while the  
+webhook is unavailable skip webhook validation; the CRD schema is still enforced by the  
+Kubernetes API server.
 #### **app.webhook.service.type** ~ `string`
 > Default value:
 > ```yaml
@@ -779,7 +791,8 @@ NOTE: These annotations won't be added to the CRDs.
 > []
 > ```
 
-Extra manifests to be deployed. This is useful for deploying additional resources that are not part of the chart.  
+Extra manifests to be deployed. This is useful for deploying additional resources that are not part of the chart. NOTE: Bundles deployed here are validated by the trust-manager webhook, which may not be ready when the objects are applied, causing the Helm install or upgrade to fail. Consider setting  
+`app.webhook.failurePolicy` to "Ignore" or deploying Bundles separately from this chart.  
 For example:
 
 ```yaml
