@@ -17,6 +17,7 @@ limitations under the License.
 package test
 
 import (
+	"bytes"
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
@@ -26,6 +27,7 @@ import (
 	"k8s.io/klog/v2/ktesting"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/komega"
+	"software.sslmate.com/src/go-pkcs12"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	"github.com/cert-manager/trust-manager/test/dummy"
@@ -39,6 +41,8 @@ import (
 const (
 	eventuallyTimeout      = testenv.EventuallyTimeout
 	eventuallyPollInterval = testenv.EventuallyPollInterval
+
+	pkcs12Password = "pkcs12-password"
 )
 
 var _ = Describe("Integration", func() {
@@ -483,6 +487,45 @@ var _ = Describe("Integration", func() {
 
 			Expect(testenv.CheckJKSFileSynced(jksData, trustapi.DefaultJKSPassword, dummy.DefaultJoinedCerts())).ToNot(HaveOccurred())
 		}
+	})
+
+	It("should update the PKCS12 truststore in all targets when the profile is changed", func() {
+		// A password is required for the profile to have any effect: the default empty password
+		// produces a password-less truststore.
+		Expect(komega.Update(testBundle, func() {
+			testBundle.Spec.Target = trustapi.BundleTarget{
+				ConfigMap: &trustapi.TargetTemplate{Key: testData.Target.Key},
+				AdditionalFormats: &trustapi.AdditionalFormats{
+					PKCS12: &trustapi.PKCS12{
+						KeySelector: trustapi.KeySelector{
+							Key: "myfile.p12",
+						},
+						Password: new(pkcs12Password),
+						Profile:  trustapi.LegacyRC2PKCS12Profile,
+					},
+				},
+			}
+		})()).To(Succeed())
+
+		configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "kube-system", Name: testBundle.Name}}
+		Eventually(komega.Object(configMap)).Should(HaveField("BinaryData", HaveKey("myfile.p12")))
+
+		legacyTruststore := bytes.Clone(configMap.BinaryData["myfile.p12"])
+
+		// Retried because this update races with the controller writing the Bundle status after
+		// the first update.
+		Eventually(komega.Update(testBundle, func() {
+			testBundle.Spec.Target.AdditionalFormats.PKCS12.Profile = trustapi.Modern2023PKCS12Profile
+		}), eventuallyTimeout, eventuallyPollInterval).Should(Succeed())
+
+		Eventually(func() []byte {
+			Expect(cl.Get(ctx, client.ObjectKeyFromObject(configMap), configMap)).ToNot(HaveOccurred())
+			return configMap.BinaryData["myfile.p12"]
+		}, eventuallyTimeout, eventuallyPollInterval).ShouldNot(Equal(legacyTruststore), "checking that the truststore is rewritten when only the PKCS12 profile changes")
+
+		certs, err := pkcs12.DecodeTrustStore(configMap.BinaryData["myfile.p12"], pkcs12Password)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(certs).To(HaveLen(3))
 	})
 
 	It("should re-add the owner reference of a target ConfigMap if it has been removed", func() {

@@ -418,6 +418,9 @@ func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats,
 	if additionalFormats != nil && additionalFormats.PKCS12 != nil && additionalFormats.PKCS12.Password != nil {
 		_, _ = hash.Write([]byte(*additionalFormats.PKCS12.Password))
 	}
+	if additionalFormats != nil && additionalFormats.PKCS12 != nil && additionalFormats.PKCS12.Profile != "" {
+		_, _ = hash.Write([]byte(additionalFormats.PKCS12.Profile))
+	}
 
 	// Add Target annotations and labels to the hash so it becomes aware of changes
 	// and triggers an update. Iterate in sorted key order so the hash is stable
