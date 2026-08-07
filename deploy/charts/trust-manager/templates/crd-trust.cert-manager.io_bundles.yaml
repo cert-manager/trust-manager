@@ -75,10 +75,26 @@ spec:
                           configMap is a reference (by name) to a ConfigMap's `data` key(s), or to a
                           list of ConfigMap's `data` key(s) using label selector, in the trust namespace.
                         properties:
+                          certHistoryLimit:
+                            description: |-
+                              certHistoryLimit is the maximum number of historical (non-current) certificates
+                              to retain for this source. Defaults to 5. Eviction order: expired first, then oldest.
+                              Only used when keepCertHistory is true.
+                            format: int32
+                            maximum: 20
+                            minimum: 1
+                            type: integer
                           includeAllKeys:
                             description: |-
                               includeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
                               This field must not be true when `key` is set.
+                            type: boolean
+                          keepCertHistory:
+                            description: |-
+                              keepCertHistory enables tracking of previous certificates for this source.
+                              When a certificate is rotated, the previous cert is retained in the trust
+                              bundle until it expires or the history limit is reached.
+                              Only supported on named, single-key sources (not with selector or includeAllKeys).
                             type: boolean
                           key:
                             description: key of the entry in the object's `data` field to be used.
@@ -153,10 +169,26 @@ spec:
                           secret is a reference (by name) to a Secret's `data` key(s), or to a
                           list of Secret's `data` key(s) using label selector, in the trust namespace.
                         properties:
+                          certHistoryLimit:
+                            description: |-
+                              certHistoryLimit is the maximum number of historical (non-current) certificates
+                              to retain for this source. Defaults to 5. Eviction order: expired first, then oldest.
+                              Only used when keepCertHistory is true.
+                            format: int32
+                            maximum: 20
+                            minimum: 1
+                            type: integer
                           includeAllKeys:
                             description: |-
                               includeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
                               This field must not be true when `key` is set.
+                            type: boolean
+                          keepCertHistory:
+                            description: |-
+                              keepCertHistory enables tracking of previous certificates for this source.
+                              When a certificate is rotated, the previous cert is retained in the trust
+                              bundle until it expires or the history limit is reached.
+                              Only supported on named, single-key sources (not with selector or includeAllKeys).
                             type: boolean
                           key:
                             description: key of the entry in the object's `data` field to be used.
@@ -432,6 +464,75 @@ spec:
               description: status of the Bundle. This is set and managed automatically.
               minProperties: 1
               properties:
+                certHistory:
+                  description: certHistory tracks historical certificates for sources with keepCertHistory enabled.
+                  items:
+                    description: |-
+                      SourceCertHistory tracks the current and historical certificates for a source
+                      with keepCertHistory enabled.
+                    properties:
+                      entries:
+                        description: entries is the list of historical (replaced) certificates, most recent first.
+                        items:
+                          description: CertHistoryEntry holds a single historical CA certificate for a source.
+                          properties:
+                            addedAt:
+                              description: addedAt is when this entry was recorded by trust-manager.
+                              format: date-time
+                              type: string
+                            fingerprint:
+                              description: |-
+                                fingerprint is the SHA-256 of the DER-encoded cert, hex-encoded.
+                                Used to detect duplicates across reconcile cycles.
+                              maxLength: 64
+                              minLength: 64
+                              type: string
+                            notAfter:
+                              description: notAfter is the expiry time parsed from the certificate.
+                              format: date-time
+                              type: string
+                            pem:
+                              description: pem is the PEM-encoded certificate.
+                              maxLength: 65536
+                              minLength: 1
+                              type: string
+                          required:
+                            - fingerprint
+                            - pem
+                          type: object
+                        maxItems: 20
+                        minItems: 0
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      lastSeenFingerprint:
+                        description: |-
+                          lastSeenFingerprint is the SHA-256 fingerprint of the most recently observed
+                          current certificate from this source. Used to detect when rotation has occurred.
+                        maxLength: 64
+                        minLength: 64
+                        type: string
+                      lastSeenPEM:
+                        description: |-
+                          lastSeenPEM is the PEM-encoded form of the most recently observed
+                          current certificate. Stored so it can be moved to entries on rotation.
+                        maxLength: 65536
+                        minLength: 1
+                        type: string
+                      sourceKey:
+                        description: sourceKey is a stable identifier for this source (e.g. "secret/my-ca/ca.crt").
+                        maxLength: 253
+                        minLength: 1
+                        type: string
+                    required:
+                      - lastSeenFingerprint
+                      - sourceKey
+                    type: object
+                  maxItems: 100
+                  minItems: 0
+                  type: array
+                  x-kubernetes-list-map-keys:
+                    - sourceKey
+                  x-kubernetes-list-type: map
                 conditions:
                   description: conditions represent the latest available observations of the Bundle's current state.
                   items:
