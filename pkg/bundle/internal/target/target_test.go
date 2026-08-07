@@ -1045,6 +1045,16 @@ func Test_TrustBundleHash(t *testing.T) {
 				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: new("wrong")}}},
 			},
 		},
+		"pkcs12 profile": {
+			input: inputArgs{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: new("password"), Profile: trustapi.LegacyRC2PKCS12Profile}}},
+			matches: []inputArgs{
+				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: new("password"), Profile: trustapi.LegacyRC2PKCS12Profile}}},
+			},
+			mismatches: []inputArgs{
+				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: new("password"), Profile: trustapi.LegacyDESPKCS12Profile}}},
+				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: new("password"), Profile: trustapi.Modern2023PKCS12Profile}}},
+			},
+		},
 		"target metadata": {
 			input: inputArgs{
 				data:              []byte("data"),
