@@ -121,6 +121,8 @@ func NewCommand() *cobra.Command {
 		},
 	}
 
+	cmd.AddCommand(NewStartupAPICheckCommand())
+
 	opts = opts.Prepare(cmd)
 
 	return cmd
