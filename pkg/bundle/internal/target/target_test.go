@@ -23,6 +23,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/go-logr/logr"
 	jks "github.com/pavlo-v-chernykh/keystore-go/v4"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -986,6 +987,102 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 					assertPKCS12Data(t, binData, trustapi.DefaultPKCS12Password)
 				}
 			}
+		})
+	}
+}
+
+// Test_ApplyTarget_LogsAppliedKeys ensures that the reconciler logs exactly which keys
+// were applied to the target, and to which field. Additional formats are binary and are
+// written to the binaryData field of target ConfigMaps, which is not displayed by some
+// Kubernetes UIs. The log allows verifying from the logs alone that additional formats
+// were synced (see issue #800).
+func Test_ApplyTarget_LogsAppliedKeys(t *testing.T) {
+	additionalFormats := &trustapi.AdditionalFormats{
+		JKS: &trustapi.JKS{
+			KeySelector: trustapi.KeySelector{Key: jksKey},
+			Password:    trustapi.DefaultJKSPassword,
+		},
+		PKCS12: &trustapi.PKCS12{
+			KeySelector: trustapi.KeySelector{Key: pkcs12Key},
+			Password:    ptr.To(trustapi.DefaultPKCS12Password),
+		},
+	}
+
+	tests := map[string]struct {
+		kind       Kind
+		target     trustapi.BundleTarget
+		expLogArgs []any
+	}{
+		"ConfigMap target should log data and binaryData keys": {
+			kind: KindConfigMap,
+			target: trustapi.BundleTarget{
+				ConfigMap:         &trustapi.TargetTemplate{Key: key},
+				AdditionalFormats: additionalFormats,
+			},
+			expLogArgs: []any{
+				"dataKeys", []string{key},
+				"binaryDataKeys", []string{jksKey, pkcs12Key},
+			},
+		},
+		"Secret target should log data keys": {
+			kind: KindSecret,
+			target: trustapi.BundleTarget{
+				Secret:            &trustapi.TargetTemplate{Key: key},
+				AdditionalFormats: additionalFormats,
+			},
+			expLogArgs: []any{
+				"dataKeys", []string{jksKey, pkcs12Key, key},
+			},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			fakeClient := fake.NewClientBuilder().
+				WithReturnManagedFields().
+				WithScheme(test.Scheme).
+				Build()
+
+			r := &Reconciler{
+				Client: fakeClient,
+				Cache:  fakeClient,
+				PatchResourceOverwrite: func(_ context.Context, _ any) error {
+					return nil
+				},
+			}
+
+			certPool := util.NewCertPool()
+			err := certPool.AddCertsFromPEM([]byte(data))
+			assert.NoError(t, err)
+
+			logger := ktesting.NewLogger(t, ktesting.NewConfig(ktesting.BufferLogs(true)))
+			ctx := logr.NewContext(t.Context(), logger)
+			synced, err := r.ApplyTarget(ctx, Resource{
+				Kind:           tt.kind,
+				NamespacedName: types.NamespacedName{Name: bundleName, Namespace: namespace},
+			}, &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{Name: bundleName},
+				Spec:       trustapi.BundleSpec{Target: tt.target},
+			}, source.BundleData{CertPool: certPool})
+			assert.NoError(t, err)
+			assert.True(t, synced)
+
+			underlier, ok := logger.GetSink().(ktesting.Underlier)
+			if !ok {
+				t.Fatalf("expected logger sink to implement ktesting.Underlier, got %T", logger.GetSink())
+			}
+
+			found := false
+			for _, entry := range underlier.GetBuffer().Data() {
+				if entry.Message != "applied bundle to namespace" {
+					continue
+				}
+				found = true
+				assert.Equal(t, tt.expLogArgs, entry.ParameterKVList)
+			}
+			assert.True(t, found, "expected %q to be logged", "applied bundle to namespace")
 		})
 	}
 }
