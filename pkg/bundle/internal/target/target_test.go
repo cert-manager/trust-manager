@@ -54,6 +54,10 @@ const (
 	data             = dummy.TestCertificate1
 	targetAnnotation = "dummyannotation"
 	targetLabel      = "dummylabel"
+
+	// The default PKCS12 password is empty, which produces a password-less truststore where the
+	// profile has no effect. The profile test cases need a real password.
+	customPKCS12Password = "pkcs12-password"
 )
 
 func Test_ApplyTarget_ConfigMap(t *testing.T) {
@@ -65,6 +69,10 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 		withJKS bool
 		// Add PKCS12 to AdditionalFormats
 		withPKCS12 bool
+		// Password of the PKCS12 truststore, empty means the default password
+		pkcs12Password string
+		// Encryption profile of the PKCS12 truststore
+		pkcs12Profile trustapi.PKCS12Profile
 		// Add annotation to target metadata
 		withTargetAnnotation bool
 		// Add label to target metadata
@@ -286,6 +294,59 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 			expPKCS12:      true,
 			expNeedsUpdate: true,
 		},
+		"if object exists with owner but outdated PKCS12 profile, expect update": {
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   namespace,
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: pkcs12ProfileHash(trustapi.LegacyRC2PKCS12Profile)},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
+						},
+					},
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, []string{pkcs12Key}),
+				},
+				Data:       map[string]string{key: data},
+				BinaryData: map[string][]byte{pkcs12Key: []byte("legacy profile truststore")},
+			},
+			withPKCS12:     true,
+			pkcs12Password: customPKCS12Password,
+			pkcs12Profile:  trustapi.Modern2023PKCS12Profile,
+			expPKCS12:      true,
+			expNeedsUpdate: true,
+		},
+		"if object exists with owner and unchanged PKCS12 profile, expect no update": {
+			object: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   namespace,
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: pkcs12ProfileHash(trustapi.Modern2023PKCS12Profile)},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
+						},
+					},
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key}, []string{pkcs12Key}),
+				},
+				Data:       map[string]string{key: data},
+				BinaryData: map[string][]byte{pkcs12Key: []byte("modern profile truststore")},
+			},
+			withPKCS12:     true,
+			pkcs12Password: customPKCS12Password,
+			pkcs12Profile:  trustapi.Modern2023PKCS12Profile,
+			expNeedsUpdate: false,
+		},
 		"if object exists with correct data, expect no update": {
 			object: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -487,12 +548,17 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 					Password: trustapi.DefaultJKSPassword,
 				}
 			}
+			pkcs12Password := trustapi.DefaultPKCS12Password
+			if tt.pkcs12Password != "" {
+				pkcs12Password = tt.pkcs12Password
+			}
 			if tt.withPKCS12 {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{
 					KeySelector: trustapi.KeySelector{
 						Key: pkcs12Key,
 					},
-					Password: ptr.To(trustapi.DefaultPKCS12Password),
+					Password: new(pkcs12Password),
+					Profile:  tt.pkcs12Profile,
 				}
 			}
 			if tt.withTargetAnnotation {
@@ -544,7 +610,7 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 				assert.Equal(t, tt.expPKCS12, pkcs12Exists)
 
 				if tt.expPKCS12 {
-					assertPKCS12Data(t, binData, trustapi.DefaultPKCS12Password)
+					assertPKCS12Data(t, binData, pkcs12Password)
 				}
 
 				if tt.expTargetLabel {
@@ -567,6 +633,10 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 		withJKS bool
 		// Add PKCS12 to AdditionalFormats
 		withPKCS12 bool
+		// Password of the PKCS12 truststore, empty means the default password
+		pkcs12Password string
+		// Encryption profile of the PKCS12 truststore
+		pkcs12Profile trustapi.PKCS12Profile
 		// Expect JKS to exist in the secret at the end of the sync.
 		expJKS bool
 		// Expect PKCS12 to exist in the secret at the end of the sync.
@@ -780,6 +850,63 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 			expPKCS12:      true,
 			expNeedsUpdate: true,
 		},
+		"if object exists with owner but outdated PKCS12 profile, expect update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   namespace,
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: pkcs12ProfileHash(trustapi.LegacyRC2PKCS12Profile)},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
+						},
+					},
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key, pkcs12Key}, nil),
+				},
+				Data: map[string][]byte{
+					key:       []byte(data),
+					pkcs12Key: []byte("legacy profile truststore"),
+				},
+			},
+			withPKCS12:     true,
+			pkcs12Password: customPKCS12Password,
+			pkcs12Profile:  trustapi.Modern2023PKCS12Profile,
+			expPKCS12:      true,
+			expNeedsUpdate: true,
+		},
+		"if object exists with owner and unchanged PKCS12 profile, expect no update": {
+			object: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        bundleName,
+					Namespace:   namespace,
+					Labels:      map[string]string{trustapi.BundleLabelKey: bundleName},
+					Annotations: map[string]string{trustapi.BundleHashAnnotationKey: pkcs12ProfileHash(trustapi.Modern2023PKCS12Profile)},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:               "Bundle",
+							APIVersion:         "trust.cert-manager.io/v1alpha1",
+							Name:               bundleName,
+							Controller:         new(true),
+							BlockOwnerDeletion: new(true),
+						},
+					},
+					ManagedFields: ssa_client.ManagedFieldEntries([]string{key, pkcs12Key}, nil),
+				},
+				Data: map[string][]byte{
+					key:       []byte(data),
+					pkcs12Key: []byte("modern profile truststore"),
+				},
+			},
+			withPKCS12:     true,
+			pkcs12Password: customPKCS12Password,
+			pkcs12Profile:  trustapi.Modern2023PKCS12Profile,
+			expNeedsUpdate: false,
+		},
 		"if object exists with correct data, expect no update": {
 			object: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -933,12 +1060,17 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 					Password: trustapi.DefaultJKSPassword,
 				}
 			}
+			pkcs12Password := trustapi.DefaultPKCS12Password
+			if tt.pkcs12Password != "" {
+				pkcs12Password = tt.pkcs12Password
+			}
 			if tt.withPKCS12 {
 				spec.Target.AdditionalFormats.PKCS12 = &trustapi.PKCS12{
 					KeySelector: trustapi.KeySelector{
 						Key: pkcs12Key,
 					},
-					Password: ptr.To(trustapi.DefaultPKCS12Password),
+					Password: new(pkcs12Password),
+					Profile:  tt.pkcs12Profile,
 				}
 			}
 
@@ -984,7 +1116,7 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 				assert.Equal(t, tt.expPKCS12, pkcs12Exists)
 
 				if tt.expPKCS12 {
-					assertPKCS12Data(t, binData, trustapi.DefaultPKCS12Password)
+					assertPKCS12Data(t, binData, pkcs12Password)
 				}
 			}
 		})
@@ -1142,6 +1274,16 @@ func Test_TrustBundleHash(t *testing.T) {
 				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: new("wrong")}}},
 			},
 		},
+		"pkcs12 profile": {
+			input: inputArgs{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: new("password"), Profile: trustapi.LegacyRC2PKCS12Profile}}},
+			matches: []inputArgs{
+				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: new("password"), Profile: trustapi.LegacyRC2PKCS12Profile}}},
+			},
+			mismatches: []inputArgs{
+				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: new("password"), Profile: trustapi.LegacyDESPKCS12Profile}}},
+				{data: []byte("data"), additionalFormats: &trustapi.AdditionalFormats{PKCS12: &trustapi.PKCS12{Password: new("password"), Profile: trustapi.Modern2023PKCS12Profile}}},
+			},
+		},
 		"target metadata": {
 			input: inputArgs{
 				data:              []byte("data"),
@@ -1247,6 +1389,18 @@ func assertJKSData(t *testing.T, binData []byte, password string) {
 	// Only one certificate block for this test, so we can safely ignore the `remaining` byte array
 	p, _ := pem.Decode([]byte(data))
 	assert.Equal(t, p.Bytes, cert.Certificate.Content)
+}
+
+// pkcs12ProfileHash returns the hash a target would carry after being synced with the given
+// PKCS12 profile, so a test case can start from a target synced with an older profile.
+func pkcs12ProfileHash(profile trustapi.PKCS12Profile) string {
+	return TrustBundleHash([]byte(data), &trustapi.AdditionalFormats{
+		PKCS12: &trustapi.PKCS12{
+			KeySelector: trustapi.KeySelector{Key: pkcs12Key},
+			Password:    new(customPKCS12Password),
+			Profile:     profile,
+		},
+	}, nil)
 }
 
 func assertPKCS12Data(t *testing.T, binData []byte, password string) {
