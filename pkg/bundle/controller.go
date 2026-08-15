@@ -19,7 +19,6 @@ package bundle
 import (
 	"context"
 	"fmt"
-	"os"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -249,14 +248,14 @@ func addBundleController(
 
 // enqueueRequestsFromBundleFunc returns an event handler for watching Bundle dependants.
 // It will invoke the provided function for all Bundles and trigger a Bundle reconcile if the
-// functions returns true.
+// function returns true.
 func (b *bundle) enqueueRequestsFromBundleFunc(fn func(obj client.Object, bundle trustapi.Bundle) bool) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
 		func(ctx context.Context, obj client.Object) []reconcile.Request {
-			// If an error happens here, and we do nothing, we run the risk of
-			// having trust Bundles out of sync with resource dependants.
-			// Exiting error is the safest option, as it will force a re-sync on
-			// all Bundles on start.
+			// EnqueueRequestsFromMapFunc cannot return an error. If listing Bundles fails,
+			// returning no requests would silently drop the event and potentially leave
+			// target resources out of sync. Panic so that controller-runtime treats the
+			// operation as failed and retries the request.
 			bundleList := b.mustBundleList(ctx)
 
 			var requests []reconcile.Request
@@ -271,13 +270,14 @@ func (b *bundle) enqueueRequestsFromBundleFunc(fn func(obj client.Object, bundle
 	)
 }
 
-// mustBundleList will return a BundleList of all Bundles in the cluster. If an
-// error occurs, will exit error the program.
+// mustBundleList returns a BundleList of all Bundles in the cluster.
+// If an error occurs, the program will panic to avoid silently dropping
+// an event that could leave Bundles out of sync with their target resources.
 func (b *bundle) mustBundleList(ctx context.Context) *trustapi.BundleList {
 	var bundleList trustapi.BundleList
 	if err := b.client.List(ctx, &bundleList); err != nil {
-		logf.FromContext(ctx).Error(err, "failed to list all Bundles, exiting error")
-		os.Exit(-1)
+		logf.FromContext(ctx).Error(err, "failed to list all Bundles, panicking")
+		panic(err)
 	}
 
 	return &bundleList
