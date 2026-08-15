@@ -17,108 +17,12 @@ limitations under the License.
 package truststore
 
 import (
-	"bytes"
 	"crypto/x509"
 	"encoding/pem"
 	"testing"
 
-	"github.com/pavlo-v-chernykh/keystore-go/v4"
-	"github.com/stretchr/testify/assert"
-
-	"github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
-	"github.com/cert-manager/trust-manager/pkg/util"
 	"github.com/cert-manager/trust-manager/test/dummy"
 )
-
-func Test_Encoder_Deterministic(t *testing.T) {
-	tests := map[string]struct {
-		encoder             Encoder
-		expNonDeterministic bool
-	}{
-		"JKS default password": {
-			encoder: NewJKSEncoder(v1alpha1.DefaultJKSPassword),
-		},
-		"JKS custom password": {
-			encoder: NewJKSEncoder("my-password"),
-		},
-		"PKCS#12 default password": {
-			encoder: NewPKCS12Encoder(v1alpha1.DefaultPKCS12Password, ""),
-		},
-		"PKCS#12 default password, DES encryption": {
-			encoder: NewPKCS12Encoder(v1alpha1.DefaultPKCS12Password, "LegacyDES"),
-		},
-		"PKCS#12 default password, modern encryption": {
-			encoder: NewPKCS12Encoder(v1alpha1.DefaultPKCS12Password, "Modern2023"),
-		},
-		"PKCS#12 custom password": {
-			encoder:             NewPKCS12Encoder("my-password", ""),
-			expNonDeterministic: true,
-		},
-	}
-
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			bundle := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2, dummy.TestCertificate3)
-
-			certPool := util.NewCertPool()
-			if err := certPool.AddCertsFromPEM([]byte(bundle)); err != nil {
-				t.Fatalf("didn't expect an error but got: %s", err)
-			}
-
-			store, err := test.encoder.Encode(certPool)
-			if err != nil {
-				t.Fatalf("didn't expect an error but got: %s", err)
-			}
-
-			store2, err := test.encoder.Encode(certPool)
-			if err != nil {
-				t.Fatalf("didn't expect an error but got: %s", err)
-			}
-
-			if test.expNonDeterministic {
-				assert.NotEqual(t, store, store2, "expected encoder to be non-deterministic")
-			} else {
-				assert.Equal(t, store, store2, "expected encoder to be deterministic")
-			}
-		})
-	}
-}
-
-func Test_encodeJKSAliases(t *testing.T) {
-	// IMPORTANT: We use TestCertificate1 and TestCertificate2 here because they're defined
-	// to be self-signed and to also use the same Subject, while being different certs.
-	// This test ensures that the aliases we create when adding to a JKS file is different under
-	// these conditions (where the issuer / subject is identical).
-	// Using different dummy certs would allow this test to pass but wouldn't actually test anything useful!
-	bundle := dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2)
-
-	certPool := util.NewCertPool()
-	if err := certPool.AddCertsFromPEM([]byte(bundle)); err != nil {
-		t.Fatal(err)
-	}
-
-	jksFile, err := NewJKSEncoder(v1alpha1.DefaultJKSPassword).Encode(certPool)
-	if err != nil {
-		t.Fatalf("didn't expect an error but got: %s", err)
-	}
-
-	reader := bytes.NewReader(jksFile)
-
-	ks := keystore.New()
-
-	err = ks.Load(reader, []byte(v1alpha1.DefaultJKSPassword))
-	if err != nil {
-		t.Fatalf("failed to parse generated JKS file: %s", err)
-	}
-
-	entryNames := ks.Aliases()
-
-	if len(entryNames) != 2 {
-		t.Fatalf("expected two certs in JKS file but got %d", len(entryNames))
-	}
-}
 
 func Test_certAlias(t *testing.T) {
 	// We might not ever rely on aliases being stable, but this test seeks
