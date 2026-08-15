@@ -29,3 +29,6 @@ _artifacts
 
 # direnv files
 .envrc
+
+# hegel property-testing example database
+.hegel/
