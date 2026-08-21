@@ -67,9 +67,7 @@ func ManagedFieldEntries(fields []string, dataFields []string) []metav1.ManagedF
 			Manager:    "trust-manager",
 			Operation:  metav1.ManagedFieldsOperationApply,
 			FieldsType: "FieldsV1",
-			FieldsV1: &metav1.FieldsV1{
-				Raw: jsonFieldSet,
-			},
+			FieldsV1:   metav1.NewFieldsV1(string(jsonFieldSet)),
 		},
 	}
 }
