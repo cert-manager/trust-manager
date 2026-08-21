@@ -78,6 +78,7 @@ helm_chart_version := $(VERSION)
 helm_labels_template_name := trust-manager.labels
 
 golangci_lint_config := .golangci.yaml
+kube_api_linter_config := .golangci-kal.yml
 
 define helm_values_mutation_function
 $(YQ) \

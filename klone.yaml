@@ -52,6 +52,11 @@ targets:
       repo_ref: main
       repo_hash: ca8dd5c9c12b5d9754bb7c3c0425ad3811b9d17c
       repo_path: modules/klone
+    - folder_name: kube-api-linter
+      repo_url: https://github.com/cert-manager/makefile-modules.git
+      repo_ref: add_kube_api_lint
+      repo_hash: 9640e26b6eff83ab7732f7d69dc4d3a134284906
+      repo_path: modules/kube-api-linter
     - folder_name: licenses
       repo_url: https://github.com/cert-manager/makefile-modules.git
       repo_ref: main
@@ -74,6 +79,6 @@ targets:
       repo_path: modules/repository-base
     - folder_name: tools
       repo_url: https://github.com/cert-manager/makefile-modules.git
-      repo_ref: main
-      repo_hash: ca8dd5c9c12b5d9754bb7c3c0425ad3811b9d17c
+      repo_ref: add_kube_api_lint
+      repo_hash: 9640e26b6eff83ab7732f7d69dc4d3a134284906
       repo_path: modules/tools
