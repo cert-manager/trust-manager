@@ -34,6 +34,8 @@ type BundleStatusApplyConfiguration struct {
 	// Bundles resolved from identical sets of default CA certificates will report
 	// the same defaultCAVersion value.
 	DefaultCAPackageVersion *string `json:"defaultCAVersion,omitempty"`
+	// certHistory tracks historical certificates for sources with keepCertHistory enabled.
+	CertHistory []SourceCertHistoryApplyConfiguration `json:"certHistory,omitempty"`
 }
 
 // BundleStatusApplyConfiguration constructs a declarative configuration of the BundleStatus type for use with
@@ -60,5 +62,18 @@ func (b *BundleStatusApplyConfiguration) WithConditions(values ...*v1.ConditionA
 // If called multiple times, the DefaultCAPackageVersion field is set to the value of the last call.
 func (b *BundleStatusApplyConfiguration) WithDefaultCAPackageVersion(value string) *BundleStatusApplyConfiguration {
 	b.DefaultCAPackageVersion = &value
+	return b
+}
+
+// WithCertHistory adds the given value to the CertHistory field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the CertHistory field.
+func (b *BundleStatusApplyConfiguration) WithCertHistory(values ...*SourceCertHistoryApplyConfiguration) *BundleStatusApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithCertHistory")
+		}
+		b.CertHistory = append(b.CertHistory, *values[i])
+	}
 	return b
 }

@@ -38,6 +38,15 @@ type SourceObjectKeySelectorApplyConfiguration struct {
 	// includeAllKeys is a flag to include all keys in the object's `data` field to be used. False by default.
 	// This field must not be true when `key` is set.
 	IncludeAllKeys *bool `json:"includeAllKeys,omitempty"`
+	// keepCertHistory enables tracking of previous certificates for this source.
+	// When a certificate is rotated, the previous cert is retained in the trust
+	// bundle until it expires or the history limit is reached.
+	// Only supported on named, single-key sources (not with selector or includeAllKeys).
+	KeepCertHistory *bool `json:"keepCertHistory,omitempty"`
+	// certHistoryLimit is the maximum number of historical (non-current) certificates
+	// to retain for this source. Defaults to 5. Eviction order: expired first, then oldest.
+	// Only used when keepCertHistory is true.
+	CertHistoryLimit *int32 `json:"certHistoryLimit,omitempty"`
 }
 
 // SourceObjectKeySelectorApplyConfiguration constructs a declarative configuration of the SourceObjectKeySelector type for use with
@@ -75,5 +84,21 @@ func (b *SourceObjectKeySelectorApplyConfiguration) WithKey(value string) *Sourc
 // If called multiple times, the IncludeAllKeys field is set to the value of the last call.
 func (b *SourceObjectKeySelectorApplyConfiguration) WithIncludeAllKeys(value bool) *SourceObjectKeySelectorApplyConfiguration {
 	b.IncludeAllKeys = &value
+	return b
+}
+
+// WithKeepCertHistory sets the KeepCertHistory field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the KeepCertHistory field is set to the value of the last call.
+func (b *SourceObjectKeySelectorApplyConfiguration) WithKeepCertHistory(value bool) *SourceObjectKeySelectorApplyConfiguration {
+	b.KeepCertHistory = &value
+	return b
+}
+
+// WithCertHistoryLimit sets the CertHistoryLimit field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the CertHistoryLimit field is set to the value of the last call.
+func (b *SourceObjectKeySelectorApplyConfiguration) WithCertHistoryLimit(value int32) *SourceObjectKeySelectorApplyConfiguration {
+	b.CertHistoryLimit = &value
 	return b
 }
