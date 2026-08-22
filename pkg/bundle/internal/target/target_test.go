@@ -539,7 +539,7 @@ func Test_ApplyTarget_ConfigMap(t *testing.T) {
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
-			resolvedBundle := source.BundleData{CertPool: certPool}
+			resolvedBundle := source.NewBundleData(certPool)
 			if tt.withJKS {
 				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
 					KeySelector: trustapi.KeySelector{
@@ -1051,7 +1051,7 @@ func Test_ApplyTarget_Secret(t *testing.T) {
 					AdditionalFormats: &trustapi.AdditionalFormats{},
 				},
 			}
-			resolvedBundle := source.BundleData{CertPool: certPool}
+			resolvedBundle := source.NewBundleData(certPool)
 			if tt.withJKS {
 				spec.Target.AdditionalFormats.JKS = &trustapi.JKS{
 					KeySelector: trustapi.KeySelector{
