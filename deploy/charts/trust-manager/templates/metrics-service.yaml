@@ -6,6 +6,7 @@ metadata:
   namespace: {{ include "trust-manager.namespace" . }}
   labels:
     app: {{ include "trust-manager.name" . }}
+    app.kubernetes.io/component: metrics
     {{- include "trust-manager.labels" . | nindent 4 }}
   {{- with .Values.commonAnnotations }}
   annotations:

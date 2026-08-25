@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.21.0
   name: clusterbundles.trust-manager.io
 spec:
   group: trust-manager.io
@@ -15,14 +15,6 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - description: Bundle ConfigMap Target Key
-      jsonPath: .spec.target.configMap.key
-      name: ConfigMap Target
-      type: string
-    - description: Bundle Secret Target Key
-      jsonPath: .spec.target.secret.key
-      name: Secret Target
-      type: string
     - description: Bundle has been synced
       jsonPath: .status.conditions[?(@.type == "Synced")].status
       name: Synced
@@ -57,55 +49,73 @@ spec:
           metadata:
             type: object
           spec:
-            description: Desired state of the Bundle resource.
+            description: spec represents the desired state of the ClusterBundle resource.
+            minProperties: 1
             properties:
+              defaultCAs:
+                description: defaultCAs configures the use of a default CA bundle
+                  as a trust source.
+                properties:
+                  provider:
+                    description: "provider identifies the provider of the default
+                      CA bundle.\n\nValid values:\n- System: Uses the default CA package
+                      made available to trust-manager at startup.\n     The default
+                      CA bundle is available only if trust-manager was installed with\n\t\tdefault
+                      CA support enabled, either via the Helm chart or by starting
+                      the\n\t\ttrust-manager controller with the \"--default-package-location\"
+                      flag.\n\n\t\tIf no default CA package was configured at startup,
+                      specifying this source\n\t\twill result in reconciliation failure.\n\n\t\tThe
+                      version of the default CA package used for this Bundle is reported
+                      in\n\t\tstatus.defaultCAVersion.\n- Disabled: No default CAs
+                      are used as sources."
+                    enum:
+                    - System
+                    - Disabled
+                    type: string
+                required:
+                - provider
+                type: object
               inLineCAs:
-                description: InLine is a simple string to append as the source data.
+                description: inLineCAs is a simple string to append as the source
+                  data.
+                maxLength: 1048576
+                minLength: 1
                 type: string
-              includeDefaultCAs:
+              sourceRefs:
                 description: |-
-                  IncludeDefaultCAs, when true, requests the default CA bundle to be used as a source.
-                  Default CAs are available if trust-manager was installed via Helm
-                  or was otherwise set up to include a package-injecting init container by using the
-                  "--default-package-location" flag when starting the trust-manager controller.
-                  If default CAs were not configured at start-up, any request to use the default
-                  CAs will fail.
-                  The version of the default CA package which is used for a Bundle is stored in the
-                  defaultCAPackageVersion field of the Bundle's status field.
-                type: boolean
-              sources:
-                description: Sources is a set of references to data whose data will
-                  sync to the target.
+                  sourceRefs is a list of references to resources whose data will be appended and synced into
+                  the bundle target resources.
                 items:
                   description: |-
-                    BundleSource is the set of sources whose data will be appended and synced to
-                    the BundleTarget in all Namespaces.
+                    BundleSourceRef is a reference to source resource(s) whose data will be appended and synced into
+                    the bundle target resources.
                   properties:
                     key:
                       description: |-
-                        Key(s) of the entry in the object's `data` field to be used.
-                        Wildcards "*" in Key matches any sequence characters.
-                        A Key containing only "*" will match all data fields.
+                        key specifies one or more keys in the object's data field to be used.
+                        The "*" wildcard matches any sequence of characters within a key.
+                        A value of "*" matches all entries in the data field.
+                      maxLength: 253
                       minLength: 1
                       pattern: ^[0-9A-Za-z_.\-*]+$
                       type: string
                     kind:
-                      description: Kind is the kind of the source object.
+                      description: kind is the kind of the source object.
                       enum:
                       - ConfigMap
                       - Secret
                       type: string
                     name:
                       description: |-
-                        Name is the name of the source object in the trust Namespace.
+                        name is the name of the source object in the trust namespace.
                         This field must be left empty when `selector` is set
                       maxLength: 253
                       minLength: 1
                       type: string
                     selector:
                       description: |-
-                        Selector is the label selector to use to fetch a list of objects. Must not be set
-                        when `Name` is set.
+                        selector is the label selector to use to fetch a list of objects. Must not be set
+                        when `name` is set.
                       properties:
                         matchExpressions:
                           description: matchExpressions is a list of label selector
@@ -156,51 +166,55 @@ spec:
                   type: object
                   x-kubernetes-map-type: atomic
                   x-kubernetes-validations:
-                  - message: 'exactly one of the following fields must be provided:
-                      [name, selector]'
-                    rule: '[has(self.name), has(self.selector)].exists_one(x,x)'
+                  - message: exactly one of the fields in [name selector] must be
+                      set
+                    rule: '[has(self.name),has(self.selector)].filter(x,x==true).size()
+                      == 1'
                 maxItems: 100
                 minItems: 0
                 type: array
                 x-kubernetes-list-type: atomic
               target:
-                description: Target is the target location in all namespaces to sync
+                description: target is the target location in all namespaces to sync
                   source data to.
                 properties:
                   configMap:
-                    description: ConfigMap is the target ConfigMap in Namespaces that
+                    description: configMap is the target ConfigMap in Namespaces that
                       all Bundle source data will be synced to.
                     properties:
                       data:
-                        description: Data is the specification of the object's `data`
+                        description: data is the specification of the object's `data`
                           field.
                         items:
                           description: TargetKeyValue is the specification of a key
                             with value in a key-value target resource.
+                          minProperties: 0
                           properties:
                             format:
                               description: |-
-                                Format defines the format of the target value.
+                                format defines the format of the target value.
                                 The default format is PEM.
                               enum:
                               - PEM
                               - PKCS12
                               type: string
                             key:
-                              description: Key is the key of the entry in the object's
+                              description: key is the key of the entry in the object's
                                 `data` field to be used.
+                              maxLength: 253
                               minLength: 1
                               pattern: ^[0-9A-Za-z_.\-]+$
                               type: string
                             password:
                               description: |-
-                                Password for PKCS12 trust store.
+                                password for PKCS12 trust store.
                                 By default, no password is used (password-less PKCS#12).
                               maxLength: 128
+                              minLength: 0
                               type: string
                             profile:
                               description: |-
-                                Profile specifies the certificate encryption algorithms and the HMAC algorithm
+                                profile specifies the certificate encryption algorithms and the HMAC algorithm
                                 used to create the PKCS12 trust store.
 
                                 If provided, allowed values are:
@@ -236,14 +250,16 @@ spec:
                         - key
                         x-kubernetes-list-type: map
                       metadata:
-                        description: Metadata is an optional set of labels and annotations
+                        description: metadata is an optional set of labels and annotations
                           to be copied to the target.
+                        minProperties: 1
                         properties:
                           annotations:
                             additionalProperties:
                               type: string
-                            description: Annotations is a key value map to be copied
+                            description: annotations is a key value map to be copied
                               to the target.
+                            minProperties: 1
                             type: object
                             x-kubernetes-validations:
                             - message: must not use forbidden domains as prefixes
@@ -253,8 +269,9 @@ spec:
                           labels:
                             additionalProperties:
                               type: string
-                            description: Labels is a key value map to be copied to
+                            description: labels is a key value map to be copied to
                               the target.
+                            minProperties: 1
                             type: object
                             x-kubernetes-validations:
                             - message: must not use forbidden domains as prefixes
@@ -266,7 +283,7 @@ spec:
                     - data
                     type: object
                   namespaceSelector:
-                    description: NamespaceSelector specifies the namespaces where
+                    description: namespaceSelector specifies the namespaces where
                       target resources will be synced.
                     properties:
                       matchExpressions:
@@ -314,40 +331,43 @@ spec:
                     x-kubernetes-map-type: atomic
                   secret:
                     description: |-
-                      Secret is the target Secret in Namespaces that all Bundle source data will be synced to.
+                      secret is the target Secret in Namespaces that all Bundle source data will be synced to.
                       Using Secrets as targets is only supported if enabled at trust-manager startup.
                       By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
                     properties:
                       data:
-                        description: Data is the specification of the object's `data`
+                        description: data is the specification of the object's `data`
                           field.
                         items:
                           description: TargetKeyValue is the specification of a key
                             with value in a key-value target resource.
+                          minProperties: 0
                           properties:
                             format:
                               description: |-
-                                Format defines the format of the target value.
+                                format defines the format of the target value.
                                 The default format is PEM.
                               enum:
                               - PEM
                               - PKCS12
                               type: string
                             key:
-                              description: Key is the key of the entry in the object's
+                              description: key is the key of the entry in the object's
                                 `data` field to be used.
+                              maxLength: 253
                               minLength: 1
                               pattern: ^[0-9A-Za-z_.\-]+$
                               type: string
                             password:
                               description: |-
-                                Password for PKCS12 trust store.
+                                password for PKCS12 trust store.
                                 By default, no password is used (password-less PKCS#12).
                               maxLength: 128
+                              minLength: 0
                               type: string
                             profile:
                               description: |-
-                                Profile specifies the certificate encryption algorithms and the HMAC algorithm
+                                profile specifies the certificate encryption algorithms and the HMAC algorithm
                                 used to create the PKCS12 trust store.
 
                                 If provided, allowed values are:
@@ -383,14 +403,16 @@ spec:
                         - key
                         x-kubernetes-list-type: map
                       metadata:
-                        description: Metadata is an optional set of labels and annotations
+                        description: metadata is an optional set of labels and annotations
                           to be copied to the target.
+                        minProperties: 1
                         properties:
                           annotations:
                             additionalProperties:
                               type: string
-                            description: Annotations is a key value map to be copied
+                            description: annotations is a key value map to be copied
                               to the target.
+                            minProperties: 1
                             type: object
                             x-kubernetes-validations:
                             - message: must not use forbidden domains as prefixes
@@ -400,8 +422,9 @@ spec:
                           labels:
                             additionalProperties:
                               type: string
-                            description: Labels is a key value map to be copied to
+                            description: labels is a key value map to be copied to
                               the target.
+                            minProperties: 1
                             type: object
                             x-kubernetes-validations:
                             - message: must not use forbidden domains as prefixes
@@ -416,17 +439,18 @@ spec:
                 - namespaceSelector
                 type: object
                 x-kubernetes-validations:
-                - message: 'any of the following fields must be provided: [configMap,
-                    secret]'
-                  rule: '[has(self.configMap), has(self.secret)].exists(x,x)'
+                - message: at least one of the fields in [configMap secret] must be
+                    set
+                  rule: '[has(self.configMap),has(self.secret)].filter(x,x==true).size()
+                    >= 1'
             type: object
           status:
-            description: Status of the Bundle. This is set and managed automatically.
+            description: status of the ClusterBundle. This is set and managed automatically.
+            minProperties: 1
             properties:
               conditions:
-                description: |-
-                  List of status conditions to indicate the status of the Bundle.
-                  Known condition types are `Bundle`.
+                description: conditions represent the latest available observations
+                  of the ClusterBundle's current state.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -481,20 +505,23 @@ spec:
                   - status
                   - type
                   type: object
+                maxItems: 10
+                minItems: 0
                 type: array
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
               defaultCAVersion:
                 description: |-
-                  DefaultCAPackageVersion, if set and non-empty, indicates the version information
-                  which was retrieved when the set of default CAs was requested in the bundle
-                  source. This should only be set if useDefaultCAs was set to "true" on a source,
-                  and will be the same for the same version of a bundle with identical certificates.
+                  defaultCAVersion is the version of the default CA package used for this ClusterBundle
+                  when resolving default CAs, if applicable.
+                  This field is populated only when default CAs are configured via spec.defaultCAs.
+                  ClusterBundles resolved from identical sets of default CA certificates will report
+                  the same defaultCAVersion value.
+                maxLength: 253
+                minLength: 1
                 type: string
             type: object
-        required:
-        - spec
         type: object
     served: true
     storage: true

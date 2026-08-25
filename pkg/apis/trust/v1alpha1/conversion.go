@@ -17,20 +17,32 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
 	"slices"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	trustv1alpha2 "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 )
 
-const annotationKeyJKSKey = "internal.trust-manager.io/jks-key"
+// AnnotationKeyJKSKey is the controller-internal annotation key used to indicate the key (if any)
+// in the ClusterBundle target specification that should be encoded with the legacy JKS encoder.
+// The JKS additional format is deprecated in the Bundle API, but we don't want to break users
+// when upgrading to a trust-manager to a release with support for ClusterBundle.
+// Support for this annotation using the legacy encoder will be removed together with the removal
+// of the v1alpha1 Bundle API.
+const AnnotationKeyJKSKey = "internal.trust-manager.io/jks-key"
 
 func (src *Bundle) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*trustv1alpha2.ClusterBundle)
+	dst, ok := dstRaw.(*trustv1alpha2.ClusterBundle)
+	if !ok {
+		return fmt.Errorf("expected a ClusterBundle, but got a %T", dstRaw)
+	}
 	dst.ObjectMeta = src.ObjectMeta
 
 	scheme := runtime.NewScheme()
@@ -50,14 +62,37 @@ func (src *Bundle) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	// Remove empty sources, as some source fields are "promoted" to spec in ClusterBundle.
-	dst.Spec.Sources = slices.DeleteFunc(dst.Spec.Sources, func(bs trustv1alpha2.BundleSource) bool {
-		return bs == trustv1alpha2.BundleSource{}
+	dst.Spec.SourceRefs = slices.DeleteFunc(dst.Spec.SourceRefs, func(bs trustv1alpha2.BundleSourceRef) bool {
+		return bs == trustv1alpha2.BundleSourceRef{}
 	})
+	if len(dst.Spec.SourceRefs) == 0 {
+		dst.Spec.SourceRefs = nil
+	}
 
 	return nil
 }
 
-func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(in *BundleSource, out *trustv1alpha2.BundleSource, scope apimachineryconversion.Scope) error {
+func Convert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in *BundleSpec, out *trustv1alpha2.BundleSpec, scope apimachineryconversion.Scope) error {
+	if err := autoConvert_v1alpha1_BundleSpec_To_v1alpha2_BundleSpec(in, out, scope); err != nil {
+		return err
+	}
+
+	if in.Sources != nil {
+		in, out := &in.Sources, &out.SourceRefs
+		*out = make([]trustv1alpha2.BundleSourceRef, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSourceRef(&(*in)[i], &(*out)[i], scope); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.SourceRefs = nil
+	}
+
+	return nil
+}
+
+func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSourceRef(in *BundleSource, out *trustv1alpha2.BundleSourceRef, scope apimachineryconversion.Scope) error {
 	var sourceObjectKeySelector *SourceObjectKeySelector
 	if in.ConfigMap != nil {
 		out.Kind = trustv1alpha2.ConfigMapKind
@@ -71,18 +106,30 @@ func Convert_v1alpha1_BundleSource_To_v1alpha2_BundleSource(in *BundleSource, ou
 		out.Name = sourceObjectKeySelector.Name
 		out.Selector = sourceObjectKeySelector.Selector
 		out.Key = sourceObjectKeySelector.Key
-		if sourceObjectKeySelector.IncludeAllKeys {
+		if ptr.Deref(sourceObjectKeySelector.IncludeAllKeys, false) {
 			out.Key = "*"
 		}
 	}
 
-	if in.InLine != nil {
+	if in.InLine != "" {
 		obj := scope.Meta().Context.(*trustv1alpha2.ClusterBundle)
-		obj.Spec.InLineCAs = in.InLine
+		if obj.Spec.InLineCAs == "" {
+			obj.Spec.InLineCAs = in.InLine
+		} else {
+			// The following logic is not pretty, but is required as we allow multiple inline sources
+			// in the Bundle sources array.
+			// It breaks the round-trippable conversion Bundle->ClusterBundle->Bundle,
+			// but works for converting Bundle->ClusterBundle, and that's what we need for the migration.
+			cas := strings.TrimSuffix(obj.Spec.InLineCAs, "\n") + "\n" + in.InLine
+			obj.Spec.InLineCAs = cas
+		}
 	}
 	if in.UseDefaultCAs != nil {
 		obj := scope.Meta().Context.(*trustv1alpha2.ClusterBundle)
-		obj.Spec.IncludeDefaultCAs = in.UseDefaultCAs
+		obj.Spec.DefaultCAs.Provider = trustv1alpha2.DefaultCAsProviderDisabled
+		if *in.UseDefaultCAs {
+			obj.Spec.DefaultCAs.Provider = trustv1alpha2.DefaultCAsProviderSystem
+		}
 	}
 
 	return nil
@@ -113,7 +160,7 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 				Key:    in.AdditionalFormats.JKS.Key,
 				Format: trustv1alpha2.BundleFormatPKCS12,
 				PKCS12: trustv1alpha2.PKCS12{
-					Password: in.AdditionalFormats.JKS.Password,
+					Password: &in.AdditionalFormats.JKS.Password,
 				},
 			}
 			appendTargetKV(targetKV)
@@ -122,7 +169,7 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 			if obj.Annotations == nil {
 				obj.Annotations = map[string]string{}
 			}
-			obj.Annotations[annotationKeyJKSKey] = targetKV.Key
+			obj.Annotations[AnnotationKeyJKSKey] = targetKV.Key
 		}
 		if in.AdditionalFormats.PKCS12 != nil {
 			targetKV := trustv1alpha2.TargetKeyValue{
@@ -146,11 +193,8 @@ func Convert_v1alpha1_BundleTarget_To_v1alpha2_BundleTarget(in *BundleTarget, ou
 
 func Convert_v1alpha1_TargetTemplate_To_v1alpha2_KeyValueTarget(in *TargetTemplate, out *trustv1alpha2.KeyValueTarget, scope apimachineryconversion.Scope) error {
 	out.Data = []trustv1alpha2.TargetKeyValue{{Key: in.Key}}
-	if in.Metadata != nil {
-		out.Metadata = &trustv1alpha2.TargetMetadata{}
-		if err := Convert_v1alpha1_TargetMetadata_To_v1alpha2_TargetMetadata(in.Metadata, out.Metadata, scope); err != nil {
-			return err
-		}
+	if err := Convert_v1alpha1_TargetMetadata_To_v1alpha2_TargetMetadata(&in.Metadata, &out.Metadata, scope); err != nil {
+		return err
 	}
 	return nil
 }
@@ -166,7 +210,10 @@ func Convert_v1alpha1_PKCS12_To_v1alpha2_PKCS12(in *PKCS12, out *trustv1alpha2.P
 }
 
 func (dst *Bundle) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*trustv1alpha2.ClusterBundle)
+	src, ok := srcRaw.(*trustv1alpha2.ClusterBundle)
+	if !ok {
+		return fmt.Errorf("expected a ClusterBundle, but got a %T", srcRaw)
+	}
 	dst.ObjectMeta = src.ObjectMeta
 
 	scheme := runtime.NewScheme()
@@ -192,22 +239,34 @@ func Convert_v1alpha2_BundleSpec_To_v1alpha1_BundleSpec(in *trustv1alpha2.Bundle
 		return err
 	}
 
-	if in.InLineCAs != nil {
+	if in.SourceRefs != nil {
+		in, out := &in.SourceRefs, &out.Sources
+		*out = make([]BundleSource, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha2_BundleSourceRef_To_v1alpha1_BundleSource(&(*in)[i], &(*out)[i], scope); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Sources = nil
+	}
+
+	if in.InLineCAs != "" {
 		out.Sources = append(out.Sources, BundleSource{InLine: in.InLineCAs})
 	}
-	if in.IncludeDefaultCAs != nil {
-		out.Sources = append(out.Sources, BundleSource{UseDefaultCAs: in.IncludeDefaultCAs})
+	if in.DefaultCAs != (trustv1alpha2.DefaultCAsSource{}) {
+		out.Sources = append(out.Sources, BundleSource{UseDefaultCAs: new(in.DefaultCAs.Provider == trustv1alpha2.DefaultCAsProviderSystem)})
 	}
 
 	return nil
 }
 
-func Convert_v1alpha2_BundleSource_To_v1alpha1_BundleSource(in *trustv1alpha2.BundleSource, out *BundleSource, _ apimachineryconversion.Scope) error {
+func Convert_v1alpha2_BundleSourceRef_To_v1alpha1_BundleSource(in *trustv1alpha2.BundleSourceRef, out *BundleSource, _ apimachineryconversion.Scope) error {
 	key := in.Key
-	includeAllKeys := false
+	var includeAllKeys *bool
 	if in.Key == "*" {
 		key = ""
-		includeAllKeys = true
+		includeAllKeys = new(true)
 	}
 	sourceObjectKeySelector := &SourceObjectKeySelector{
 		Name:           in.Name,
@@ -243,10 +302,10 @@ func Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *trustv1alpha2.Bu
 	var pkcs12 *PKCS12
 	for _, tkv := range targetKeyValues {
 		if tkv.Format == trustv1alpha2.BundleFormatPKCS12 {
-			if k, ok := obj.Annotations[annotationKeyJKSKey]; ok && k == tkv.Key {
+			if k, ok := obj.Annotations[AnnotationKeyJKSKey]; ok && k == tkv.Key {
 				jks = &JKS{}
 				jks.Key = tkv.Key
-				jks.Password = tkv.PKCS12.Password
+				jks.Password = *tkv.PKCS12.Password
 			} else {
 				pkcs12 = &PKCS12{}
 				pkcs12.Key = tkv.Key
@@ -269,7 +328,7 @@ func Convert_v1alpha2_BundleTarget_To_v1alpha1_BundleTarget(in *trustv1alpha2.Bu
 		}
 	}
 
-	delete(obj.Annotations, annotationKeyJKSKey)
+	delete(obj.Annotations, AnnotationKeyJKSKey)
 	if len(obj.Annotations) == 0 {
 		obj.Annotations = nil
 	}
@@ -284,11 +343,8 @@ func Convert_v1alpha2_KeyValueTarget_To_v1alpha1_TargetTemplate(in *trustv1alpha
 			break
 		}
 	}
-	if in.Metadata != nil {
-		out.Metadata = &TargetMetadata{}
-		if err := Convert_v1alpha2_TargetMetadata_To_v1alpha1_TargetMetadata(in.Metadata, out.Metadata, scope); err != nil {
-			return err
-		}
+	if err := Convert_v1alpha2_TargetMetadata_To_v1alpha1_TargetMetadata(&in.Metadata, &out.Metadata, scope); err != nil {
+		return err
 	}
 	return nil
 }

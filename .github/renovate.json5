@@ -1,6 +1,20 @@
 {
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
   extends: [
-    'github>cert-manager/renovate-config:default.json5',
+    'github>cert-manager/makefile-modules:renovate-config.json5',
   ],
+  customManagers: [
+    {
+      customType: 'jsonata',
+      fileFormat: 'yaml',
+      managerFilePatterns: [
+        '.custom-gcl.yml'
+      ],
+      matchStrings: [
+        'plugins.{"depName": module, "currentValue": version }'
+      ],
+      datasourceTemplate: 'go',
+      versioningTemplate: 'go',
+    }
+  ]
 }

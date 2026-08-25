@@ -23,6 +23,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -33,7 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	coreapplyconfig "k8s.io/client-go/applyconfigurations/core/v1"
 	metav1applyconfig "k8s.io/client-go/applyconfigurations/meta/v1"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/structured-merge-diff/v6/fieldpath"
@@ -55,7 +56,7 @@ type Reconciler struct {
 
 	// PatchResourceOverwrite allows use to override the patchResource function
 	// it is used for testing purposes
-	PatchResourceOverwrite func(ctx context.Context, obj interface{}) error
+	PatchResourceOverwrite func(ctx context.Context, obj any) error
 }
 
 // CleanupTarget ensures the obsolete bundle target is cleanup up.
@@ -173,7 +174,13 @@ func (r *Reconciler) applyConfigMap(
 		return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
 	}
 
-	logf.FromContext(ctx).V(2).Info("applied bundle to namespace")
+	// Log the applied keys to make it possible to tell from the logs which keys were
+	// written to the target, and to which field (additional formats are binary and
+	// end up in binaryData, which some UIs don't display).
+	logf.FromContext(ctx).V(2).Info("applied bundle to namespace",
+		"dataKeys", slices.Sorted(maps.Keys(data)),
+		"binaryDataKeys", slices.Sorted(maps.Keys(binData)),
+	)
 
 	return true, nil
 }
@@ -222,9 +229,7 @@ func (r *Reconciler) applySecret(
 	if err != nil {
 		return false, err
 	}
-	for k, v := range binData {
-		data[k] = v
-	}
+	maps.Copy(data, binData)
 
 	patch := prepareTargetPatch(coreapplyconfig.Secret(target.Name, target.Namespace), *bundle).
 		WithAnnotations(bundleTarget.Secret.GetAnnotations()).
@@ -238,7 +243,11 @@ func (r *Reconciler) applySecret(
 		return false, fmt.Errorf("failed to patch %s %s: %w", target.Kind, target.NamespacedName, err)
 	}
 
-	logf.FromContext(ctx).V(2).Info("applied bundle to namespace")
+	// Log the applied keys to make it possible to tell from the logs which keys were
+	// written to the target (additional format keys are included in data for Secrets).
+	logf.FromContext(ctx).V(2).Info("applied bundle to namespace",
+		"dataKeys", slices.Sorted(maps.Keys(data)),
+	)
 
 	return true, nil
 }
@@ -299,14 +308,14 @@ func listManagedProperties(configmap *metav1.PartialObjectMetadata, fieldManager
 
 		// Decode the managed field.
 		var fieldset fieldpath.Set
-		if err := fieldset.FromJSON(bytes.NewReader(managedField.FieldsV1.Raw)); err != nil {
+		if err := fieldset.FromJSON(bytes.NewReader(managedField.FieldsV1.GetRawBytes())); err != nil {
 			return nil, err
 		}
 
 		for _, fieldName := range fieldNames {
 			// Extract the labels and annotations of the managed fields.
 			configmapData := fieldset.Children.Descend(fieldpath.PathElement{
-				FieldName: ptr.To(fieldName),
+				FieldName: new(fieldName),
 			})
 
 			// Gather the properties on the managed fields. Remove the '.'
@@ -403,19 +412,26 @@ func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats,
 
 	_, _ = hash.Write(data)
 
-	if additionalFormats != nil && additionalFormats.JKS != nil && additionalFormats.JKS.Password != nil {
-		_, _ = hash.Write([]byte(*additionalFormats.JKS.Password))
+	if additionalFormats != nil && additionalFormats.JKS != nil && additionalFormats.JKS.Password != "" {
+		_, _ = hash.Write([]byte(additionalFormats.JKS.Password))
 	}
 	if additionalFormats != nil && additionalFormats.PKCS12 != nil && additionalFormats.PKCS12.Password != nil {
 		_, _ = hash.Write([]byte(*additionalFormats.PKCS12.Password))
 	}
-
-	// Add Target annotations and labels to the hash so it becomes aware of changes and triggers an update.
-	for k, v := range target.GetAnnotations() {
-		_, _ = hash.Write([]byte(k + v))
+	if additionalFormats != nil && additionalFormats.PKCS12 != nil && additionalFormats.PKCS12.Profile != "" {
+		_, _ = hash.Write([]byte(additionalFormats.PKCS12.Profile))
 	}
-	for k, v := range target.GetLabels() {
-		_, _ = hash.Write([]byte(k + v))
+
+	// Add Target annotations and labels to the hash so it becomes aware of changes
+	// and triggers an update. Iterate in sorted key order so the hash is stable
+	// regardless of Go's randomized map iteration order (#971).
+	annotations := target.GetAnnotations()
+	for _, k := range slices.Sorted(maps.Keys(annotations)) {
+		_, _ = hash.Write([]byte(k + annotations[k]))
+	}
+	labels := target.GetLabels()
+	for _, k := range slices.Sorted(maps.Keys(labels)) {
+		_, _ = hash.Write([]byte(k + labels[k]))
 	}
 
 	hashValue := [32]byte{}
@@ -429,7 +445,7 @@ func binaryData(pool *util.CertPool, formats *trustapi.AdditionalFormats) (binDa
 		binData = make(map[string][]byte)
 
 		if formats.JKS != nil {
-			encoded, err := truststore.NewJKSEncoder(*formats.JKS.Password).Encode(pool)
+			encoded, err := truststore.NewJKSEncoder(formats.JKS.Password).Encode(pool)
 			if err != nil {
 				return nil, fmt.Errorf("failed to encode JKS: %w", err)
 			}

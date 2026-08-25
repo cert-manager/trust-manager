@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -63,6 +64,7 @@ func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.Bund
 	var resolvedBundle BundleData
 	resolvedBundle.CertPool = util.NewCertPool(
 		util.WithFilteredExpiredCerts(b.FilterExpiredCerts),
+		util.WithFilteredNonCaCerts(b.FilterNonCACerts),
 		util.WithLogger(logf.FromContext(ctx).WithName("cert-pool")),
 	)
 
@@ -76,8 +78,8 @@ func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.Bund
 		case source.Secret != nil:
 			certSource = &secretBundleSource{b.Reader, b.Namespace, source.Secret}
 
-		case source.InLine != nil:
-			certSource = &inlineBundleSource{*source.InLine}
+		case source.InLine != "":
+			certSource = &inlineBundleSource{source.InLine}
 
 		case source.UseDefaultCAs != nil:
 			if !*source.UseDefaultCAs {
@@ -176,16 +178,31 @@ func (b configMapBundleSource) addToCertPool(ctx context.Context, pool *util.Cer
 
 	for _, cm := range configMaps {
 		if len(b.ref.Key) > 0 {
+			// ConfigMaps may store values under either the string Data field or
+			// the byte BinaryData field. Prefer Data, but fall back to
+			// BinaryData so base64-encoded CAs are also resolvable.
 			data, ok := cm.Data[b.ref.Key]
-			if !ok {
+			binaryData, binaryOk := cm.BinaryData[b.ref.Key]
+			switch {
+			case ok:
+				if err := pool.AddCertsFromPEM([]byte(data)); err != nil {
+					return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, b.ref.Key, err)}
+				}
+			case binaryOk:
+				if err := pool.AddCertsFromPEM(binaryData); err != nil {
+					return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, b.ref.Key, err)}
+				}
+			default:
 				return NotFoundError{fmt.Errorf("no data found in ConfigMap %s/%s at key %q", cm.Namespace, cm.Name, b.ref.Key)}
 			}
-			if err := pool.AddCertsFromPEM([]byte(data)); err != nil {
-				return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, b.ref.Key, err)}
-			}
-		} else if b.ref.IncludeAllKeys {
+		} else if ptr.Deref(b.ref.IncludeAllKeys, false) {
 			for key, data := range cm.Data {
 				if err := pool.AddCertsFromPEM([]byte(data)); err != nil {
+					return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, key, err)}
+				}
+			}
+			for key, data := range cm.BinaryData {
+				if err := pool.AddCertsFromPEM(data); err != nil {
 					return InvalidPEMError{fmt.Errorf("invalid PEM data in ConfigMap %s/%s at key %q: %w", cm.Namespace, cm.Name, key, err)}
 				}
 			}
@@ -246,7 +263,7 @@ func (b secretBundleSource) addToCertPool(ctx context.Context, pool *util.CertPo
 			if err := pool.AddCertsFromPEM(data); err != nil {
 				return InvalidPEMError{fmt.Errorf("invalid PEM data in Secret %s/%s at key %q: %w", secret.Namespace, secret.Name, b.ref.Key, err)}
 			}
-		} else if b.ref.IncludeAllKeys {
+		} else if ptr.Deref(b.ref.IncludeAllKeys, false) {
 			// This is done to prevent mistakes. All keys should never be included for a TLS secret, since that would include the private key.
 			if secret.Type == corev1.SecretTypeTLS {
 				return InvalidSecretError{fmt.Errorf("includeAllKeys is not supported for TLS Secrets such as %s/%s", secret.Namespace, secret.Name)}

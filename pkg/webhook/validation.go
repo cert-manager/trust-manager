@@ -19,13 +19,12 @@ package webhook
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/validation"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -35,26 +34,22 @@ import (
 // validator validates against trust.cert-manager.io resources.
 type validator struct{}
 
-var _ admission.CustomValidator = &validator{}
+var _ admission.Validator[*trustapi.Bundle] = &validator{}
 
-func (v *validator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *validator) ValidateCreate(ctx context.Context, obj *trustapi.Bundle) (admission.Warnings, error) {
 	return v.validate(ctx, obj)
 }
 
-func (v *validator) ValidateUpdate(ctx context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+func (v *validator) ValidateUpdate(ctx context.Context, _, newObj *trustapi.Bundle) (admission.Warnings, error) {
 	return v.validate(ctx, newObj)
 }
 
-func (v *validator) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (v *validator) ValidateDelete(_ context.Context, _ *trustapi.Bundle) (admission.Warnings, error) {
 	// always allow deletes
 	return nil, nil
 }
 
-func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	bundle, ok := obj.(*trustapi.Bundle)
-	if !ok {
-		return nil, fmt.Errorf("expected a Bundle, but got a %T", obj)
-	}
+func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admission.Warnings, error) {
 	log := logf.FromContext(ctx, "name", bundle.Name)
 	log.V(2).Info("received validation request")
 	var (
@@ -67,7 +62,7 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 	defaultCAsCount := 0
 
 	for i, source := range bundle.Spec.Sources {
-		path := path.Child("sources").Child("[" + strconv.Itoa(i) + "]")
+		path := path.Child("sources").Index(i)
 
 		unionCount := 0
 
@@ -82,11 +77,11 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 			if len(configMap.Name) > 0 && configMap.Selector != nil {
 				el = append(el, field.Invalid(path, fmt.Sprintf("name: %s, selector: {}", configMap.Name), "must validate one and only one schema (oneOf): [name, selector]. Found both set"))
 			}
-			if len(configMap.Key) == 0 && !configMap.IncludeAllKeys {
-				el = append(el, field.Invalid(path, fmt.Sprintf("key: ' ', includeAllKeys: %t", configMap.IncludeAllKeys), "source configMap key must be defined when includeAllKeys is false"))
+			if includeAllKeys := ptr.Deref(configMap.IncludeAllKeys, false); len(configMap.Key) == 0 && !includeAllKeys {
+				el = append(el, field.Invalid(path, fmt.Sprintf("key: ' ', includeAllKeys: %t", includeAllKeys), "source configMap key must be defined when includeAllKeys is false"))
 			}
-			if len(configMap.Key) > 0 && configMap.IncludeAllKeys {
-				el = append(el, field.Invalid(path, fmt.Sprintf("key: %s, includeAllKeys: %t", configMap.Key, configMap.IncludeAllKeys), "source configMap key cannot be defined when includeAllKeys is true"))
+			if includeAllKeys := ptr.Deref(configMap.IncludeAllKeys, false); len(configMap.Key) > 0 && includeAllKeys {
+				el = append(el, field.Invalid(path, fmt.Sprintf("key: %s, includeAllKeys: %t", configMap.Key, includeAllKeys), "source configMap key cannot be defined when includeAllKeys is true"))
 			}
 
 			errs := validation.ValidateLabelSelector(configMap.Selector, validation.LabelSelectorValidationOptions{}, path.Child("selector"))
@@ -104,18 +99,18 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 			if len(secret.Name) > 0 && secret.Selector != nil {
 				el = append(el, field.Invalid(path, fmt.Sprintf("name: %s, selector: {}", secret.Name), "must validate one and only one schema (oneOf): [name, selector]. Found both set"))
 			}
-			if len(secret.Key) == 0 && !secret.IncludeAllKeys {
-				el = append(el, field.Invalid(path, fmt.Sprintf("key: ' ', includeAllKeys: %t", secret.IncludeAllKeys), "source secret key must be defined when includeAllKeys is false"))
+			if includeAllKeys := ptr.Deref(secret.IncludeAllKeys, false); len(secret.Key) == 0 && !includeAllKeys {
+				el = append(el, field.Invalid(path, fmt.Sprintf("key: ' ', includeAllKeys: %t", includeAllKeys), "source secret key must be defined when includeAllKeys is false"))
 			}
-			if len(secret.Key) > 0 && secret.IncludeAllKeys {
-				el = append(el, field.Invalid(path, fmt.Sprintf("key: %s, includeAllKeys: %t", secret.Key, secret.IncludeAllKeys), "source secret key cannot be defined when includeAllKeys is true"))
+			if includeAllKeys := ptr.Deref(secret.IncludeAllKeys, false); len(secret.Key) > 0 && includeAllKeys {
+				el = append(el, field.Invalid(path, fmt.Sprintf("key: %s, includeAllKeys: %t", secret.Key, includeAllKeys), "source secret key cannot be defined when includeAllKeys is true"))
 			}
 
 			errs := validation.ValidateLabelSelector(secret.Selector, validation.LabelSelectorValidationOptions{}, path.Child("selector"))
 			el = append(el, errs...)
 		}
 
-		if source.InLine != nil {
+		if source.InLine != "" {
 			sourceCount++
 			unionCount++
 		}
@@ -151,7 +146,10 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
 			if source.ConfigMap != nil && source.ConfigMap.Name == bundle.Name && source.ConfigMap.Key == target.Key {
-				el = append(el, field.Forbidden(path.Child(fmt.Sprintf("[%d]", i), "configMap", source.ConfigMap.Name, source.ConfigMap.Key), "cannot define the same source as target"))
+				el = append(el, field.Forbidden(
+					path.Index(i).Child("configMap", source.ConfigMap.Name, source.ConfigMap.Key),
+					"cannot define the same source as target",
+				))
 			}
 		}
 	}
@@ -160,7 +158,10 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
 			if source.Secret != nil && source.Secret.Name == bundle.Name && source.Secret.Key == target.Key {
-				el = append(el, field.Forbidden(path.Child(fmt.Sprintf("[%d]", i), "secret", source.Secret.Name, source.Secret.Key), "cannot define the same source as target"))
+				el = append(el, field.Forbidden(
+					path.Index(i).Child("secret", source.Secret.Name, source.Secret.Key),
+					"cannot define the same source as target",
+				))
 			}
 		}
 	}
@@ -169,7 +170,6 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 		configMap := bundle.Spec.Target.ConfigMap
 		secret := bundle.Spec.Target.Secret
 
-		var formats = make(map[string]*trustapi.KeySelector)
 		targetKeys := map[string]struct{}{}
 		if configMap != nil {
 			targetKeys[configMap.Key] = struct{}{}
@@ -178,31 +178,38 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 			targetKeys[secret.Key] = struct{}{}
 		}
 
-		// Checks for nil to avoid nil point dereference error
+		type formatSpec struct {
+			name string
+			key  string
+		}
+		var formats []formatSpec
+
 		if bundle.Spec.Target.AdditionalFormats.JKS != nil {
-			formats["jks"] = &bundle.Spec.Target.AdditionalFormats.JKS.KeySelector
+			formats = append(formats, formatSpec{name: "jks", key: bundle.Spec.Target.AdditionalFormats.JKS.Key})
 		}
-
-		// Checks for nil to avoid nil point dereference error
 		if bundle.Spec.Target.AdditionalFormats.PKCS12 != nil {
-			formats["pkcs12"] = &bundle.Spec.Target.AdditionalFormats.PKCS12.KeySelector
+			formats = append(formats, formatSpec{name: "pkcs12", key: bundle.Spec.Target.AdditionalFormats.PKCS12.Key})
 		}
 
-		for f, selector := range formats {
-			if selector != nil {
-				if _, ok := targetKeys[selector.Key]; ok {
-					el = append(el, field.Invalid(path.Child("target", "additionalFormats", f, "key"), selector.Key, "key must be unique in target configMap"))
-				}
-				targetKeys[selector.Key] = struct{}{}
+		for _, f := range formats {
+			if _, ok := targetKeys[f.key]; ok {
+				el = append(el, field.Invalid(
+					path.Child("target", "additionalFormats", f.name, "key"),
+					f.key,
+					"key must be unique across all target output keys",
+				))
 			}
+			targetKeys[f.key] = struct{}{}
 		}
 	}
 
 	if bundle.Spec.Target.ConfigMap != nil {
-		el = append(el, validateTargetMetadata(bundle.Spec.Target.ConfigMap.Metadata, path.Child("target", "configMap", "metadata"))...)
+		errs := validateTargetMetadata(bundle.Spec.Target.ConfigMap.Metadata, path.Child("target", "configMap", "metadata"))
+		el = append(el, errs...)
 	}
 	if bundle.Spec.Target.Secret != nil {
-		el = append(el, validateTargetMetadata(bundle.Spec.Target.Secret.Metadata, path.Child("target", "secret", "metadata"))...)
+		errs := validateTargetMetadata(bundle.Spec.Target.Secret.Metadata, path.Child("target", "secret", "metadata"))
+		el = append(el, errs...)
 	}
 
 	errs := validation.ValidateLabelSelector(bundle.Spec.Target.NamespaceSelector, validation.LabelSelectorValidationOptions{}, path.Child("target", "namespaceSelector"))
@@ -213,11 +220,7 @@ func (v *validator) validate(ctx context.Context, obj runtime.Object) (admission
 }
 
 // validateAnnotationsLabelsTemplate Validates that the target template annotations and labels are both valid and that they do not contain reserved keys.
-func validateTargetMetadata(targetMetadata *trustapi.TargetMetadata, fldPath *field.Path) field.ErrorList {
-	if targetMetadata == nil {
-		return nil
-	}
-
+func validateTargetMetadata(targetMetadata trustapi.TargetMetadata, fldPath *field.Path) field.ErrorList {
 	el := field.ErrorList{}
 
 	templateAnnotationsPath := fldPath.Child("annotations")

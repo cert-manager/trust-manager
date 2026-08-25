@@ -3,6 +3,9 @@ global:
   rbac:
     # Create required ClusterRoles, Roles, ClusterRoleBindings and RoleBindings for trust-manager.
     create: true
+    # Aggregate read access to Bundles into the "cluster-reader" ClusterRole, mirroring how cert-manager aggregates its cluster-scoped ClusterIssuers. Bundle is a cluster-scoped resource, so this only takes effect for subjects bound via a ClusterRoleBinding.
+    # For more information, see [User-facing roles](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#user-facing-roles).
+    aggregateClusterRoles: true
 
 # +docs:section=CRDs
 crds:
@@ -50,16 +53,45 @@ namespace: ""
 # For Private docker registries, authentication is needed. Registry secrets are applied to the service account.
 imagePullSecrets: []
 
+# The container registry used for trust-manager images by default.
+# This can include path prefixes (e.g. "artifactory.example.com/docker").
+# +docs:property
+imageRegistry: quay.io
+
+# The repository namespace used for trust-manager images by default.
+# Examples:
+# - jetstack
+# - cert-manager
+# +docs:property
+imageNamespace: jetstack
+
 image:
   # Target image registry. This value is prepended to the target image repository, if set.
   # For example:
-  #   registry: quay.io
-  #   repository: jetstack/trust-manager
+  #   registry: legacy.example.io
+  # Deprecated: per-component registry prefix.
+  #
+  # If set, this value is *prepended* to the image repository that the chart would otherwise render.
+  # This applies both when `image.repository` is set and when the repository is computed from
+  # `imageRegistry` + `imageNamespace` + `image.name`.
+  #
+  # This can produce "double registry" style references such as
+  # `legacy.example.io/quay.io/jetstack/...`. Prefer using the global
+  # `imageRegistry`/`imageNamespace` values.
   # +docs:property
   # registry: quay.io
 
-  # Target image repository.
-  repository: quay.io/jetstack/trust-manager
+  # Full repository override (takes precedence over `imageRegistry`, `imageNamespace`,
+  # and `image.name`).
+  # Example: quay.io/jetstack/trust-manager
+  # +docs:property
+  repository: ""
+
+  # The image name for trust-manager.
+  # This is used (together with `imageRegistry` and `imageNamespace`) to construct the full
+  # image reference.
+  # +docs:property
+  name: trust-manager
 
   # Override the image tag to deploy by setting this variable.
   # If no value is set, the chart's appVersion is used.
@@ -90,27 +122,61 @@ defaultPackage:
   #      memory: 128Mi
   resources: {}
 
+  # Security Context to be set on the trust-manager default package init container. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).
+  # +docs:property
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
 defaultPackageImage:
   # Target image registry. This value is prepended to the target image repository, if set.
   # For example:
   #   registry: quay.io
   #   repository: jetstack/cert-manager-package-debian
+  # Deprecated: per-component registry prefix.
+  #
+  # If set, this value is *prepended* to the image repository that the chart would otherwise render.
+  # This applies both when `image.repository` is set and when the repository is computed from
+  # `imageRegistry` + `imageNamespace` + `image.name`.
+  #
+  # This can produce "double registry" style references such as
+  # `legacy.example.io/quay.io/jetstack/...`. Prefer using the global
+  # `imageRegistry`/`imageNamespace` values.
   # +docs:property
   # registry: quay.io
 
-  # The repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles.
-  repository: quay.io/jetstack/trust-pkg-debian-bookworm
+  # Full repository override (takes precedence over `imageRegistry`, `imageNamespace`,
+  # and `image.name`).
+  # Example: quay.io/jetstack/trust-manager
+  # +docs:property
+  repository: ""
+
+  # The image name for trust-manager.
+  # This is used (together with `imageRegistry` and `imageNamespace`) to construct the full
+  # image reference.
+  # +docs:property
+  name: trust-pkg-debian-trixie
 
   # Override the image tag of the default package image.
-  # If no value is set, the chart's appVersion is used.
+  # Is set at chart build time to the version specified in ./make/00_debian_trixie_version.mk.
   # +docs:property
-  tag: "20230311-deb12u1.0@sha256:4e46f31af8ab4aedb861b997be37e2004ba5313a187d0f0a3cdb4680937a98a3"
+  # tag: vX.Y.Z
 
   # Target image digest. Override any tag, if set.
   # For example:
   #   digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
   # +docs:property
   # digest: sha256:...
+
+  # WARNING: For internal use only, is overwritten before releasing the chart.
+  # +docs:hidden
+  _defaultReference: :v0.0.0
 
   # imagePullPolicy for the default package image.
   pullPolicy: IfNotPresent
@@ -164,6 +230,9 @@ secretTargets:
 #      memory: 128Mi
 resources: {}
 
+# Security Context to be set on the trust-manager Pod. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).
+podSecurityContext: {}
+
 # Configure the priority class of the pod. For more information, see [PriorityClass](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass).
 priorityClassName: ""
 
@@ -209,6 +278,10 @@ filterExpiredCertificates:
   # Whether to filter expired certificates from the trust bundle.
   enabled: false
 
+filterNonCACerts:
+  # Filter non-CA certificates, only CAs are used in the resulting Bundle.
+  enabled: false
+
 app:
   # Minimum TLS version supported. If omitted, the default Go minimum version will be used.
   minTLSVersion: ""
@@ -249,9 +322,17 @@ app:
   # +docs:property
   # targetNamespaces: ["ns-1", "ns-2"]
 
+  # Security Context to be set on the trust-manager app container. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).
+  # +docs:property
   securityContext:
-    # If false, disables the default seccomp profile, which might be required to run on certain platforms.
-    seccompProfileEnabled: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
 
   # Pod labels to add to trust-manager pods.
   podLabels: {}
@@ -304,7 +385,10 @@ app:
       injectCaFromSecret: false
 
       # Add labels/annotations to secrets created by Certificate resources when using cert-manager provisioned TLS certificate.
+      # Configure certificate duration and add labels/annotations to secrets created by Certificate resources when using cert-manager provisioned TLS certificate.
       certificate:
+        # Certificate duration, if unset/empty the default from cert-manager will be used. Example configuration to set 1 year: duration: 8766h
+        duration: ""
         secretTemplate: {}
           # For example:
           #   annotations:
@@ -344,6 +428,20 @@ app:
         scrapeTimeout: 5s
         # Additional labels to add to the ServiceMonitor.
         labels: {}
+        # EndpointAdditionalProperties allows setting additional properties on the
+        # endpoint such as relabelings, metricRelabelings etc.
+        #
+        # For example:
+        #  endpointAdditionalProperties:
+        #   relabelings:
+        #   - action: replace
+        #     sourceLabels:
+        #     - __meta_kubernetes_pod_node_name
+        #     targetLabel: instance
+        #
+        # +docs:property
+        endpointAdditionalProperties: {}
+
 
 podDisruptionBudget:
   # Enable or disable the PodDisruptionBudget resource.

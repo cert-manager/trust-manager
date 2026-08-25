@@ -19,11 +19,18 @@ package v1alpha2
 
 // BundleSpecApplyConfiguration represents a declarative configuration of the BundleSpec type for use
 // with apply.
+//
+// BundleSpec defines the desired state of a Bundle.
 type BundleSpecApplyConfiguration struct {
-	Sources           []BundleSourceApplyConfiguration `json:"sources,omitempty"`
-	IncludeDefaultCAs *bool                            `json:"includeDefaultCAs,omitempty"`
-	InLineCAs         *string                          `json:"inLineCAs,omitempty"`
-	Target            *BundleTargetApplyConfiguration  `json:"target,omitempty"`
+	// sourceRefs is a list of references to resources whose data will be appended and synced into
+	// the bundle target resources.
+	SourceRefs []BundleSourceRefApplyConfiguration `json:"sourceRefs,omitempty"`
+	// defaultCAs configures the use of a default CA bundle as a trust source.
+	DefaultCAs *DefaultCAsSourceApplyConfiguration `json:"defaultCAs,omitempty"`
+	// inLineCAs is a simple string to append as the source data.
+	InLineCAs *string `json:"inLineCAs,omitempty"`
+	// target is the target location in all namespaces to sync source data to.
+	Target *BundleTargetApplyConfiguration `json:"target,omitempty"`
 }
 
 // BundleSpecApplyConfiguration constructs a declarative configuration of the BundleSpec type for use with
@@ -32,24 +39,24 @@ func BundleSpec() *BundleSpecApplyConfiguration {
 	return &BundleSpecApplyConfiguration{}
 }
 
-// WithSources adds the given value to the Sources field in the declarative configuration
+// WithSourceRefs adds the given value to the SourceRefs field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
-// If called multiple times, values provided by each call will be appended to the Sources field.
-func (b *BundleSpecApplyConfiguration) WithSources(values ...*BundleSourceApplyConfiguration) *BundleSpecApplyConfiguration {
+// If called multiple times, values provided by each call will be appended to the SourceRefs field.
+func (b *BundleSpecApplyConfiguration) WithSourceRefs(values ...*BundleSourceRefApplyConfiguration) *BundleSpecApplyConfiguration {
 	for i := range values {
 		if values[i] == nil {
-			panic("nil value passed to WithSources")
+			panic("nil value passed to WithSourceRefs")
 		}
-		b.Sources = append(b.Sources, *values[i])
+		b.SourceRefs = append(b.SourceRefs, *values[i])
 	}
 	return b
 }
 
-// WithIncludeDefaultCAs sets the IncludeDefaultCAs field in the declarative configuration to the given value
+// WithDefaultCAs sets the DefaultCAs field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the IncludeDefaultCAs field is set to the value of the last call.
-func (b *BundleSpecApplyConfiguration) WithIncludeDefaultCAs(value bool) *BundleSpecApplyConfiguration {
-	b.IncludeDefaultCAs = &value
+// If called multiple times, the DefaultCAs field is set to the value of the last call.
+func (b *BundleSpecApplyConfiguration) WithDefaultCAs(value *DefaultCAsSourceApplyConfiguration) *BundleSpecApplyConfiguration {
+	b.DefaultCAs = value
 	return b
 }
 

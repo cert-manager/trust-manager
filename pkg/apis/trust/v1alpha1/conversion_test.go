@@ -21,28 +21,785 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
-	trustv1alpha2 "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	utilconversion "github.com/cert-manager/trust-manager/pkg/util/conversion"
+	"github.com/cert-manager/trust-manager/test/dummy"
 )
+
+// TestBundle_Conversion is for additional/special testcases not fully covered by TestFuzzyConversion below.
+func TestBundle_Conversion(t *testing.T) {
+	tests := map[string]struct {
+		src    Bundle
+		exp    trustmanagerapi.ClusterBundle
+		expSrc Bundle
+	}{
+		"multiple inline Bundle sources should be concatenated in ClusterBundle inLineCAs": {
+			src: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{InLine: dummy.TestCertificate1},
+						{InLine: dummy.TestCertificate2},
+					},
+				},
+			},
+			exp: trustmanagerapi.ClusterBundle{
+				Spec: trustmanagerapi.BundleSpec{
+					InLineCAs: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2),
+				},
+			},
+			// This asserts that the conversion is NOT round-trippable, but equivalent
+			expSrc: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{InLine: dummy.JoinCerts(dummy.TestCertificate1, dummy.TestCertificate2)},
+					},
+				},
+			},
+		},
+		"ConfigMap source with key should convert to ConfigMap kind sourceRef": {
+			src: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{
+							Name: "my-configmap",
+							Key:  "ca.crt",
+						}},
+					},
+				},
+			},
+			exp: trustmanagerapi.ClusterBundle{
+				Spec: trustmanagerapi.BundleSpec{
+					SourceRefs: []trustmanagerapi.BundleSourceRef{
+						{
+							SourceReference: trustmanagerapi.SourceReference{
+								Kind: trustmanagerapi.ConfigMapKind,
+								Name: "my-configmap",
+							},
+							Key: "ca.crt",
+						},
+					},
+				},
+			},
+			expSrc: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{
+							Name: "my-configmap",
+							Key:  "ca.crt",
+						}},
+					},
+				},
+			},
+		},
+		"Secret source with key should convert to Secret kind sourceRef": {
+			src: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{Secret: &SourceObjectKeySelector{
+							Name: "my-secret",
+							Key:  "tls.crt",
+						}},
+					},
+				},
+			},
+			exp: trustmanagerapi.ClusterBundle{
+				Spec: trustmanagerapi.BundleSpec{
+					SourceRefs: []trustmanagerapi.BundleSourceRef{
+						{
+							SourceReference: trustmanagerapi.SourceReference{
+								Kind: trustmanagerapi.SecretKind,
+								Name: "my-secret",
+							},
+							Key: "tls.crt",
+						},
+					},
+				},
+			},
+			expSrc: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{Secret: &SourceObjectKeySelector{
+							Name: "my-secret",
+							Key:  "tls.crt",
+						}},
+					},
+				},
+			},
+		},
+		"ConfigMap source with includeAllKeys should convert to wildcard key": {
+			src: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{
+							Name:           "my-configmap",
+							IncludeAllKeys: new(true),
+						}},
+					},
+				},
+			},
+			exp: trustmanagerapi.ClusterBundle{
+				Spec: trustmanagerapi.BundleSpec{
+					SourceRefs: []trustmanagerapi.BundleSourceRef{
+						{
+							SourceReference: trustmanagerapi.SourceReference{
+								Kind: trustmanagerapi.ConfigMapKind,
+								Name: "my-configmap",
+							},
+							Key: "*",
+						},
+					},
+				},
+			},
+			expSrc: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{
+							Name:           "my-configmap",
+							IncludeAllKeys: new(true),
+						}},
+					},
+				},
+			},
+		},
+		"ConfigMap source with label selector should preserve selector": {
+			src: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{"app": "trust"},
+							},
+							Key: "ca-bundle.pem",
+						}},
+					},
+				},
+			},
+			exp: trustmanagerapi.ClusterBundle{
+				Spec: trustmanagerapi.BundleSpec{
+					SourceRefs: []trustmanagerapi.BundleSourceRef{
+						{
+							SourceReference: trustmanagerapi.SourceReference{
+								Kind: trustmanagerapi.ConfigMapKind,
+								Selector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{"app": "trust"},
+								},
+							},
+							Key: "ca-bundle.pem",
+						},
+					},
+				},
+			},
+			expSrc: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{"app": "trust"},
+							},
+							Key: "ca-bundle.pem",
+						}},
+					},
+				},
+			},
+		},
+		"useDefaultCAs true should convert to DefaultCAs with System provider": {
+			src: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{UseDefaultCAs: new(true)},
+					},
+				},
+			},
+			exp: trustmanagerapi.ClusterBundle{
+				Spec: trustmanagerapi.BundleSpec{
+					DefaultCAs: trustmanagerapi.DefaultCAsSource{
+						Provider: trustmanagerapi.DefaultCAsProviderSystem,
+					},
+				},
+			},
+			expSrc: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{UseDefaultCAs: new(true)},
+					},
+				},
+			},
+		},
+		"useDefaultCAs false should convert to DefaultCAs with Disabled provider": {
+			src: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{UseDefaultCAs: new(false)},
+					},
+				},
+			},
+			exp: trustmanagerapi.ClusterBundle{
+				Spec: trustmanagerapi.BundleSpec{
+					DefaultCAs: trustmanagerapi.DefaultCAsSource{
+						Provider: trustmanagerapi.DefaultCAsProviderDisabled,
+					},
+				},
+			},
+			expSrc: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{UseDefaultCAs: new(false)},
+					},
+				},
+			},
+		},
+		"JKS additional format should convert to PKCS12 format with JKS annotation": {
+			src: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{Name: "my-cm", Key: "ca.crt"}},
+					},
+					Target: BundleTarget{
+						ConfigMap: &TargetTemplate{Key: "trust-bundle.pem"},
+						AdditionalFormats: &AdditionalFormats{
+							JKS: &JKS{
+								KeySelector: KeySelector{Key: "trust-bundle.jks"},
+								Password:    "changeit",
+							},
+						},
+					},
+				},
+			},
+			exp: trustmanagerapi.ClusterBundle{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						AnnotationKeyJKSKey: "trust-bundle.jks",
+					},
+				},
+				Spec: trustmanagerapi.BundleSpec{
+					SourceRefs: []trustmanagerapi.BundleSourceRef{
+						{
+							SourceReference: trustmanagerapi.SourceReference{
+								Kind: trustmanagerapi.ConfigMapKind,
+								Name: "my-cm",
+							},
+							Key: "ca.crt",
+						},
+					},
+					Target: trustmanagerapi.BundleTarget{
+						ConfigMap: &trustmanagerapi.KeyValueTarget{
+							Data: []trustmanagerapi.TargetKeyValue{
+								{Key: "trust-bundle.pem"},
+								{
+									Key:    "trust-bundle.jks",
+									Format: trustmanagerapi.BundleFormatPKCS12,
+									PKCS12: trustmanagerapi.PKCS12{
+										Password: new("changeit"),
+									},
+								},
+							},
+						},
+						NamespaceSelector: &metav1.LabelSelector{},
+					},
+				},
+			},
+			expSrc: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{Name: "my-cm", Key: "ca.crt"}},
+					},
+					Target: BundleTarget{
+						ConfigMap: &TargetTemplate{Key: "trust-bundle.pem"},
+						AdditionalFormats: &AdditionalFormats{
+							JKS: &JKS{
+								KeySelector: KeySelector{Key: "trust-bundle.jks"},
+								Password:    "changeit",
+							},
+						},
+						NamespaceSelector: &metav1.LabelSelector{},
+					},
+				},
+			},
+		},
+		"PKCS12 additional format should convert with profile defaulting to LegacyRC2": {
+			src: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{Name: "my-cm", Key: "ca.crt"}},
+					},
+					Target: BundleTarget{
+						ConfigMap: &TargetTemplate{Key: "trust-bundle.pem"},
+						AdditionalFormats: &AdditionalFormats{
+							PKCS12: &PKCS12{
+								KeySelector: KeySelector{Key: "trust-bundle.p12"},
+								Password:    new("secret"),
+							},
+						},
+					},
+				},
+			},
+			exp: trustmanagerapi.ClusterBundle{
+				Spec: trustmanagerapi.BundleSpec{
+					SourceRefs: []trustmanagerapi.BundleSourceRef{
+						{
+							SourceReference: trustmanagerapi.SourceReference{
+								Kind: trustmanagerapi.ConfigMapKind,
+								Name: "my-cm",
+							},
+							Key: "ca.crt",
+						},
+					},
+					Target: trustmanagerapi.BundleTarget{
+						ConfigMap: &trustmanagerapi.KeyValueTarget{
+							Data: []trustmanagerapi.TargetKeyValue{
+								{Key: "trust-bundle.pem"},
+								{
+									Key:    "trust-bundle.p12",
+									Format: trustmanagerapi.BundleFormatPKCS12,
+									PKCS12: trustmanagerapi.PKCS12{
+										Password: new("secret"),
+										Profile:  trustmanagerapi.LegacyRC2PKCS12Profile,
+									},
+								},
+							},
+						},
+						NamespaceSelector: &metav1.LabelSelector{},
+					},
+				},
+			},
+			expSrc: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{Name: "my-cm", Key: "ca.crt"}},
+					},
+					Target: BundleTarget{
+						ConfigMap: &TargetTemplate{Key: "trust-bundle.pem"},
+						AdditionalFormats: &AdditionalFormats{
+							PKCS12: &PKCS12{
+								KeySelector: KeySelector{Key: "trust-bundle.p12"},
+								Password:    new("secret"),
+								Profile:     LegacyRC2PKCS12Profile,
+							},
+						},
+						NamespaceSelector: &metav1.LabelSelector{},
+					},
+				},
+			},
+		},
+		"PKCS12 additional format with explicit Modern2023 profile should preserve profile": {
+			src: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{Name: "my-cm", Key: "ca.crt"}},
+					},
+					Target: BundleTarget{
+						ConfigMap: &TargetTemplate{Key: "trust-bundle.pem"},
+						AdditionalFormats: &AdditionalFormats{
+							PKCS12: &PKCS12{
+								KeySelector: KeySelector{Key: "trust-bundle.p12"},
+								Password:    new(""),
+								Profile:     Modern2023PKCS12Profile,
+							},
+						},
+					},
+				},
+			},
+			exp: trustmanagerapi.ClusterBundle{
+				Spec: trustmanagerapi.BundleSpec{
+					SourceRefs: []trustmanagerapi.BundleSourceRef{
+						{
+							SourceReference: trustmanagerapi.SourceReference{
+								Kind: trustmanagerapi.ConfigMapKind,
+								Name: "my-cm",
+							},
+							Key: "ca.crt",
+						},
+					},
+					Target: trustmanagerapi.BundleTarget{
+						ConfigMap: &trustmanagerapi.KeyValueTarget{
+							Data: []trustmanagerapi.TargetKeyValue{
+								{Key: "trust-bundle.pem"},
+								{
+									Key:    "trust-bundle.p12",
+									Format: trustmanagerapi.BundleFormatPKCS12,
+									PKCS12: trustmanagerapi.PKCS12{
+										Password: new(""),
+										Profile:  trustmanagerapi.Modern2023PKCS12Profile,
+									},
+								},
+							},
+						},
+						NamespaceSelector: &metav1.LabelSelector{},
+					},
+				},
+			},
+			expSrc: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{Name: "my-cm", Key: "ca.crt"}},
+					},
+					Target: BundleTarget{
+						ConfigMap: &TargetTemplate{Key: "trust-bundle.pem"},
+						AdditionalFormats: &AdditionalFormats{
+							PKCS12: &PKCS12{
+								KeySelector: KeySelector{Key: "trust-bundle.p12"},
+								Password:    new(""),
+								Profile:     Modern2023PKCS12Profile,
+							},
+						},
+						NamespaceSelector: &metav1.LabelSelector{},
+					},
+				},
+			},
+		},
+		"both JKS and PKCS12 additional formats should convert correctly": {
+			src: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{Secret: &SourceObjectKeySelector{Name: "my-secret", Key: "ca.crt"}},
+					},
+					Target: BundleTarget{
+						Secret: &TargetTemplate{Key: "bundle.pem"},
+						AdditionalFormats: &AdditionalFormats{
+							JKS: &JKS{
+								KeySelector: KeySelector{Key: "bundle.jks"},
+								Password:    "changeit",
+							},
+							PKCS12: &PKCS12{
+								KeySelector: KeySelector{Key: "bundle.p12"},
+								Password:    new("p12pass"),
+								Profile:     LegacyDESPKCS12Profile,
+							},
+						},
+					},
+				},
+			},
+			exp: trustmanagerapi.ClusterBundle{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						AnnotationKeyJKSKey: "bundle.jks",
+					},
+				},
+				Spec: trustmanagerapi.BundleSpec{
+					SourceRefs: []trustmanagerapi.BundleSourceRef{
+						{
+							SourceReference: trustmanagerapi.SourceReference{
+								Kind: trustmanagerapi.SecretKind,
+								Name: "my-secret",
+							},
+							Key: "ca.crt",
+						},
+					},
+					Target: trustmanagerapi.BundleTarget{
+						Secret: &trustmanagerapi.KeyValueTarget{
+							Data: []trustmanagerapi.TargetKeyValue{
+								{Key: "bundle.pem"},
+								{
+									Key:    "bundle.jks",
+									Format: trustmanagerapi.BundleFormatPKCS12,
+									PKCS12: trustmanagerapi.PKCS12{
+										Password: new("changeit"),
+									},
+								},
+								{
+									Key:    "bundle.p12",
+									Format: trustmanagerapi.BundleFormatPKCS12,
+									PKCS12: trustmanagerapi.PKCS12{
+										Password: new("p12pass"),
+										Profile:  trustmanagerapi.LegacyDESPKCS12Profile,
+									},
+								},
+							},
+						},
+						NamespaceSelector: &metav1.LabelSelector{},
+					},
+				},
+			},
+			expSrc: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{Secret: &SourceObjectKeySelector{Name: "my-secret", Key: "ca.crt"}},
+					},
+					Target: BundleTarget{
+						Secret: &TargetTemplate{Key: "bundle.pem"},
+						AdditionalFormats: &AdditionalFormats{
+							JKS: &JKS{
+								KeySelector: KeySelector{Key: "bundle.jks"},
+								Password:    "changeit",
+							},
+							PKCS12: &PKCS12{
+								KeySelector: KeySelector{Key: "bundle.p12"},
+								Password:    new("p12pass"),
+								Profile:     LegacyDESPKCS12Profile,
+							},
+						},
+						NamespaceSelector: &metav1.LabelSelector{},
+					},
+				},
+			},
+		},
+		"nil namespaceSelector should default to empty LabelSelector in ClusterBundle": {
+			src: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{Name: "my-cm", Key: "ca.crt"}},
+					},
+					Target: BundleTarget{
+						ConfigMap: &TargetTemplate{Key: "bundle.pem"},
+					},
+				},
+			},
+			exp: trustmanagerapi.ClusterBundle{
+				Spec: trustmanagerapi.BundleSpec{
+					SourceRefs: []trustmanagerapi.BundleSourceRef{
+						{
+							SourceReference: trustmanagerapi.SourceReference{
+								Kind: trustmanagerapi.ConfigMapKind,
+								Name: "my-cm",
+							},
+							Key: "ca.crt",
+						},
+					},
+					Target: trustmanagerapi.BundleTarget{
+						ConfigMap: &trustmanagerapi.KeyValueTarget{
+							Data: []trustmanagerapi.TargetKeyValue{
+								{Key: "bundle.pem"},
+							},
+						},
+						NamespaceSelector: &metav1.LabelSelector{},
+					},
+				},
+			},
+			expSrc: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{Name: "my-cm", Key: "ca.crt"}},
+					},
+					Target: BundleTarget{
+						ConfigMap:         &TargetTemplate{Key: "bundle.pem"},
+						NamespaceSelector: &metav1.LabelSelector{},
+					},
+				},
+			},
+		},
+		"target metadata should be preserved during conversion": {
+			src: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{Name: "my-cm", Key: "ca.crt"}},
+					},
+					Target: BundleTarget{
+						ConfigMap: &TargetTemplate{
+							Key: "bundle.pem",
+							Metadata: TargetMetadata{
+								Labels:      map[string]string{"app": "trust"},
+								Annotations: map[string]string{"note": "managed"},
+							},
+						},
+					},
+				},
+			},
+			exp: trustmanagerapi.ClusterBundle{
+				Spec: trustmanagerapi.BundleSpec{
+					SourceRefs: []trustmanagerapi.BundleSourceRef{
+						{
+							SourceReference: trustmanagerapi.SourceReference{
+								Kind: trustmanagerapi.ConfigMapKind,
+								Name: "my-cm",
+							},
+							Key: "ca.crt",
+						},
+					},
+					Target: trustmanagerapi.BundleTarget{
+						ConfigMap: &trustmanagerapi.KeyValueTarget{
+							Data: []trustmanagerapi.TargetKeyValue{
+								{Key: "bundle.pem"},
+							},
+							Metadata: trustmanagerapi.TargetMetadata{
+								Labels:      map[string]string{"app": "trust"},
+								Annotations: map[string]string{"note": "managed"},
+							},
+						},
+						NamespaceSelector: &metav1.LabelSelector{},
+					},
+				},
+			},
+			expSrc: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{Name: "my-cm", Key: "ca.crt"}},
+					},
+					Target: BundleTarget{
+						ConfigMap: &TargetTemplate{
+							Key: "bundle.pem",
+							Metadata: TargetMetadata{
+								Labels:      map[string]string{"app": "trust"},
+								Annotations: map[string]string{"note": "managed"},
+							},
+						},
+						NamespaceSelector: &metav1.LabelSelector{},
+					},
+				},
+			},
+		},
+		"mixed source types should convert to appropriate ClusterBundle fields": {
+			src: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{Name: "cm-1", Key: "ca.crt"}},
+						{Secret: &SourceObjectKeySelector{Name: "sec-1", Key: "tls.crt"}},
+						{InLine: dummy.TestCertificate1},
+						{UseDefaultCAs: new(true)},
+					},
+				},
+			},
+			exp: trustmanagerapi.ClusterBundle{
+				Spec: trustmanagerapi.BundleSpec{
+					SourceRefs: []trustmanagerapi.BundleSourceRef{
+						{
+							SourceReference: trustmanagerapi.SourceReference{
+								Kind: trustmanagerapi.ConfigMapKind,
+								Name: "cm-1",
+							},
+							Key: "ca.crt",
+						},
+						{
+							SourceReference: trustmanagerapi.SourceReference{
+								Kind: trustmanagerapi.SecretKind,
+								Name: "sec-1",
+							},
+							Key: "tls.crt",
+						},
+					},
+					InLineCAs: dummy.TestCertificate1,
+					DefaultCAs: trustmanagerapi.DefaultCAsSource{
+						Provider: trustmanagerapi.DefaultCAsProviderSystem,
+					},
+				},
+			},
+			// InLine and UseDefaultCAs are promoted to spec-level fields, not sourceRefs.
+			// On round-trip they come back as separate sources at the end of the list.
+			expSrc: Bundle{
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{Name: "cm-1", Key: "ca.crt"}},
+						{Secret: &SourceObjectKeySelector{Name: "sec-1", Key: "tls.crt"}},
+						{InLine: dummy.TestCertificate1},
+						{UseDefaultCAs: new(true)},
+					},
+				},
+			},
+		},
+		"ObjectMeta should be preserved during conversion": {
+			src: Bundle{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "test-bundle",
+					Labels:      map[string]string{"app": "trust"},
+					Annotations: map[string]string{"note": "test"},
+				},
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{Name: "my-cm", Key: "ca.crt"}},
+					},
+				},
+			},
+			exp: trustmanagerapi.ClusterBundle{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "test-bundle",
+					Labels:      map[string]string{"app": "trust"},
+					Annotations: map[string]string{"note": "test"},
+				},
+				Spec: trustmanagerapi.BundleSpec{
+					SourceRefs: []trustmanagerapi.BundleSourceRef{
+						{
+							SourceReference: trustmanagerapi.SourceReference{
+								Kind: trustmanagerapi.ConfigMapKind,
+								Name: "my-cm",
+							},
+							Key: "ca.crt",
+						},
+					},
+				},
+			},
+			expSrc: Bundle{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "test-bundle",
+					Labels:      map[string]string{"app": "trust"},
+					Annotations: map[string]string{"note": "test"},
+				},
+				Spec: BundleSpec{
+					Sources: []BundleSource{
+						{ConfigMap: &SourceObjectKeySelector{Name: "my-cm", Key: "ca.crt"}},
+					},
+				},
+			},
+		},
+		"empty spec should convert without error": {
+			src:    Bundle{},
+			exp:    trustmanagerapi.ClusterBundle{},
+			expSrc: Bundle{},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			dst := trustmanagerapi.ClusterBundle{}
+			err := tt.src.ConvertTo(&dst)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.exp, dst)
+
+			src := Bundle{}
+			err = src.ConvertFrom(&dst)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expSrc, src)
+		})
+	}
+}
+
+// fakeHub is a test type that implements the conversion.Hub interface but is not a ClusterBundle.
+type fakeHub struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata"`
+}
+
+func (f *fakeHub) Hub()                             {}
+func (f *fakeHub) DeepCopyObject() runtime.Object   { return f }
+func (f *fakeHub) GetObjectKind() schema.ObjectKind { return &f.TypeMeta }
+
+func TestBundle_ConvertTo_WrongType(t *testing.T) {
+	src := &Bundle{}
+	err := src.ConvertTo(&fakeHub{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "expected a ClusterBundle")
+}
+
+func TestBundle_ConvertFrom_WrongType(t *testing.T) {
+	dst := &Bundle{}
+	err := dst.ConvertFrom(&fakeHub{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "expected a ClusterBundle")
+}
 
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for Bundle", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &trustv1alpha2.ClusterBundle{},
+		Hub:         &trustmanagerapi.ClusterBundle{},
 		Spoke:       &Bundle{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 }
 
-func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func fuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		spokeBundleSpecFuzzer,
 		spokeSourceObjectKeySelectorFuzzer,
 		spokeBundleTargetFuzzer,
-		hubBundleSourceFuzzer,
+		hubBundleSourceRefFuzzer,
+		hubDefaultCAsFuzzer,
 		hubBundleTargetFuzzer,
 	}
 }
@@ -59,7 +816,7 @@ func spokeBundleSpecFuzzer(obj *BundleSpec, c randfill.Continue) {
 		if bs.Secret != nil {
 			sourceCount++
 		}
-		if bs.InLine != nil {
+		if bs.InLine != "" {
 			sourceCount++
 		}
 		if bs.UseDefaultCAs != nil {
@@ -73,10 +830,13 @@ func spokeSourceObjectKeySelectorFuzzer(obj *SourceObjectKeySelector, c randfill
 	c.FillNoCustom(obj)
 
 	// Key and IncludeAllKeys cannot be used at the same time
-	if obj.IncludeAllKeys {
+	switch {
+	case ptr.Deref(obj.IncludeAllKeys, false):
 		obj.Key = ""
-	} else if obj.Key == "" {
-		obj.IncludeAllKeys = true
+	case obj.Key == "":
+		obj.IncludeAllKeys = new(true)
+	default:
+		obj.IncludeAllKeys = nil
 	}
 }
 
@@ -107,23 +867,31 @@ func spokeBundleTargetFuzzer(obj *BundleTarget, c randfill.Continue) {
 	}
 }
 
-func hubBundleSourceFuzzer(obj *trustv1alpha2.BundleSource, c randfill.Continue) {
+func hubBundleSourceRefFuzzer(obj *trustmanagerapi.BundleSourceRef, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	// We only allow known kinds, so must normalize the source kind
-	kindSet := []string{trustv1alpha2.ConfigMapKind, trustv1alpha2.SecretKind}
+	kindSet := []string{trustmanagerapi.ConfigMapKind, trustmanagerapi.SecretKind}
 	obj.Kind = kindSet[rand.Intn(len(kindSet))] //nolint:gosec
 }
 
-func hubBundleTargetFuzzer(obj *trustv1alpha2.BundleTarget, c randfill.Continue) {
+func hubDefaultCAsFuzzer(obj *trustmanagerapi.DefaultCAsSource, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
-	normalizeTarget := func(target *trustv1alpha2.KeyValueTarget) *trustv1alpha2.KeyValueTarget {
+	// We only allow known providers, so must normalize the provider
+	providerSet := []string{trustmanagerapi.DefaultCAsProviderDisabled, trustmanagerapi.DefaultCAsProviderSystem}
+	obj.Provider = providerSet[rand.Intn(len(providerSet))] //nolint:gosec
+}
+
+func hubBundleTargetFuzzer(obj *trustmanagerapi.BundleTarget, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	normalizeTarget := func(target *trustmanagerapi.KeyValueTarget) *trustmanagerapi.KeyValueTarget {
 		if target == nil {
 			return nil
 		}
 
-		target.Data = slices.DeleteFunc(target.Data, func(tkv trustv1alpha2.TargetKeyValue) bool {
+		target.Data = slices.DeleteFunc(target.Data, func(tkv trustmanagerapi.TargetKeyValue) bool {
 			if tkv.Key == "" {
 				// Key is a mandatory field
 				return true
@@ -136,7 +904,7 @@ func hubBundleTargetFuzzer(obj *trustv1alpha2.BundleTarget, c randfill.Continue)
 
 			switch {
 			case tkv.Password != nil:
-				tkv.Format = trustv1alpha2.BundleFormatPKCS12
+				tkv.Format = trustmanagerapi.BundleFormatPKCS12
 			default:
 				tkv.Format = ""
 				tkv.Profile = ""

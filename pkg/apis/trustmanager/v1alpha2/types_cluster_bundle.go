@@ -26,8 +26,6 @@ var BundleLabelKey = "trust-manager.io/bundle"
 var BundleHashAnnotationKey = "trust-manager.io/hash"
 
 // +kubebuilder:object:root=true
-// +kubebuilder:printcolumn:name="ConfigMap Target",type="string",JSONPath=".spec.target.configMap.key",description="Bundle ConfigMap Target Key"
-// +kubebuilder:printcolumn:name="Secret Target",type="string",JSONPath=".spec.target.secret.key",description="Bundle Secret Target Key"
 // +kubebuilder:printcolumn:name="Synced",type="string",JSONPath=`.status.conditions[?(@.type == "Synced")].status`,description="Bundle has been synced"
 // +kubebuilder:printcolumn:name="Reason",type="string",JSONPath=`.status.conditions[?(@.type == "Synced")].reason`,description="Reason Bundle has Synced status"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Timestamp Bundle was created"
@@ -37,13 +35,18 @@ var BundleHashAnnotationKey = "trust-manager.io/hash"
 // +genclient:nonNamespaced
 
 type ClusterBundle struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.TypeMeta `json:",inline"`
 
-	// Desired state of the Bundle resource.
-	Spec BundleSpec `json:"spec"`
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
+	metav1.ObjectMeta `json:"metadata"`
 
-	// Status of the Bundle. This is set and managed automatically.
+	// spec represents the desired state of the ClusterBundle resource.
+	// +optional
+	Spec BundleSpec `json:"spec,omitzero"`
+
+	// status of the ClusterBundle. This is set and managed automatically.
 	// +optional
 	Status BundleStatus `json:"status,omitzero"`
 }
@@ -57,76 +60,99 @@ type ClusterBundleList struct {
 }
 
 // BundleSpec defines the desired state of a Bundle.
+// +kubebuilder:validation:MinProperties=1
 type BundleSpec struct {
-	// Sources is a set of references to data whose data will sync to the target.
+	// sourceRefs is a list of references to resources whose data will be appended and synced into
+	// the bundle target resources.
 	// +listType=atomic
 	// +optional
 	// +kubebuilder:validation:MinItems=0
 	// +kubebuilder:validation:MaxItems=100
-	Sources []BundleSource `json:"sources,omitempty"`
+	SourceRefs []BundleSourceRef `json:"sourceRefs,omitempty"`
 
-	// IncludeDefaultCAs, when true, requests the default CA bundle to be used as a source.
-	// Default CAs are available if trust-manager was installed via Helm
-	// or was otherwise set up to include a package-injecting init container by using the
-	// "--default-package-location" flag when starting the trust-manager controller.
-	// If default CAs were not configured at start-up, any request to use the default
-	// CAs will fail.
-	// The version of the default CA package which is used for a Bundle is stored in the
-	// defaultCAPackageVersion field of the Bundle's status field.
+	// defaultCAs configures the use of a default CA bundle as a trust source.
 	// +optional
-	IncludeDefaultCAs *bool `json:"includeDefaultCAs,omitempty"`
+	DefaultCAs DefaultCAsSource `json:"defaultCAs,omitzero"`
 
-	// InLine is a simple string to append as the source data.
+	// inLineCAs is a simple string to append as the source data.
 	// +optional
-	InLineCAs *string `json:"inLineCAs,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=1048576
+	InLineCAs string `json:"inLineCAs,omitempty"`
 
-	// Target is the target location in all namespaces to sync source data to.
+	// target is the target location in all namespaces to sync source data to.
 	// +optional
 	Target BundleTarget `json:"target,omitzero"`
 }
 
-// BundleSource is the set of sources whose data will be appended and synced to
-// the BundleTarget in all Namespaces.
+// BundleSourceRef is a reference to source resource(s) whose data will be appended and synced into
+// the bundle target resources.
 // +structType=atomic
-type BundleSource struct {
+type BundleSourceRef struct {
 	SourceReference `json:",inline"`
 
-	// Key(s) of the entry in the object's `data` field to be used.
-	// Wildcards "*" in Key matches any sequence characters.
-	// A Key containing only "*" will match all data fields.
+	// key specifies one or more keys in the object's data field to be used.
+	// The "*" wildcard matches any sequence of characters within a key.
+	// A value of "*" matches all entries in the data field.
+	// +required
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.\-*]+$`
-	Key string `json:"key"`
+	Key string `json:"key,omitempty"`
+}
+
+// DefaultCAsSource configures the use of a default CA bundle as a trust source.
+type DefaultCAsSource struct {
+	// provider identifies the provider of the default CA bundle.
+	//
+	// Valid values:
+	// - System: Uses the default CA package made available to trust-manager at startup.
+	//      The default CA bundle is available only if trust-manager was installed with
+	//		default CA support enabled, either via the Helm chart or by starting the
+	//		trust-manager controller with the "--default-package-location" flag.
+	//
+	//		If no default CA package was configured at startup, specifying this source
+	//		will result in reconciliation failure.
+	//
+	//		The version of the default CA package used for this Bundle is reported in
+	//		status.defaultCAVersion.
+	// - Disabled: No default CAs are used as sources.
+	// +required
+	// +kubebuilder:validation:Enum=System;Disabled
+	Provider string `json:"provider,omitempty"`
 }
 
 // BundleTarget is the target resource that the Bundle will sync all source
 // data to.
-// +kubebuilder:validation:XValidation:rule="[has(self.configMap), has(self.secret)].exists(x,x)", message="any of the following fields must be provided: [configMap, secret]"
+// +kubebuilder:validation:AtLeastOneOf=configMap;secret
 type BundleTarget struct {
-	// ConfigMap is the target ConfigMap in Namespaces that all Bundle source data will be synced to.
+	// configMap is the target ConfigMap in Namespaces that all Bundle source data will be synced to.
 	// +optional
-	ConfigMap *KeyValueTarget `json:"configMap,omitempty"`
+	ConfigMap *KeyValueTarget `json:"configMap,omitempty"` //nolint:kubeapilinter // We think pointers work best here
 
-	// Secret is the target Secret in Namespaces that all Bundle source data will be synced to.
+	// secret is the target Secret in Namespaces that all Bundle source data will be synced to.
 	// Using Secrets as targets is only supported if enabled at trust-manager startup.
 	// By default, trust-manager has no permissions for writing to secrets and can only read secrets in the trust namespace.
 	// +optional
-	Secret *KeyValueTarget `json:"secret,omitempty"`
+	Secret *KeyValueTarget `json:"secret,omitempty"` //nolint:kubeapilinter // We think pointers work best here
 
-	// NamespaceSelector specifies the namespaces where target resources will be synced.
-	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector"`
+	// namespaceSelector specifies the namespaces where target resources will be synced.
+	// +required
+	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 }
 
 // PKCS12 specifies configs for target PKCS#12 files.
 // +structType=atomic
+// +kubebuilder:validation:MinProperties=0
 type PKCS12 struct {
-	// Password for PKCS12 trust store.
+	// password for PKCS12 trust store.
 	// By default, no password is used (password-less PKCS#12).
-	//+optional
-	//+kubebuilder:validation:MaxLength=128
-	Password *string `json:"password,omitempty"`
+	// +optional
+	// +kubebuilder:validation:MinLength=0
+	// +kubebuilder:validation:MaxLength=128
+	Password *string `json:"password,omitempty"` // #nosec G117 -- field is exported for JSON serialization, not a hardcoded secret
 
-	// Profile specifies the certificate encryption algorithms and the HMAC algorithm
+	// profile specifies the certificate encryption algorithms and the HMAC algorithm
 	// used to create the PKCS12 trust store.
 	//
 	// If provided, allowed values are:
@@ -155,46 +181,51 @@ const (
 	ConfigMapKind string = "ConfigMap"
 
 	SecretKind string = "Secret"
+
+	DefaultCAsProviderDisabled string = "Disabled"
+	DefaultCAsProviderSystem   string = "System"
 )
 
 // SourceReference is a reference to a source object.
 // +structType=atomic
-// +kubebuilder:validation:XValidation:rule="[has(self.name), has(self.selector)].exists_one(x,x)", message="exactly one of the following fields must be provided: [name, selector]"
+// +kubebuilder:validation:ExactlyOneOf=name;selector
 type SourceReference struct {
-	// Kind is the kind of the source object.
+	// kind is the kind of the source object.
+	// +required
 	// +kubebuilder:validation:Enum=ConfigMap;Secret
-	Kind string `json:"kind"`
+	Kind string `json:"kind,omitempty"`
 
-	// Name is the name of the source object in the trust Namespace.
+	// name is the name of the source object in the trust namespace.
 	// This field must be left empty when `selector` is set
-	//+optional
+	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	Name string `json:"name,omitempty"`
 
-	// Selector is the label selector to use to fetch a list of objects. Must not be set
-	// when `Name` is set.
-	//+optional
+	// selector is the label selector to use to fetch a list of objects. Must not be set
+	// when `name` is set.
+	// +optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 }
 
 // KeyValueTarget is the specification of key value target resources as ConfigMaps and Secrets.
 type KeyValueTarget struct {
-	// Data is the specification of the object's `data` field.
+	// data is the specification of the object's `data` field.
+	// +required
 	// +listType=map
 	// +listMapKey=key
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=10
-	Data []TargetKeyValue `json:"data"`
+	Data []TargetKeyValue `json:"data,omitempty"`
 
-	// Metadata is an optional set of labels and annotations to be copied to the target.
+	// metadata is an optional set of labels and annotations to be copied to the target.
 	// +optional
-	Metadata *TargetMetadata `json:"metadata,omitempty"`
+	Metadata TargetMetadata `json:"metadata,omitzero"`
 }
 
 // GetAnnotations returns the annotations to be copied to the target or an empty map if there are no annotations.
 func (t *KeyValueTarget) GetAnnotations() map[string]string {
-	if t == nil || t.Metadata == nil {
+	if t == nil {
 		return nil
 	}
 	return t.Metadata.Annotations
@@ -202,7 +233,7 @@ func (t *KeyValueTarget) GetAnnotations() map[string]string {
 
 // GetLabels returns the labels to be copied to the target or an empty map if there are no labels.
 func (t *KeyValueTarget) GetLabels() map[string]string {
-	if t == nil || t.Metadata == nil {
+	if t == nil {
 		return nil
 	}
 	return t.Metadata.Labels
@@ -213,14 +244,16 @@ func (t *KeyValueTarget) GetLabels() map[string]string {
 // +kubebuilder:validation:XValidation:rule="!has(self.password) || (has(self.format) && self.format == 'PKCS12')", reason=FieldValueForbidden, fieldPath=".password", message="may only be set when format is 'PKCS12'"
 // +kubebuilder:validation:XValidation:rule="!has(self.profile) || (has(self.format) && self.format == 'PKCS12')", reason=FieldValueForbidden, fieldPath=".profile", message="may only be set when format is 'PKCS12'"
 type TargetKeyValue struct {
-	// Key is the key of the entry in the object's `data` field to be used.
+	// key is the key of the entry in the object's `data` field to be used.
+	// +required
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.\-]+$`
-	Key string `json:"key"`
+	Key string `json:"key,omitempty"`
 
-	// Format defines the format of the target value.
+	// format defines the format of the target value.
 	// The default format is PEM.
-	//+optional
+	// +optional
 	Format BundleFormat `json:"format,omitempty"`
 
 	// PKCS12 specifies configs for PKCS#12 files.
@@ -241,33 +274,41 @@ const (
 
 // TargetMetadata defines the default labels and annotations
 // to be copied to the Kubernetes Secret or ConfigMap bundle targets.
+// +kubebuilder:validation:MinProperties=1
 type TargetMetadata struct {
-	// Annotations is a key value map to be copied to the target.
+	// annotations is a key value map to be copied to the target.
 	// +optional
+	// +kubebuilder:validation:MinProperties=1
 	// +kubebuilder:validation:XValidation:rule="self.all(k, !k.startsWith('trust-manager.io/'))", reason=FieldValueForbidden, message="must not use forbidden domains as prefixes (e.g., trust-manager.io)"
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	// Labels is a key value map to be copied to the target.
+	// labels is a key value map to be copied to the target.
 	// +optional
+	// +kubebuilder:validation:MinProperties=1
 	// +kubebuilder:validation:XValidation:rule="self.all(k, !k.startsWith('trust-manager.io/'))", reason=FieldValueForbidden, message="must not use forbidden domains as prefixes (e.g., trust-manager.io)"
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // BundleStatus defines the observed state of the Bundle.
+// +kubebuilder:validation:MinProperties=1
 type BundleStatus struct {
-	// List of status conditions to indicate the status of the Bundle.
-	// Known condition types are `Bundle`.
+	// conditions represent the latest available observations of the ClusterBundle's current state.
 	// +listType=map
 	// +listMapKey=type
 	// +optional
+	// +kubebuilder:validation:MinItems=0
+	// +kubebuilder:validation:MaxItems=10
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// DefaultCAPackageVersion, if set and non-empty, indicates the version information
-	// which was retrieved when the set of default CAs was requested in the bundle
-	// source. This should only be set if useDefaultCAs was set to "true" on a source,
-	// and will be the same for the same version of a bundle with identical certificates.
+	// defaultCAVersion is the version of the default CA package used for this ClusterBundle
+	// when resolving default CAs, if applicable.
+	// This field is populated only when default CAs are configured via spec.defaultCAs.
+	// ClusterBundles resolved from identical sets of default CA certificates will report
+	// the same defaultCAVersion value.
 	// +optional
-	DefaultCAPackageVersion *string `json:"defaultCAVersion,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	DefaultCAPackageVersion string `json:"defaultCAVersion,omitempty"`
 }
 
 const (

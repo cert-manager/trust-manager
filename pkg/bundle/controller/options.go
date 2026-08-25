@@ -33,6 +33,9 @@ type Options struct {
 	// FilterExpiredCerts controls if expired certificates are filtered from the bundle.
 	FilterExpiredCerts bool
 
+	// Filter non-CA certificates, only CAs are used in the resulting Bundle
+	FilterNonCACerts bool
+
 	// Limit both the manager and target caches to the provided list of namespaces
 	TargetNamespaces []string
 }

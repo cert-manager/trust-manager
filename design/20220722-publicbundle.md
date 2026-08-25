@@ -149,7 +149,7 @@ spec:
     ```
 
 3. The trust-manager controller starts, this time with a new argument: `--default-package-location=/path/to/package-cert-manager-debian.json`
-4. During startup, the controller validates the package and if succesful loads its `bundle` into memory for later use as the "default package".
+4. During startup, the controller validates the package and if successful loads its `bundle` into memory for later use as the "default package".
 5. When a `Bundle` resource requests to `useDefaultCAs`, the `bundle` field from the default package is inserted into the target.
 
 ### User Stories

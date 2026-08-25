@@ -34,7 +34,12 @@ smoke:
 
 include make/validate-trust-package.mk
 include make/debian-trust-package.mk
-include make/debian-trust-package-bookworm.mk
+
+.PHONY: prerelease-scan
+## Perform security scans on the codebase with govulncheck and on released trust packages
+## using Trivy. This is intended as a signal for whether a release is safe to proceed.
+## @category [shared] Release
+prerelease-scan: verify-govulncheck scan-debian-bullseye-trust-package scan-debian-bookworm-trust-package scan-debian-trixie-trust-package | $(NEEDS_TRIVY) $(NEEDS_CRANE)
 
 .PHONY: release
 ## Publish all release artifacts (image + helm chart)
@@ -42,26 +47,31 @@ include make/debian-trust-package-bookworm.mk
 release:
 	$(MAKE) oci-push-manager
 	$(MAKE) helm-chart-oci-push
-	$(MAKE) oci-maybe-push-package_debian
+	$(MAKE) oci-maybe-push-package_debian_bullseye
 	$(MAKE) oci-maybe-push-package_debian_bookworm
+	$(MAKE) oci-maybe-push-package_debian_trixie
 
 	@echo "RELEASE_OCI_MANAGER_IMAGE=$(oci_manager_image_name)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_OCI_MANAGER_TAG=$(oci_manager_image_tag)" >> "$(GITHUB_OUTPUT)"
-	@echo "RELEASE_OCI_PACKAGE_DEBIAN_IMAGE=$(oci_package_debian_image_name)" >> "$(GITHUB_OUTPUT)"
-	@echo "RELEASE_OCI_PACKAGE_DEBIAN_TAG=$(oci_package_debian_image_tag)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BULLSEYE_IMAGE=$(oci_package_debian_bullseye_image_name)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BULLSEYE_TAG=$(oci_package_debian_bullseye_image_tag)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_IMAGE=$(oci_package_debian_bookworm_image_name)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_TAG=$(oci_package_debian_bookworm_image_tag)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_TRIXIE_IMAGE=$(oci_package_debian_trixie_image_name)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_TRIXIE_TAG=$(oci_package_debian_trixie_image_tag)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_HELM_CHART_IMAGE=$(helm_chart_image_name)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_HELM_CHART_VERSION=$(helm_chart_version)" >> "$(GITHUB_OUTPUT)"
 
 	@echo "Release complete!"
 
-.PHONY: release-debian-trust-package
-release-debian-trust-package:
-	$(MAKE) oci-maybe-push-package_debian
+.PHONY: release-debian-bullseye-trust-package
+release-debian-bullseye-trust-package:
+	$(MAKE) oci-maybe-push-package_debian_bullseye
 
-	@echo "RELEASE_OCI_PACKAGE_DEBIAN_IMAGE=$(oci_package_debian_image_name)" >> "$(GITHUB_OUTPUT)"
-	@echo "RELEASE_OCI_PACKAGE_DEBIAN_TAG=$(oci_package_debian_image_tag)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BULLSEYE_IMAGE=$(oci_package_debian_bullseye_image_name)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BULLSEYE_TAG=$(oci_package_debian_bullseye_image_tag)" >> "$(GITHUB_OUTPUT)"
 
-	@echo "Release complete!
+	@echo "Release complete!"
 
 .PHONY: release-debian-bookworm-trust-package
 release-debian-bookworm-trust-package: | $(NEEDS_CRANE)
@@ -69,6 +79,15 @@ release-debian-bookworm-trust-package: | $(NEEDS_CRANE)
 
 	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_IMAGE=$(oci_package_debian_bookworm_image_name)" >> "$(GITHUB_OUTPUT)"
 	@echo "RELEASE_OCI_PACKAGE_DEBIAN_BOOKWORM_TAG=$(oci_package_debian_bookworm_image_tag)" >> "$(GITHUB_OUTPUT)"
+
+	@echo "Release complete!"
+
+.PHONY: release-debian-trixie-trust-package
+release-debian-trixie-trust-package:
+	$(MAKE) oci-maybe-push-package_debian_trixie
+
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_TRIXIE_IMAGE=$(oci_package_debian_trixie_image_name)" >> "$(GITHUB_OUTPUT)"
+	@echo "RELEASE_OCI_PACKAGE_DEBIAN_TRIXIE_TAG=$(oci_package_debian_trixie_image_tag)" >> "$(GITHUB_OUTPUT)"
 
 	@echo "Release complete!"
 
@@ -93,3 +112,5 @@ generate-conversion: | $(NEEDS_CONVERSION-GEN)
 		./pkg/apis/trust/v1alpha1
 
 shared_generate_targets += generate-conversion
+
+include make/kube-api-lint.mk

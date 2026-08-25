@@ -1,0 +1,78 @@
+suite: Deployment Security Context
+templates:
+  - deployment.yaml
+release:
+  name: tm
+  namespace: trust
+tests:
+  - it: should use default app security context
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNonRoot
+          value: true
+  - it: should allow overriding app security context
+    set:
+      app:
+        securityContext:
+          runAsUser: 1000
+          seccompProfile: null
+          appArmorProfile:
+            type: RuntimeDefault
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsUser
+          value: 1000
+      - notExists:
+          path: spec.template.spec.containers[0].securityContext.seccompProfile
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.appArmorProfile
+          value:
+            type: RuntimeDefault
+  - it: should allow disabling app security context
+    set:
+      app:
+        securityContext: null
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].securityContext
+  - it: should use default defaultPackage security context
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].securityContext.runAsNonRoot
+          value: true
+  - it: should render custom defaultPackage security context
+    set:
+      defaultPackage:
+        securityContext:
+          runAsUser: 1234
+          seccompProfile: null
+          appArmorProfile:
+            type: RuntimeDefault
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].securityContext.runAsUser
+          value: 1234
+      - notExists:
+          path: spec.template.spec.initContainers[0].securityContext.seccompProfile
+      - equal:
+          path: spec.template.spec.initContainers[0].securityContext.appArmorProfile
+          value:
+            type: RuntimeDefault
+  - it: should allow disabling defaultPackage security context
+    set:
+      defaultPackage:
+        securityContext: null
+    asserts:
+      - notExists:
+          path: spec.template.spec.initContainers[0].securityContext
+  - it: should render custom pod security context
+    set:
+      podSecurityContext:
+        fsGroup: 2000
+        runAsUser: 1000
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            fsGroup: 2000
+            runAsUser: 1000

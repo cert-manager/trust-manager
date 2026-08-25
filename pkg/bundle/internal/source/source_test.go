@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
@@ -52,12 +51,12 @@ func Test_BuildBundle(t *testing.T) {
 		},
 		"if single InLine source defined with newlines, should trim and return": {
 			sources: []trustapi.BundleSource{
-				{InLine: ptr.To(dummy.TestCertificate1 + "\n" + dummy.TestCertificate2 + "\n")},
+				{InLine: dummy.TestCertificate1 + "\n" + dummy.TestCertificate2 + "\n"},
 			},
 			expData: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1),
 		},
 		"if single DefaultPackage source defined, should return": {
-			sources: []trustapi.BundleSource{{UseDefaultCAs: ptr.To(true)}},
+			sources: []trustapi.BundleSource{{UseDefaultCAs: new(true)}},
 			expData: dummy.JoinCerts(dummy.TestCertificate5),
 		},
 		"if single ConfigMap source which doesn't exist, return NotFoundError": {
@@ -85,15 +84,71 @@ func Test_BuildBundle(t *testing.T) {
 			}},
 			expData: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1),
 		},
+		"if single ConfigMap source referencing single key stored in binaryData, return data": {
+			sources: []trustapi.BundleSource{
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
+			},
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				BinaryData: map[string][]byte{"key": []byte(dummy.TestCertificate1 + "\n" + dummy.TestCertificate2)},
+			}},
+			expData: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1),
+		},
+		"if single ConfigMap source with key in both data and binaryData, data takes precedence": {
+			sources: []trustapi.BundleSource{
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
+			},
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				Data:       map[string]string{"key": dummy.TestCertificate1},
+				BinaryData: map[string][]byte{"key": []byte(dummy.TestCertificate2)},
+			}},
+			expData: dummy.JoinCerts(dummy.TestCertificate1),
+		},
+		"if single ConfigMap source whose key is absent from both data and binaryData, return NotFoundError": {
+			sources: []trustapi.BundleSource{
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
+			},
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				Data:       map[string]string{"other": dummy.TestCertificate1},
+				BinaryData: map[string][]byte{"another": []byte(dummy.TestCertificate2)},
+			}},
+			expError:         true,
+			expNotFoundError: true,
+		},
+		"if single ConfigMap source with invalid PEM in binaryData, return error": {
+			sources: []trustapi.BundleSource{
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
+			},
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				// A complete PEM block whose contents are not a valid certificate,
+				// mirroring the invalid-PEM behaviour of the data field.
+				BinaryData: map[string][]byte{"key": []byte("-----BEGIN CERTIFICATE-----\naW52YWxpZA==\n-----END CERTIFICATE-----")},
+			}},
+			expError: true,
+		},
 		"if single ConfigMap source including all keys, return data": {
 			sources: []trustapi.BundleSource{
-				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", IncludeAllKeys: true}},
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", IncludeAllKeys: new(true)}},
 			},
 			objects: []runtime.Object{&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
 				Data:       map[string]string{"cert-1": dummy.TestCertificate1 + "\n" + dummy.TestCertificate2, "cert-2": dummy.TestCertificate3},
 			}},
 			expData: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1, dummy.TestCertificate3),
+		},
+		"if single ConfigMap source including all keys across data and binaryData, return data": {
+			sources: []trustapi.BundleSource{
+				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", IncludeAllKeys: new(true)}},
+			},
+			objects: []runtime.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
+				Data:       map[string]string{"cert-1": dummy.TestCertificate1},
+				BinaryData: map[string][]byte{"cert-2": []byte(dummy.TestCertificate2)},
+			}},
+			expData: dummy.JoinCerts(dummy.TestCertificate2, dummy.TestCertificate1),
 		},
 		"if single ConfigMap source, return data even when order changes": {
 			// Test uses the same data as the previous one but with different order
@@ -126,7 +181,7 @@ func Test_BuildBundle(t *testing.T) {
 		},
 		"if selects at least one ConfigMap source including all keys, return data": {
 			sources: []trustapi.BundleSource{
-				{ConfigMap: &trustapi.SourceObjectKeySelector{IncludeAllKeys: true, Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"trust-bundle.certs": "includes"}}}},
+				{ConfigMap: &trustapi.SourceObjectKeySelector{IncludeAllKeys: new(true), Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"trust-bundle.certs": "includes"}}}},
 			},
 			objects: []runtime.Object{
 				&corev1.ConfigMap{
@@ -147,7 +202,7 @@ func Test_BuildBundle(t *testing.T) {
 		"if ConfigMap and InLine source, return concatenated data": {
 			sources: []trustapi.BundleSource{
 				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
-				{InLine: ptr.To(dummy.TestCertificate2)},
+				{InLine: dummy.TestCertificate2},
 			},
 			objects: []runtime.Object{&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: "configmap"},
@@ -172,7 +227,7 @@ func Test_BuildBundle(t *testing.T) {
 		},
 		"if single Secret source of type TLS including all keys, return InvalidSecretError": {
 			sources: []trustapi.BundleSource{
-				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", IncludeAllKeys: true}},
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", IncludeAllKeys: new(true)}},
 			},
 			objects: []runtime.Object{&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
@@ -194,7 +249,7 @@ func Test_BuildBundle(t *testing.T) {
 		},
 		"if single Secret source including all keys, return data": {
 			sources: []trustapi.BundleSource{
-				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", IncludeAllKeys: true}},
+				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", IncludeAllKeys: new(true)}},
 			},
 			objects: []runtime.Object{&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
@@ -205,7 +260,7 @@ func Test_BuildBundle(t *testing.T) {
 		"if Secret and InLine source, return concatenated data": {
 			sources: []trustapi.BundleSource{
 				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", Key: "key"}},
-				{InLine: ptr.To(dummy.TestCertificate1)},
+				{InLine: dummy.TestCertificate1},
 			},
 			objects: []runtime.Object{&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "secret"},
@@ -216,7 +271,7 @@ func Test_BuildBundle(t *testing.T) {
 		"if Secret, ConfigMap and InLine source, return concatenated data": {
 			sources: []trustapi.BundleSource{
 				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
-				{InLine: ptr.To(dummy.TestCertificate3)},
+				{InLine: dummy.TestCertificate3},
 				{Secret: &trustapi.SourceObjectKeySelector{Name: "secret", Key: "key"}},
 			},
 			objects: []runtime.Object{
@@ -261,7 +316,7 @@ func Test_BuildBundle(t *testing.T) {
 		},
 		"if selects at least one Secret source including all keys, return data": {
 			sources: []trustapi.BundleSource{
-				{Secret: &trustapi.SourceObjectKeySelector{IncludeAllKeys: true, Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"trust-bundle.certs": "includes"}}}},
+				{Secret: &trustapi.SourceObjectKeySelector{IncludeAllKeys: new(true), Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"trust-bundle.certs": "includes"}}}},
 			},
 			objects: []runtime.Object{
 				&corev1.Secret{
@@ -281,7 +336,7 @@ func Test_BuildBundle(t *testing.T) {
 		},
 		"if selects at least one Secret source of type TLS including all keys, return InvalidSecretError": {
 			sources: []trustapi.BundleSource{
-				{Secret: &trustapi.SourceObjectKeySelector{IncludeAllKeys: true, Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"trust-bundle.certs": "includes"}}}},
+				{Secret: &trustapi.SourceObjectKeySelector{IncludeAllKeys: new(true), Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"trust-bundle.certs": "includes"}}}},
 			},
 			objects: []runtime.Object{
 				&corev1.Secret{
@@ -304,7 +359,7 @@ func Test_BuildBundle(t *testing.T) {
 		"if has any non-expired certificate, return data": {
 			sources: []trustapi.BundleSource{
 				// The first in-line source contains an expired certificate (only)
-				{InLine: ptr.To(dummy.TestExpiredCertificate)},
+				{InLine: dummy.TestExpiredCertificate},
 				{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "configmap", Key: "key"}},
 			},
 			filterExpired: true,
@@ -437,6 +492,47 @@ func TestBundlesDeduplication(t *testing.T) {
 			resultBundle := certPool.PEMSplit()
 
 			// check certificates bundle for duplicated certificates
+			assert.Equal(t, test.testBundle, resultBundle)
+		})
+	}
+}
+
+func TestFilterNonCACerts(t *testing.T) {
+	tests := map[string]struct {
+		name       string
+		bundle     []string
+		expError   string
+		testBundle []string
+	}{
+		"add non-CA certificate into the bundle": {
+			bundle: []string{
+				dummy.TestCertificateNonCA1,
+				dummy.TestCertificate1,
+				dummy.TestCertificateNonCA2,
+				dummy.TestCertificate2,
+			},
+			testBundle: []string{
+				dummy.TestCertificate2,
+				dummy.TestCertificate1,
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			certPool := util.NewCertPool(util.WithFilteredNonCaCerts(true))
+			err := certPool.AddCertsFromPEM([]byte(strings.Join(test.bundle, "\n")))
+			if test.expError != "" {
+				assert.Error(t, err, test.expError)
+			} else {
+				assert.Nil(t, err)
+			}
+
+			resultBundle := certPool.PEMSplit()
+
+			// check certificates bundle for CA certificates
 			assert.Equal(t, test.testBundle, resultBundle)
 		})
 	}

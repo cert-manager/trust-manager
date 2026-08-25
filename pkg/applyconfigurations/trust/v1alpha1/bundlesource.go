@@ -19,11 +19,27 @@ package v1alpha1
 
 // BundleSourceApplyConfiguration represents a declarative configuration of the BundleSource type for use
 // with apply.
+//
+// BundleSource is the set of sources whose data will be appended and synced to
+// the BundleTarget in all Namespaces.
 type BundleSourceApplyConfiguration struct {
-	ConfigMap     *SourceObjectKeySelectorApplyConfiguration `json:"configMap,omitempty"`
-	Secret        *SourceObjectKeySelectorApplyConfiguration `json:"secret,omitempty"`
-	InLine        *string                                    `json:"inLine,omitempty"`
-	UseDefaultCAs *bool                                      `json:"useDefaultCAs,omitempty"`
+	// configMap is a reference (by name) to a ConfigMap's `data` key(s), or to a
+	// list of ConfigMap's `data` key(s) using label selector, in the trust namespace.
+	ConfigMap *SourceObjectKeySelectorApplyConfiguration `json:"configMap,omitempty"`
+	// secret is a reference (by name) to a Secret's `data` key(s), or to a
+	// list of Secret's `data` key(s) using label selector, in the trust namespace.
+	Secret *SourceObjectKeySelectorApplyConfiguration `json:"secret,omitempty"`
+	// inLine is a simple string to append as the source data.
+	InLine *string `json:"inLine,omitempty"`
+	// useDefaultCAs indicates whether the default CA bundle should be used as a source.
+	// The default CA bundle is available only if trust-manager was installed with
+	// default CA support enabled, either via the Helm chart or by starting the
+	// trust-manager controller with the "--default-package-location" flag.
+	// If default CA support was not enabled at startup, setting this field to true
+	// will result in reconciliation failure.
+	// The version of the default CA package used for this Bundle is reported in
+	// status.defaultCAVersion.
+	UseDefaultCAs *bool `json:"useDefaultCAs,omitempty"`
 }
 
 // BundleSourceApplyConfiguration constructs a declarative configuration of the BundleSource type for use with

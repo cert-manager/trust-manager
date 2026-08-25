@@ -20,12 +20,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2/ktesting"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
@@ -33,21 +30,17 @@ import (
 
 func Test_validate(t *testing.T) {
 	tests := map[string]struct {
-		bundle      runtime.Object
-		expErr      *string
+		bundle      *trustapi.Bundle
+		expErr      field.ErrorList
 		expWarnings admission.Warnings
 	}{
-		"if the object being validated is not a Bundle, return an error": {
-			bundle: &corev1.Pod{},
-			expErr: ptr.To("expected a Bundle, but got a *v1.Pod"),
-		},
 		"no sources, no target": {
 			bundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{},
 			},
-			expErr: ptr.To(field.ErrorList{
+			expErr: field.ErrorList{
 				field.Forbidden(field.NewPath("spec", "sources"), "must define at least one source"),
-			}.ToAggregate().Error()),
+			},
 		},
 		"sources with multiple types defined in items": {
 			bundle: &trustapi.Bundle{
@@ -55,9 +48,9 @@ func Test_validate(t *testing.T) {
 					Sources: []trustapi.BundleSource{
 						{
 							ConfigMap: &trustapi.SourceObjectKeySelector{Name: "test", Key: "test"},
-							InLine:    ptr.To("test"),
+							InLine:    "test",
 						},
-						{InLine: ptr.To("test")},
+						{InLine: "test"},
 						{
 							ConfigMap: &trustapi.SourceObjectKeySelector{Name: "test", Key: "test"},
 							Secret:    &trustapi.SourceObjectKeySelector{Name: "test", Key: "test"},
@@ -66,10 +59,10 @@ func Test_validate(t *testing.T) {
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "test"}},
 				},
 			},
-			expErr: ptr.To(field.ErrorList{
-				field.Forbidden(field.NewPath("spec", "sources", "[0]"), "must define exactly one source type for each item but found 2 defined types"),
-				field.Forbidden(field.NewPath("spec", "sources", "[2]"), "must define exactly one source type for each item but found 2 defined types"),
-			}.ToAggregate().Error()),
+			expErr: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "sources").Index(0), "must define exactly one source type for each item but found 2 defined types"),
+				field.Forbidden(field.NewPath("spec", "sources").Index(2), "must define exactly one source type for each item but found 2 defined types"),
+			},
 		},
 		"empty source with no defined types": {
 			bundle: &trustapi.Bundle{
@@ -80,151 +73,151 @@ func Test_validate(t *testing.T) {
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "test"}},
 				},
 			},
-			expErr: ptr.To(field.ErrorList{
-				field.Forbidden(field.NewPath("spec", "sources", "[0]"), "must define exactly one source type for each item but found 0 defined types"),
+			expErr: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "sources").Index(0), "must define exactly one source type for each item but found 0 defined types"),
 				field.Forbidden(field.NewPath("spec", "sources"), "must define at least one source"),
-			}.ToAggregate().Error()),
+			},
 		},
 		"useDefaultCAs false, with no other defined sources": {
 			bundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
 						{
-							UseDefaultCAs: ptr.To(false),
+							UseDefaultCAs: new(false),
 						},
 					},
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "test"}},
 				},
 			},
-			expErr: ptr.To(field.ErrorList{
+			expErr: field.ErrorList{
 				field.Forbidden(field.NewPath("spec", "sources"), "must define at least one source"),
-			}.ToAggregate().Error()),
+			},
 		},
 		"useDefaultCAs requested twice": {
 			bundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
 						{
-							UseDefaultCAs: ptr.To(true),
+							UseDefaultCAs: new(true),
 						},
 						{
-							UseDefaultCAs: ptr.To(true),
+							UseDefaultCAs: new(true),
 						},
 					},
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "test"}},
 				},
 			},
-			expErr: ptr.To(field.ErrorList{
+			expErr: field.ErrorList{
 				field.Forbidden(field.NewPath("spec", "sources"), "must request default CAs either once or not at all but got 2 requests"),
-			}.ToAggregate().Error()),
+			},
 		},
 		"useDefaultCAs requested three times": {
 			bundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
 						{
-							UseDefaultCAs: ptr.To(true),
+							UseDefaultCAs: new(true),
 						},
 						{
-							UseDefaultCAs: ptr.To(false),
+							UseDefaultCAs: new(false),
 						},
 						{
-							UseDefaultCAs: ptr.To(true),
+							UseDefaultCAs: new(true),
 						},
 					},
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "test"}},
 				},
 			},
-			expErr: ptr.To(field.ErrorList{
+			expErr: field.ErrorList{
 				field.Forbidden(field.NewPath("spec", "sources"), "must request default CAs either once or not at all but got 3 requests"),
-			}.ToAggregate().Error()),
+			},
 		},
 		"sources names, selectors and keys are empty": {
 			bundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
 						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "", Key: ""}},
-						{InLine: ptr.To("test")},
+						{InLine: "test"},
 						{Secret: &trustapi.SourceObjectKeySelector{Name: "", Key: ""}},
 					},
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "test"}},
 				},
 			},
-			expErr: ptr.To(field.ErrorList{
-				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap"), "name: ' ', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
-				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap"), "key: ' ', includeAllKeys: false", "source configMap key must be defined when includeAllKeys is false"),
-				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "name: ' ', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
-				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "key: ' ', includeAllKeys: false", "source secret key must be defined when includeAllKeys is false"),
-			}.ToAggregate().Error()),
+			expErr: field.ErrorList{
+				field.Invalid(field.NewPath("spec", "sources").Index(0).Child("configMap"), "name: ' ', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
+				field.Invalid(field.NewPath("spec", "sources").Index(0).Child("configMap"), "key: ' ', includeAllKeys: false", "source configMap key must be defined when includeAllKeys is false"),
+				field.Invalid(field.NewPath("spec", "sources").Index(2).Child("secret"), "name: ' ', selector: nil", "must validate one and only one schema (oneOf): [name, selector]. Found none valid"),
+				field.Invalid(field.NewPath("spec", "sources").Index(2).Child("secret"), "key: ' ', includeAllKeys: false", "source secret key must be defined when includeAllKeys is false"),
+			},
 		},
 		"sources names and selectors are both set": {
 			bundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
 						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "some-config-map", Selector: &metav1.LabelSelector{}, Key: "test"}},
-						{InLine: ptr.To("test")},
+						{InLine: "test"},
 						{Secret: &trustapi.SourceObjectKeySelector{Name: "some-secret", Selector: &metav1.LabelSelector{}, Key: "test"}},
 					},
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "test"}},
 				},
 			},
-			expErr: ptr.To(field.ErrorList{
-				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap"), "name: some-config-map, selector: {}", "must validate one and only one schema (oneOf): [name, selector]. Found both set"),
-				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "name: some-secret, selector: {}", "must validate one and only one schema (oneOf): [name, selector]. Found both set"),
-			}.ToAggregate().Error()),
+			expErr: field.ErrorList{
+				field.Invalid(field.NewPath("spec", "sources").Index(0).Child("configMap"), "name: some-config-map, selector: {}", "must validate one and only one schema (oneOf): [name, selector]. Found both set"),
+				field.Invalid(field.NewPath("spec", "sources").Index(2).Child("secret"), "name: some-secret, selector: {}", "must validate one and only one schema (oneOf): [name, selector]. Found both set"),
+			},
 		},
 		"sources key is set and includeAllKeys is true": {
 			bundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "some-config-map", Key: "test", IncludeAllKeys: true}},
-						{InLine: ptr.To("test")},
-						{Secret: &trustapi.SourceObjectKeySelector{Name: "some-secret", Key: "test", IncludeAllKeys: true}},
+						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "some-config-map", Key: "test", IncludeAllKeys: new(true)}},
+						{InLine: "test"},
+						{Secret: &trustapi.SourceObjectKeySelector{Name: "some-secret", Key: "test", IncludeAllKeys: new(true)}},
 					},
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "test"}},
 				},
 			},
-			expErr: ptr.To(field.ErrorList{
-				field.Invalid(field.NewPath("spec", "sources", "[0]", "configMap"), "key: test, includeAllKeys: true", "source configMap key cannot be defined when includeAllKeys is true"),
-				field.Invalid(field.NewPath("spec", "sources", "[2]", "secret"), "key: test, includeAllKeys: true", "source secret key cannot be defined when includeAllKeys is true"),
-			}.ToAggregate().Error()),
+			expErr: field.ErrorList{
+				field.Invalid(field.NewPath("spec", "sources").Index(0).Child("configMap"), "key: test, includeAllKeys: true", "source configMap key cannot be defined when includeAllKeys is true"),
+				field.Invalid(field.NewPath("spec", "sources").Index(2).Child("secret"), "key: test, includeAllKeys: true", "source secret key cannot be defined when includeAllKeys is true"),
+			},
 		},
 		"sources defines the same configMap target": {
 			bundle: &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle"},
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("test")},
+						{InLine: "test"},
 						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "test-bundle", Key: "test"}},
 					},
 					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "test"}},
 				},
 			},
-			expErr: ptr.To(field.ErrorList{
-				field.Forbidden(field.NewPath("spec", "sources", "[1]", "configMap", "test-bundle", "test"), "cannot define the same source as target"),
-			}.ToAggregate().Error()),
+			expErr: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "sources").Index(1).Child("configMap", "test-bundle", "test"), "cannot define the same source as target"),
+			},
 		},
 		"sources defines the same secret target": {
 			bundle: &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle"},
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("test")},
+						{InLine: "test"},
 						{Secret: &trustapi.SourceObjectKeySelector{Name: "test-bundle", Key: "test"}},
 					},
 					Target: trustapi.BundleTarget{Secret: &trustapi.TargetTemplate{Key: "test"}},
 				},
 			},
-			expErr: ptr.To(field.ErrorList{
-				field.Forbidden(field.NewPath("spec", "sources", "[1]", "secret", "test-bundle", "test"), "cannot define the same source as target"),
-			}.ToAggregate().Error()),
+			expErr: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "sources").Index(1).Child("secret", "test-bundle", "test"), "cannot define the same source as target"),
+			},
 		},
 		"invalid namespace selector": {
 			bundle: &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle-1"},
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("test-1")},
+						{InLine: "test-1"},
 					},
 					Target: trustapi.BundleTarget{
 						ConfigMap: &trustapi.TargetTemplate{Key: "test-1"},
@@ -242,16 +235,16 @@ func Test_validate(t *testing.T) {
 					},
 				},
 			},
-			expErr: ptr.To(field.ErrorList{
-				field.Invalid(field.NewPath("spec", "target", "namespaceSelector", "matchLabels"), "@@@@", `name part must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')`),
-			}.ToAggregate().Error()),
+			expErr: field.ErrorList{
+				field.Invalid(field.NewPath("spec", "target", "namespaceSelector", "matchLabels"), "@@@@", `name part must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')`).WithOrigin("format=k8s-label-key"),
+			},
 		},
 		"a Bundle with a duplicate target JKS key should fail validation and return a denied response": {
 			bundle: &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: "testing"},
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("foo")},
+						{InLine: "foo"},
 					},
 					Target: trustapi.BundleTarget{
 						AdditionalFormats: &trustapi.AdditionalFormats{
@@ -270,14 +263,16 @@ func Test_validate(t *testing.T) {
 					},
 				},
 			},
-			expErr: ptr.To("spec.target.additionalFormats.jks.key: Invalid value: \"bar\": key must be unique in target configMap"),
+			expErr: field.ErrorList{
+				field.Invalid(field.NewPath("spec", "target", "additionalFormats", "jks", "key"), "bar", "key must be unique across all target output keys"),
+			},
 		},
 		"a Bundle with a duplicate target PKCS12 key should fail validation and return a denied response": {
 			bundle: &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: "testing"},
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("foo")},
+						{InLine: "foo"},
 					},
 					Target: trustapi.BundleTarget{
 						AdditionalFormats: &trustapi.AdditionalFormats{
@@ -296,14 +291,16 @@ func Test_validate(t *testing.T) {
 					},
 				},
 			},
-			expErr: ptr.To("spec.target.additionalFormats.pkcs12.key: Invalid value: \"bar\": key must be unique in target configMap"),
+			expErr: field.ErrorList{
+				field.Invalid(field.NewPath("spec", "target", "additionalFormats", "pkcs12", "key"), "bar", "key must be unique across all target output keys"),
+			},
 		},
 		"valid Bundle": {
 			bundle: &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle-1"},
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("test-1")},
+						{InLine: "test-1"},
 					},
 					Target: trustapi.BundleTarget{
 						ConfigMap: &trustapi.TargetTemplate{Key: "test-1"},
@@ -332,12 +329,12 @@ func Test_validate(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle-1"},
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("test-1")},
+						{InLine: "test-1"},
 					},
 					Target: trustapi.BundleTarget{
 						ConfigMap: &trustapi.TargetTemplate{
 							Key: "test-1",
-							Metadata: &trustapi.TargetMetadata{
+							Metadata: trustapi.TargetMetadata{
 								Labels: map[string]string{
 									"app.kubernetes.io/part-of": "service-a",
 								},
@@ -371,12 +368,12 @@ func Test_validate(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle-1"},
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("test-1")},
+						{InLine: "test-1"},
 					},
 					Target: trustapi.BundleTarget{
 						ConfigMap: &trustapi.TargetTemplate{
 							Key: "test-1",
-							Metadata: &trustapi.TargetMetadata{
+							Metadata: trustapi.TargetMetadata{
 								Annotations: map[string]string{
 									"trust-manager.io/hash": "hash",
 								},
@@ -403,17 +400,17 @@ func Test_validate(t *testing.T) {
 					},
 				},
 			},
-			expErr: ptr.To(field.ErrorList{
+			expErr: field.ErrorList{
 				field.Invalid(field.NewPath("spec", "target", "configMap", "metadata", "annotations"), "trust-manager.io/hash", "trust-manager.io/* annotations are not allowed"),
 				field.Invalid(field.NewPath("spec", "target", "configMap", "metadata", "labels"), "trust.cert-manager.io/bundle", "trust.cert-manager.io/* labels are not allowed"),
-			}.ToAggregate().Error()),
+			},
 		},
 		"valid Bundle with JKS": {
 			bundle: &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: "testing"},
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("foo")},
+						{InLine: "foo"},
 					},
 					Target: trustapi.BundleTarget{
 						AdditionalFormats: &trustapi.AdditionalFormats{
@@ -439,7 +436,7 @@ func Test_validate(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "testing"},
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("foo")},
+						{InLine: "foo"},
 					},
 					Target: trustapi.BundleTarget{
 						AdditionalFormats: &trustapi.AdditionalFormats{
@@ -465,8 +462,8 @@ func Test_validate(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle-1"},
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "some-config-map", IncludeAllKeys: true}},
-						{Secret: &trustapi.SourceObjectKeySelector{Name: "some-secret", IncludeAllKeys: true}},
+						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "some-config-map", IncludeAllKeys: new(true)}},
+						{Secret: &trustapi.SourceObjectKeySelector{Name: "some-secret", IncludeAllKeys: new(true)}},
 					},
 					Target: trustapi.BundleTarget{
 						ConfigMap: &trustapi.TargetTemplate{Key: "test-1"},
@@ -485,11 +482,7 @@ func Test_validate(t *testing.T) {
 			_, ctx := ktesting.NewTestContext(t)
 			v := &validator{}
 			gotWarnings, gotErr := v.validate(ctx, test.bundle)
-			if test.expErr == nil && gotErr != nil {
-				t.Errorf("got an unexpected error: %v", gotErr)
-			} else if test.expErr != nil && (gotErr == nil || *test.expErr != gotErr.Error()) {
-				t.Errorf("wants error: %v got: %v", *test.expErr, gotErr)
-			}
+			assert.Equal(t, test.expErr.ToAggregate(), gotErr)
 			assert.Equal(t, test.expWarnings, gotWarnings)
 
 		})
@@ -498,8 +491,8 @@ func Test_validate(t *testing.T) {
 
 func Test_validate_update(t *testing.T) {
 	tests := map[string]struct {
-		oldBundle   runtime.Object
-		newBundle   runtime.Object
+		oldBundle   *trustapi.Bundle
+		newBundle   *trustapi.Bundle
 		expErr      *string
 		expWarnings admission.Warnings
 	}{
@@ -508,7 +501,7 @@ func Test_validate_update(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "testing"},
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("test")},
+						{InLine: "test"},
 					},
 					Target: trustapi.BundleTarget{
 						ConfigMap: &trustapi.TargetTemplate{
@@ -520,7 +513,7 @@ func Test_validate_update(t *testing.T) {
 			newBundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("test")},
+						{InLine: "test"},
 					}},
 			},
 		},
@@ -529,7 +522,7 @@ func Test_validate_update(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "testing"},
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("test")},
+						{InLine: "test"},
 					},
 					Target: trustapi.BundleTarget{
 						Secret: &trustapi.TargetTemplate{
@@ -541,7 +534,7 @@ func Test_validate_update(t *testing.T) {
 			newBundle: &trustapi.Bundle{
 				Spec: trustapi.BundleSpec{
 					Sources: []trustapi.BundleSource{
-						{InLine: ptr.To("test")},
+						{InLine: "test"},
 					}},
 			},
 		},

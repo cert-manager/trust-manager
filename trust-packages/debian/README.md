@@ -9,4 +9,4 @@ which are used in the cert-manager project.
 Therefore, by using Debian again here, we're not adding any new entities we need to trust, since we already trust
 Debian extensively elsewhere.
 
-This package is used for both Debian Bookworm and Debian Bullseye
+This package is used for Debian Bullseye, Debian Bookworm, and Debian Trixie.

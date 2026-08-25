@@ -38,6 +38,337 @@ func Parser() *typed.Parser {
 var parserOnce sync.Once
 var parser *typed.Parser
 var schemaYAML = typed.YAMLObject(`types:
+- name: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.AdditionalFormats
+  map:
+    fields:
+    - name: jks
+      type:
+        namedType: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.JKS
+    - name: pkcs12
+      type:
+        namedType: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.PKCS12
+- name: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.Bundle
+  map:
+    fields:
+    - name: apiVersion
+      type:
+        scalar: string
+    - name: kind
+      type:
+        scalar: string
+    - name: metadata
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+    - name: spec
+      type:
+        namedType: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.BundleSpec
+    - name: status
+      type:
+        namedType: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.BundleStatus
+- name: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.BundleSource
+  map:
+    fields:
+    - name: configMap
+      type:
+        namedType: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.SourceObjectKeySelector
+    - name: inLine
+      type:
+        scalar: string
+    - name: secret
+      type:
+        namedType: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.SourceObjectKeySelector
+    - name: useDefaultCAs
+      type:
+        scalar: boolean
+    elementRelationship: atomic
+- name: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.BundleSpec
+  map:
+    fields:
+    - name: sources
+      type:
+        list:
+          elementType:
+            namedType: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.BundleSource
+          elementRelationship: atomic
+    - name: target
+      type:
+        namedType: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.BundleTarget
+- name: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.BundleStatus
+  map:
+    fields:
+    - name: conditions
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
+          elementRelationship: associative
+          keys:
+          - type
+    - name: defaultCAVersion
+      type:
+        scalar: string
+- name: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.BundleTarget
+  map:
+    fields:
+    - name: additionalFormats
+      type:
+        namedType: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.AdditionalFormats
+    - name: configMap
+      type:
+        namedType: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.TargetTemplate
+    - name: namespaceSelector
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
+    - name: secret
+      type:
+        namedType: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.TargetTemplate
+- name: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.JKS
+  map:
+    fields:
+    - name: key
+      type:
+        scalar: string
+    - name: password
+      type:
+        scalar: string
+      default: changeit
+    elementRelationship: atomic
+- name: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.PKCS12
+  map:
+    fields:
+    - name: key
+      type:
+        scalar: string
+    - name: password
+      type:
+        scalar: string
+      default: ""
+    - name: profile
+      type:
+        namedType: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.PKCS12Profile
+    elementRelationship: atomic
+- name: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.PKCS12Profile
+  scalar: string
+- name: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.SourceObjectKeySelector
+  map:
+    fields:
+    - name: includeAllKeys
+      type:
+        scalar: boolean
+    - name: key
+      type:
+        scalar: string
+    - name: name
+      type:
+        scalar: string
+    - name: selector
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
+    elementRelationship: atomic
+- name: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.TargetMetadata
+  map:
+    fields:
+    - name: annotations
+      type:
+        map:
+          elementType:
+            scalar: string
+    - name: labels
+      type:
+        map:
+          elementType:
+            scalar: string
+- name: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.TargetTemplate
+  map:
+    fields:
+    - name: key
+      type:
+        scalar: string
+    - name: metadata
+      type:
+        namedType: com.github.cert-manager.trust-manager.pkg.apis.trust.v1alpha1.TargetMetadata
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
+  map:
+    fields:
+    - name: lastTransitionTime
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+    - name: message
+      type:
+        scalar: string
+    - name: observedGeneration
+      type:
+        scalar: numeric
+    - name: reason
+      type:
+        scalar: string
+    - name: status
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ConditionStatus
+    - name: type
+      type:
+        scalar: string
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.ConditionStatus
+  scalar: string
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.FieldsV1
+  map:
+    elementType:
+      scalar: untyped
+      list:
+        elementType:
+          namedType: __untyped_atomic_
+        elementRelationship: atomic
+      map:
+        elementType:
+          namedType: __untyped_deduced_
+        elementRelationship: separable
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelector
+  map:
+    fields:
+    - name: matchExpressions
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelectorRequirement
+          elementRelationship: atomic
+    - name: matchLabels
+      type:
+        map:
+          elementType:
+            scalar: string
+    elementRelationship: atomic
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelectorOperator
+  scalar: string
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelectorRequirement
+  map:
+    fields:
+    - name: key
+      type:
+        scalar: string
+    - name: operator
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelectorOperator
+    - name: values
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.ManagedFieldsEntry
+  map:
+    fields:
+    - name: apiVersion
+      type:
+        scalar: string
+    - name: fieldsType
+      type:
+        scalar: string
+    - name: fieldsV1
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.FieldsV1
+    - name: manager
+      type:
+        scalar: string
+    - name: operation
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ManagedFieldsOperationType
+    - name: subresource
+      type:
+        scalar: string
+    - name: time
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.ManagedFieldsOperationType
+  scalar: string
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+  map:
+    fields:
+    - name: annotations
+      type:
+        map:
+          elementType:
+            scalar: string
+    - name: creationTimestamp
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+    - name: deletionGracePeriodSeconds
+      type:
+        scalar: numeric
+    - name: deletionTimestamp
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+    - name: finalizers
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: associative
+    - name: generateName
+      type:
+        scalar: string
+    - name: generation
+      type:
+        scalar: numeric
+    - name: labels
+      type:
+        map:
+          elementType:
+            scalar: string
+    - name: managedFields
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ManagedFieldsEntry
+          elementRelationship: atomic
+    - name: name
+      type:
+        scalar: string
+    - name: namespace
+      type:
+        scalar: string
+    - name: ownerReferences
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.OwnerReference
+          elementRelationship: associative
+          keys:
+          - uid
+    - name: resourceVersion
+      type:
+        scalar: string
+    - name: selfLink
+      type:
+        scalar: string
+    - name: uid
+      type:
+        namedType: io.k8s.apimachinery.pkg.types.UID
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.OwnerReference
+  map:
+    fields:
+    - name: apiVersion
+      type:
+        scalar: string
+    - name: blockOwnerDeletion
+      type:
+        scalar: boolean
+    - name: controller
+      type:
+        scalar: boolean
+    - name: kind
+      type:
+        scalar: string
+    - name: name
+      type:
+        scalar: string
+    - name: uid
+      type:
+        namedType: io.k8s.apimachinery.pkg.types.UID
+    elementRelationship: atomic
+- name: io.k8s.apimachinery.pkg.apis.meta.v1.Time
+  scalar: untyped
+- name: io.k8s.apimachinery.pkg.types.UID
+  scalar: string
 - name: __untyped_atomic_
   scalar: untyped
   list:

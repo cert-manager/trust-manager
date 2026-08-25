@@ -20,7 +20,6 @@ limitations under the License.
 // some time, and doesn't know about the go:debug directive and so must be
 // disabled in this file.
 // The nolint is here so that we still lint the go:build at the top of the file.
-//nolint:gocheckcompilerdirectives
 //go:debug x509negativeserial=0
 
 package compat

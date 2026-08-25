@@ -36,14 +36,23 @@
         "filterExpiredCertificates": {
           "$ref": "#/$defs/helm-values.filterExpiredCertificates"
         },
+        "filterNonCACerts": {
+          "$ref": "#/$defs/helm-values.filterNonCACerts"
+        },
         "global": {
           "$ref": "#/$defs/helm-values.global"
         },
         "image": {
           "$ref": "#/$defs/helm-values.image"
         },
+        "imageNamespace": {
+          "$ref": "#/$defs/helm-values.imageNamespace"
+        },
         "imagePullSecrets": {
           "$ref": "#/$defs/helm-values.imagePullSecrets"
+        },
+        "imageRegistry": {
+          "$ref": "#/$defs/helm-values.imageRegistry"
         },
         "nameOverride": {
           "$ref": "#/$defs/helm-values.nameOverride"
@@ -56,6 +65,9 @@
         },
         "podDisruptionBudget": {
           "$ref": "#/$defs/helm-values.podDisruptionBudget"
+        },
+        "podSecurityContext": {
+          "$ref": "#/$defs/helm-values.podSecurityContext"
         },
         "priorityClassName": {
           "$ref": "#/$defs/helm-values.priorityClassName"
@@ -245,6 +257,9 @@
         "enabled": {
           "$ref": "#/$defs/helm-values.app.metrics.service.servicemonitor.enabled"
         },
+        "endpointAdditionalProperties": {
+          "$ref": "#/$defs/helm-values.app.metrics.service.servicemonitor.endpointAdditionalProperties"
+        },
         "interval": {
           "$ref": "#/$defs/helm-values.app.metrics.service.servicemonitor.interval"
         },
@@ -264,6 +279,11 @@
       "default": false,
       "description": "Create a Prometheus ServiceMonitor for trust-manager.",
       "type": "boolean"
+    },
+    "helm-values.app.metrics.service.servicemonitor.endpointAdditionalProperties": {
+      "default": {},
+      "description": "EndpointAdditionalProperties allows setting additional properties on the endpoint such as relabelings, metricRelabelings etc.\n\nFor example:\nendpointAdditionalProperties:\n relabelings:\n - action: replace\n   sourceLabels:\n   - __meta_kubernetes_pod_node_name\n   targetLabel: instance",
+      "type": "object"
     },
     "helm-values.app.metrics.service.servicemonitor.interval": {
       "default": "10s",
@@ -328,18 +348,21 @@
       "type": "number"
     },
     "helm-values.app.securityContext": {
-      "additionalProperties": false,
-      "properties": {
-        "seccompProfileEnabled": {
-          "$ref": "#/$defs/helm-values.app.securityContext.seccompProfileEnabled"
+      "default": {
+        "allowPrivilegeEscalation": false,
+        "capabilities": {
+          "drop": [
+            "ALL"
+          ]
+        },
+        "readOnlyRootFilesystem": true,
+        "runAsNonRoot": true,
+        "seccompProfile": {
+          "type": "RuntimeDefault"
         }
       },
+      "description": "Security Context to be set on the trust-manager app container. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).",
       "type": "object"
-    },
-    "helm-values.app.securityContext.seccompProfileEnabled": {
-      "default": true,
-      "description": "If false, disables the default seccomp profile, which might be required to run on certain platforms.",
-      "type": "boolean"
     },
     "helm-values.app.targetNamespaces": {
       "description": "List of target namespaces that trust-manager can write to. By default, trust-manager can write targets in any namespace.",
@@ -493,11 +516,19 @@
     "helm-values.app.webhook.tls.certificate": {
       "additionalProperties": false,
       "properties": {
+        "duration": {
+          "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.duration"
+        },
         "secretTemplate": {
           "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.secretTemplate"
         }
       },
       "type": "object"
+    },
+    "helm-values.app.webhook.tls.certificate.duration": {
+      "default": "",
+      "description": "Certificate duration, if unset/empty the default from cert-manager will be used. Example configuration to set 1 year: duration: 8766h",
+      "type": "string"
     },
     "helm-values.app.webhook.tls.certificate.secretTemplate": {
       "default": {},
@@ -567,6 +598,9 @@
         },
         "resources": {
           "$ref": "#/$defs/helm-values.defaultPackage.resources"
+        },
+        "securityContext": {
+          "$ref": "#/$defs/helm-values.defaultPackage.securityContext"
         }
       },
       "type": "object"
@@ -581,11 +615,34 @@
       "description": "Kubernetes pod resource limits for default package init container.\n\nFor example:\nresources:\n  limits:\n    cpu: 100m\n    memory: 128Mi\n  requests:\n    cpu: 100m\n    memory: 128Mi",
       "type": "object"
     },
+    "helm-values.defaultPackage.securityContext": {
+      "default": {
+        "allowPrivilegeEscalation": false,
+        "capabilities": {
+          "drop": [
+            "ALL"
+          ]
+        },
+        "readOnlyRootFilesystem": true,
+        "runAsNonRoot": true,
+        "seccompProfile": {
+          "type": "RuntimeDefault"
+        }
+      },
+      "description": "Security Context to be set on the trust-manager default package init container. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).",
+      "type": "object"
+    },
     "helm-values.defaultPackageImage": {
       "additionalProperties": false,
       "properties": {
+        "_defaultReference": {
+          "$ref": "#/$defs/helm-values.defaultPackageImage._defaultReference"
+        },
         "digest": {
           "$ref": "#/$defs/helm-values.defaultPackageImage.digest"
+        },
+        "name": {
+          "$ref": "#/$defs/helm-values.defaultPackageImage.name"
         },
         "pullPolicy": {
           "$ref": "#/$defs/helm-values.defaultPackageImage.pullPolicy"
@@ -602,8 +659,18 @@
       },
       "type": "object"
     },
+    "helm-values.defaultPackageImage._defaultReference": {
+      "default": ":v0.0.0",
+      "description": "WARNING: For internal use only, is overwritten before releasing the chart.",
+      "type": "string"
+    },
     "helm-values.defaultPackageImage.digest": {
       "description": "Target image digest. Override any tag, if set.\nFor example:\ndigest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20",
+      "type": "string"
+    },
+    "helm-values.defaultPackageImage.name": {
+      "default": "trust-pkg-debian-trixie",
+      "description": "The image name for trust-manager.\nThis is used (together with `imageRegistry` and `imageNamespace`) to construct the full image reference.",
       "type": "string"
     },
     "helm-values.defaultPackageImage.pullPolicy": {
@@ -612,17 +679,16 @@
       "type": "string"
     },
     "helm-values.defaultPackageImage.registry": {
-      "description": "Target image registry. This value is prepended to the target image repository, if set.\nFor example:\nregistry: quay.io\nrepository: jetstack/cert-manager-package-debian",
+      "description": "Target image registry. This value is prepended to the target image repository, if set.\nFor example:\nregistry: quay.io\nrepository: jetstack/cert-manager-package-debian\nDeprecated: per-component registry prefix.\n\nIf set, this value is *prepended* to the image repository that the chart would otherwise render. This applies both when `image.repository` is set and when the repository is computed from\n`imageRegistry` + `imageNamespace` + `image.name`.\n\nThis can produce \"double registry\" style references such as\n`legacy.example.io/quay.io/jetstack/...`. Prefer using the global\n`imageRegistry`/`imageNamespace` values.",
       "type": "string"
     },
     "helm-values.defaultPackageImage.repository": {
-      "default": "quay.io/jetstack/trust-pkg-debian-bookworm",
-      "description": "The repository for the default package image. This image enables the 'useDefaultCAs' source on Bundles.",
+      "default": "",
+      "description": "Full repository override (takes precedence over `imageRegistry`, `imageNamespace`, and `image.name`).\nExample: quay.io/jetstack/trust-manager",
       "type": "string"
     },
     "helm-values.defaultPackageImage.tag": {
-      "default": "20230311-deb12u1.0@sha256:4e46f31af8ab4aedb861b997be37e2004ba5313a187d0f0a3cdb4680937a98a3",
-      "description": "Override the image tag of the default package image. If no value is set, the chart's appVersion is used.",
+      "description": "Override the image tag of the default package image. Is set at chart build time to the version specified in ./make/00_debian_trixie_version.mk.",
       "type": "string"
     },
     "helm-values.enabled": {
@@ -650,6 +716,20 @@
       "description": "Whether to filter expired certificates from the trust bundle.",
       "type": "boolean"
     },
+    "helm-values.filterNonCACerts": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "$ref": "#/$defs/helm-values.filterNonCACerts.enabled"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.filterNonCACerts.enabled": {
+      "default": false,
+      "description": "Filter non-CA certificates, only CAs are used in the resulting Bundle.",
+      "type": "boolean"
+    },
     "helm-values.global": {
       "description": "Global values shared across all (sub)charts",
       "properties": {
@@ -661,11 +741,19 @@
     },
     "helm-values.global.rbac": {
       "properties": {
+        "aggregateClusterRoles": {
+          "$ref": "#/$defs/helm-values.global.rbac.aggregateClusterRoles"
+        },
         "create": {
           "$ref": "#/$defs/helm-values.global.rbac.create"
         }
       },
       "type": "object"
+    },
+    "helm-values.global.rbac.aggregateClusterRoles": {
+      "default": true,
+      "description": "Aggregate read access to Bundles into the \"cluster-reader\" ClusterRole, mirroring how cert-manager aggregates its cluster-scoped ClusterIssuers. Bundle is a cluster-scoped resource, so this only takes effect for subjects bound via a ClusterRoleBinding. For more information, see [User-facing roles](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#user-facing-roles).",
+      "type": "boolean"
     },
     "helm-values.global.rbac.create": {
       "default": true,
@@ -677,6 +765,9 @@
       "properties": {
         "digest": {
           "$ref": "#/$defs/helm-values.image.digest"
+        },
+        "name": {
+          "$ref": "#/$defs/helm-values.image.name"
         },
         "pullPolicy": {
           "$ref": "#/$defs/helm-values.image.pullPolicy"
@@ -697,22 +788,32 @@
       "description": "Target image digest. Override any tag, if set.\nFor example:\ndigest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20",
       "type": "string"
     },
+    "helm-values.image.name": {
+      "default": "trust-manager",
+      "description": "The image name for trust-manager.\nThis is used (together with `imageRegistry` and `imageNamespace`) to construct the full image reference.",
+      "type": "string"
+    },
     "helm-values.image.pullPolicy": {
       "default": "IfNotPresent",
       "description": "Kubernetes imagePullPolicy on Deployment.",
       "type": "string"
     },
     "helm-values.image.registry": {
-      "description": "Target image registry. This value is prepended to the target image repository, if set.\nFor example:\nregistry: quay.io\nrepository: jetstack/trust-manager",
+      "description": "Target image registry. This value is prepended to the target image repository, if set.\nFor example:\nregistry: legacy.example.io\nDeprecated: per-component registry prefix.\n\nIf set, this value is *prepended* to the image repository that the chart would otherwise render. This applies both when `image.repository` is set and when the repository is computed from\n`imageRegistry` + `imageNamespace` + `image.name`.\n\nThis can produce \"double registry\" style references such as\n`legacy.example.io/quay.io/jetstack/...`. Prefer using the global\n`imageRegistry`/`imageNamespace` values.",
       "type": "string"
     },
     "helm-values.image.repository": {
-      "default": "quay.io/jetstack/trust-manager",
-      "description": "Target image repository.",
+      "default": "",
+      "description": "Full repository override (takes precedence over `imageRegistry`, `imageNamespace`, and `image.name`).\nExample: quay.io/jetstack/trust-manager",
       "type": "string"
     },
     "helm-values.image.tag": {
       "description": "Override the image tag to deploy by setting this variable. If no value is set, the chart's appVersion is used.",
+      "type": "string"
+    },
+    "helm-values.imageNamespace": {
+      "default": "jetstack",
+      "description": "The repository namespace used for trust-manager images by default.\nExamples:\n- jetstack\n- cert-manager",
       "type": "string"
     },
     "helm-values.imagePullSecrets": {
@@ -720,6 +821,11 @@
       "description": "For Private docker registries, authentication is needed. Registry secrets are applied to the service account.",
       "items": {},
       "type": "array"
+    },
+    "helm-values.imageRegistry": {
+      "default": "quay.io",
+      "description": "The container registry used for trust-manager images by default. This can include path prefixes (e.g. \"artifactory.example.com/docker\").",
+      "type": "string"
     },
     "helm-values.nameOverride": {
       "default": "",
@@ -762,6 +868,11 @@
     },
     "helm-values.podDisruptionBudget.minAvailable": {
       "description": "This configures the minimum available pods for disruptions. It can either be set to an integer (e.g. 1) or a percentage value (e.g. 25%).\nIt cannot be used if `maxUnavailable` is set."
+    },
+    "helm-values.podSecurityContext": {
+      "default": {},
+      "description": "Security Context to be set on the trust-manager Pod. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).",
+      "type": "object"
     },
     "helm-values.priorityClassName": {
       "default": "",
