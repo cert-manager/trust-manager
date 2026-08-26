@@ -94,7 +94,11 @@ metadata:
   {{- if or (not .Values.app.webhook.tls.helmCert.enabled) .Values.commonAnnotations }}
   annotations:
     {{- if not .Values.app.webhook.tls.helmCert.enabled }}
-    cert-manager.io/inject-ca-from: "{{ include "trust-manager.namespace" . }}/{{ include "trust-manager.name" . }}"
+    {{- /*
+    Use the TLS Secret as the CA source so cainjector can populate the
+    webhook caBundle independently of how the certificate was created.
+    */}}
+    cert-manager.io/inject-ca-from-secret: "{{ include "trust-manager.namespace" . }}/{{ include "trust-manager.name" . }}-tls"
     {{- end }}
     {{- with .Values.commonAnnotations }}
     {{- toYaml . | nindent 4 }}
