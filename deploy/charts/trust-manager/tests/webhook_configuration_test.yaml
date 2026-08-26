@@ -1,0 +1,45 @@
+suite: Webhook CA Injection
+templates:
+  - templates/webhook.yaml
+release:
+  name: tm
+  namespace: trust
+tests:
+  - it: should inject CA from Secret when helmCert is disabled
+    set:
+      app:
+        webhook:
+          tls:
+            helmCert:
+              enabled: false
+
+    documentSelector:
+      path: kind
+      value: ValidatingWebhookConfiguration
+
+    asserts:
+      - equal:
+          path: metadata.annotations["cert-manager.io/inject-ca-from-secret"]
+          value: trust/trust-manager-tls
+
+      - notExists:
+          path: webhooks[0].clientConfig.caBundle
+
+  - it: should inject CA directly when helmCert is enabled
+    set:
+      app:
+        webhook:
+          tls:
+            helmCert:
+              enabled: true
+
+    documentSelector:
+      path: kind
+      value: ValidatingWebhookConfiguration
+
+    asserts:
+      - notExists:
+          path: metadata.annotations["cert-manager.io/inject-ca-from-secret"]
+
+      - exists:
+          path: webhooks[0].clientConfig.caBundle
