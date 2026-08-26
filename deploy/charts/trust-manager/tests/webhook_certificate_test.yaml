@@ -1,0 +1,48 @@
+suite: Certificate CA Injection
+templates:
+  - templates/certificate.yaml
+release:
+  name: tm
+  namespace: trust
+tests:
+  - it: should allow direct secret injection when helmCert is disabled
+    set:
+      app:
+        webhook:
+          tls:
+            helmCert:
+              enabled: false
+
+    documentSelector:
+      path: kind
+      value: Certificate
+
+    asserts:
+      - equal:
+          path: spec.secretTemplate.annotations["cert-manager.io/allow-direct-injection"]
+          value: "true"
+
+  - it: should preserve user supplied secretTemplate annotations
+    set:
+      app:
+        webhook:
+          tls:
+            helmCert:
+              enabled: false
+            certificate:
+              secretTemplate:
+                annotations:
+                  test-annotation: test-value
+
+    documentSelector:
+      path: kind
+      value: Certificate
+
+    asserts:
+      - equal:
+          path: spec.secretTemplate.annotations["cert-manager.io/allow-direct-injection"]
+          value: "true"
+
+      - equal:
+          path: spec.secretTemplate.annotations["test-annotation"]
+          value: test-value

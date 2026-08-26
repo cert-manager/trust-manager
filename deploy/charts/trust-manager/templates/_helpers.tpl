@@ -167,6 +167,7 @@ Ensures direct CA injection is always allowed.
 Adds the CA injection annotation automatically so the webhook configuration
 can obtain its CA bundle from the TLS Secret when the webhook certificate is
 managed by cert-manager.
+*/}}
 {{- define "trust-manager.webhook.secretTemplate" -}}
 {{- $secretTemplate := dict "annotations" (dict "cert-manager.io/allow-direct-injection" "true") -}}
 {{- with .Values.app.webhook.tls.certificate.secretTemplate -}}
