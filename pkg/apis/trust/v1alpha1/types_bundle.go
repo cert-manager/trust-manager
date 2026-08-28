@@ -83,12 +83,12 @@ type BundleSource struct {
 	// configMap is a reference (by name) to a ConfigMap's `data` key(s), or to a
 	// list of ConfigMap's `data` key(s) using label selector, in the trust namespace.
 	// +optional
-	ConfigMap *SourceObjectKeySelector `json:"configMap,omitempty"`
+	ConfigMap *SourceObjectKeySelector `json:"configMap,omitempty"` //nolint:kubeapilinter // We think pointers work best here
 
 	// secret is a reference (by name) to a Secret's `data` key(s), or to a
 	// list of Secret's `data` key(s) using label selector, in the trust namespace.
 	// +optional
-	Secret *SourceObjectKeySelector `json:"secret,omitempty"`
+	Secret *SourceObjectKeySelector `json:"secret,omitempty"` //nolint:kubeapilinter // We think pointers work best here
 
 	// inLine is a simple string to append as the source data.
 	// +optional
@@ -125,7 +125,7 @@ type BundleTarget struct {
 
 	// additionalFormats specifies any additional formats to write to the target
 	// +optional
-	AdditionalFormats *AdditionalFormats `json:"additionalFormats,omitempty"`
+	AdditionalFormats *AdditionalFormats `json:"additionalFormats,omitempty"` //nolint:kubeapilinter // We think pointers work best here
 
 	// namespaceSelector will, if set, only sync the target resource in
 	// Namespaces which match the selector.
