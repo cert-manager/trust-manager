@@ -18,6 +18,7 @@ testbin/*
 
 # editor and IDE paraphernalia
 .idea
+*.iml
 *.swp
 *.swo
 *~
