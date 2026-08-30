@@ -19,6 +19,7 @@ package source
 import (
 	"context"
 	"fmt"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -46,6 +47,10 @@ type BundleData struct {
 	CertPool *util.CertPool
 
 	DefaultCAPackageStringID string
+
+	// UpdatedCertHistory contains the updated cert history to be persisted in Bundle.status.
+	// Nil when no sources have keepCertHistory enabled.
+	UpdatedCertHistory []trustapi.SourceCertHistory
 }
 
 type BundleBuilder struct {
@@ -60,23 +65,37 @@ type BundleBuilder struct {
 
 // BuildBundle retrieves and concatenates all source bundle data for this Bundle object.
 // Each source data is validated and pruned to ensure that all certificates within are valid.
-func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.BundleSource) (BundleData, error) {
+// existingHistory is the current cert history from Bundle.status; now is the current time
+// (passed from the reconciler's clock for testability).
+func (b *BundleBuilder) BuildBundle(
+	ctx context.Context,
+	sources []trustapi.BundleSource,
+	existingHistory []trustapi.SourceCertHistory,
+	now time.Time,
+) (BundleData, error) {
+	log := logf.FromContext(ctx)
 	var resolvedBundle BundleData
 	resolvedBundle.CertPool = util.NewCertPool(
 		util.WithFilteredExpiredCerts(b.FilterExpiredCerts),
 		util.WithFilteredNonCaCerts(b.FilterNonCACerts),
-		util.WithLogger(logf.FromContext(ctx).WithName("cert-pool")),
+		util.WithLogger(log.WithName("cert-pool")),
 	)
 
 	for _, source := range sources {
 		var certSource bundleSource
+		var historySourceType string
+		var historyRef *trustapi.SourceObjectKeySelector
 
 		switch {
 		case source.ConfigMap != nil:
 			certSource = &configMapBundleSource{b.Reader, b.Namespace, source.ConfigMap}
+			historySourceType = "configmap"
+			historyRef = source.ConfigMap
 
 		case source.Secret != nil:
 			certSource = &secretBundleSource{b.Reader, b.Namespace, source.Secret}
+			historySourceType = "secret"
+			historyRef = source.Secret
 
 		case source.InLine != "":
 			certSource = &inlineBundleSource{source.InLine}
@@ -94,8 +113,43 @@ func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.Bund
 			panic(fmt.Sprintf("don't know how to process source: %+v", source))
 		}
 
-		if err := certSource.addToCertPool(ctx, resolvedBundle.CertPool); err != nil {
-			return BundleData{}, err
+		// For keepCertHistory sources, fetch PEM once and use for both CertPool
+		// and history tracking to avoid TOCTOU if the source changes mid-reconcile.
+		if historyRef != nil && historyRef.KeepCertHistory {
+			key := sourceKey(historySourceType, historyRef)
+			currentPEM, err := b.fetchSourcePEM(ctx, historySourceType, historyRef)
+			if err != nil {
+				return BundleData{}, fmt.Errorf("failed to fetch source PEM for %s: %w", key, err)
+			}
+
+			if err := resolvedBundle.CertPool.AddCertsFromPEM(currentPEM); err != nil {
+				return BundleData{}, fmt.Errorf("invalid PEM data in source %s: %w", key, err)
+			}
+
+			var limit int32 = defaultHistoryLimit
+			if historyRef.CertHistoryLimit != nil {
+				limit = *historyRef.CertHistoryLimit
+			}
+
+			existing := findHistoryByKey(existingHistory, key)
+			updated, err := updateHistory(existing, currentPEM, limit, now)
+			if err != nil {
+				return BundleData{}, fmt.Errorf("failed to update cert history for %s: %w", key, err)
+			}
+
+			updated.SourceKey = key
+			resolvedBundle.UpdatedCertHistory = append(resolvedBundle.UpdatedCertHistory, updated)
+
+			// Add historical certs to the CertPool for inclusion in the bundle.
+			for _, entry := range updated.Entries {
+				if err := resolvedBundle.CertPool.AddCertsFromPEM([]byte(entry.PEM)); err != nil {
+					log.Error(err, "skipping invalid historical cert", "source", key, "fingerprint", entry.Fingerprint)
+				}
+			}
+		} else {
+			if err := certSource.addToCertPool(ctx, resolvedBundle.CertPool); err != nil {
+				return BundleData{}, err
+			}
 		}
 	}
 
@@ -105,6 +159,34 @@ func (b *BundleBuilder) BuildBundle(ctx context.Context, sources []trustapi.Bund
 	}
 
 	return resolvedBundle, nil
+}
+
+// fetchSourcePEM re-reads the PEM data for a named, single-key source.
+func (b *BundleBuilder) fetchSourcePEM(ctx context.Context, sourceType string, ref *trustapi.SourceObjectKeySelector) ([]byte, error) {
+	switch sourceType {
+	case "secret":
+		var s corev1.Secret
+		if err := b.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &s); err != nil {
+			return nil, err
+		}
+		data, ok := s.Data[ref.Key]
+		if !ok {
+			return nil, fmt.Errorf("key %q not found in Secret %s/%s", ref.Key, b.Namespace, ref.Name)
+		}
+		return data, nil
+	case "configmap":
+		var cm corev1.ConfigMap
+		if err := b.Get(ctx, client.ObjectKey{Namespace: b.Namespace, Name: ref.Name}, &cm); err != nil {
+			return nil, err
+		}
+		data, ok := cm.Data[ref.Key]
+		if !ok {
+			return nil, fmt.Errorf("key %q not found in ConfigMap %s/%s", ref.Key, b.Namespace, ref.Name)
+		}
+		return []byte(data), nil
+	default:
+		return nil, fmt.Errorf("unknown source type: %s", sourceType)
+	}
 }
 
 type bundleSource interface {
