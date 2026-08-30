@@ -113,4 +113,3 @@ generate-conversion: | $(NEEDS_CONVERSION-GEN)
 
 shared_generate_targets += generate-conversion
 
-include make/kube-api-lint.mk

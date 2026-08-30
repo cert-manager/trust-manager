@@ -12,29 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-KUBE_API_LINT := $(bin_dir)/tools/kube-api-lint
+ifndef kube_api_linter_config
+$(error kube_api_linter_config is not set)
+endif
 
-$(KUBE_API_LINT): | $(NEEDS_GO) $(NEEDS_GOLANGCI-LINT) $(bin_dir)/scratch
-	@echo "Building kube-api-lint custom golangci-lint binary"
-	GOVERSION=$(VENDORED_GO_VERSION) \
-		$(GOLANGCI-LINT) custom -v \
-		--destination $(bin_dir)/tools \
-		--name kube-api-lint
+kube_api_linter_timeout ?= 10m
 
 .PHONY: verify-kube-api-lint
-## Verify all APIs using Kube API Linter
+## Verify Kubernetes API types using Kube API Linter
 ## @category [shared] Generate/ Verify
-verify-kube-api-lint: | $(NEEDS_GO) $(KUBE_API_LINT)
-	@echo "Running kube-api-lint"
-	GOVERSION=$(VENDORED_GO_VERSION) \
-		$(KUBE_API_LINT) run -c $(CURDIR)/.golangci-kal.yml
+verify-kube-api-lint: | $(NEEDS_GO) $(NEEDS_KUBE-API-LINTER)
+	GOVERSION=$(VENDORED_GO_VERSION) $(KUBE-API-LINTER) run -c $(CURDIR)/$(kube_api_linter_config) --timeout $(kube_api_linter_timeout)
 
 shared_verify_targets_dirty += verify-kube-api-lint
 
 .PHONY: fix-kube-api-lint
-## Fix all APIs using Kube API Linter
+## Fix Kubernetes API types using Kube API Linter
 ## @category [shared] Generate/ Verify
-fix-kube-api-lint: | $(NEEDS_GO) $(KUBE_API_LINT)
-	@echo "Running kube-api-lint with --fix"
-	GOVERSION=$(VENDORED_GO_VERSION) \
-		$(KUBE_API_LINT) run --fix -c $(CURDIR)/.golangci-kal.yml
+fix-kube-api-lint: | $(NEEDS_GO) $(NEEDS_KUBE-API-LINTER)
+	GOVERSION=$(VENDORED_GO_VERSION) $(KUBE-API-LINTER) run --fix -c $(CURDIR)/$(kube_api_linter_config) --timeout $(kube_api_linter_timeout)
