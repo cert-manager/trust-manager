@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: [bullseye, bookworm, trixie]
+        release: [bookworm, trixie]
 
     runs-on: ubuntu-latest
 
