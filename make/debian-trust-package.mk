@@ -58,14 +58,8 @@ _scan-debian-$(2)-trust-package: | $$(NEEDS_TRIVY) $$(NEEDS_CRANE)
 
 endef
 
-$(eval $(call debian-trust-package-targets,BULLSEYE,bullseye))
 $(eval $(call debian-trust-package-targets,BOOKWORM,bookworm))
 $(eval $(call debian-trust-package-targets,TRIXIE,trixie))
-
-## Scan the latest Debian Bullseye trust package OCI image with Trivy
-## @category [shared] Release
-.PHONY: scan-debian-bullseye-trust-package
-scan-debian-bullseye-trust-package: _scan-debian-bullseye-trust-package
 
 ## Scan the latest Debian Bookworm trust package OCI image with Trivy
 ## @category [shared] Release

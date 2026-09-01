@@ -57,7 +57,7 @@ The release process for this repo is documented below:
 
 As well as the trust-manager container images, we also publish a trust package image. For more information on what a trust package is, see the [trust-packages readme](trust-packages/README.md). This process is fully automated through GitHub Actions:
 
-1. A cron GitHub Action (`.github/workflows/trust-package-upgrade-debian-<version>.yaml`) checks for a new ca-certificates package and creates a PR updating `make/00_debian_<version>_version.mk` if an upgrade is found
+1. A cron GitHub Action (`.github/workflows/trust-package-upgrade-debian.yaml`) checks for a new ca-certificates package and creates a PR updating `make/00_debian_<version>_version.mk` if an upgrade is found
 2. When `make/00_debian_<version>_version.mk` is changed in a PR, a different GitHub Action (`.github/workflows/trust-package-release-debian-<version>.yaml`) will build and release the container image.
 
 ## Artifacts
