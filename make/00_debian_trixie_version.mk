@@ -17,5 +17,5 @@
 # This file is used to store the latest version of the debian trust package and the DEBIAN_TRIXIE_BUNDLE_VERSION
 # variable is automatically updated by the `upgrade-debian-trixie-trust-package-version` target and cron GH action.
 
-DEBIAN_TRIXIE_BUNDLE_VERSION := 20250419.1
+DEBIAN_TRIXIE_BUNDLE_VERSION := 20250419.2
 DEBIAN_TRIXIE_BUNDLE_SOURCE_IMAGE=docker.io/library/debian:13-slim
