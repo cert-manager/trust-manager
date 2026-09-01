@@ -136,7 +136,12 @@ $CTR run --rm --mount type=bind,source="$TMP_DIR",target=/workdir "$DEBIAN_SOURC
 installed_version=$(cat "$TMP_DIR/version.txt")
 version_suffix=".0"
 
-if [[ "$ACTION" == "latest" && "$installed_version" == "$target_ca_certificates_version" ]]; then
+# Reuse the target suffix whenever the installed base version matches the target,
+# so that in "exact" mode (release builds) the version embedded in the package
+# matches the image tag. In "exact" mode apt installs exactly the target base
+# version, so the suffix is always reused; in "latest" mode a newer base version
+# resets the suffix to ".0" as before.
+if [[ "$installed_version" == "$target_ca_certificates_version" ]]; then
 	version_suffix=".${TARGET_DEBIAN_BUNDLE_VERSION##*.}"
 	echo "+++ installed version matches target version; reusing the current suffix '$version_suffix'"
 fi
