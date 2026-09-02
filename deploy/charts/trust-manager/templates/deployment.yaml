@@ -82,6 +82,9 @@ spec:
           {{- with .Values.app.cipherSuites }}
           - "--tls-cipher-suites={{.}}"
           {{- end }}
+          {{- with .Values.app.curvePreferences }}
+          - "--tls-curve-preferences={{.}}"
+          {{- end }}
           - "--log-format={{.Values.app.logFormat}}"
           - "--log-level={{.Values.app.logLevel}}"
           - "--metrics-port={{.Values.app.metrics.port}}"

@@ -459,7 +459,14 @@ Minimum TLS version supported. If omitted, the default Go minimum version will b
 > ""
 > ```
 
-Comma-separated list of cipher suites for the server. If omitted, the default Go cipher suites will be used.
+Comma-separated list of cipher suites for the webhook server. If omitted, the default Go cipher suites will be used. Only affects TLS 1.2; TLS 1.3 cipher suites are not configurable in Go. Acceptable names match Kubernetes component-base (same as kube-apiserver --tls-cipher-suites); see [TLSCipherPossibleValues](https://pkg.go.dev/k8s.io/component-base/cli/flag#TLSCipherPossibleValues). Some listed values are considered insecure — prefer [PreferredTLSCipherNames](https://pkg.go.dev/k8s.io/component-base/cli/flag#PreferredTLSCipherNames).
+#### **app.curvePreferences** ~ `string`
+> Default value:
+> ```yaml
+> ""
+> ```
+
+Comma-separated list of numeric Go crypto/tls CurveID values for the webhook server (for example 23,29 for P-256 and X25519). Applies to TLS 1.2 and TLS 1.3 key exchange. Unlike cipherSuites, this still takes effect when the webhook is TLS 1.3-only. The order of the list is ignored. If omitted, the default Go curves will be used. See https://pkg.go.dev/crypto/tls#CurveID.
 #### **app.logFormat** ~ `string`
 > Default value:
 > ```yaml

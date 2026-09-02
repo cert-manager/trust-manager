@@ -93,8 +93,22 @@ type TLSConfig struct {
 
 	// CipherSuites is the list of allowed cipher suites for the webhook server.
 	// Values are from tls package constants (https://golang.org/pkg/crypto/tls/#pkg-constants).
+	// Only affects TLS 1.2; TLS 1.3 cipher suites are not configurable in Go.
 	// If not specified, the default for the Go version will be used and may change over time.
 	CipherSuites []string
+
+	// CurvePreferences is the list of allowed TLS key-exchange groups for the
+	// webhook server, specified as numeric Go crypto/tls CurveID values.
+	//
+	// The name and value format match Kubernetes --tls-curve-preferences
+	// (k8s.io/component-base/cli/flag.TLSCurvePreferences). The name refers to
+	// elliptic curves for legacy reasons; the field also covers newer groups
+	// such as hybrid post-quantum KEMs. The order of the list is ignored; Go
+	// selects from the set using its own preference order.
+	// Applies to TLS 1.2 and TLS 1.3; unlike CipherSuites, this is still
+	// effective when the webhook is TLS 1.3-only.
+	// If not specified, the default for the Go version will be used and may change over time.
+	CurvePreferences []int32
 }
 
 type logOptions struct {
@@ -299,7 +313,21 @@ func (o *Options) addTLSConfigFlags(fs *pflag.FlagSet) {
 	fs.StringSliceVar(&o.TLSConfig.CipherSuites,
 		"tls-cipher-suites", nil,
 		"Comma-separated list of cipher suites for the webhook server. "+
-			"If omitted, the default Go cipher suites will be used. \n"+
+			"If omitted, the default Go cipher suites will be used. "+
+			"Only affects TLS 1.2; TLS 1.3 cipher suites are not configurable in Go. \n"+
 			"Preferred values: "+strings.Join(tlsCipherPreferredValues, ", ")+". \n"+
 			"Insecure values: "+strings.Join(tlsCipherInsecureValues, ", ")+".")
+
+	// Numeric CurveIDs (not names) keep this flag aligned with kube-apiserver
+	// and cliflag.TLSCurvePreferences. Example: 23=P-256, 29=X25519.
+	fs.Int32SliceVar(&o.TLSConfig.CurvePreferences,
+		"tls-curve-preferences", nil,
+		"Comma-separated list of numeric Go crypto/tls CurveID values, "+
+			"as the allowed key exchange mechanisms for the webhook server. "+
+			"Applies to TLS 1.2 and TLS 1.3. "+
+			"The supported values depend on the Go version used. "+
+			"See https://pkg.go.dev/crypto/tls#CurveID for values supported for each Go version. "+
+			"The order of the list is ignored, and key exchange mechanisms are chosen "+
+			"by Go from this list using an internal preference order. "+
+			"If omitted, the default Go curves will be used.")
 }
