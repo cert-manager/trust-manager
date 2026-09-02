@@ -101,7 +101,8 @@ type TLSConfig struct {
 	// webhook server, specified as numeric Go crypto/tls CurveID values.
 	//
 	// The name and value format match Kubernetes --tls-curve-preferences
-	// (k8s.io/component-base/cli/flag.TLSCurvePreferences). The name refers to
+	// (https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/).
+	// The name refers to
 	// elliptic curves for legacy reasons; the field also covers newer groups
 	// such as hybrid post-quantum KEMs. The order of the list is ignored; Go
 	// selects from the set using its own preference order.
