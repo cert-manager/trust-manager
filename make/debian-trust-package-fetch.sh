@@ -143,7 +143,7 @@ version_suffix=".0"
 # resets the suffix to ".0" as before.
 if [[ "$installed_version" == "$target_ca_certificates_version" ]]; then
 	version_suffix=".${TARGET_DEBIAN_BUNDLE_VERSION##*.}"
-	echo "+++ installed version matches target version; reusing the current suffix '$version_suffix'"
+	echo "+++ installed version matches the target base version; reusing the target suffix '$version_suffix'"
 fi
 
 echo "{}" | jq \
