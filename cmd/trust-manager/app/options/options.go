@@ -87,12 +87,12 @@ type Options struct {
 
 type TLSConfig struct {
 	// MinVersion is the minimum TLS version supported.
-	// Values are from tls package constants (https://golang.org/pkg/crypto/tls/#pkg-constants).
+	// Values are from tls package constants (https://pkg.go.dev/crypto/tls#pkg-constants).
 	// If not specified, the default for the Go version will be used and may change over time.
 	MinVersion string
 
 	// CipherSuites is the list of allowed cipher suites for the webhook server.
-	// Values are from tls package constants (https://golang.org/pkg/crypto/tls/#pkg-constants).
+	// Values are from tls package constants (https://pkg.go.dev/crypto/tls#pkg-constants).
 	// Only affects TLS 1.2; TLS 1.3 cipher suites are not configurable in Go.
 	// If not specified, the default for the Go version will be used and may change over time.
 	CipherSuites []string
