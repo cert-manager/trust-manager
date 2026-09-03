@@ -126,6 +126,9 @@ func NewCommand() *cobra.Command {
 	return cmd
 }
 
+// GetTLSOptions builds controller-runtime TLSOpts for the webhook server from
+// CLI/Helm TLS settings. Omitted fields are left unset so crypto/tls uses the
+// Go runtime defaults for that field.
 func GetTLSOptions(config options.TLSConfig) ([]func(*tls.Config), error) {
 	var tlsOptions []func(config *tls.Config)
 
@@ -146,6 +149,19 @@ func GetTLSOptions(config options.TLSConfig) ([]func(*tls.Config), error) {
 		}
 		tlsOptions = append(tlsOptions, func(cfg *tls.Config) {
 			cfg.CipherSuites = suites
+		})
+	}
+
+	// Apply an explicit key-exchange allow-list when provided. An empty list is
+	// left unset so crypto/tls keeps the Go runtime defaults, which can change
+	// between Go versions (for example when hybrid post-quantum groups are added).
+	if len(config.CurvePreferences) > 0 {
+		curves, err := cliflag.TLSCurvePreferences(config.CurvePreferences)
+		if err != nil {
+			return nil, err
+		}
+		tlsOptions = append(tlsOptions, func(cfg *tls.Config) {
+			cfg.CurvePreferences = curves
 		})
 	}
 
