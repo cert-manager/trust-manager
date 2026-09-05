@@ -22,7 +22,7 @@ package v1alpha1
 //
 // JKS specifies additional target JKS files
 type JKSApplyConfiguration struct {
-	KeySelectorApplyConfiguration `json:",inline"`
+	KeySelectorApplyConfiguration `json:""`
 	// password for JKS trust store
 	Password *string `json:"password,omitempty"`
 }

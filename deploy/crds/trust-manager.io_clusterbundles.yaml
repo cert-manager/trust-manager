@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.21.0
+    controller-gen.kubebuilder.io/version: v0.22.0
   name: clusterbundles.trust-manager.io
 spec:
   group: trust-manager.io
@@ -168,8 +168,7 @@ spec:
                   x-kubernetes-validations:
                   - message: exactly one of the fields in [name selector] must be
                       set
-                    rule: '[has(self.name),has(self.selector)].filter(x,x==true).size()
-                      == 1'
+                    rule: (has(self.name)?1:0)+(has(self.selector)?1:0) == 1
                 maxItems: 100
                 minItems: 0
                 type: array
@@ -441,8 +440,7 @@ spec:
                 x-kubernetes-validations:
                 - message: at least one of the fields in [configMap secret] must be
                     set
-                  rule: '[has(self.configMap),has(self.secret)].filter(x,x==true).size()
-                    >= 1'
+                  rule: has(self.configMap)||has(self.secret)
             type: object
           status:
             description: status of the ClusterBundle. This is set and managed automatically.

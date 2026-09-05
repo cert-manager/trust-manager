@@ -33,7 +33,7 @@ type TargetKeyValueApplyConfiguration struct {
 	Format *trustmanagerv1alpha2.BundleFormat `json:"format,omitempty"`
 	// PKCS12 specifies configs for PKCS#12 files.
 	// May only be used when format is PKCS12.
-	PKCS12ApplyConfiguration `json:",inline"`
+	PKCS12ApplyConfiguration `json:""`
 }
 
 // TargetKeyValueApplyConfiguration constructs a declarative configuration of the TargetKeyValue type for use with
