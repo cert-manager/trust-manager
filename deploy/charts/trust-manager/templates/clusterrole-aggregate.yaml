@@ -21,5 +21,10 @@ rules:
   resources:
   - "bundles"
   verbs: ["get", "list", "watch"]
+- apiGroups:
+  - "trust-manager.io"
+  resources:
+  - "clusterbundles"
+  verbs: ["get", "list", "watch"]
 {{- end }}
 {{- end }}
