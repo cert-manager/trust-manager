@@ -27,7 +27,7 @@ import (
 // BundleSourceRef is a reference to source resource(s) whose data will be appended and synced into
 // the bundle target resources.
 type BundleSourceRefApplyConfiguration struct {
-	SourceReferenceApplyConfiguration `json:",inline"`
+	SourceReferenceApplyConfiguration `json:""`
 	// key specifies one or more keys in the object's data field to be used.
 	// The "*" wildcard matches any sequence of characters within a key.
 	// A value of "*" matches all entries in the data field.
