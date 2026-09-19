@@ -321,7 +321,7 @@ Additional volume mounts to add to the trust-manager container.
 > false
 > ```
 
-If set to true, enable writing trust bundles to Kubernetes Secrets as a target. trust-manager can only write to secrets which are explicitly allowed via either authorizedSecrets or authorizedSecretsAll. Note that enabling secret targets will grant trust-manager read access to all secrets in the cluster.
+If set to true, enable writing trust bundles to Kubernetes Secrets as a target. Enabling secret targets comes at an RBAC cost: trust-manager is granted read access to all secrets in the cluster, and permission to create a Secret under any name (see authorizedSecrets below).
 #### **secretTargets.authorizedSecretsAll** ~ `bool`
 > Default value:
 > ```yaml
@@ -336,7 +336,7 @@ If set, ignores the authorizedSecrets list.
 > []
 > ```
 
-A list of secret names which trust-manager will be permitted to read and write across all namespaces. These are the only allowable Secrets that can be used as targets. If the list is empty (and authorizedSecretsAll is false), trust-manager can't write to secrets and can only read secrets in the trust namespace for use as sources.
+A list of secret names which trust-manager will be permitted to read and write across all namespaces. Modifying and deleting are restricted to these names, but creating is not: Kubernetes RBAC's resourceNames field has no effect on the create verb, because the API server does not know the object's name at authorization time. Enabling secret targets therefore also allows trust-manager to create a Secret under any name, in any namespace the rule covers. If the list is empty (and authorizedSecretsAll is false), trust-manager can't write to secrets and can only read secrets in the trust namespace for use as sources.
 #### **resources** ~ `object`
 > Default value:
 > ```yaml
