@@ -6,33 +6,28 @@ release:
   namespace: trust
 tests:
   - it: default — renders the cluster-view (read) aggregated role
+    documentIndex: 0
     asserts:
       - hasDocuments:
           count: 1
+
       - equal:
           path: metadata.name
           value: trust-manager-cluster-view
-        documentIndex: 0
+
       - equal:
           path: metadata.labels["rbac.authorization.k8s.io/aggregate-to-cluster-reader"]
           value: "true"
-        documentIndex: 0
+
       - equal:
-          path: rules[0].verbs
-          value: ["get", "list", "watch"]
-        documentIndex: 0
-      - equal:
-          path: rules[0].apiGroups
-          value: ["trust.cert-manager.io"]
-        documentIndex: 0
-      - equal:
-          path: rules[0].resources
-          value: ["bundles"]
-        documentIndex: 0
-      - lengthEqual:
           path: rules
-          count: 1
-        documentIndex: 0
+          value:
+            - verbs: ["get", "list", "watch"]
+              apiGroups: ["trust.cert-manager.io"]
+              resources: ["bundles"]
+            - verbs: ["get", "list", "watch"]
+              apiGroups: ["trust-manager.io"]
+              resources: ["clusterbundles"]
 
   - it: global.rbac.aggregateClusterRoles=false suppresses the role
     set:

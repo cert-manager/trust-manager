@@ -23,21 +23,21 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 )
 
 type bundleStatusApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Status                           *trustapi.BundleStatus `json:"status,omitempty"`
+	Status                           *trustmanagerapi.BundleStatus `json:"status,omitempty"`
 }
 
 func GenerateBundleStatusPatch(
 	name string,
-	status *trustapi.BundleStatus,
-) (*trustapi.Bundle, client.Patch, error) {
+	status *trustmanagerapi.BundleStatus,
+) (*trustmanagerapi.ClusterBundle, client.Patch, error) {
 	// This object is used to deduce the name & namespace + unmarshall the return value in
-	bundle := &trustapi.Bundle{
+	bundle := &trustmanagerapi.ClusterBundle{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
 	}
 
@@ -46,8 +46,8 @@ func GenerateBundleStatusPatch(
 		ObjectMetaApplyConfiguration: &v1.ObjectMetaApplyConfiguration{},
 	}
 	b.WithName(name)
-	b.WithKind(trustapi.BundleKind)
-	b.WithAPIVersion(trustapi.SchemeGroupVersion.Identifier())
+	b.WithKind(trustmanagerapi.ClusterBundleKind)
+	b.WithAPIVersion(trustmanagerapi.SchemeGroupVersion.Identifier())
 	b.Status = status
 
 	encodedPatch, err := json.Marshal(b)
