@@ -150,11 +150,19 @@ Namespaced resources rules
   resources:
   - "secrets"
   verbs: ["get","list","watch"]
+# "create" is granted without resourceNames on purpose: Kubernetes RBAC cannot restrict create by
+# name, because the API server does not know the object's name at authorization time. Keeping it in
+# its own rule makes that visible instead of implying the allow-list below also bounds creation.
 - apiGroups:
   - ""
   resources:
   - "secrets"
-  verbs: ["create","patch","delete"]
+  verbs: ["create"]
+- apiGroups:
+  - ""
+  resources:
+  - "secrets"
+  verbs: ["patch","delete"]
   resourceNames:
 {{ toYaml .Values.secretTargets.authorizedSecrets | nindent 4 }}
   {{- end }}
