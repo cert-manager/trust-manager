@@ -565,7 +565,7 @@
     },
     "helm-values.commonLabels": {
       "default": {},
-      "description": "Labels to apply to all resources.\nOn a key collision these win over the chart's own labels, with two exceptions: the \"app\" label on the trust-manager Pods, and the \"app\" and\n\"app.kubernetes.io/component\" labels on the metrics Service. Those are\nmatched by selectors, so they cannot be overridden there. They are still applied to every other resource.",
+      "description": "Labels to apply to all resources.\nOn a key collision these win over the chart's own labels, except where something selects on the label and overriding it would break that selection:\n\"app\" on the trust-manager Pods, \"app\" and \"app.kubernetes.io/component\" on\nthe metrics Service, \"prometheus\" on the ServiceMonitor, and\n\"rbac.authorization.k8s.io/aggregate-to-cluster-reader\" on the aggregated\nClusterRole. Those keep the chart's value on the resource in question, and are still applied from commonLabels to every other resource.",
       "type": "object"
     },
     "helm-values.crds": {

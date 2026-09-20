@@ -5,6 +5,7 @@ templates:
   - templates/poddisruptionbudget.yaml
   - templates/metrics-service.yaml
   - templates/metrics-servicemonitor.yaml
+  - templates/clusterrole-aggregate.yaml
 release:
   name: tm
   namespace: trust
@@ -139,3 +140,32 @@ tests:
           path: spec.selector.matchLabels.app
           value: trust-manager
         template: templates/poddisruptionbudget.yaml
+
+  - it: commonLabels cannot change the ClusterRole aggregation label
+    set:
+      global:
+        rbac:
+          aggregateClusterRoles: true
+      commonLabels:
+        rbac.authorization.k8s.io/aggregate-to-cluster-reader: "false"
+    asserts:
+      # Before this was merged, the key was emitted twice and the document
+      # failed to decode. Overriding it would drop Bundle read access from
+      # the built-in cluster-reader ClusterRole.
+      - equal:
+          path: metadata.labels["rbac.authorization.k8s.io/aggregate-to-cluster-reader"]
+          value: "true"
+        template: templates/clusterrole-aggregate.yaml
+
+  - it: commonLabels still reach the aggregated ClusterRole
+    set:
+      global:
+        rbac:
+          aggregateClusterRoles: true
+      commonLabels:
+        team: platform
+    asserts:
+      - equal:
+          path: metadata.labels.team
+          value: platform
+        template: templates/clusterrole-aggregate.yaml

@@ -773,9 +773,11 @@ This configures the maximum unavailable pods for disruptions. It can either be s
 > ```
 
 Labels to apply to all resources.  
-On a key collision these win over the chart's own labels, with two exceptions: the "app" label on the trust-manager Pods, and the "app" and  
-"app.kubernetes.io/component" labels on the metrics Service. Those are  
-matched by selectors, so they cannot be overridden there. They are still applied to every other resource.
+On a key collision these win over the chart's own labels, except where something selects on the label and overriding it would break that selection:  
+"app" on the trust-manager Pods, "app" and "app.kubernetes.io/component" on  
+the metrics Service, "prometheus" on the ServiceMonitor, and  
+"rbac.authorization.k8s.io/aggregate-to-cluster-reader" on the aggregated  
+ClusterRole. Those keep the chart's value on the resource in question, and are still applied from commonLabels to every other resource.
 #### **commonAnnotations** ~ `object`
 > Default value:
 > ```yaml
