@@ -28,11 +28,23 @@ spec:
         {{- end }}
       {{- end }}
       labels:
-        app: {{ include "trust-manager.name" . }}
-        {{- include "trust-manager.labels" . | nindent 8 }}
-        {{- with .Values.app.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+        {{- /*
+          Merged as one map so no key can be emitted twice. Sources are listed
+          lowest precedence first, so .Values.app.podLabels wins over
+          .Values.commonLabels, and "app" wins over both: the Deployment,
+          PodDisruptionBudget, metrics Service and webhook Service selectors
+          all match on it, and a pod template that does not match the
+          Deployment's own selector is rejected by the API server.
+
+          mergeOverwrite, not merge: merge skips empty source values, so an
+          intentionally empty podLabels value would lose to commonLabels.
+        */}}
+        {{- $podLabels := mergeOverwrite
+              (include "trust-manager.labels" . | fromYaml)
+              (.Values.app.podLabels | default dict)
+              (dict "app" (include "trust-manager.name" .))
+        -}}
+        {{- toYaml $podLabels | nindent 8 }}
     spec:
       serviceAccountName: {{ include "trust-manager.serviceAccountName" . }}
       {{- if hasKey .Values "automountServiceAccountToken" }}

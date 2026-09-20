@@ -5,8 +5,7 @@ metadata:
   name: {{ include "trust-manager.name" . }}
   namespace: {{ include "trust-manager.namespace" . }}
   labels:
-    app: {{ include "trust-manager.name" . }}
-    {{- include "trust-manager.labels" . | nindent 4 }}
+    {{- include "trust-manager.labelsWithApp" . | nindent 4 }}
   {{- with .Values.commonAnnotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
