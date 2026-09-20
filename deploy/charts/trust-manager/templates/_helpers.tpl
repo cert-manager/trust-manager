@@ -150,19 +150,18 @@ Namespaced resources rules
   resources:
   - "secrets"
   verbs: ["get","list","watch"]
-# "create" is granted without resourceNames on purpose: Kubernetes RBAC cannot restrict create by
-# name, because the API server does not know the object's name at authorization time. Keeping it in
-# its own rule makes that visible instead of implying the allow-list below also bounds creation.
+{{- /*
+  "create" is listed here for parity with the authorizedSecretsAll rule, but Kubernetes RBAC
+  ignores resourceNames for create: the API server does not know the object's name at
+  authorization time, so this rule authorizes patch and delete on the named Secrets only.
+  A target Secret must therefore already exist under one of these names. Granting create would
+  mean granting it for every name, which is what authorizedSecretsAll does.
+*/ -}}
 - apiGroups:
   - ""
   resources:
   - "secrets"
-  verbs: ["create"]
-- apiGroups:
-  - ""
-  resources:
-  - "secrets"
-  verbs: ["patch","delete"]
+  verbs: ["create","patch","delete"]
   resourceNames:
 {{ toYaml .Values.secretTargets.authorizedSecrets | nindent 4 }}
   {{- end }}

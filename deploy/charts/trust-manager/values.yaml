@@ -207,17 +207,19 @@ volumeMounts: []
 
 secretTargets:
   # If set to true, enable writing trust bundles to Kubernetes Secrets as a target.
-  # Enabling secret targets comes at an RBAC cost: trust-manager is granted read access to all secrets
-  # in the cluster, and permission to create a Secret under any name (see authorizedSecrets below).
+  # Enabling this alone changes no RBAC: the Secret rules are emitted only once authorizedSecrets or
+  # authorizedSecretsAll is configured. Once one of them is, trust-manager is granted read access to
+  # all Secrets in the cluster.
   enabled: false
   # If set to true, grant read/write permission to all secrets across the cluster. Use with caution!
   # If set, ignores the authorizedSecrets list.
   authorizedSecretsAll: false
   # A list of secret names which trust-manager will be permitted to read and write across all namespaces.
-  # Modifying and deleting are restricted to these names, but creating is not: Kubernetes RBAC's resourceNames
-  # field has no effect on the create verb, because the API server does not know the object's name at
-  # authorization time. Enabling secret targets therefore also allows trust-manager to create a Secret under
-  # any name, in any namespace the rule covers. If the list is empty (and authorizedSecretsAll is false),
+  # Patching and deleting are restricted to these names. Creating is not granted at all on this path:
+  # Kubernetes RBAC ignores resourceNames for the create verb, because the API server does not know the
+  # object's name at authorization time, so the create entry in that rule never matches. A target Secret
+  # must already exist under one of these names; use authorizedSecretsAll if trust-manager needs to
+  # create them, which grants create for every name. If the list is empty (and authorizedSecretsAll is false),
   # trust-manager can't write to secrets and can only read secrets in the trust namespace for use as sources.
   authorizedSecrets: []
 
