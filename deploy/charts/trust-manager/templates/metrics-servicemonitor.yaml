@@ -5,12 +5,19 @@ metadata:
   name: {{ include "trust-manager.name" . }}
   namespace: {{ include "trust-manager.namespace" . }}
   labels:
-    app: {{ include "trust-manager.name" . }}
-    {{- include "trust-manager.labels" . | nindent 4 }}
-    prometheus: {{ .Values.app.metrics.service.servicemonitor.prometheusInstance }}
-    {{- with .Values.app.metrics.service.servicemonitor.labels }}
-    {{- toYaml . | nindent 4 }}
-    {{- end }}
+    {{- /*
+      Merged as one map so no key can be emitted twice, keeping the precedence
+      the concatenated form had: "app" stays overridable, while the prometheus
+      instance label and .Values.app.metrics.service.servicemonitor.labels
+      still win over .Values.commonLabels.
+    */}}
+    {{- $labels := mergeOverwrite
+          (dict "app" (include "trust-manager.name" .))
+          (include "trust-manager.labels" . | fromYaml)
+          (dict "prometheus" .Values.app.metrics.service.servicemonitor.prometheusInstance)
+          (.Values.app.metrics.service.servicemonitor.labels | default dict)
+    -}}
+    {{- toYaml $labels | nindent 4 }}
   {{- with .Values.commonAnnotations }}
   annotations:
     {{- toYaml . | nindent 4 }}

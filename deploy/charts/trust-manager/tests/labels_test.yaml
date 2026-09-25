@@ -1,0 +1,171 @@
+suite: Labels merge as a map without duplicate keys
+templates:
+  - templates/deployment.yaml
+  - templates/serviceaccount.yaml
+  - templates/poddisruptionbudget.yaml
+  - templates/metrics-service.yaml
+  - templates/metrics-servicemonitor.yaml
+  - templates/clusterrole-aggregate.yaml
+release:
+  name: tm
+  namespace: trust
+tests:
+  - it: commonLabels wins over a chart-owned label
+    set:
+      commonLabels:
+        app.kubernetes.io/managed-by: argocd
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/managed-by"]
+          value: argocd
+        template: templates/serviceaccount.yaml
+
+  - it: label keys that YAML 1.1 would read as booleans stay strings
+    set:
+      commonLabels:
+        "on": alpha
+        "no": beta
+    asserts:
+      - equal:
+          path: metadata.labels["on"]
+          value: alpha
+        template: templates/serviceaccount.yaml
+      - equal:
+          path: metadata.labels["no"]
+          value: beta
+        template: templates/serviceaccount.yaml
+
+  - it: the pod template keeps the selector's app label, whatever commonLabels and podLabels say
+    set:
+      commonLabels:
+        app: from-common
+      app:
+        podLabels:
+          app: from-pod
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels.app
+          value: trust-manager
+        template: templates/deployment.yaml
+      - equal:
+          path: spec.template.metadata.labels.app
+          value: trust-manager
+        template: templates/deployment.yaml
+
+  - it: podLabels wins over commonLabels, even when its value is empty
+    set:
+      commonLabels:
+        tier: db
+        empties: from-common
+      app:
+        podLabels:
+          tier: web
+          empties: ""
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.tier
+          value: web
+        template: templates/deployment.yaml
+      - equal:
+          path: spec.template.metadata.labels.empties
+          value: ""
+        template: templates/deployment.yaml
+
+  - it: the metrics Service keeps the labels the ServiceMonitor selects on
+    set:
+      commonLabels:
+        app: from-common
+        app.kubernetes.io/component: from-common
+      app:
+        metrics:
+          service:
+            enabled: true
+            servicemonitor:
+              enabled: true
+              prometheusInstance: default
+    asserts:
+      - equal:
+          path: metadata.labels.app
+          value: trust-manager
+        template: templates/metrics-service.yaml
+      - equal:
+          path: metadata.labels["app.kubernetes.io/component"]
+          value: metrics
+        template: templates/metrics-service.yaml
+      - equal:
+          path: spec.selector.matchLabels.app
+          value: trust-manager
+        template: templates/metrics-servicemonitor.yaml
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/component"]
+          value: metrics
+        template: templates/metrics-servicemonitor.yaml
+
+  - it: servicemonitor.labels and the prometheus label still win over commonLabels
+    set:
+      commonLabels:
+        team: from-common
+        prometheus: from-common
+      app:
+        metrics:
+          service:
+            enabled: true
+            servicemonitor:
+              enabled: true
+              prometheusInstance: default
+              labels:
+                team: from-servicemonitor
+    asserts:
+      - equal:
+          path: metadata.labels.team
+          value: from-servicemonitor
+        template: templates/metrics-servicemonitor.yaml
+      - equal:
+          path: metadata.labels.prometheus
+          value: default
+        template: templates/metrics-servicemonitor.yaml
+
+  - it: app stays overridable on resources no selector matches by it
+    set:
+      podDisruptionBudget:
+        enabled: true
+      commonLabels:
+        app: from-common
+    asserts:
+      - equal:
+          path: metadata.labels.app
+          value: from-common
+        template: templates/poddisruptionbudget.yaml
+      - equal:
+          path: spec.selector.matchLabels.app
+          value: trust-manager
+        template: templates/poddisruptionbudget.yaml
+
+  - it: commonLabels cannot change the ClusterRole aggregation label
+    set:
+      global:
+        rbac:
+          aggregateClusterRoles: true
+      commonLabels:
+        rbac.authorization.k8s.io/aggregate-to-cluster-reader: "false"
+    asserts:
+      # Before this was merged, the key was emitted twice and the document
+      # failed to decode. Overriding it would drop Bundle read access from
+      # the built-in cluster-reader ClusterRole.
+      - equal:
+          path: metadata.labels["rbac.authorization.k8s.io/aggregate-to-cluster-reader"]
+          value: "true"
+        template: templates/clusterrole-aggregate.yaml
+
+  - it: commonLabels still reach the aggregated ClusterRole
+    set:
+      global:
+        rbac:
+          aggregateClusterRoles: true
+      commonLabels:
+        team: platform
+    asserts:
+      - equal:
+          path: metadata.labels.team
+          value: platform
+        template: templates/clusterrole-aggregate.yaml

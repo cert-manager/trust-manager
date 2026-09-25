@@ -330,7 +330,7 @@
     },
     "helm-values.app.podLabels": {
       "default": {},
-      "description": "Pod labels to add to trust-manager pods.",
+      "description": "Pod labels to add to trust-manager pods.\nOn a key collision these win over commonLabels. The \"app\" label cannot be overridden, because it must match the selectors that target these Pods.",
       "type": "object"
     },
     "helm-values.app.readinessProbe": {
@@ -565,7 +565,7 @@
     },
     "helm-values.commonLabels": {
       "default": {},
-      "description": "Labels to apply to all resources",
+      "description": "Labels to apply to all resources.\nOn a key collision these win over the chart's own labels, except where something selects on the label and overriding it would break that selection:\n\"app\" on the trust-manager Pods, \"app\" and \"app.kubernetes.io/component\" on\nthe metrics Service, \"prometheus\" on the ServiceMonitor, and\n\"rbac.authorization.k8s.io/aggregate-to-cluster-reader\" on the aggregated\nClusterRole. Those keep the chart's value on the resource in question, and are still applied from commonLabels to every other resource.",
       "type": "object"
     },
     "helm-values.crds": {

@@ -5,9 +5,16 @@ metadata:
   name: {{ include "trust-manager.name" . }}-metrics
   namespace: {{ include "trust-manager.namespace" . }}
   labels:
-    app: {{ include "trust-manager.name" . }}
-    app.kubernetes.io/component: metrics
-    {{- include "trust-manager.labels" . | nindent 4 }}
+    {{- /*
+      "app" and the component label are merged in last, so .Values.commonLabels
+      cannot override them: the ServiceMonitor selects this Service on both, and
+      overriding either would silently stop metrics being scraped.
+    */}}
+    {{- $labels := mergeOverwrite
+          (include "trust-manager.labels" . | fromYaml)
+          (dict "app" (include "trust-manager.name" .) "app.kubernetes.io/component" "metrics")
+    -}}
+    {{- toYaml $labels | nindent 4 }}
   {{- with .Values.commonAnnotations }}
   annotations:
     {{- toYaml . | nindent 4 }}

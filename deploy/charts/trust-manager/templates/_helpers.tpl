@@ -15,18 +15,47 @@ Create chart name and version as used by the chart label.
 
 {{/*
 Common labels
+
+Labels are merged as a map, not concatenated as YAML text, so a key in
+.Values.commonLabels cannot produce a duplicate key. On conflict
+.Values.commonLabels wins.
+
+The "app" label is not set here. Resources that carry it merge it in
+themselves, because whether it can be overridden depends on whether a
+selector reads it.
+
+IMPORTANT: This function is standardized across all charts in the cert-manager GH organization.
+Any changes to this function should also be made in cert-manager, google-cas-issuer, approver-policy, ...
+See https://github.com/cert-manager/cert-manager/issues/9348 for a list of linked PRs.
 */}}
 {{- define "trust-manager.labels" -}}
-app.kubernetes.io/name: {{ include "trust-manager.name" . }}
-helm.sh/chart: {{ include "trust-manager.chart" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
+{{- $labels := dict
+  "app.kubernetes.io/name" (include "trust-manager.name" .)
+  "helm.sh/chart" (include "trust-manager.chart" .)
+  "app.kubernetes.io/instance" .Release.Name
+  "app.kubernetes.io/managed-by" .Release.Service
+-}}
 {{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- $labels = set $labels "app.kubernetes.io/version" .Chart.AppVersion }}
 {{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- if .Values.commonLabels}}
-{{ toYaml .Values.commonLabels }}
-{{- end }}
+{{- toYaml (mergeOverwrite $labels (.Values.commonLabels | default dict)) }}
+{{- end -}}
+
+{{/*
+Common labels plus "app", for resources that carry it but are not selected
+by it.
+
+"app" is applied at a lower precedence than the common labels, so
+.Values.commonLabels can still override it, as it could before the labels
+were merged. Resources whose "app" label IS read by a selector must not use
+this: they merge "app" in at a higher precedence instead, so that it cannot
+be overridden and leave the selector matching nothing.
+*/}}
+{{- define "trust-manager.labelsWithApp" -}}
+{{- toYaml (mergeOverwrite
+      (dict "app" (include "trust-manager.name" .))
+      (include "trust-manager.labels" . | fromYaml)
+) }}
 {{- end -}}
 
 {{/*

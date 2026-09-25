@@ -548,7 +548,8 @@ Security Context to be set on the trust-manager app container. For more informat
 > {}
 > ```
 
-Pod labels to add to trust-manager pods.
+Pod labels to add to trust-manager pods.  
+On a key collision these win over commonLabels. The "app" label cannot be overridden, because it must match the selectors that target these Pods.
 #### **app.podAnnotations** ~ `object`
 > Default value:
 > ```yaml
@@ -771,7 +772,12 @@ This configures the maximum unavailable pods for disruptions. It can either be s
 > {}
 > ```
 
-Labels to apply to all resources
+Labels to apply to all resources.  
+On a key collision these win over the chart's own labels, except where something selects on the label and overriding it would break that selection:  
+"app" on the trust-manager Pods, "app" and "app.kubernetes.io/component" on  
+the metrics Service, "prometheus" on the ServiceMonitor, and  
+"rbac.authorization.k8s.io/aggregate-to-cluster-reader" on the aggregated  
+ClusterRole. Those keep the chart's value on the resource in question, and are still applied from commonLabels to every other resource.
 #### **commonAnnotations** ~ `object`
 > Default value:
 > ```yaml
