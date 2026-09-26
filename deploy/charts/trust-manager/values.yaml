@@ -215,7 +215,7 @@ secretTargets:
   # If set to true, grant read/write permission to all secrets across the cluster. Use with caution!
   # If set, ignores the authorizedSecrets list.
   authorizedSecretsAll: false
-  # A list of secret names which trust-manager will be permitted to write (patch and delete) across all namespaces.
+  # A list of secret names which trust-manager will be permitted to write (patch and delete) within the configured scope (cluster-wide by default, or — when app.targetNamespaces is set — the target namespaces plus the trust namespace).
   # Read access is NOT limited to these names: configuring this list (or authorizedSecretsAll) grants
   # trust-manager read (get/list/watch) on all Secrets in scope (cluster-wide, or — when app.targetNamespaces
   # is set — those namespaces plus the trust namespace). Only patching and deleting are restricted to these
