@@ -698,7 +698,7 @@
     },
     "helm-values.extraObjects": {
       "default": [],
-      "description": "Extra manifests to be deployed. This is useful for deploying additional resources that are not part of the chart.\nFor example:\nextraObjects:\n - apiVersion: cilium.io/v2\n   kind: CiliumNetworkPolicy\n   metadata:\n     name: trust-manager\n     namespace: trust-manager\n   spec:\n     endpointSelector:\n       matchLabels:\n         io.cilium.k8s.policy.serviceaccount: trust-manager\n     egress:\n       - toEntities:\n           - kube-apiserver",
+      "description": "Extra manifests to deploy (resources not part of the chart). Each item may be either a YAML object or a multiline string (both support templating).\n\nFor example:\nextraObjects:\n  - apiVersion: cilium.io/v2\n    kind: CiliumNetworkPolicy\n    metadata:\n      name: '{{ template \"trust-manager.fullname\" . }}'\n      namespace: '{{ .Release.Namespace }}'\n    spec:\n      endpointSelector:\n        matchLabels:\n          io.cilium.k8s.policy.serviceaccount: trust-manager\n      egress:\n        - toEntities:\n            - kube-apiserver\n  - |\n    apiVersion: v1\n    kind: ConfigMap\n    metadata:\n      name: '{{ template \"trust-manager.fullname\" . }}-extra-configmap'",
       "items": {},
       "type": "array"
     },

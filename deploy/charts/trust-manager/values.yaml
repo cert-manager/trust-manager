@@ -485,21 +485,28 @@ commonLabels: {}
 # Annotations to apply to all resources
 # NOTE: These annotations won't be added to the CRDs.
 commonAnnotations: {}
-# Extra manifests to be deployed. This is useful for deploying additional resources that are not part of the chart.
+# Extra manifests to deploy (resources not part of the chart). Each item may be
+# either a YAML object or a multiline string (both support templating).
+#
 # For example:
 # extraObjects:
-#  - apiVersion: cilium.io/v2
-#    kind: CiliumNetworkPolicy
-#    metadata:
-#      name: trust-manager
-#      namespace: trust-manager
-#    spec:
-#      endpointSelector:
-#        matchLabels:
-#          io.cilium.k8s.policy.serviceaccount: trust-manager
-#      egress:
-#        - toEntities:
-#            - kube-apiserver
+#   - apiVersion: cilium.io/v2
+#     kind: CiliumNetworkPolicy
+#     metadata:
+#       name: '{{ template "trust-manager.fullname" . }}'
+#       namespace: '{{ .Release.Namespace }}'
+#     spec:
+#       endpointSelector:
+#         matchLabels:
+#           io.cilium.k8s.policy.serviceaccount: trust-manager
+#       egress:
+#         - toEntities:
+#             - kube-apiserver
+#   - |
+#     apiVersion: v1
+#     kind: ConfigMap
+#     metadata:
+#       name: '{{ template "trust-manager.fullname" . }}-extra-configmap'
 extraObjects: []
 
 # Field to optionally disable installation of the chart when wrapping it as a
