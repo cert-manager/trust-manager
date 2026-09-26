@@ -909,7 +909,7 @@
     },
     "helm-values.secretTargets.authorizedSecrets": {
       "default": [],
-      "description": "A list of secret names which trust-manager will be permitted to read and write across all namespaces. These are the only allowable Secrets that can be used as targets. If the list is empty (and authorizedSecretsAll is false), trust-manager can't write to secrets and can only read secrets in the trust namespace for use as sources.",
+      "description": "A list of secret names which trust-manager will be permitted to write (patch and delete) within the configured scope (cluster-wide by default, or — when app.targetNamespaces is set — the target namespaces plus the trust namespace). Read access is NOT limited to these names: configuring this list (or authorizedSecretsAll) grants trust-manager read (get/list/watch) on all Secrets in scope (cluster-wide, or — when app.targetNamespaces is set — those namespaces plus the trust namespace). Only patching and deleting are restricted to these names. Kubernetes RBAC ignores resourceNames for the create verb, because the API server does not know the object's name at authorization time. If the list is empty (and authorizedSecretsAll is false), trust-manager can't write to secrets and can only read secrets in the trust namespace for use as sources.",
       "items": {},
       "type": "array"
     },
@@ -920,7 +920,7 @@
     },
     "helm-values.secretTargets.enabled": {
       "default": false,
-      "description": "If set to true, enable writing trust bundles to Kubernetes Secrets as a target. trust-manager can only write to secrets which are explicitly allowed via either authorizedSecrets or authorizedSecretsAll. Note that enabling secret targets will grant trust-manager read access to all secrets in the cluster.",
+      "description": "If set to true, enable writing trust bundles to Kubernetes Secrets as a target. Enabling this alone changes no RBAC: the Secret rules are emitted only once authorizedSecrets or authorizedSecretsAll is configured. Once one of them is, trust-manager is granted read access to all Secrets in scope: cluster-wide by default, or — when app.targetNamespaces is set — only in those namespaces plus the trust namespace.",
       "type": "boolean"
     },
     "helm-values.serviceAccount": {
