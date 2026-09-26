@@ -153,9 +153,7 @@ Namespaced resources rules
 {{/*
   "create" is listed here for parity with the authorizedSecretsAll rule, but Kubernetes RBAC
   ignores resourceNames for create: the API server does not know the object's name at
-  authorization time, so this rule authorizes patch and delete on the named Secrets only.
-  A target Secret must therefore already exist under one of these names. Granting create would
-  mean granting it for every name, which is what authorizedSecretsAll does.
+  authorization time. patch and delete remain restricted to the named Secrets.
 */}}
 - apiGroups:
   - ""

@@ -321,7 +321,7 @@ Additional volume mounts to add to the trust-manager container.
 > false
 > ```
 
-If set to true, enable writing trust bundles to Kubernetes Secrets as a target. Enabling this alone changes no RBAC: the Secret rules are emitted only once authorizedSecrets or authorizedSecretsAll is configured. Once one of them is, trust-manager is granted read access to all Secrets in scope: cluster-wide by default, or — when app.targetNamespaces is set — only in those namespaces plus the trust namespace (rbac-per-namespace.yaml then emits the rules as namespaced Roles).
+If set to true, enable writing trust bundles to Kubernetes Secrets as a target. Enabling this alone changes no RBAC: the Secret rules are emitted only once authorizedSecrets or authorizedSecretsAll is configured. Once one of them is, trust-manager is granted read access to all Secrets in scope: cluster-wide by default, or — when app.targetNamespaces is set — only in those namespaces plus the trust namespace.
 #### **secretTargets.authorizedSecretsAll** ~ `bool`
 > Default value:
 > ```yaml
@@ -336,7 +336,7 @@ If set, ignores the authorizedSecrets list.
 > []
 > ```
 
-A list of secret names which trust-manager will be permitted to write (patch and delete) within the configured scope (cluster-wide by default, or — when app.targetNamespaces is set — the target namespaces plus the trust namespace). Read access is NOT limited to these names: configuring this list (or authorizedSecretsAll) grants trust-manager read (get/list/watch) on all Secrets in scope (cluster-wide, or — when app.targetNamespaces is set — those namespaces plus the trust namespace). Only patching and deleting are restricted to these names. Creating is not granted at all on this path: Kubernetes RBAC ignores resourceNames for the create verb, because the API server does not know the object's name at authorization time, so the create entry in that rule never matches. A target Secret must already exist under one of these names; use authorizedSecretsAll if trust-manager needs to create them, which grants create for every name. If the list is empty (and authorizedSecretsAll is false), trust-manager can't write to secrets and can only read secrets in the trust namespace for use as sources.
+A list of secret names which trust-manager will be permitted to write (patch and delete) within the configured scope (cluster-wide by default, or — when app.targetNamespaces is set — the target namespaces plus the trust namespace). Read access is NOT limited to these names: configuring this list (or authorizedSecretsAll) grants trust-manager read (get/list/watch) on all Secrets in scope (cluster-wide, or — when app.targetNamespaces is set — those namespaces plus the trust namespace). Only patching and deleting are restricted to these names. Kubernetes RBAC ignores resourceNames for the create verb, because the API server does not know the object's name at authorization time. If the list is empty (and authorizedSecretsAll is false), trust-manager can't write to secrets and can only read secrets in the trust namespace for use as sources.
 #### **resources** ~ `object`
 > Default value:
 > ```yaml
