@@ -28,9 +28,9 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  commonName: "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc"
+  commonName: "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc.cluster.local"
   dnsNames:
-  - "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc"
+  - "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc.cluster.local"
   secretName: {{ include "trust-manager.name" . }}-tls
   secretTemplate:
     {{- include "trust-manager.webhook.secretTemplate" . | nindent 4 }}
@@ -44,6 +44,9 @@ spec:
     name: {{ include "trust-manager.name" . }}
     kind: Issuer
     group: cert-manager.io
+  usages:
+    - key encipherment
+    - server auth
 
 ---
 
