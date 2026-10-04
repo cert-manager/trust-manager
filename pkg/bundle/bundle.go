@@ -248,8 +248,8 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 			}
 
 			// Don't reconcile target for targets that are being deleted.
-			if t.GetDeletionTimestamp() != nil {
-				targetLog.V(2).WithValues("deletionTimestamp", t.GetDeletionTimestamp()).Info("skipping sync for target as it is being deleted")
+			if deletionTimestamp := t.GetDeletionTimestamp(); deletionTimestamp != nil {
+				targetLog.V(2).WithValues("deletionTimestamp", deletionTimestamp.Time).Info("skipping sync for target as it is being deleted")
 				continue
 			}
 
