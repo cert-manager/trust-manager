@@ -810,5 +810,143 @@ extraObjects:
        - toEntities:
            - kube-apiserver
 ```
+### Startup API Check
+
+#### **startupapicheck.enabled** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
+
+Enables the startup API check Job.
+#### **startupapicheck.image.registry** ~ `string`
+
+Target image registry. This value is prepended to the target image repository, if set.  
+For example:
+
+```yaml
+registry: legacy.example.io
+```
+
+Deprecated: per-component registry prefix.
+
+#### **startupapicheck.image.repository** ~ `string`
+> Default value:
+> ```yaml
+> ""
+> ```
+
+Full repository override (takes precedence over `imageRegistry`, `imageNamespace`, and `image.name`). Example: quay.io/jetstack/trust-manager-startupapicheck
+
+#### **startupapicheck.image.name** ~ `string`
+> Default value:
+> ```yaml
+> trust-manager-startupapicheck
+> ```
+
+The image name for the startupapicheck Job.  
+This is used (together with `imageRegistry` and `imageNamespace`) to construct the full image reference.
+
+#### **startupapicheck.image.tag** ~ `string`
+
+Override the image tag to deploy by setting this variable. If no value is set, the chart's appVersion is used.
+
+#### **startupapicheck.image.digest** ~ `string`
+
+Target image digest. Override any tag, if set.  
+For example:
+
+```yaml
+digest: sha256:0e072dddd1f7f8fc8909a2ca6f65e76c5f0d2fcfb8be47935ae3457e8bbceb20
+```
+
+#### **startupapicheck.image.pullPolicy** ~ `string`
+> Default value:
+> ```yaml
+> IfNotPresent
+> ```
+
+Kubernetes imagePullPolicy for the startupapicheck Job.
+#### **startupapicheck.resources** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+
+Kubernetes pod resource limits for the startupapicheck Job.  
+  
+For example:
+
+```yaml
+resources:
+  limits:
+    cpu: 10m
+    memory: 32Mi
+  requests:
+    cpu: 10m
+    memory: 32Mi
+```
+#### **startupapicheck.securityContext** ~ `object`
+> Default value:
+> ```yaml
+> allowPrivilegeEscalation: false
+> capabilities:
+>   drop:
+>     - ALL
+> readOnlyRootFilesystem: true
+> runAsNonRoot: true
+> seccompProfile:
+>   type: RuntimeDefault
+> ```
+
+Security Context to be set on the startupapicheck Job container. For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).
+
+#### **startupapicheck.nodeSelector** ~ `object`
+> Default value:
+> ```yaml
+> kubernetes.io/os: linux
+> ```
+
+Configure the nodeSelector; defaults to any Linux node.
+
+#### **startupapicheck.affinity** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+
+Kubernetes Affinity. For more information, see [Affinity v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#affinity-v1-core).
+#### **startupapicheck.tolerations** ~ `array`
+> Default value:
+> ```yaml
+> []
+> ```
+
+List of Kubernetes Tolerations. For more information, see [Toleration v1 core](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#toleration-v1-core).
+#### **startupapicheck.podLabels** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+
+Pod labels to add to the startupapicheck Job pod.
+#### **startupapicheck.podAnnotations** ~ `object`
+> Default value:
+> ```yaml
+> {}
+> ```
+
+Pod annotations to add to the startupapicheck Job pod.
+#### **startupapicheck.serviceAccount.create** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
+
+Specifies whether a service account should be created for the startupapicheck Job.
+#### **startupapicheck.serviceAccount.name** ~ `string`
+
+The name of the service account to use for the startupapicheck Job. If not set and create is true, a name is generated using the fullname template.
+
 
 <!-- /AUTO-GENERATED -->
