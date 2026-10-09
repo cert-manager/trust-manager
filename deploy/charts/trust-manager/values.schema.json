@@ -524,6 +524,12 @@
         "duration": {
           "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.duration"
         },
+        "usages": {
+          "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.usages"
+        },
+        "fqdnSuffix": {
+          "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.fqdnSuffix"
+        },
         "secretTemplate": {
           "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.secretTemplate"
         }
@@ -533,6 +539,19 @@
     "helm-values.app.webhook.tls.certificate.duration": {
       "default": "",
       "description": "Certificate duration, if unset/empty the default from cert-manager will be used. Example configuration to set 1 year: duration: 8766h",
+      "type": "string"
+    },
+    "helm-values.app.webhook.tls.certificate.usages": {
+      "default": [],
+      "description": "Certificate usages, if unset/empty the default from cert-manager will be used.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "helm-values.app.webhook.tls.certificate.fqdnSuffix": {
+      "default": "",
+      "description": "Certificate commonName/dnsNames suffix",
       "type": "string"
     },
     "helm-values.app.webhook.tls.certificate.secretTemplate": {

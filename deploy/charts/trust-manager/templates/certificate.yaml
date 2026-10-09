@@ -28,9 +28,9 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  commonName: "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc"
+  commonName: "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc{{ .Values.app.webhook.tls.certificate.fqdnSuffix }}"
   dnsNames:
-  - "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc"
+  - "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc{{ .Values.app.webhook.tls.certificate.fqdnSuffix }}"
   secretName: {{ include "trust-manager.name" . }}-tls
   secretTemplate:
     {{- include "trust-manager.webhook.secretTemplate" . | nindent 4 }}
@@ -44,6 +44,10 @@ spec:
     name: {{ include "trust-manager.name" . }}
     kind: Issuer
     group: cert-manager.io
+  {{- with .Values.app.webhook.tls.certificate.usages }}
+  usages:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 
 ---
 
@@ -62,10 +66,10 @@ metadata:
 spec:
   allowed:
     commonName:
-      value: "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc"
+      value: "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc{{ .Values.app.webhook.tls.certificate.fqdnSuffix }}"
       required: true
     dnsNames:
-      values: ["{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc"]
+      values: ["{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc{{ .Values.app.webhook.tls.certificate.fqdnSuffix }}"]
       required: true
   selector:
     issuerRef:
