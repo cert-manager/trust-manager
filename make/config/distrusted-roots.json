@@ -1,0 +1,20 @@
+{
+  "distrusted_roots": [
+    {
+      "sha256": "86A1ECBA089C4A8D3BBE2734C612BA341D813E043CF9E8A862CD5C57A36BBE6B",
+      "reason": "eMudhra 'emSign ECC Root CA - G3' (O=eMudhra Technologies Limited). Distrusted following the Mozilla dev-security-policy discussion at https://groups.google.com/a/mozilla.org/g/dev-security-policy/c/0R3XLJL6FuE. Present in Debian Bookworm and Trixie ca-certificates 20250419."
+    },
+    {
+      "sha256": "D7A7A0FB5D7E2731D771E9484EBCDEF71D5F0C3E0A2948782BC83EE0EA699EF4",
+      "reason": "Sectigo 'AAA Certificate Services' (O=Comodo CA Limited), a 2004-era SHA-1-signed RSA-2048 root expiring 2028-12-31, retained upstream only as a legacy cross-signer for USERTrust RSA. Removed from the Mozilla root store; still shipped by Debian as of ca-certificates 20250419. Present in Debian Bookworm and Trixie."
+    },
+    {
+      "sha256": "7DD78D5F4F13459A83DFF9ABBBA62EDBAF6F2D102BF257FD712F4D9F2746ED8D",
+      "reason": "eMudhra 'emSign Root TLS CA - G3' (O=eMudhra Technologies Limited). Same distrust decision as emSign ECC Root CA - G3. Not in the Mozilla root store (Microsoft only), so it does not match anything in a Debian bundle today; listed defensively in case Debian ever picks it up."
+    },
+    {
+      "sha256": "F2EDAAFF3D9B701FB4D14C9F285F8C0BAD90FC3BCC1FA07D47F4718EDABA34A5",
+      "reason": "eMudhra 'emSign Root CS CA - G3' (O=eMudhra Technologies Limited), a code-signing root. Same distrust decision as emSign ECC Root CA - G3. Not in the Mozilla root store (Microsoft only), so it does not match anything in a Debian bundle today; listed defensively in case Debian ever picks it up."
+    }
+  ]
+}
