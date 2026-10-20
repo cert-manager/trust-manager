@@ -36,6 +36,10 @@ import (
 	"github.com/cert-manager/trust-manager/pkg/denylist"
 )
 
+// pemBeginPrefix is the start of every PEM block's BEGIN line. It can't appear
+// anywhere else in a well-formed block, since the base64 alphabet has no "-".
+const pemBeginPrefix = "-----BEGIN "
+
 func main() {
 	if err := run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr); err != nil {
 		fmt.Fprintf(os.Stderr, "filter-trust-package: %s\n", err)
@@ -104,15 +108,28 @@ func filter(input []byte, distrusted *denylist.Denylist, report io.Writer) ([]by
 		// pem.Decode silently skips over anything which isn't a PEM block, so
 		// check for ourselves that the next thing in the input really is one.
 		// Otherwise we'd quietly drop data we were never asked to remove.
-		if !bytes.HasPrefix(rest, []byte("-----BEGIN ")) {
+		if !bytes.HasPrefix(rest, []byte(pemBeginPrefix)) {
 			return nil, fmt.Errorf("invalid bundle: found data which is not a PEM block, %d bytes from the end of the input", len(rest))
 		}
 
 		var block *pem.Block
 
-		block, rest = pem.Decode(rest)
+		undecoded := rest
+
+		block, rest = pem.Decode(undecoded)
 		if block == nil {
-			return nil, fmt.Errorf("invalid bundle: failed to decode a PEM block, %d bytes from the end of the input", len(rest))
+			return nil, fmt.Errorf("invalid bundle: failed to decode a PEM block, %d bytes from the end of the input", len(undecoded))
+		}
+
+		// The prefix check above isn't enough on its own: a block whose base64
+		// body is corrupt also starts with a BEGIN line, and pem.Decode skips
+		// over it to return the next block which does decode. We know the input
+		// started with a BEGIN line, so if the bytes pem.Decode consumed hold
+		// more than one then it skipped at least one malformed block, and we'd
+		// be dropping a certificate we were never asked to remove. A base64
+		// body can't contain a BEGIN line itself, so counting is exact.
+		if consumed := undecoded[:len(undecoded)-len(rest)]; bytes.Count(consumed, []byte(pemBeginPrefix)) != 1 {
+			return nil, fmt.Errorf("invalid bundle: found a malformed PEM block which would have been skipped, %d bytes from the end of the input", len(undecoded))
 		}
 
 		if block.Type != "CERTIFICATE" {
@@ -129,19 +146,19 @@ func filter(input []byte, distrusted *denylist.Denylist, report io.Writer) ([]by
 		// that a certificate we can't parse can still be matched and removed.
 		fingerprint := denylist.FingerprintCert(block.Bytes)
 
-		certificate, err := compat.ParseCertificate(block.Bytes)
-		if err != nil && !compat.IsSkipError(err) {
-			return nil, fmt.Errorf("invalid bundle: failed to parse certificate with fingerprint %s: %w", fingerprint, err)
-		}
-
 		if entry, found := distrusted.Lookup(fingerprint); found {
 			removed++
 
+			// Parsing is best effort for a certificate we're about to throw
+			// away: we only want it for the report, and refusing to remove an
+			// explicitly denied root because we can't parse it would leave us
+			// unable to build a clean bundle at all.
+			//
 			// Report the subject parsed from the certificate we actually
 			// removed, rather than a name copied into the denylist, since the
 			// former can't drift from reality.
 			subject := "<unparseable certificate>"
-			if certificate != nil {
+			if certificate, err := compat.ParseCertificate(block.Bytes); err == nil {
 				subject = certificate.Subject.String()
 			}
 
@@ -149,6 +166,12 @@ func filter(input []byte, distrusted *denylist.Denylist, report io.Writer) ([]by
 			fmt.Fprintf(report, "      reason: %s\n", entry.Reason)
 
 			continue
+		}
+
+		// A certificate we're keeping is one we're about to ship, so it has to
+		// parse, bar the compatibility exceptions compat knows about.
+		if _, err := compat.ParseCertificate(block.Bytes); err != nil && !compat.IsSkipError(err) {
+			return nil, fmt.Errorf("invalid bundle: failed to parse certificate with fingerprint %s: %w", fingerprint, err)
 		}
 
 		if err := pem.Encode(&output, &pem.Block{Type: "CERTIFICATE", Bytes: block.Bytes}); err != nil {

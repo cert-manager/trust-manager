@@ -32,7 +32,11 @@ debian_$(2)_package_json := $$(debian_$(2)_package_layer)/debian-package/cert-ma
 $$(debian_$(2)_package_layer)/debian-package:
 	mkdir -p $$@
 
-$$(debian_$(2)_package_json): $$(distrusted_roots_file) | $$(bin_dir)/bin/validate-trust-package $$(bin_dir)/bin/filter-trust-package $$(debian_$(2)_package_layer)/debian-package
+# The tools are real prerequisites alongside the denylist: both of them decide
+# what ends up in the package JSON, so a change to either has to regenerate it
+# rather than let an incremental OCI build reuse a bundle which was filtered
+# and validated by older code.
+$$(debian_$(2)_package_json): $$(distrusted_roots_file) $$(bin_dir)/bin/validate-trust-package $$(bin_dir)/bin/filter-trust-package | $$(debian_$(2)_package_layer)/debian-package
 	BIN_VALIDATE_TRUST_PACKAGE=$$(bin_dir)/bin/validate-trust-package \
 	BIN_FILTER_TRUST_PACKAGE=$$(bin_dir)/bin/filter-trust-package \
 	DISTRUSTED_ROOTS_FILE=$$(distrusted_roots_file) \

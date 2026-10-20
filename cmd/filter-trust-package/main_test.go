@@ -133,6 +133,46 @@ func TestFilterRemovesDenylistedCertificate(t *testing.T) {
 	}
 }
 
+// unparseableCertificatePEM is a well-formed CERTIFICATE block whose body
+// isn't valid DER, standing in for a root we can fingerprint but not parse.
+func unparseableCertificatePEM() string {
+	return string(pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: []byte("this is not a certificate"),
+	}))
+}
+
+func TestFilterRemovesDenylistedCertificateWhichCannotBeParsed(t *testing.T) {
+	unparseable := unparseableCertificatePEM()
+
+	input := bundle(dummy.TestCertificate1, unparseable)
+
+	// Matching is on the raw DER, so denying a root we can't parse must still
+	// remove it rather than abort the whole filter.
+	path := writeDenylist(t, fingerprintOf(t, unparseable))
+
+	var stdout, stderr bytes.Buffer
+
+	if err := run([]string{"--denylist", path}, strings.NewReader(input), &stdout, &stderr); err != nil {
+		t.Fatalf("expected an unparseable but denylisted certificate to be removed, got: %v", err)
+	}
+
+	got := subjects(t, stdout.Bytes())
+
+	want := subjects(t, []byte(dummy.TestCertificate1))
+	if len(got) != len(want) || got[0] != want[0] {
+		t.Errorf("expected only %v to survive, got %v", want, got)
+	}
+
+	if !strings.Contains(stderr.String(), "<unparseable certificate>") {
+		t.Errorf("expected stderr to report the removed certificate as unparseable, got:\n%s", stderr.String())
+	}
+
+	if !strings.Contains(stderr.String(), "removed 1 of 2 certificates") {
+		t.Errorf("expected 'removed 1 of 2 certificates' on stderr, got:\n%s", stderr.String())
+	}
+}
+
 func TestFilterEmptyDenylistMatchIsNotAnError(t *testing.T) {
 	input := bundle(dummy.TestCertificate1, dummy.TestCertificate2)
 
@@ -209,6 +249,22 @@ func TestFilterErrors(t *testing.T) {
 		"input is empty": {
 			args:  []string{"--denylist", writeDenylist(t, strings.Repeat("ab", 32))},
 			input: "",
+		},
+		// pem.Decode skips a block with a corrupt body and returns the next
+		// one which decodes. Dropping the malformed block would silently
+		// shrink the bundle, and final-package validation can't detect a loss
+		// it never knew about, so this has to fail the build.
+		"malformed PEM block before a valid certificate": {
+			args: []string{"--denylist", writeDenylist(t, strings.Repeat("ab", 32))},
+			input: "-----BEGIN CERTIFICATE-----\n!!! not base64 !!!\n-----END CERTIFICATE-----\n" +
+				validBundle,
+		},
+		// A certificate we're keeping is one we're about to ship, so being
+		// unable to parse it is fatal even though an identical certificate on
+		// the denylist would just be removed.
+		"retained certificate cannot be parsed": {
+			args:  []string{"--denylist", writeDenylist(t, strings.Repeat("ab", 32))},
+			input: bundle(dummy.TestCertificate1, unparseableCertificatePEM()),
 		},
 		"every certificate is removed": {
 			args: []string{"--denylist", writeDenylist(t,
