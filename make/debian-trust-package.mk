@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# The roots we strip out of every Debian bundle before shipping it. This is a
+# real prerequisite of the package JSON below, not an order-only one, so that
+# editing it rebuilds the package.
+distrusted_roots_file := make/config/distrusted-roots.json
+
 # see https://stackoverflow.com/a/53408233
 sed_inplace := sed -i''
 ifeq ($(HOST_OS),darwin)
@@ -27,8 +32,10 @@ debian_$(2)_package_json := $$(debian_$(2)_package_layer)/debian-package/cert-ma
 $$(debian_$(2)_package_layer)/debian-package:
 	mkdir -p $$@
 
-$$(debian_$(2)_package_json): | $$(bin_dir)/bin/validate-trust-package $$(debian_$(2)_package_layer)/debian-package
+$$(debian_$(2)_package_json): $$(distrusted_roots_file) | $$(bin_dir)/bin/validate-trust-package $$(bin_dir)/bin/filter-trust-package $$(debian_$(2)_package_layer)/debian-package
 	BIN_VALIDATE_TRUST_PACKAGE=$$(bin_dir)/bin/validate-trust-package \
+	BIN_FILTER_TRUST_PACKAGE=$$(bin_dir)/bin/filter-trust-package \
+	DISTRUSTED_ROOTS_FILE=$$(distrusted_roots_file) \
 		./make/debian-trust-package-fetch.sh exact $$(DEBIAN_$(1)_BUNDLE_SOURCE_IMAGE) $$@ $$(DEBIAN_$(1)_BUNDLE_VERSION) cert-manager-debian-$(2)
 
 # Make sure to build the package json file when building
@@ -38,10 +45,12 @@ oci-build-package_debian_$(2): $$(debian_$(2)_package_json)
 oci-build-package_debian_$(2)__local: $$(debian_$(2)_package_json)
 
 .PHONY: upgrade-debian-$(2)-trust-package-version
-upgrade-debian-$(2)-trust-package-version: | $$(bin_dir)/bin/validate-trust-package $$(bin_dir)/scratch
+upgrade-debian-$(2)-trust-package-version: | $$(bin_dir)/bin/validate-trust-package $$(bin_dir)/bin/filter-trust-package $$(bin_dir)/scratch
 	$$(eval temp_out := $$(bin_dir)/scratch/debian-$(2)-trust-package.temp.json)
 	rm -rf $$(temp_out)
 	BIN_VALIDATE_TRUST_PACKAGE=$$(bin_dir)/bin/validate-trust-package \
+	BIN_FILTER_TRUST_PACKAGE=$$(bin_dir)/bin/filter-trust-package \
+	DISTRUSTED_ROOTS_FILE=$$(distrusted_roots_file) \
 		./make/debian-trust-package-fetch.sh latest $$(DEBIAN_$(1)_BUNDLE_SOURCE_IMAGE) $$(temp_out) $$(DEBIAN_$(1)_BUNDLE_VERSION) cert-manager-debian-$(2)
 	latest_version=$$$$(jq -r '.version' $$(temp_out)); \
 		$(sed_inplace) "s/DEBIAN_$(1)_BUNDLE_VERSION := .*/DEBIAN_$(1)_BUNDLE_VERSION := $$$$latest_version/" make/00_debian_$(2)_version.mk

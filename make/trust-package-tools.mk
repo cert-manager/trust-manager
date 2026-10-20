@@ -15,6 +15,9 @@
 $(bin_dir)/bin:
 	mkdir -p $@
 
-$(bin_dir)/bin/validate-trust-package: cmd/validate-trust-package/*.go pkg/fspkg/*.go | $(NEEDS_GO) $(bin_dir)/bin
+$(bin_dir)/bin/validate-trust-package: cmd/validate-trust-package/*.go pkg/fspkg/*.go pkg/denylist/*.go | $(NEEDS_GO) $(bin_dir)/bin
 	$(GO) build -o $@ ./cmd/validate-trust-package
+
+$(bin_dir)/bin/filter-trust-package: cmd/filter-trust-package/*.go pkg/denylist/*.go pkg/compat/*.go | $(NEEDS_GO) $(bin_dir)/bin
+	$(GO) build -o $@ ./cmd/filter-trust-package
 

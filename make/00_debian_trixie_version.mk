@@ -16,6 +16,11 @@
 #
 # This file is used to store the latest version of the debian trust package and the DEBIAN_TRIXIE_BUNDLE_VERSION
 # variable is automatically updated by the `upgrade-debian-trixie-trust-package-version` target and cron GH action.
+#
+# The version is "<debian ca-certificates version>.<suffix>" and is also the OCI image tag. We strip the
+# roots listed in make/config/distrusted-roots.json out of the bundle we publish, so changing that file
+# changes the bundle contents WITHOUT changing the Debian version. Any such change therefore needs the
+# suffix below bumped by hand, otherwise a new bundle would be published under an already-released tag.
 
-DEBIAN_TRIXIE_BUNDLE_VERSION := 20250419.2
+DEBIAN_TRIXIE_BUNDLE_VERSION := 20250419.3
 DEBIAN_TRIXIE_BUNDLE_SOURCE_IMAGE=docker.io/library/debian:13-slim

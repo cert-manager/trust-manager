@@ -32,7 +32,7 @@ smoke:
 	$(MAKE) test-integration
 	$(MAKE) test-smoke
 
-include make/validate-trust-package.mk
+include make/trust-package-tools.mk
 include make/debian-trust-package.mk
 
 .PHONY: prerelease-scan

@@ -60,6 +60,30 @@ As well as the trust-manager container images, we also publish a trust package i
 1. A cron GitHub Action (`.github/workflows/trust-package-upgrade-debian.yaml`) checks for a new ca-certificates package and creates a PR updating `make/00_debian_<version>_version.mk` if an upgrade is found
 2. When `make/00_debian_<version>_version.mk` is changed in a PR, a different GitHub Action (`.github/workflows/trust-package-release-debian-<version>.yaml`) will build and release the container image.
 
+#### Distrusted roots
+
+The Debian trust packages are not byte-for-byte copies of Debian's bundle: the roots listed in
+`make/config/distrusted-roots.json` are stripped out at build time. See the
+[Debian trust package readme](trust-packages/debian/README.md) for details.
+
+Two things follow for releases:
+
+- **Changing `distrusted-roots.json` requires a manual version suffix bump** in
+  `make/00_debian_<release>_version.mk`, because the bundle contents change without the Debian
+  version changing. The suffix bump is what triggers the release workflow.
+- **Call out any change to the removed roots in the release notes.** Consumers who rely on the
+  package matching Debian exactly need to know, and the failure mode for anyone affected is an
+  opaque TLS error in their own workloads, a long way from a trust package bump.
+
+The first release to include this filtering removes `emSign ECC Root CA - G3` (eMudhra) and
+`AAA Certificate Services` (Sectigo) from both the Bookworm and Trixie packages. Removing
+`AAA Certificate Services` is the one with a tail: it's a legacy cross-signer for `USERTrust RSA`,
+which remains in the bundle, so modern path builders (Go, OpenSSL 1.1.0+, current JDK/.NET) are
+unaffected, but clients which can't terminate at a trust anchor found partway up a served chain
+(OpenSSL 1.0.2 and older, some vendored embedded stacks) may start failing to verify Sectigo chains.
+Affected users can pin the previous package image tag, or re-add the certificate via an additional
+ConfigMap or Secret source on their `Bundle`.
+
 ## Artifacts
 
 This repo will produce the following artifacts each release. For documentation on how those artifacts are produced see the "Process" section.

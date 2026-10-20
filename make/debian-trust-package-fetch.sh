@@ -27,6 +27,8 @@ set -o pipefail
 
 CTR=${CTR:-docker}
 BIN_VALIDATE_TRUST_PACKAGE=${BIN_VALIDATE_TRUST_PACKAGE:-}
+BIN_FILTER_TRUST_PACKAGE=${BIN_FILTER_TRUST_PACKAGE:-}
+DISTRUSTED_ROOTS_FILE=${DISTRUSTED_ROOTS_FILE:-make/config/distrusted-roots.json}
 
 ACTION=${1:-}
 DEBIAN_SOURCE_IMAGE=${2:-}
@@ -49,6 +51,12 @@ fi
 if [[ -z $BIN_VALIDATE_TRUST_PACKAGE ]]; then
 	print_usage
 	echo "BIN_VALIDATE_TRUST_PACKAGE must be set to the path of the validate-trust-package binary"
+	exit 1
+fi
+
+if [[ -z $BIN_FILTER_TRUST_PACKAGE ]]; then
+	print_usage
+	echo "BIN_FILTER_TRUST_PACKAGE must be set to the path of the filter-trust-package binary"
 	exit 1
 fi
 
@@ -146,11 +154,22 @@ if [[ "$installed_version" == "$target_ca_certificates_version" ]]; then
 	echo "+++ installed version matches the target base version; reusing the target suffix '$version_suffix'"
 fi
 
+# The bundle we ship is deliberately not a byte-for-byte copy of Debian's; we
+# strip the roots listed in $DISTRUSTED_ROOTS_FILE. Note that this changes the
+# bundle contents without changing the Debian version, so any change to that
+# file needs a manual suffix bump in make/00_debian_<release>_version.mk.
+echo "+++ filtering distrusted roots using $DISTRUSTED_ROOTS_FILE"
+"$BIN_FILTER_TRUST_PACKAGE" --denylist "$DISTRUSTED_ROOTS_FILE" \
+	< "$TMP_DIR/ca-certificates.crt" > "$TMP_DIR/ca-certificates.filtered.crt"
+
 echo "{}" | jq \
-	--rawfile bundle $TMP_DIR/ca-certificates.crt \
+	--rawfile bundle $TMP_DIR/ca-certificates.filtered.crt \
 	--arg name "$PACKAGE_NAME" \
 	--arg version "$installed_version$version_suffix" \
 	'.name = $name | .bundle = $bundle | .version = $version' \
 	> "$DESTINATION_FILE"
 
-${BIN_VALIDATE_TRUST_PACKAGE} < "$DESTINATION_FILE"
+# Pass the denylist here too, so that the absence of the distrusted roots is
+# enforced against exactly the bytes we're about to ship rather than against
+# the filter's own idea of what it did.
+${BIN_VALIDATE_TRUST_PACKAGE} --denylist "$DISTRUSTED_ROOTS_FILE" < "$DESTINATION_FILE"
