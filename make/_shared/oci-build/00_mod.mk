@@ -18,7 +18,7 @@ base_image_static := quay.io/jetstack/base-static@sha256:925dd97b8d8cc5a2cda58ca
 
 # Use custom apko-built image as minimal base image to package the manager binary
 # To get latest SHA run "crane digest quay.io/jetstack/base-static-csi:latest"
-base_image_csi-static := quay.io/jetstack/base-static-csi@sha256:93ce7cd00aac5b1b7c0517018cfd14178b04e9551d6078470084f9005706c06c
+base_image_csi-static := quay.io/jetstack/base-static-csi@sha256:20af22b55b05ef87aad6355836eac6afbafa22e6831a2269265418dd7549fbfb
 
 # Utility functions
 fatal_if_undefined = $(if $(findstring undefined,$(origin $1)),$(error $1 is not set))
