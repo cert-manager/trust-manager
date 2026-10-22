@@ -36,6 +36,12 @@ spec:
     {{- include "trust-manager.webhook.secretTemplate" . | nindent 4 }}
   privateKey:
     rotationPolicy: Always
+    {{- with .Values.app.webhook.tls.certificate.privateKey.algorithm }}
+    algorithm: {{ . }}
+    {{- end }}
+    {{- with .Values.app.webhook.tls.certificate.privateKey.size }}
+    size: {{ . }}
+    {{- end }}
   revisionHistoryLimit: 1
   {{- if .Values.app.webhook.tls.certificate.duration }}
   duration: {{ .Values.app.webhook.tls.certificate.duration }}
