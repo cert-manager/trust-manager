@@ -640,6 +640,20 @@ The name of cert-manager's Service Account. Only used if `app.webhook.tls.approv
 > ```
 
 Certificate duration, if unset/empty the default from cert-manager will be used. Example configuration to set 1 year: duration: 8766h
+#### **app.webhook.tls.certificate.privateKey.algorithm** ~ `string`
+> Default value:
+> ```yaml
+> ""
+> ```
+
+Private key algorithm: RSA, ECDSA or Ed25519. If unset/empty the default from cert-manager will be used.
+#### **app.webhook.tls.certificate.privateKey.size** ~ `number`
+> Default value:
+> ```yaml
+> 0
+> ```
+
+Private key size in bits for RSA (2048, 4096, 8192) or ECDSA (256, 384, 521). If unset/0 the default from cert-manager will be used.
 #### **app.webhook.tls.certificate.secretTemplate** ~ `object`
 > Default value:
 > ```yaml
