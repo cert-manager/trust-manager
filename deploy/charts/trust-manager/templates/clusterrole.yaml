@@ -36,6 +36,27 @@ rules:
   - "namespaces"
   verbs: ["get", "list", "watch"]
 
+- apiGroups:
+  - "trust-manager.io"
+  resources:
+  - "clusterbundles"
+  # The create and patch verbs are required as long as the migration controller is operating.
+  verbs: ["get", "list", "watch", "create", "patch"]
+
+# Permissions to update finalizers are required for trust-manager to work correctly
+# on OpenShift, even though we don't directly use finalizers at the time of writing
+- apiGroups:
+  - "trust-manager.io"
+  resources:
+  - "clusterbundles/finalizers"
+  verbs: ["update"]
+
+- apiGroups:
+  - "trust-manager.io"
+  resources:
+  - "clusterbundles/status"
+  verbs: ["patch"]
+
 {{- if not .Values.app.targetNamespaces }}
 {{ include "trust-manager.rbac.namespacedResourcesRules" . }}
 {{- end -}}
