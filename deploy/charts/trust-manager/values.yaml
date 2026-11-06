@@ -401,6 +401,11 @@ app:
       certificate:
         # Certificate duration, if unset/empty the default from cert-manager will be used. Example configuration to set 1 year: duration: 8766h
         duration: ""
+        privateKey:
+          # Private key algorithm: RSA, ECDSA or Ed25519. If unset/empty the default from cert-manager will be used.
+          algorithm: ""
+          # Private key size in bits for RSA (2048, 4096, 8192) or ECDSA (256, 384, 521). If unset/0 the default from cert-manager will be used.
+          size: 0
         secretTemplate: {}
           # For example:
           #   annotations:
