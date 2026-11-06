@@ -792,23 +792,29 @@ NOTE: These annotations won't be added to the CRDs.
 > []
 > ```
 
-Extra manifests to be deployed. This is useful for deploying additional resources that are not part of the chart.  
+Extra manifests to deploy (resources not part of the chart). Each item may be either a YAML object or a multiline string (both support templating).  
+  
 For example:
 
 ```yaml
 extraObjects:
- - apiVersion: cilium.io/v2
-   kind: CiliumNetworkPolicy
-   metadata:
-     name: trust-manager
-     namespace: trust-manager
-   spec:
-     endpointSelector:
-       matchLabels:
-         io.cilium.k8s.policy.serviceaccount: trust-manager
-     egress:
-       - toEntities:
-           - kube-apiserver
+  - apiVersion: cilium.io/v2
+    kind: CiliumNetworkPolicy
+    metadata:
+      name: '{{ template "trust-manager.fullname" . }}'
+      namespace: '{{ .Release.Namespace }}'
+    spec:
+      endpointSelector:
+        matchLabels:
+          io.cilium.k8s.policy.serviceaccount: trust-manager
+      egress:
+        - toEntities:
+            - kube-apiserver
+  - |
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: '{{ template "trust-manager.fullname" . }}-extra-configmap'
 ```
 
 <!-- /AUTO-GENERATED -->
