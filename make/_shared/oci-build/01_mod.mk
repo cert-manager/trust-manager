@@ -28,6 +28,11 @@ $(oci_build_targets): oci-build-%: | $(NEEDS_KO) $(NEEDS_GO) $(NEEDS_YQ) $(NEEDS
 
 	rm -rf $(CURDIR)/$(layout_path)
 
+	# Keep Go's work directories off /tmp, which on ubuntu-26.04 GitHub runners
+	# is a tmpfs with a ~7.8G quota that a multi-arch build exceeds.
+	# Why?: https://github.com/actions/runner-images/issues/14777
+	mkdir -p $(CURDIR)/$(bin_dir)/scratch/image/go_tmp
+
 	echo '{}' | \
 		$(YQ) '.defaultBaseImage = "$(oci_$a_base_image)"' | \
 		$(YQ) '.builds[0].id = "$a"' | \
@@ -45,6 +50,7 @@ $(oci_build_targets): oci-build-%: | $(NEEDS_KO) $(NEEDS_GO) $(NEEDS_YQ) $(NEEDS
 	GOWORK=off \
 	KO_DOCKER_REPO=$(oci_$a_image_name_development) \
 	KOCACHE=$(CURDIR)/$(bin_dir)/scratch/image/ko_cache \
+	GOTMPDIR=$(CURDIR)/$(bin_dir)/scratch/image/go_tmp \
 	KO_CONFIG_PATH=$(CURDIR)/$(layout_path).ko_config.yaml \
 	SOURCE_DATE_EPOCH=$(GITEPOCH) \
 	KO_GO_PATH=$(GO) \
