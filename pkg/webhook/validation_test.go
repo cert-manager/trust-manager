@@ -212,6 +212,36 @@ func Test_validate(t *testing.T) {
 				field.Forbidden(field.NewPath("spec", "sources").Index(1).Child("secret", "test-bundle", "test"), "cannot define the same source as target"),
 			},
 		},
+		"sources includes all keys of the same configMap target": {
+			bundle: &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle"},
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{InLine: "test"},
+						{ConfigMap: &trustapi.SourceObjectKeySelector{Name: "test-bundle", IncludeAllKeys: new(true)}},
+					},
+					Target: trustapi.BundleTarget{ConfigMap: &trustapi.TargetTemplate{Key: "test"}},
+				},
+			},
+			expErr: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "sources").Index(1).Child("configMap", "test-bundle", "includeAllKeys"), "cannot include all keys of the target as a source"),
+			},
+		},
+		"sources includes all keys of the same secret target": {
+			bundle: &trustapi.Bundle{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle"},
+				Spec: trustapi.BundleSpec{
+					Sources: []trustapi.BundleSource{
+						{InLine: "test"},
+						{Secret: &trustapi.SourceObjectKeySelector{Name: "test-bundle", IncludeAllKeys: new(true)}},
+					},
+					Target: trustapi.BundleTarget{Secret: &trustapi.TargetTemplate{Key: "test"}},
+				},
+			},
+			expErr: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "sources").Index(1).Child("secret", "test-bundle", "includeAllKeys"), "cannot include all keys of the target as a source"),
+			},
+		},
 		"invalid namespace selector": {
 			bundle: &trustapi.Bundle{
 				ObjectMeta: metav1.ObjectMeta{Name: "test-bundle-1"},

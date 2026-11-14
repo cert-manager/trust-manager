@@ -145,10 +145,20 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 	if target := bundle.Spec.Target.ConfigMap; target != nil {
 		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
-			if source.ConfigMap != nil && source.ConfigMap.Name == bundle.Name && source.ConfigMap.Key == target.Key {
+			if source.ConfigMap == nil || source.ConfigMap.Name != bundle.Name {
+				continue
+			}
+			if source.ConfigMap.Key == target.Key {
 				el = append(el, field.Forbidden(
 					path.Index(i).Child("configMap", source.ConfigMap.Name, source.ConfigMap.Key),
 					"cannot define the same source as target",
+				))
+			}
+			// includeAllKeys would also read the target key back in as a source.
+			if ptr.Deref(source.ConfigMap.IncludeAllKeys, false) {
+				el = append(el, field.Forbidden(
+					path.Index(i).Child("configMap", source.ConfigMap.Name, "includeAllKeys"),
+					"cannot include all keys of the target as a source",
 				))
 			}
 		}
@@ -157,10 +167,20 @@ func (v *validator) validate(ctx context.Context, bundle *trustapi.Bundle) (admi
 	if target := bundle.Spec.Target.Secret; target != nil {
 		path := path.Child("sources")
 		for i, source := range bundle.Spec.Sources {
-			if source.Secret != nil && source.Secret.Name == bundle.Name && source.Secret.Key == target.Key {
+			if source.Secret == nil || source.Secret.Name != bundle.Name {
+				continue
+			}
+			if source.Secret.Key == target.Key {
 				el = append(el, field.Forbidden(
 					path.Index(i).Child("secret", source.Secret.Name, source.Secret.Key),
 					"cannot define the same source as target",
+				))
+			}
+			// includeAllKeys would also read the target key back in as a source.
+			if ptr.Deref(source.Secret.IncludeAllKeys, false) {
+				el = append(el, field.Forbidden(
+					path.Index(i).Child("secret", source.Secret.Name, "includeAllKeys"),
+					"cannot include all keys of the target as a source",
 				))
 			}
 		}
