@@ -401,6 +401,14 @@ app:
       certificate:
         # Certificate duration, if unset/empty the default from cert-manager will be used. Example configuration to set 1 year: duration: 8766h
         duration: ""
+        # Certificate usages, if unset/empty the default from cert-manager will be used.
+        usages: []
+          # For example:
+          #- key encipherment
+          #- digital signature
+          #- server auth
+        # Certificate commonName/dnsNames suffix. Example configuration, if set to ".cluster.local": commonName/dnsNames will be trust-manager.default.svc.cluster.local instead of trust-manager.default.svc
+        fqdnSuffix: ""
         secretTemplate: {}
           # For example:
           #   annotations:
