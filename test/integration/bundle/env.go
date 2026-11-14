@@ -96,6 +96,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	Expect(webhook.SetupWebhookWithManager(mgr)).Should(Succeed())
+	Expect((&webhook.ClusterBundle{}).SetupWebhookWithManager(mgr)).Should(Succeed())
 
 	By("Writing default package")
 	tmpFileName, err = writeDefaultPackage()
