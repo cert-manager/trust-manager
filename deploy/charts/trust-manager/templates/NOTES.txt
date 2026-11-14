@@ -16,6 +16,16 @@ default CA package image:
 
 It's imperative that you keep the default CA package image up to date.
 {{- end }}
+To ensure the trust-manager webhook is ready before Helm reports
+installation as complete, use the --wait and --wait-for-jobs flags:
+
+  helm install trust-manager jetstack/trust-manager --wait --wait-for-jobs
+
+The startupapicheck Job (enabled by default) will verify webhook readiness
+and complete once the webhook is accepting requests. You can disable it with:
+
+  --set startupapicheck.enabled=false
+
 To find out more about securely running trust-manager and to get started
 with creating your first bundle, check out the documentation on the
 cert-manager website:
