@@ -20,9 +20,11 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"maps"
 	"slices"
 	"strings"
@@ -425,19 +427,38 @@ func TrustBundleHash(data []byte, additionalFormats *trustapi.AdditionalFormats,
 	// Add Target annotations and labels to the hash so it becomes aware of changes
 	// and triggers an update. Iterate in sorted key order so the hash is stable
 	// regardless of Go's randomized map iteration order (#971).
+	//
+	// Each key and value is written with an explicit length prefix. Writing them as
+	// plain concatenations lets different metadata produce the same hash, for example
+	// annotations {"ab": "c"} and {"a": "bc"}, or an annotation {"x": "yz"} and the
+	// combination of an annotation {"x": "y"} with a label {"z": ""}. Such a collision
+	// makes needsUpdate() miss the change and leaves stale annotations or labels on the
+	// target.
 	annotations := target.GetAnnotations()
 	for _, k := range slices.Sorted(maps.Keys(annotations)) {
-		_, _ = hash.Write([]byte(k + annotations[k]))
+		hashWriteString(hash, k)
+		hashWriteString(hash, annotations[k])
 	}
 	labels := target.GetLabels()
 	for _, k := range slices.Sorted(maps.Keys(labels)) {
-		_, _ = hash.Write([]byte(k + labels[k]))
+		hashWriteString(hash, k)
+		hashWriteString(hash, labels[k])
 	}
 
 	hashValue := [32]byte{}
 	hash.Sum(hashValue[:0])
 
 	return hex.EncodeToString(hashValue[:])
+}
+
+// hashWriteString writes s to w prefixed with its length, so that two different
+// key/value pairs cannot hash to the same bytes through plain concatenation
+// (for example "ab"+"c" versus "a"+"bc").
+func hashWriteString(w io.Writer, s string) {
+	var lenBuf [8]byte
+	binary.BigEndian.PutUint64(lenBuf[:], uint64(len(s)))
+	_, _ = w.Write(lenBuf[:])
+	_, _ = io.WriteString(w, s)
 }
 
 func binaryData(pool *util.CertPool, formats *trustapi.AdditionalFormats) (binData map[string][]byte, err error) {
