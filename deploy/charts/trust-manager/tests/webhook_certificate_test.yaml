@@ -46,3 +46,37 @@ tests:
       - equal:
           path: spec.secretTemplate.annotations["test-annotation"]
           value: test-value
+
+  - it: should identify the webhook certificate by dnsNames only
+    documentSelector:
+      path: kind
+      value: Certificate
+
+    asserts:
+      - notExists:
+          path: spec.commonName
+      - equal:
+          path: spec.dnsNames
+          value:
+            - trust-manager.trust.svc
+
+  - it: should not require a commonName in the approver-policy CertificateRequestPolicy
+    set:
+      app:
+        webhook:
+          tls:
+            approverPolicy:
+              enabled: true
+
+    documentSelector:
+      path: kind
+      value: CertificateRequestPolicy
+
+    asserts:
+      - notExists:
+          path: spec.allowed.commonName
+      - equal:
+          path: spec.allowed.dnsNames
+          value:
+            values: ["trust-manager.trust.svc"]
+            required: true

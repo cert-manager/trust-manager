@@ -28,7 +28,6 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  commonName: "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc"
   dnsNames:
   - "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc"
   secretName: {{ include "trust-manager.name" . }}-tls
@@ -61,9 +60,6 @@ metadata:
   {{- end }}
 spec:
   allowed:
-    commonName:
-      value: "{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc"
-      required: true
     dnsNames:
       values: ["{{ include "trust-manager.name" . }}.{{ include "trust-manager.namespace" . }}.svc"]
       required: true
