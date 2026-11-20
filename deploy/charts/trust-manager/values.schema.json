@@ -524,6 +524,9 @@
         "duration": {
           "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.duration"
         },
+        "privateKey": {
+          "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.privateKey"
+        },
         "secretTemplate": {
           "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.secretTemplate"
         }
@@ -534,6 +537,28 @@
       "default": "",
       "description": "Certificate duration, if unset/empty the default from cert-manager will be used. Example configuration to set 1 year: duration: 8766h",
       "type": "string"
+    },
+    "helm-values.app.webhook.tls.certificate.privateKey": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.privateKey.algorithm"
+        },
+        "size": {
+          "$ref": "#/$defs/helm-values.app.webhook.tls.certificate.privateKey.size"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.app.webhook.tls.certificate.privateKey.algorithm": {
+      "default": "",
+      "description": "Private key algorithm: RSA, ECDSA or Ed25519. If unset/empty the default from cert-manager will be used.",
+      "type": "string"
+    },
+    "helm-values.app.webhook.tls.certificate.privateKey.size": {
+      "default": 0,
+      "description": "Private key size in bits for RSA (2048, 4096, 8192) or ECDSA (256, 384, 521). If unset/0 the default from cert-manager will be used.",
+      "type": "number"
     },
     "helm-values.app.webhook.tls.certificate.secretTemplate": {
       "default": {},

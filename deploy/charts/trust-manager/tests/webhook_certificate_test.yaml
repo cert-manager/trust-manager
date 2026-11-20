@@ -80,3 +80,36 @@ tests:
           value:
             values: ["trust-manager.trust.svc"]
             required: true
+
+  - it: should leave the private key algorithm and size to cert-manager by default
+    documentSelector:
+      path: kind
+      value: Certificate
+
+    asserts:
+      - equal:
+          path: spec.privateKey
+          value:
+            rotationPolicy: Always
+
+  - it: should set the private key algorithm and size
+    set:
+      app:
+        webhook:
+          tls:
+            certificate:
+              privateKey:
+                algorithm: ECDSA
+                size: 384
+
+    documentSelector:
+      path: kind
+      value: Certificate
+
+    asserts:
+      - equal:
+          path: spec.privateKey
+          value:
+            rotationPolicy: Always
+            algorithm: ECDSA
+            size: 384
