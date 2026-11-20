@@ -1450,3 +1450,43 @@ func Test_TrustBundleHash_Deterministic(t *testing.T) {
 		}
 	}
 }
+
+func Test_TrustBundleHash_MetadataNoCollision(t *testing.T) {
+	// TrustBundleHash folded each annotation and label into the hash by writing
+	// key+value as a plain concatenation, with no delimiter between key and value
+	// or between the annotations and labels blocks. Different metadata could then
+	// hash to the same value, so needsUpdate() missed the change and left stale
+	// annotations/labels on the target.
+	tests := map[string]struct {
+		a *trustapi.TargetTemplate
+		b *trustapi.TargetTemplate
+	}{
+		"key/value boundary differs within an annotation": {
+			a: &trustapi.TargetTemplate{Metadata: trustapi.TargetMetadata{
+				Annotations: map[string]string{"ab": "c"},
+			}},
+			b: &trustapi.TargetTemplate{Metadata: trustapi.TargetMetadata{
+				Annotations: map[string]string{"a": "bc"},
+			}},
+		},
+		"value split across an annotation and a label": {
+			a: &trustapi.TargetTemplate{Metadata: trustapi.TargetMetadata{
+				Annotations: map[string]string{"x": "yz"},
+			}},
+			b: &trustapi.TargetTemplate{Metadata: trustapi.TargetMetadata{
+				Annotations: map[string]string{"x": "y"},
+				Labels:      map[string]string{"z": ""},
+			}},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			ha := TrustBundleHash([]byte("data"), nil, test.a)
+			hb := TrustBundleHash([]byte("data"), nil, test.b)
+			assert.NotEqual(t, ha, hb, "different target metadata must not share a hash")
+		})
+	}
+}
