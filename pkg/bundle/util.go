@@ -19,7 +19,7 @@ package bundle
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 )
 
 // bundleHasCondition returns true if the bundle has an exact matching condition.
@@ -91,7 +91,7 @@ func (b *bundle) setBundleCondition(
 // reflects the defaultCAVersion represented by requiredID.
 // Returns true if the bundle status needs updating.
 func (b *bundle) setBundleStatusDefaultCAVersion(
-	bundleStatus *trustapi.BundleStatus,
+	bundleStatus *trustmanagerapi.BundleStatus,
 	requiredID string,
 ) bool {
 	currentVersion := bundleStatus.DefaultCAPackageVersion
