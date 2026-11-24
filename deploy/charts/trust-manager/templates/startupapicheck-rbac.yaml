@@ -1,0 +1,61 @@
+{{- if and .Values.startupapicheck.enabled .Values.startupapicheck.serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+automountServiceAccountToken: true
+metadata:
+  name: {{ include "trust-manager.startupapicheck.serviceAccountName" . }}
+  namespace: {{ include "trust-manager.namespace" . }}
+  labels:
+    app: {{ include "trust-manager.name" . }}-startupapicheck
+    {{- include "trust-manager.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- with .Values.imagePullSecrets }}
+imagePullSecrets:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+
+{{- if and .Values.startupapicheck.enabled .Values.global.rbac.create }}
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ include "trust-manager.name" . }}-startupapicheck
+  labels:
+    app: {{ include "trust-manager.name" . }}-startupapicheck
+    {{- include "trust-manager.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+rules:
+- apiGroups:
+  - "trust.cert-manager.io"
+  resources:
+  - "bundles"
+  verbs:
+  - "create"
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ include "trust-manager.name" . }}-startupapicheck
+  labels:
+    app: {{ include "trust-manager.name" . }}-startupapicheck
+    {{- include "trust-manager.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "trust-manager.name" . }}-startupapicheck
+subjects:
+- kind: ServiceAccount
+  name: {{ include "trust-manager.startupapicheck.serviceAccountName" . }}
+  namespace: {{ include "trust-manager.namespace" . }}
+{{- end }}
