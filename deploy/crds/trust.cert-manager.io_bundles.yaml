@@ -35,9 +35,14 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    deprecated: true
+    deprecationWarning: trust.cert-manager.io/v1alpha1 Bundle is deprecated, please
+      migrate to trust-manager.io/v1alpha2 ClusterBundle
     name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: 'Deprecated: v1alpha1.Bundle will be removed in a future release.
+          Migrate to v1alpha2.ClusterBundle instead.'
         properties:
           apiVersion:
             description: |-

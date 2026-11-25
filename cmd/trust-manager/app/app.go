@@ -33,6 +33,7 @@ import (
 
 	"github.com/cert-manager/trust-manager/cmd/trust-manager/app/options"
 	trustapi "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
+	trustmanagerapi "github.com/cert-manager/trust-manager/pkg/apis/trustmanager/v1alpha2"
 	"github.com/cert-manager/trust-manager/pkg/bundle"
 	"github.com/cert-manager/trust-manager/pkg/webhook"
 )
@@ -70,6 +71,7 @@ func NewCommand() *cobra.Command {
 			scheme := runtime.NewScheme()
 			utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 			utilruntime.Must(trustapi.AddToScheme(scheme))
+			utilruntime.Must(trustmanagerapi.AddToScheme(scheme))
 
 			mgr, err := ctrl.NewManager(opts.RestConfig, ctrl.Options{
 				Scheme:                        scheme,
@@ -113,7 +115,10 @@ func NewCommand() *cobra.Command {
 			// Register webhook handlers with manager.
 			log.Info("registering webhook endpoints")
 			if err := webhook.SetupWebhookWithManager(mgr); err != nil {
-				return fmt.Errorf("failed to register webhook: %w", err)
+				return fmt.Errorf("failed to register Bundle webhook: %w", err)
+			}
+			if err := (&webhook.ClusterBundle{}).SetupWebhookWithManager(mgr); err != nil {
+				return fmt.Errorf("failed to register ClusterBundle webhook: %w", err)
 			}
 
 			// Start all runnables and controller
