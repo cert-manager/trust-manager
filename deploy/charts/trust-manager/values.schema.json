@@ -119,6 +119,9 @@
         "leaderElection": {
           "$ref": "#/$defs/helm-values.app.leaderElection"
         },
+        "livenessProbe": {
+          "$ref": "#/$defs/helm-values.app.livenessProbe"
+        },
         "logFormat": {
           "$ref": "#/$defs/helm-values.app.logFormat"
         },
@@ -194,6 +197,60 @@
       "default": "10s",
       "description": "The interval between attempts by the acting leader to renew a leadership slot before it stops leading. This MUST be less than or equal to the lease duration. The default should be sufficient in a healthy cluster but can be slightly increased to prevent trust-manager from restart-looping when the API server is overloaded.",
       "type": "string"
+    },
+    "helm-values.app.livenessProbe": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "$ref": "#/$defs/helm-values.app.livenessProbe.enabled"
+        },
+        "failureThreshold": {
+          "$ref": "#/$defs/helm-values.app.livenessProbe.failureThreshold"
+        },
+        "initialDelaySeconds": {
+          "$ref": "#/$defs/helm-values.app.livenessProbe.initialDelaySeconds"
+        },
+        "periodSeconds": {
+          "$ref": "#/$defs/helm-values.app.livenessProbe.periodSeconds"
+        },
+        "successThreshold": {
+          "$ref": "#/$defs/helm-values.app.livenessProbe.successThreshold"
+        },
+        "timeoutSeconds": {
+          "$ref": "#/$defs/helm-values.app.livenessProbe.timeoutSeconds"
+        }
+      },
+      "type": "object"
+    },
+    "helm-values.app.livenessProbe.enabled": {
+      "default": true,
+      "description": "Whether to configure a liveness probe for the trust-manager container.",
+      "type": "boolean"
+    },
+    "helm-values.app.livenessProbe.failureThreshold": {
+      "default": 6,
+      "description": "Number of consecutive failures after which the container is restarted.",
+      "type": "number"
+    },
+    "helm-values.app.livenessProbe.initialDelaySeconds": {
+      "default": 10,
+      "description": "Number of seconds after the container has started before the liveness probe is initiated.",
+      "type": "number"
+    },
+    "helm-values.app.livenessProbe.periodSeconds": {
+      "default": 10,
+      "description": "How often (in seconds) to perform the liveness probe.",
+      "type": "number"
+    },
+    "helm-values.app.livenessProbe.successThreshold": {
+      "default": 1,
+      "description": "Minimum consecutive successes for the liveness probe to be considered successful after having failed.",
+      "type": "number"
+    },
+    "helm-values.app.livenessProbe.timeoutSeconds": {
+      "default": 5,
+      "description": "Number of seconds after which the liveness probe times out.",
+      "type": "number"
     },
     "helm-values.app.logFormat": {
       "default": "text",

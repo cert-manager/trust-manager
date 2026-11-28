@@ -516,6 +516,48 @@ The container port on which to expose the trust-manager HTTP readiness probe usi
 > ```
 
 The path on which to expose the trust-manager HTTP readiness probe using the default network interface.
+#### **app.livenessProbe.enabled** ~ `bool`
+> Default value:
+> ```yaml
+> true
+> ```
+
+Whether to configure a liveness probe for the trust-manager container.
+#### **app.livenessProbe.initialDelaySeconds** ~ `number`
+> Default value:
+> ```yaml
+> 10
+> ```
+
+Number of seconds after the container has started before the liveness probe is initiated.
+#### **app.livenessProbe.periodSeconds** ~ `number`
+> Default value:
+> ```yaml
+> 10
+> ```
+
+How often (in seconds) to perform the liveness probe.
+#### **app.livenessProbe.timeoutSeconds** ~ `number`
+> Default value:
+> ```yaml
+> 5
+> ```
+
+Number of seconds after which the liveness probe times out.
+#### **app.livenessProbe.successThreshold** ~ `number`
+> Default value:
+> ```yaml
+> 1
+> ```
+
+Minimum consecutive successes for the liveness probe to be considered successful after having failed.
+#### **app.livenessProbe.failureThreshold** ~ `number`
+> Default value:
+> ```yaml
+> 6
+> ```
+
+Number of consecutive failures after which the container is restarted.
 #### **app.trust.namespace** ~ `string`
 > Default value:
 > ```yaml

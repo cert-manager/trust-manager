@@ -1,0 +1,56 @@
+suite: Deployment Probes
+templates:
+  - deployment.yaml
+release:
+  name: tm
+  namespace: trust
+tests:
+  - it: should configure a liveness probe on /healthz by default
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe
+          value:
+            httpGet:
+              port: 6060
+              path: /healthz
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+  - it: should use the readiness probe port for the liveness probe
+    set:
+      app:
+        readinessProbe:
+          port: 7070
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.port
+          value: 7070
+  - it: should allow overriding the liveness probe timings, including 0
+    set:
+      app:
+        livenessProbe:
+          initialDelaySeconds: 0
+          periodSeconds: 30
+          failureThreshold: 3
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.initialDelaySeconds
+          value: 0
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.periodSeconds
+          value: 30
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.failureThreshold
+          value: 3
+  - it: should allow disabling the liveness probe
+    set:
+      app:
+        livenessProbe:
+          enabled: false
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].livenessProbe
+      - exists:
+          path: spec.template.spec.containers[0].readinessProbe
