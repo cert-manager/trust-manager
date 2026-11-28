@@ -87,6 +87,19 @@ spec:
             path: {{ .Values.app.readinessProbe.path }}
           initialDelaySeconds: 3
           periodSeconds: 7
+        {{- with .Values.app.livenessProbe }}
+        {{- if .enabled }}
+        livenessProbe:
+          httpGet:
+            port: {{ $.Values.app.readinessProbe.port }}
+            path: /healthz
+          initialDelaySeconds: {{ .initialDelaySeconds }}
+          periodSeconds: {{ .periodSeconds }}
+          timeoutSeconds: {{ .timeoutSeconds }}
+          successThreshold: {{ .successThreshold }}
+          failureThreshold: {{ .failureThreshold }}
+        {{- end }}
+        {{- end }}
         args:
           {{- with .Values.app.minTLSVersion }}
           - "--tls-min-version={{.}}"

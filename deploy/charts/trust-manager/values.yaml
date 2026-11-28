@@ -328,6 +328,22 @@ app:
     # The path on which to expose the trust-manager HTTP readiness probe using the default network interface.
     path: "/readyz"
 
+  # Liveness probe for the trust-manager container. It uses the `/healthz` endpoint that trust-manager
+  # serves on the readiness probe port (`app.readinessProbe.port`).
+  livenessProbe:
+    # Whether to configure a liveness probe for the trust-manager container.
+    enabled: true
+    # Number of seconds after the container has started before the liveness probe is initiated.
+    initialDelaySeconds: 10
+    # How often (in seconds) to perform the liveness probe.
+    periodSeconds: 10
+    # Number of seconds after which the liveness probe times out.
+    timeoutSeconds: 5
+    # Minimum consecutive successes for the liveness probe to be considered successful after having failed.
+    successThreshold: 1
+    # Number of consecutive failures after which the container is restarted.
+    failureThreshold: 6
+
   trust:
     # The namespace used as the trust source. Note that the namespace _must_ exist
     # before installing trust-manager.
