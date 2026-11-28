@@ -18,6 +18,7 @@ package bundle
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -299,6 +300,7 @@ func Test_Reconcile(t *testing.T) {
 		expBundlePatch          *trustapi.BundleStatus
 		expEvent                string
 		targetNamespaces        []string
+		patchResourceError      func(obj any) error
 	}{
 		"if no bundle exists, should return nothing": {
 			existingSecrets:    []client.Object{sourceSecret},
@@ -1566,6 +1568,48 @@ func Test_Reconcile(t *testing.T) {
 			},
 			expEvent: "Normal Synced Successfully synced Bundle to allowed namespaces that match this label selector: trust-manager.io/namespace in (ns-1,ns-2,outside-ns)",
 		},
+		"if cleanup of a stale target fails, report the error and do not mark the Bundle as synced": {
+			existingNamespaces: []client.Object{
+				&corev1.Namespace{TypeMeta: metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"}, ObjectMeta: metav1.ObjectMeta{Name: trustNamespace}},
+				&corev1.Namespace{TypeMeta: metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"}, ObjectMeta: metav1.ObjectMeta{Name: "ns-1"}},
+				&corev1.Namespace{TypeMeta: metav1.TypeMeta{Kind: "Namespace", APIVersion: "v1"}, ObjectMeta: metav1.ObjectMeta{Name: "ns-2"}},
+			},
+			existingConfigMaps: []client.Object{
+				sourceConfigMap,
+				targetConfigMap("ns-2", map[string]string{targetKey: dummy.TestCertificate1}, nil, ptr.To(targetKey), true, nil),
+			},
+			existingSecrets: []client.Object{sourceSecret},
+			existingBundles: []client.Object{
+				gen.BundleFrom(baseBundle, func(b *trustapi.Bundle) {
+					b.Spec.Target.Secret = nil
+				}),
+			},
+			targetNamespaces: []string{"ns-1"},
+			patchResourceError: func(obj any) error {
+				cm, ok := obj.(*coreapplyconfig.ConfigMapApplyConfiguration)
+				if ok && cm.Namespace != nil && *cm.Namespace == "ns-2" {
+					return errors.New("boom")
+				}
+				return nil
+			},
+			expError: true,
+			expPatches: []any{
+				configMapPatch(baseBundle.Name, "ns-1", map[string]string{targetKey: dummy.DefaultJoinedCerts()}, nil, ptr.To(targetKey), nil),
+			},
+			expBundlePatch: &trustapi.BundleStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:               trustapi.BundleConditionSynced,
+						Status:             metav1.ConditionFalse,
+						LastTransitionTime: fixedmetatime,
+						Reason:             "CleanupTargetFailed",
+						Message:            "Failed to clean up bundle target: failed to clean up target ConfigMap ns-2/test-bundle: failed to patch ConfigMap ns-2/test-bundle: boom",
+						ObservedGeneration: bundleGeneration,
+					},
+				},
+			},
+			expEvent: "Warning CleanupTargetFailed Failed to clean up bundle target: failed to clean up target ConfigMap ns-2/test-bundle: failed to patch ConfigMap ns-2/test-bundle: boom",
+		},
 	}
 
 	deepCopyArray := func(arr []client.Object) []client.Object {
@@ -1618,6 +1662,12 @@ func Test_Reconcile(t *testing.T) {
 					PatchResourceOverwrite: func(ctx context.Context, obj any) error {
 						logMutex.Lock()
 						defer logMutex.Unlock()
+
+						if tt.patchResourceError != nil {
+							if err := tt.patchResourceError(obj); err != nil {
+								return err
+							}
+						}
 
 						resourcePatches = append(resourcePatches, obj)
 						return nil
