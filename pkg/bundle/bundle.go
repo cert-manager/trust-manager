@@ -208,6 +208,8 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 		}
 	}
 
+	var cleanupErrs []error
+
 	// Find all old existing target resources.
 	targetKinds := []target.Kind{target.KindConfigMap}
 	if b.Options.SecretTargetsEnabled {
@@ -259,8 +261,11 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 			}
 
 			if _, err := b.targetReconciler.CleanupTarget(ctx, key, &bundle); err != nil {
-				// Failing target cleanup is not considered critical, log error and continue.
+				// Keep cleaning up the remaining targets, but report the failure at
+				// the end so the Bundle is retried and does not report Synced=True
+				// while a stale target is left behind.
 				targetLog.Error(err, "failed to cleanup bundle target")
+				cleanupErrs = append(cleanupErrs, fmt.Errorf("failed to clean up target %s %s/%s: %w", key.Kind, key.Namespace, key.Name, err))
 			}
 		}
 	}
@@ -294,6 +299,25 @@ func (b *bundle) reconcileBundle(ctx context.Context, req ctrl.Request) (statusP
 			// We need to update if any target is synced.
 			needsUpdate = true
 		}
+	}
+
+	if len(cleanupErrs) > 0 {
+		cleanupErr := utilerrors.NewAggregate(cleanupErrs)
+		b.recorder.Eventf(&bundle, nil, corev1.EventTypeWarning, "CleanupTargetFailed", "SyncFailed", "Failed to clean up bundle target: %s", cleanupErr)
+
+		b.setBundleCondition(
+			bundle.Status.Conditions,
+			&statusPatch.Conditions,
+			metav1.Condition{
+				Type:               trustapi.BundleConditionSynced,
+				Status:             metav1.ConditionFalse,
+				Reason:             "CleanupTargetFailed",
+				Message:            fmt.Sprintf("Failed to clean up bundle target: %s", cleanupErr),
+				ObservedGeneration: bundle.Generation,
+			},
+		)
+
+		return statusPatch, cleanupErr
 	}
 
 	if b.setBundleStatusDefaultCAVersion(statusPatch, resolvedBundle.DefaultCAPackageStringID) {
